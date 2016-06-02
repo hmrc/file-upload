@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload
+package uk.gov.hmrc.fileupload.controllers
 
-import uk.gov.hmrc.fileupload.controllers.EnvelopeController
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import play.api.http.Status
 import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent}
 import play.api.test.FakeRequest
+import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 

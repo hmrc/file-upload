@@ -27,9 +27,11 @@ private object AppDependencies {
   private val domainVersion = "3.5.0"
   private val hmrcTestVersion = "1.6.0"
   private val playReactivemongoVersion = "4.8.0"
+  private val simpleReactivemongoVersion = "4.8.0"
 
   val compile = Seq(
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
+    "uk.gov.hmrc" %% "simple-reactivemongo" % simpleReactivemongoVersion,
 
     ws,
     "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrapVersion,
@@ -52,7 +54,8 @@ private object AppDependencies {
         "uk.gov.hmrc" %% "hmrctest" % hmrcTestVersion % scope,
         "org.scalatest" %% "scalatest" % "2.2.6" % scope,
         "org.pegdown" % "pegdown" % "1.5.0" % scope,
-        "com.typesafe.play" %% "play-test" % PlayVersion.current % scope
+        "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
+        "uk.gov.hmrc" %% "reactivemongo-test" % "1.6.0" % scope
       )
     }.test
   }

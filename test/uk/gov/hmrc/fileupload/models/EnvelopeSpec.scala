@@ -32,9 +32,7 @@ class EnvelopeSpec extends UnitSpec {
     "be parsed to an envelope object" in {
       val json = Json.parse(
         s"""
-          |{
-          |  "id": "0b215e97-11d4-4006-91db-c067e74fc653",
-          |  "constraints": {
+          |{"constraints": {
           |    "contentTypes": [
           |      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
           |      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -61,8 +59,7 @@ class EnvelopeSpec extends UnitSpec {
         maxSize = "12GB",
         maxSizePerItem = "10MB")
 
-      val expectedResult = Envelope(id =  "0b215e97-11d4-4006-91db-c067e74fc653",
-                                    constraints = contraints,
+      val expectedResult = Envelope(constraints = contraints,
                                     callbackUrl = "http://absolute.callback.url",
                                     expiryDate = today,
                                     metadata = Map("anything" -> "the caller wants to add to the envelope"))
@@ -71,6 +68,3 @@ class EnvelopeSpec extends UnitSpec {
     }
   }
 }
-
-
-//  "expires": "2016-04-07T13:15:30Z",

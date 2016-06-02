@@ -18,13 +18,15 @@ package uk.gov.hmrc.fileupload.models
 
 import org.joda.time.DateTime
 import play.api.libs.json.{Json, Reads}
+import reactivemongo.bson.BSONObjectID
 
-
-case class Envelope(id: String, constraints: Constraints, callbackUrl: String, expiryDate: DateTime, metadata: Map[String, String] )
+case class Envelope(constraints: Constraints, callbackUrl: String, expiryDate: DateTime, metadata: Map[String, String] ){
+}
 
 case class Constraints(contentTypes: Seq[String], maxItems: Int, maxSize: String, maxSizePerItem: String )
 
-object  Envelope {
+object Envelope {
+  val id = BSONObjectID.generate
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val constraintsReads = Json.format[Constraints]
   implicit val envelopeReads = Json.format[Envelope]
