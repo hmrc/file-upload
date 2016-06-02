@@ -19,19 +19,64 @@ package uk.gov.hmrc.fileupload
 import uk.gov.hmrc.fileupload.controllers.EnvelopeController
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import play.api.http.Status
+import play.api.libs.json.Json
+import play.api.mvc.{Action, AnyContent}
 import play.api.test.FakeRequest
 
 class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 
+  val fakeRequest = FakeRequest("GET", "/")
 
+  "create envelope with a request" should {
+    "return response with OK status and a Location header specifying the envelope endpoint" in {
+      val requestWithBody = fakeRequest.withJsonBody( Json.parse("""
+          |{
+          |  "id": "0b215e97-11d4-4006-91db-c067e74fc653",
+          |  "constraints": {
+          |    "contentTypes": [
+          |      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          |      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          |      "application/vnd.oasis.opendocument.spreadsheet"
+          |    ],
+          |    "maxItems": 100,
+          |    "maxSize": "12GB",
+          |    "maxSizePerItem": "10MB"
+          |  },
+          |  "callback": "http://absolute.callback.url",
+          |  "expires": "2016-04-07T13:15:30Z",
+          |  "metadata": {
+          |    "anything": "the caller wants to add to the envelope"
+          |  }
+          |}
+        """.stripMargin))
 
-  "create envelope with a description" should {
-    "return response with OK status" in {
-      val result = EnvelopeController.create()
-      result.apply()
+      val result = EnvelopeController.create()(requestWithBody)
       status(result) shouldBe Status.OK
-      result.body.id shouldBe notNull
+      result.header.headers.get("Location") shouldEqual  Some("http://test.com/file-upload/envelope/0b215e97-11d4-4006-91db-c067e74fc653")
     }
   }
 
 }
+
+
+
+/*
+{
+  "id": "0b215e97-11d4-4006-91db-c067e74fc653",
+  "constraints": {
+    "contentTypes": [
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.oasis.opendocument.spreadsheet"
+    ],
+    "maxItems": 100,
+    "maxSize": "12GB",
+    "maxSizePerItem": "10MB"
+  },
+  "callback": "http://absolute.callback.url",
+  "expires": "2016-04-07T13:15:30Z",
+  "metadata": {
+    "anything": "the caller wants to add to the envelope"
+  }
+}
+ */
