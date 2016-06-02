@@ -57,26 +57,3 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
   }
 
 }
-
-
-
-/*
-{
-  "id": "0b215e97-11d4-4006-91db-c067e74fc653",
-  "constraints": {
-    "contentTypes": [
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "application/vnd.oasis.opendocument.spreadsheet"
-    ],
-    "maxItems": 100,
-    "maxSize": "12GB",
-    "maxSizePerItem": "10MB"
-  },
-  "callback": "http://absolute.callback.url",
-  "expires": "2016-04-07T13:15:30Z",
-  "metadata": {
-    "anything": "the caller wants to add to the envelope"
-  }
-}
- */
