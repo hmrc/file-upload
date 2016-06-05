@@ -1,3 +1,5 @@
 # microservice specific routes
 
 GET        /hello-world             uk.gov.hmrc.fileupload.controllers.MicroserviceHelloWorld.hello
+
+GET        /envelope/:id            uk.gov.hmrc.fileupload.controllers.EnvelopeController.show(id: String)

@@ -17,18 +17,23 @@
 package uk.gov.hmrc.fileupload.models
 
 import org.joda.time.DateTime
-import play.api.libs.json.{Json, Reads}
+import play.api.libs.json.{Json, Reads, Format}
 import reactivemongo.bson.BSONObjectID
+import uk.gov.hmrc.fileupload.controllers.{ConstraintsTransferObject, EnvelopeTransferObject}
+import uk.gov.hmrc.mongo.json.BSONObjectIdFormats._
 
-case class Envelope(constraints: Constraints, callbackUrl: String, expiryDate: DateTime, metadata: Map[String, String] ){
-}
+case class Envelope(_id: BSONObjectID, constraints: Constraints, callbackUrl: String, expiryDate: DateTime, metadata: Map[String, String] )
 
 case class Constraints(contentTypes: Seq[String], maxItems: Int, maxSize: String, maxSizePerItem: String )
 
 object Envelope {
-  val id = BSONObjectID.generate
-  implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  implicit val constraintsReads = Json.format[Constraints]
-  implicit val envelopeReads = Json.format[Envelope]
+  def makeEnvelope(envelopeTO: EnvelopeTransferObject): Envelope = {
+    val constraintsTO: ConstraintsTransferObject = envelopeTO.constraints
+    val constraints = new Constraints( contentTypes = constraintsTO.contentTypes, maxItems = constraintsTO.maxItems, maxSize = constraintsTO.maxSize, maxSizePerItem = constraintsTO.maxSizePerItem)
+    new Envelope(_id = BSONObjectID.generate, constraints = constraints, callbackUrl = envelopeTO.callbackUrl, expiryDate = envelopeTO.expiryDate, metadata = envelopeTO.metadata)
+  }
 
+  implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val constraintsReads: Format[Constraints] = Json.format[Constraints]
+  implicit val envelopeReads: Format[Envelope] = Json.format[Envelope]
 }

@@ -17,27 +17,46 @@
 package uk.gov.hmrc.fileupload.repositories
 
 import org.joda.time.DateTime
+import reactivemongo.bson.BSONObjectID
+import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.fileupload.models.{Constraints, Envelope}
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success}
 
 class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplication  {
 
+  import Support._
+
+
   "repository" should {
     "persist an envelope" in {
-      val contraints = Constraints(contentTypes = Seq("contenttype1"), maxItems = 3, maxSize = "1GB", maxSizePerItem = "100MB" )
+      val repository = new EnvelopeRepository(DefaultMongoConnection.db)
+      val contraints = Constraints(contentTypes = Seq("contenttype1"), maxItems = 3, maxSize = "1GB", maxSizePerItem = "100MB")
 
       val expiryDate = new DateTime().plusDays(2)
-      val envelope = Envelope(constraints = contraints, callbackUrl = "http://localhost/myendpoint", expiryDate = expiryDate, metadata = Map("a" -> "1") )
+      val id = BSONObjectID.generate
+      val envelope = Envelope(id, constraints = contraints, callbackUrl = "http://localhost/myendpoint", expiryDate = expiryDate, metadata = Map("a" -> "1"))
 
-      val repository = new EnvelopeRepository
+
       val result = await(repository persist envelope)
       result.hasErrors shouldBe false
 
     }
-  }
+    "retrieve a persisted envelope" in {
+      val repository = new EnvelopeRepository(DefaultMongoConnection.db)
+      val id = BSONObjectID.generate
+      val envelope = createEnvelope(id)
 
+      await(repository persist envelope)
+      val result: Option[Envelope] = await(repository get id)
+
+      result shouldBe Some(envelope)
+
+    }
+  }
 
 
 }

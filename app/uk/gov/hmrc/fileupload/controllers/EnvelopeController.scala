@@ -16,14 +16,29 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import java.io.{PrintWriter, StringWriter}
+
+import akka.util.Timeout
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
+import uk.gov.hmrc.fileupload.actors.{EnvelopeManager, Actors}
+import uk.gov.hmrc.fileupload.models.Envelope
 import uk.gov.hmrc.play.microservice.controller.BaseController
+import akka.pattern._
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-object EnvelopeController extends EnvelopeController
+object EnvelopeController extends BaseController {
+  import Envelope._
 
-trait EnvelopeController extends BaseController {
+  implicit val system = Actors.actorSystem
+  val envelopeManager = Actors.envelopeMgr
+  implicit val ec = system.dispatcher
+  implicit val defaultTimeout = Timeout(2 second)
+
+
 
   def create() = Action.async { implicit request =>
 
@@ -33,5 +48,13 @@ trait EnvelopeController extends BaseController {
     Future.successful(Ok.withHeaders(
       LOCATION -> s"http://test.com/file-upload/envelope/$id"
     ))
+  }
+
+  def show(id: String) = Action.async{
+    ( envelopeManager ? EnvelopeManager.GetEnvelope(id) )
+      .map(_.asInstanceOf[Option[Envelope]])
+      .map( Json.toJson(_) )
+      .map( Ok(_))
+      .recover{ case t => InternalServerError  }
   }
 }

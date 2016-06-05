@@ -16,9 +16,12 @@
 
 package uk.gov.hmrc.fileupload.models
 
+import java.util.UUID
+
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.json.Json
+import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.play.test.UnitSpec
 
 
@@ -59,7 +62,7 @@ class EnvelopeSpec extends UnitSpec {
         maxSize = "12GB",
         maxSizePerItem = "10MB")
 
-      val expectedResult = Envelope(constraints = contraints,
+      val expectedResult = Envelope(BSONObjectID(UUID.randomUUID().toString), contraints,
                                     callbackUrl = "http://absolute.callback.url",
                                     expiryDate = today,
                                     metadata = Map("anything" -> "the caller wants to add to the envelope"))
