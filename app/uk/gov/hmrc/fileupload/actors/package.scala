@@ -33,6 +33,8 @@ package object actors {
     def envelopeMgr: ActorRef
 
     def envelopeStorage: ActorRef
+
+	  def idGenerator: ActorRef
   }
 
   object FileUploadActors extends Actors{
@@ -41,7 +43,9 @@ package object actors {
 
     override lazy val envelopeStorage: ActorRef = actorSystem.actorOf(EnvelopeStorage.props(EnvelopeRepository(EnvelopeRepository.db)), "envelope-storage")
 
-    override lazy val envelopeMgr: ActorRef = actorSystem.actorOf(EnvelopeManager.props(envelopeStorage), "envelope-mgr")
+	  override lazy val idGenerator: ActorRef = actorSystem.actorOf(IdGenerator.props, "id-generator")
+
+    override lazy val envelopeMgr: ActorRef = actorSystem.actorOf(EnvelopeManager.props(envelopeStorage, idGenerator), "envelope-mgr")
   }
 
   object FileUploadTestActors extends Actors{
@@ -53,6 +57,8 @@ package object actors {
     override val envelopeMgr: ActorRef = TestActorRef[ActorStub]
 
     override val envelopeStorage: ActorRef = TestActorRef[ActorStub]
+
+	  override val idGenerator: ActorRef = TestActorRef[ActorStub]
 
     implicit def underLyingActor[T <: Actor](actorRef: ActorRef): T = actorRef.asInstanceOf[TestActorRef[T]].underlyingActor
   }
@@ -66,6 +72,8 @@ package object actors {
     override val envelopeMgr: ActorRef = if(mode == Mode.Test) FileUploadTestActors.envelopeMgr else FileUploadActors.envelopeMgr
 
     override val envelopeStorage: ActorRef = if(mode == Mode.Test) FileUploadTestActors.envelopeStorage else FileUploadActors.envelopeStorage
+
+	  override val idGenerator: ActorRef = if(mode == Mode.Test) FileUploadTestActors.idGenerator else FileUploadActors.idGenerator
   }
 
   class ActorStub extends Actor{

@@ -18,6 +18,7 @@ package uk.gov.hmrc.fileupload.actors
 
 import akka.actor.{ActorLogging, ActorRef, Props, Actor}
 import reactivemongo.bson.BSONObjectID
+import uk.gov.hmrc.fileupload.models.Envelope
 import uk.gov.hmrc.fileupload.repositories.EnvelopeRepository
 
 import scala.concurrent.ExecutionContext
@@ -26,6 +27,7 @@ import scala.util.{Failure, Success}
 
 object EnvelopeStorage{
   case class FindById(id: BSONObjectID)
+	case class Persist(envelope: Envelope)
 
   def props(envelopeRepository: EnvelopeRepository): Props = Props(classOf[EnvelopeStorage], envelopeRepository)
 

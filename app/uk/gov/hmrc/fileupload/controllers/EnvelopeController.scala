@@ -21,6 +21,7 @@ import java.io.{PrintWriter, StringWriter}
 import akka.util.Timeout
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
+import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.actors.{EnvelopeManager, Actors}
 import uk.gov.hmrc.fileupload.models.Envelope
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -43,11 +44,11 @@ object EnvelopeController extends BaseController {
   def create() = Action.async { implicit request =>
 
     val json = request.body.asJson.getOrElse( throw new Exception)
-    val id = (json \ "id").as[String]
 
-    Future.successful(Ok.withHeaders(
-      LOCATION -> s"http://test.com/file-upload/envelope/$id"
-    ))
+	  for{
+	   res <- envelopeManager ? EnvelopeManager.CreateEnvelope(json)
+		  id =  res.asInstanceOf[BSONObjectID]
+	  } yield Ok.withHeaders(LOCATION -> s"${request.host}/${routes.EnvelopeController.show(id.stringify)}")
   }
 
   def show(id: String) = Action.async{

@@ -16,12 +16,15 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import java.util.UUID
+
 import akka.testkit.TestActorRef
 import org.joda.time.DateTime
-import play.api.http.Status
+import play.api.Play
+import play.api.http.{HeaderNames, Status}
 import play.api.libs.json.Json
-import play.api.mvc.Result
-import play.api.test.FakeRequest
+import play.api.mvc.{AnyContentAsJson, AnyContent, AnyContentAsEmpty, Result}
+import play.api.test.{FakeHeaders, FakeRequest}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.actors.{ActorStub, EnvelopeManager, FileUploadTestActors, Actors}
 import uk.gov.hmrc.fileupload.models.{Envelope, Constraints}
@@ -43,31 +46,23 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 
   "create envelope with a request" should {
     "return response with OK status and a Location header specifying the envelope endpoint" in {
-      val fakeRequest = FakeRequest("GET", "/")
-      val requestWithBody = fakeRequest.withJsonBody( Json.parse("""
-          |{
-          |  "id": "0b215e97-11d4-4006-91db-c067e74fc653",
-          |  "constraints": {
-          |    "contentTypes": [
-          |      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          |      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          |      "application/vnd.oasis.opendocument.spreadsheet"
-          |    ],
-          |    "maxItems": 100,
-          |    "maxSize": "12GB",
-          |    "maxSizePerItem": "10MB"
-          |  },
-          |  "callback": "http://absolute.callback.url",
-          |  "expires": "2016-04-07T13:15:30Z",
-          |  "metadata": {
-          |    "anything": "the caller wants to add to the envelope"
-          |  }
-          |}
-        """.stripMargin))
 
-      val result = EnvelopeController.create()(requestWithBody)
-      status(result) shouldBe Status.OK
-      result.header.headers.get("Location") shouldEqual  Some("http://test.com/file-upload/envelope/0b215e97-11d4-4006-91db-c067e74fc653")
+	    val serverUrl = "http://production.com:8000"
+
+	    val fakeRequest = new FakeRequest[AnyContentAsJson]("POST", "/envelope",  FakeHeaders(), body =  AnyContentAsJson(envelopeBody)){
+		    override lazy val host = serverUrl
+	    }
+
+			val id: BSONObjectID = BSONObjectID.generate
+	    val envelopeMgr: ActorStub = FileUploadTestActors.envelopeMgr
+			envelopeMgr.setReply(id)
+
+      val result: Result = await( EnvelopeController.create()(fakeRequest) )
+			result.header.status shouldBe Status.OK
+	    val location = result.header.headers.get("Location").get
+	    location shouldBe s"$serverUrl/${routes.EnvelopeController.show(id.stringify).url}"
+
+
     }
   }
 

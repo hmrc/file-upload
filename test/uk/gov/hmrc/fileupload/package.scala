@@ -1,6 +1,7 @@
 package uk.gov.hmrc
 
 import _root_.play.api.libs.iteratee.{Iteratee, Enumeratee, Enumerator}
+import _root_.play.api.libs.json.Json
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, DefaultTimeout, TestKit}
 import org.joda.time.DateTime
@@ -69,6 +70,27 @@ package object fileupload {
       val expiryDate = new DateTime().plusDays(2)
       Envelope(_id = id, constraints = contraints, callbackUrl = "http://localhost/myendpoint", expiryDate = expiryDate, metadata = Map("a" -> "1") )
     }
+
+	  val envelopeBody = Json.parse( """
+										{
+										  "constraints": {
+										    "contentTypes": [
+										      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+										      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+										      "application/vnd.oasis.opendocument.spreadsheet"
+										    ],
+										    "maxItems": 100,
+										    "maxSize": "12GB",
+										    "maxSizePerItem": "10MB"
+										  },
+										  "callbackUrl": "http://absolute.callback.url",
+										  "expiryDate": "2016-04-07T13:15:30Z",
+										  "metadata": {
+										    "anything": "the caller wants to add to the envelope"
+										  }
+										}
+	              """)
+
 
   }
 }
