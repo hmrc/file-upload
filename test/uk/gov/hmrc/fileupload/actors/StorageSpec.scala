@@ -2,8 +2,10 @@ package uk.gov.hmrc.fileupload.actors
 
 import akka.testkit.TestActors
 import org.joda.time.DateTime
+import play.api.libs.json.{JsResult, JsObject, Json}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.Support
+import uk.gov.hmrc.fileupload.actors.EnvelopeManager.CreateEnvelope
 import uk.gov.hmrc.fileupload.models.{Envelope, Constraints}
 import scala.concurrent.duration._
 
@@ -34,6 +36,21 @@ class StorageSpec extends ActorSpec{
       expectMsg(Option.empty[Envelope])
     }
   }
+
+	"A storage" should {
+		"respond with an Id when it receives a create envelope message" in {
+			within(500 millis) {
+
+				val id = BSONObjectID.generate
+				val rawData = Support.envelopeBody.asInstanceOf[JsObject] ++ Json.obj("_id" -> id.stringify)
+				val envelope = Json.fromJson[Envelope](rawData).get
+
+				storage ! Persist(envelope)
+
+				expectMsg(id)
+			}
+		}
+	}
 
   def createEnvelope = {
     val contraints = Constraints(contentTypes = Seq("contenttype1"), maxItems = 3, maxSize = "1GB", maxSizePerItem = "100MB" )

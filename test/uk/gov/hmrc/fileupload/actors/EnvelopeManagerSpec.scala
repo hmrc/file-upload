@@ -2,6 +2,7 @@ package uk.gov.hmrc.fileupload.actors
 
 import akka.actor.{Inbox, Actor, ActorSystem}
 import akka.testkit.{TestActorRef, TestActors}
+import org.joda.time.DateTime
 import play.api.libs.json.{Json, JsObject, JsValue}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.Support
@@ -13,7 +14,7 @@ import scala.concurrent.duration._
 /**
   * Created by Josiah on 6/3/2016.
   */
-class EnvelopManagerSpec extends ActorSpec{
+class EnvelopeManagerSpec extends ActorSpec{
 
   import scala.language.postfixOps
   import EnvelopeManager._
@@ -22,7 +23,7 @@ class EnvelopManagerSpec extends ActorSpec{
   val envelopMgr = system.actorOf(EnvelopeManager.props(storage, IdGenerator))
 	implicit val ec = system.dispatcher
 
-  "An EnvelopManager" should  {
+  "An EnvelopeManager" should  {
     "respond with BSONObjectID when it receives a GetEnvelop message" in {
       within(500 millis){
         val id = "5752051b69ff59a8732f6474"
@@ -46,6 +47,32 @@ class EnvelopManagerSpec extends ActorSpec{
 
 				val envelope = Json.fromJson[Envelope](expectedJsonEnvelope).get
 				expectMsg(Persist(envelope))
+			}
+		}
+	}
+
+	"expiryDate" should {
+		"be overridden when it is greater than the max expiry days configured" in {
+			val inbox: Inbox = Inbox.create(system)
+			val envelopMgr = system.actorOf(EnvelopeManager.props(inbox.getRef(), IdGenerator))
+
+			within(500 millis) {
+				import Envelope._
+
+				val now: DateTime = DateTime.now()
+				val expiryDate: DateTime = now.plusDays(3)
+				val maxExpiryDate: DateTime = now.plusDays(2)
+
+				val id = BSONObjectID.generate
+				IdGenerator.underlyingActor.setReply(id)
+
+				println(Json.toJson(Support.envelope))
+
+				envelopMgr ! CreateEnvelope( Json.toJson(Support.envelope) )
+
+				val Persist(envelope) =  inbox.receive(timeout.duration).asInstanceOf[Persist]
+				envelope.expiryDate.isBefore(maxExpiryDate) shouldBe true
+
 			}
 		}
 	}

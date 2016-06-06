@@ -46,6 +46,7 @@ class EnvelopeStorage(val envelopeRepository: EnvelopeRepository) extends Actor 
     case FindById(id) =>
       log.info(s"processing find request for id $id")
       findEnvelopeById(id, sender())
+    case Persist(envelope) => persist(envelope, sender())
   }
 
   def findEnvelopeById(byId: BSONObjectID, recipient: ActorRef): Unit = {
@@ -54,6 +55,13 @@ class EnvelopeStorage(val envelopeRepository: EnvelopeRepository) extends Actor 
       case Failure(t) => throw t
     }
   }
+
+	def persist(envelope: Envelope, recipient: ActorRef): Unit = {
+		envelopeRepository.persist(envelope).onComplete {
+			case Success(result) => recipient ! envelope._id
+			case Failure(t) => throw t
+		}
+	}
 
   override def postStop(): Unit = log.info("Envelope storage is going offline")
 }

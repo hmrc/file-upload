@@ -39,8 +39,6 @@ object EnvelopeController extends BaseController {
   implicit val ec = system.dispatcher
   implicit val defaultTimeout = Timeout(2 second)
 
-
-
   def create() = Action.async { implicit request =>
 
     val json = request.body.asJson.getOrElse( throw new Exception)

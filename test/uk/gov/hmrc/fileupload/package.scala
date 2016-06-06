@@ -91,6 +91,7 @@ package object fileupload {
 										}
 	              """)
 
-
+	  def constraints = Constraints(contentTypes = Seq("application/vnd.openxmlformats-officedocument.wordprocessingml.document"), maxItems = 100, maxSize = "12GB?", maxSizePerItem = "10MB")
+	  def envelope = new Envelope(_id = BSONObjectID.generate, constraints = constraints, callbackUrl = "http://absolute.callback.url", expiryDate = DateTime.now().plusDays(3), metadata = Map("anything" -> "the caller wants to add to the envelope"))
   }
 }
