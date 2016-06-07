@@ -1,7 +1,7 @@
 package uk.gov.hmrc
 
 import _root_.play.api.libs.iteratee.{Iteratee, Enumeratee, Enumerator}
-import _root_.play.api.libs.json.Json
+import _root_.play.api.libs.json.{JsString, Json}
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, DefaultTimeout, TestKit}
 import org.joda.time.DateTime
@@ -49,7 +49,7 @@ package object fileupload {
     class EnvelopRepositoryStub(var  data: Map[BSONObjectID, Envelope] = Map()) extends EnvelopeRepository(() => new DBStub){
       import EnvelopRepositoryStub._
 
-      override def persist(envelope: Envelope)(implicit ex: ExecutionContext): Future[WriteResult] = {
+      override def add(envelope: Envelope)(implicit ex: ExecutionContext): Future[WriteResult] = {
         data = data ++ Map(envelope._id -> envelope)
         OkWriteResult(1)
       }
@@ -66,7 +66,7 @@ package object fileupload {
     }
 
 	  def constraints = Constraints(contentTypes = Seq("application/vnd.openxmlformats-officedocument.wordprocessingml.document"), maxItems = 100, maxSize = "12GB", maxSizePerItem = "10MB")
-	  def envelope = new Envelope(_id = BSONObjectID.generate, constraints = constraints, callbackUrl = "http://absolute.callback.url", expiryDate = DateTime.now().plusDays(1), metadata = Map("anything" -> "the caller wants to add to the envelope"))
+	  def envelope = new Envelope(_id = BSONObjectID.generate, constraints = constraints, callbackUrl = "http://absolute.callback.url", expiryDate = DateTime.now().plusDays(1), metadata = Map("anything" -> JsString("the caller wants to add to the envelope")))
 
 
 	  val envelopeBody = Json.toJson[Envelope](envelope )

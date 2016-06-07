@@ -22,7 +22,7 @@ import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.junit.Assert
 import org.junit.Assert.assertTrue
-import play.api.libs.json.Json
+import play.api.libs.json.{JsString, Json}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.play.test.UnitSpec
@@ -72,7 +72,7 @@ class EnvelopeSpec extends UnitSpec {
       val expectedResult = Envelope(objectID, contraints,
                                     callbackUrl = "http://absolute.callback.url",
                                     expiryDate = formatter.parseDateTime(formattedExpiryDate),
-                                    metadata = Map("anything" -> "the caller wants to add to the envelope"))
+                                    metadata = Map("anything" -> JsString("the caller wants to add to the envelope")))
 
       result shouldEqual expectedResult
     }

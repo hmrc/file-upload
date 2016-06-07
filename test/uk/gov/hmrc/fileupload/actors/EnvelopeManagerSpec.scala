@@ -10,7 +10,7 @@ import org.junit.Assert.assertTrue
 import play.api.libs.json.{Json, JsObject, JsValue}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.actors.EnvelopeStorage.Persist
+import uk.gov.hmrc.fileupload.actors.Storage.Save
 import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
 import uk.gov.hmrc.fileupload.models.{ValidationException, Envelope}
 import scala.concurrent.Future
@@ -21,12 +21,12 @@ import scala.concurrent.duration._
 class EnvelopeManagerSpec extends ActorSpec{
 
   import scala.language.postfixOps
-  import EnvelopeManager._
+  import EnvelopeService._
   val MAX_TIME_TO_LIVE = 2
 
 	val storage = system.actorOf(TestActors.echoActorProps)
 	val IdGenerator = TestActorRef[ActorStub]
-  val envelopMgr = system.actorOf(EnvelopeManager.props(storage, IdGenerator, MAX_TIME_TO_LIVE))
+  val envelopMgr = system.actorOf(EnvelopeService.props(storage, IdGenerator, MAX_TIME_TO_LIVE))
 	implicit val ec = system.dispatcher
 
   "An EnvelopeManager" should  {
@@ -34,7 +34,7 @@ class EnvelopeManagerSpec extends ActorSpec{
       within(timeout.duration){
         val id = "5752051b69ff59a8732f6474"
         envelopMgr ! GetEnvelope(id)
-        expectMsg(EnvelopeStorage.FindById(BSONObjectID(id)))
+        expectMsg(Storage.FindById(BSONObjectID(id)))
       }
     }
   }
@@ -52,7 +52,7 @@ class EnvelopeManagerSpec extends ActorSpec{
 				val expectedJsonEnvelope = rawData.asInstanceOf[JsObject] ++  Json.obj("_id" -> id.stringify)
 
 				val envelope = Json.fromJson[Envelope](expectedJsonEnvelope).get
-				expectMsg(Persist(envelope))
+				expectMsg(Save(envelope))
 			}
 		}
 	}
@@ -61,7 +61,7 @@ class EnvelopeManagerSpec extends ActorSpec{
 		"be overridden when it is greater than the max expiry days configured" in {
 			val inbox: Inbox = Inbox.create(system)
 			val storage: ActorRef = inbox.getRef()
-			val envelopMgr = system.actorOf(EnvelopeManager.props(storage, IdGenerator, MAX_TIME_TO_LIVE))
+			val envelopMgr = system.actorOf(EnvelopeService.props(storage, IdGenerator, MAX_TIME_TO_LIVE))
 
 			within(timeout.duration) {
 				import Envelope._
@@ -74,7 +74,7 @@ class EnvelopeManagerSpec extends ActorSpec{
 
 				envelopMgr ! CreateEnvelope( Json.toJson(Support.farInTheFutureEnvelope) )
 
-				val Persist(envelope) =  inbox.receive(timeout.duration).asInstanceOf[Persist]
+				val Save(envelope) =  inbox.receive(timeout.duration).asInstanceOf[Save]
 				assertTrue( isWithinAMinute(maxExpiryDate, envelope.expiryDate) )
 
 			}

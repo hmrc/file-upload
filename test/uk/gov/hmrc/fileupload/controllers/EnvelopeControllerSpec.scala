@@ -27,7 +27,7 @@ import play.api.mvc.{AnyContentAsJson, AnyContent, AnyContentAsEmpty, Result}
 import play.api.test.{FakeHeaders, FakeRequest}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.actors.{ActorStub, EnvelopeManager, FileUploadTestActors, Actors}
+import uk.gov.hmrc.fileupload.actors.{ActorStub, EnvelopeService$, FileUploadTestActors, Actors}
 import uk.gov.hmrc.fileupload.models.{Envelope, Constraints}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 

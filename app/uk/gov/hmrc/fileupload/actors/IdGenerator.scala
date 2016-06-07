@@ -22,13 +22,12 @@ import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
 
 object IdGenerator {
 	def props: Props = Props[IdGenerator]
-
 	case object NextId
 }
 
 class IdGenerator extends Actor {
 
-	override def receive = {
+	def receive = {
 		case NextId => sender() ! BSONObjectID.generate
 	}
 }

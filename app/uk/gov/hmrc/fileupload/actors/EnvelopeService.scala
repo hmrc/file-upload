@@ -18,27 +18,25 @@ package uk.gov.hmrc.fileupload.actors
 
 import akka.actor.{ActorLogging, Props, ActorRef, Actor}
 import akka.util.Timeout
-import org.joda.time.DateTime
-import play.api.libs.json.{Json, JsValue}
+import play.api.libs.json.JsValue
 import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.fileupload.actors.EnvelopeManager.{CreateEnvelope, GetEnvelope}
-import uk.gov.hmrc.fileupload.actors.EnvelopeStorage.Persist
+import uk.gov.hmrc.fileupload.actors.EnvelopeService.{CreateEnvelope, GetEnvelope}
 import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
-import uk.gov.hmrc.fileupload.models.{ValidationException, Envelope}
-import scala.concurrent.{Await, ExecutionContext}
+import uk.gov.hmrc.fileupload.models.Envelope
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import akka.pattern._
-
+import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
-object EnvelopeManager{
+object EnvelopeService{
   case class GetEnvelope(id: String)
 	case class CreateEnvelope(json: JsValue)
 
-  def props(storage: ActorRef, idGenerator: ActorRef, maxTimeToLive: Int): Props = Props(classOf[EnvelopeManager], storage, idGenerator, maxTimeToLive)
+  def props(storage: ActorRef, idGenerator: ActorRef, maxTimeToLive: Int): Props = Props(classOf[EnvelopeService], storage, idGenerator, maxTimeToLive)
 }
 
-class EnvelopeManager(storage: ActorRef, idGenerator: ActorRef, maxTTL: Int) extends Actor with ActorLogging{
+class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, maxTTL: Int) extends Actor with ActorLogging{
 
   implicit val ex: ExecutionContext = context.dispatcher
 	implicit val timeout = Timeout(500 millis)
@@ -48,7 +46,7 @@ class EnvelopeManager(storage: ActorRef, idGenerator: ActorRef, maxTTL: Int) ext
   }
 
   def receive = {
-    case GetEnvelope(id) => storage forward (EnvelopeStorage FindById BSONObjectID(id))
+    case GetEnvelope(id) => storage forward (Storage FindById BSONObjectID(id))
     case CreateEnvelope(source) => createEnvelopeFrom(source, sender())
 
   }
@@ -57,13 +55,11 @@ class EnvelopeManager(storage: ActorRef, idGenerator: ActorRef, maxTTL: Int) ext
 
 
 		log.info(s"processing CreateEnvelope")
-		val f = for { res <- idGenerator ? NextId
+		(for { res <- idGenerator ? NextId
 		              id = res.asInstanceOf[BSONObjectID]
 		              envelope = Envelope.fromJson(source, id, maxTTL)
-		              msg = EnvelopeStorage.Persist(envelope)
-		} yield msg
-
-		f.onComplete {
+		              msg = Storage.Save(envelope)
+		} yield msg) onComplete {
 			case Success(msg) => storage.tell(msg, sender)
 			case f @ Failure(t) => {
 				log.debug(s"$t during envelope creation")

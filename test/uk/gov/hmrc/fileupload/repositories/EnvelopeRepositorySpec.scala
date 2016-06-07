@@ -41,7 +41,7 @@ class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFak
       val envelope = Support.envelope
 
 
-      val result = await(repository persist envelope)
+      val result = await(repository add envelope)
       result.hasErrors shouldBe false
 
     }
@@ -51,7 +51,7 @@ class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFak
       val envelope = Support.envelope
       val id = envelope._id
 
-      await(repository persist envelope)
+      await(repository add envelope)
       val result: Option[Envelope] = await(repository get id)
 
       result shouldBe Some(envelope)

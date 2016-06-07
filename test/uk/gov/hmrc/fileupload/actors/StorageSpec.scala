@@ -5,7 +5,7 @@ import org.joda.time.DateTime
 import play.api.libs.json.{JsResult, JsObject, Json}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.actors.EnvelopeManager.CreateEnvelope
+import uk.gov.hmrc.fileupload.actors.EnvelopeService.CreateEnvelope
 import uk.gov.hmrc.fileupload.models.{Envelope, Constraints}
 import scala.concurrent.duration._
 
@@ -16,8 +16,8 @@ class StorageSpec extends ActorSpec{
 
   import scala.language.postfixOps
   import Support._
-  import EnvelopeStorage._
-  val storage = system.actorOf(EnvelopeStorage.props(envelopRepositoryStub))
+  import Storage._
+  val storage = system.actorOf(Storage.props(envelopRepositoryStub))
 
   "A storage" should{
     "Respond with an Envelop when it receives a find by id message" in {
@@ -45,7 +45,7 @@ class StorageSpec extends ActorSpec{
 				val rawData = Support.envelopeBody.asInstanceOf[JsObject] ++ Json.obj("_id" -> id.stringify)
 				val envelope = Json.fromJson[Envelope](rawData).get
 
-				storage ! Persist(envelope)
+				storage ! Save(envelope)
 
 				expectMsg(id)
 			}

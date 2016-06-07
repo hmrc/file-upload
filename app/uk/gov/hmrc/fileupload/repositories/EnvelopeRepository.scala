@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.fileupload.repositories
 
-import play.api.libs.json.Json
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.DB
 import reactivemongo.api.commands.WriteResult
@@ -26,11 +25,16 @@ import uk.gov.hmrc.mongo.ReactiveRepository
 
 import scala.concurrent.{ExecutionContext, Future}
 
+object DefaultMongoConnection extends MongoDbConnection
+
+object EnvelopeRepository extends MongoDbConnection {
+	def apply(mongo: () => DB): EnvelopeRepository = new EnvelopeRepository(mongo)
+}
 
 class EnvelopeRepository(mongo: () => DB)
   extends ReactiveRepository[Envelope, BSONObjectID](collectionName = "envelopes", mongo, domainFormat = Envelope.envelopeReads ){
 
-  def persist(envelope: Envelope)(implicit ex: ExecutionContext): Future[WriteResult] ={
+  def add(envelope: Envelope)(implicit ex: ExecutionContext): Future[WriteResult] ={
     insert(envelope)
   }
 
@@ -39,10 +43,4 @@ class EnvelopeRepository(mongo: () => DB)
 	  find("_id" -> id.stringify).map(_.headOption)
   }
 
-}
-
-object DefaultMongoConnection extends MongoDbConnection
-
-object EnvelopeRepository extends MongoDbConnection {
-  def apply(mongo: () => DB): EnvelopeRepository = new EnvelopeRepository(mongo)
 }

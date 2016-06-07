@@ -16,21 +16,19 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import java.io.{PrintWriter, StringWriter}
 
 import akka.util.Timeout
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.fileupload.actors.{EnvelopeManager, Actors}
+import uk.gov.hmrc.fileupload.actors.{EnvelopeService, Actors}
 import uk.gov.hmrc.fileupload.models.Envelope
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import akka.pattern._
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.concurrent.Future
 
 object EnvelopeController extends BaseController {
   import Envelope._
@@ -42,21 +40,23 @@ object EnvelopeController extends BaseController {
 
   def create() = Action.async { implicit request =>
 
-    val json = request.body.asJson.getOrElse( throw new Exception)
-		val envelopeLocation = (id: BSONObjectID) => LOCATION -> s"${request.host}${routes.EnvelopeController.show(id.stringify)}"
-
-	  (envelopeManager ? EnvelopeManager.CreateEnvelope(json)).map {
-					case id: BSONObjectID => Ok.withHeaders(envelopeLocation(id))
-				  case e: Exception => ExceptionHandler(e)
+	  def getData = () => request.body.asJson.getOrElse( throw new Exception)
+	  def envelopeLocation = (id: BSONObjectID) => LOCATION -> s"${request.host}${routes.EnvelopeController.show(id.stringify)}"
+	  def createEnvelope = (json: JsValue) => envelopeManager ? EnvelopeService.CreateEnvelope(json)
+	  def onEnvelopeCreated = (any: Any) => any match {
+		  case id: BSONObjectID => Ok.withHeaders(envelopeLocation(id))
+		  case e: Exception => ExceptionHandler(e)
 	  }
-		.mapTo[Result]
-	  .recover{ case _ => InternalServerError}
 
-
+	  Future(getData())
+		  .flatMap(createEnvelope)
+		  .map(onEnvelopeCreated)
+		  .mapTo[Result]
+		  .recover{ case _ => InternalServerError}
   }
 
   def show(id: String) = Action.async{
-    ( envelopeManager ? EnvelopeManager.GetEnvelope(id) )
+    ( envelopeManager ? EnvelopeService.GetEnvelope(id) )
 	    .mapTo[Option[Envelope]]
       .map( Json.toJson(_) )
       .map( Ok(_))

@@ -25,33 +25,26 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
-object EnvelopeStorage{
+object Storage{
   case class FindById(id: BSONObjectID)
-	case class Persist(envelope: Envelope)
+	case class Save(envelope: Envelope)
 
-  def props(envelopeRepository: EnvelopeRepository): Props = Props(classOf[EnvelopeStorage], envelopeRepository)
+  def props(envelopeRepository: EnvelopeRepository): Props = Props(classOf[Storage], envelopeRepository)
 
 }
 
-class EnvelopeStorage(val envelopeRepository: EnvelopeRepository) extends Actor with ActorLogging{
-  import EnvelopeStorage._
+class Storage(val envelopeRepository: EnvelopeRepository) extends Actor with ActorLogging{
+  import Storage._
 
   implicit val ex: ExecutionContext = context.dispatcher
-
-
-	override def unhandled(message: Any): Unit = {
-		log.warning(s"was unable to handle $message")
-	}
 
 	override def preStart(): Unit = {
     log.info("Envelope storage online")
   }
 
   def receive = {
-    case FindById(id) =>
-      log.info(s"processing find request for id $id")
-      findEnvelopeById(id, sender())
-    case Persist(envelope) => persist(envelope, sender())
+    case FindById(id) => findEnvelopeById(id, sender())
+    case Save(envelope) => save(envelope, sender())
   }
 
   def findEnvelopeById(byId: BSONObjectID, recipient: ActorRef): Unit = {
@@ -61,10 +54,12 @@ class EnvelopeStorage(val envelopeRepository: EnvelopeRepository) extends Actor 
     }
   }
 
-	def persist(envelope: Envelope, recipient: ActorRef): Unit = {
-		envelopeRepository.persist(envelope).onComplete {
+	def save(envelope: Envelope, recipient: ActorRef): Unit = {
+		envelopeRepository.add(envelope).onComplete {
 			case Success(result) => recipient ! envelope._id
-			case Failure(t) => throw t
+			case Failure(t) =>
+				println(s"storage is down ${t.getMessage}")
+				throw t  // FIXME  don't watch should we do when the DB is down
 		}
 	}
 

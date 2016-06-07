@@ -19,7 +19,6 @@ package uk.gov.hmrc.fileupload.models
 import org.joda.time.DateTime
 import play.api.libs.json._
 import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.fileupload.controllers.{ConstraintsTransferObject, EnvelopeTransferObject}
 import uk.gov.hmrc.mongo.json.BSONObjectIdFormats._
 
 case class Envelope(_id: BSONObjectID, constraints: Constraints, callbackUrl: String, expiryDate: DateTime, metadata: Map[String, JsValue] ) {
@@ -42,12 +41,13 @@ case class Constraints(contentTypes: Seq[String], maxItems: Int, maxSize: String
 
 object Envelope {
 
+	implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+	implicit val constraintsReads: Format[Constraints] = Json.format[Constraints]
+	implicit val envelopeReads: Format[Envelope] = Json.format[Envelope]
+
 	def fromJson(json: JsValue, _id: BSONObjectID, maxTTL: Int): Envelope = {
 	  val rawData = json.asInstanceOf[JsObject] ++ Json.obj("_id" -> _id )
-
 	  val envelope = Json.fromJson[Envelope](rawData).get
-
-
 		val maxExpiryDate: DateTime = DateTime.now().plusDays(maxTTL)
 
 		envelope.expiryDate.isAfter(maxExpiryDate) match {
@@ -57,7 +57,4 @@ object Envelope {
 
   }
 
-	implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  implicit val constraintsReads: Format[Constraints] = Json.format[Constraints]
-  implicit val envelopeReads: Format[Envelope] = Json.format[Envelope]
 }

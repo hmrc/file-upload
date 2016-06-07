@@ -40,7 +40,7 @@ sealed trait ExceptionHandler[T <: Exception] {
 
 object ValidationExceptionHandler extends ExceptionHandler[ValidationException]{
 
-	override def apply(exception: ValidationException): Result = {
+	def apply(exception: ValidationException): Result = {
 		val response: JsObject = Json.obj("error" -> exception.reason)
 		Result(ResponseHeader(BAD_REQUEST), Enumerator( Json.stringify(response).getBytes ))
 	}
@@ -48,7 +48,7 @@ object ValidationExceptionHandler extends ExceptionHandler[ValidationException]{
 
 object NoSuchElementHandler extends ExceptionHandler[NoSuchElementException]{
 
-	override def apply(exception: NoSuchElementException): Result = {
+	def apply(exception: NoSuchElementException): Result = {
 		val response: JsObject = Json.obj("error" -> "invalid json format")
 		Result(ResponseHeader(BAD_REQUEST), Enumerator( Json.stringify(response).getBytes ))
 	}
