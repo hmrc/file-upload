@@ -47,25 +47,23 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, maxTTL: Int) ext
 
   def receive = {
     case GetEnvelope(id) => storage forward (Storage FindById BSONObjectID(id))
-    case CreateEnvelope(source) => createEnvelopeFrom(source, sender())
+    case CreateEnvelope(data) => createEnvelopeFrom(data, sender())
 
   }
 
-	def createEnvelopeFrom(source: JsValue, sender: ActorRef): Unit = {
-
-
+	def createEnvelopeFrom(data: JsValue, sender: ActorRef): Unit = {
 		log.info(s"processing CreateEnvelope")
-		(for { res <- idGenerator ? NextId
-		              id = res.asInstanceOf[BSONObjectID]
-		              envelope = Envelope.fromJson(source, id, maxTTL)
-		              msg = Storage.Save(envelope)
-		} yield msg) onComplete {
-			case Success(msg) => storage.tell(msg, sender)
-			case f @ Failure(t) => {
-				log.debug(s"$t during envelope creation")
-				sender ! t
+		(idGenerator ? NextId)
+		  .mapTo[BSONObjectID]
+			.map(Envelope.fromJson(data, _, maxTTL))
+			.map(Storage.Save)
+			.onComplete{
+			  case Success(msg) => storage.tell(msg, sender)
+			  case Failure(t) => {
+				  log.debug(s"$t during envelope creation")
+				  sender ! t
+			  }
 			}
-		}
 
 	}
 
