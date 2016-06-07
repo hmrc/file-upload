@@ -48,19 +48,23 @@ class Storage(val envelopeRepository: EnvelopeRepository) extends Actor with Act
   }
 
   def findEnvelopeById(byId: BSONObjectID, recipient: ActorRef): Unit = {
-    envelopeRepository.get(byId).onComplete{
-      case Success(result) => recipient ! result
-      case Failure(t) => throw t
-    }
+    envelopeRepository
+	    .get(byId)
+	    .onComplete{
+	      case Success(result) => recipient ! result
+	      case Failure(t) => throw t
+      }
   }
 
 	def save(envelope: Envelope, recipient: ActorRef): Unit = {
-		envelopeRepository.add(envelope).onComplete {
-			case Success(result) => recipient ! envelope._id
-			case Failure(t) =>
-				println(s"storage is down ${t.getMessage}")
-				throw t  // FIXME  don't watch should we do when the DB is down
-		}
+		envelopeRepository
+			.add(envelope)
+			.onComplete {
+				case Success(result) => recipient ! envelope._id
+				case Failure(t) =>
+					println(s"storage is down ${t.getMessage}")
+					throw t  // FIXME  don't watch should we do when the DB is down
+			}
 	}
 
   override def postStop(): Unit = log.info("Envelope storage is going offline")
