@@ -38,7 +38,7 @@ class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFak
 
       val expiryDate = new DateTime().plusDays(2)
       val id = BSONObjectID.generate
-      val envelope = Envelope(id, constraints = contraints, callbackUrl = "http://localhost/myendpoint", expiryDate = expiryDate, metadata = Map("a" -> "1"))
+      val envelope = Support.envelope
 
 
       val result = await(repository persist envelope)

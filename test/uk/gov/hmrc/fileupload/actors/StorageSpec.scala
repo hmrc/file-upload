@@ -22,7 +22,7 @@ class StorageSpec extends ActorSpec{
   "A storage" should{
     "Respond with an Envelop when it receives a find by id message" in {
       within(500 millis){
-        val optEnvelope = Some(createEnvelope)
+        val optEnvelope = Some(Support.envelope)
         val envelope = optEnvelope.get
         envelopRepositoryStub.data = envelopRepositoryStub.data ++ Map(envelope._id -> envelope)
         storage ! FindById(envelope._id)
@@ -52,9 +52,4 @@ class StorageSpec extends ActorSpec{
 		}
 	}
 
-  def createEnvelope = {
-    val contraints = Constraints(contentTypes = Seq("contenttype1"), maxItems = 3, maxSize = "1GB", maxSizePerItem = "100MB" )
-    val expiryDate = new DateTime().plusDays(2)
-    Envelope(_id = BSONObjectID.generate, constraints = contraints, callbackUrl = "http://localhost/myendpoint", expiryDate = expiryDate, metadata = Map("a" -> "1") )
-  }
 }

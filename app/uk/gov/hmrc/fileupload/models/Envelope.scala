@@ -22,7 +22,7 @@ import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.controllers.{ConstraintsTransferObject, EnvelopeTransferObject}
 import uk.gov.hmrc.mongo.json.BSONObjectIdFormats._
 
-case class Envelope(_id: BSONObjectID, constraints: Constraints, callbackUrl: String, expiryDate: DateTime, metadata: Map[String, String] ) {
+case class Envelope(_id: BSONObjectID, constraints: Constraints, callbackUrl: String, expiryDate: DateTime, metadata: Map[String, JsValue] ) {
 	if(isExpired()) throw ValidationException("expiry date cannot be in the past")
 
 	def isExpired(): Boolean = expiryDate.isBeforeNow
@@ -56,9 +56,6 @@ object Envelope {
 		}
 
   }
-
-
-
 
 	implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val constraintsReads: Format[Constraints] = Json.format[Constraints]
