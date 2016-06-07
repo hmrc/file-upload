@@ -35,7 +35,8 @@ class EnvelopeRepository(mongo: () => DB)
   }
 
   def get(id: BSONObjectID)(implicit ec: ExecutionContext): Future[Option[Envelope]] = {
-    find().map( _.headOption )  // FIXME this is wrong
+	  println(id.stringify)
+	  find("_id" -> id.stringify).map(_.headOption)
   }
 
 }

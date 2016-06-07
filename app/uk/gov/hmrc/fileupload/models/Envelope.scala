@@ -22,17 +22,45 @@ import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.controllers.{ConstraintsTransferObject, EnvelopeTransferObject}
 import uk.gov.hmrc.mongo.json.BSONObjectIdFormats._
 
-case class Envelope(_id: BSONObjectID, constraints: Constraints, callbackUrl: String, expiryDate: DateTime, metadata: Map[String, String] )
+case class Envelope(_id: BSONObjectID, constraints: Constraints, callbackUrl: String, expiryDate: DateTime, metadata: Map[String, String] ) {
+	if(isExpired()) throw ValidationException("expiry date cannot be in the past")
 
-case class Constraints(contentTypes: Seq[String], maxItems: Int, maxSize: String, maxSizePerItem: String )
+	def isExpired(): Boolean = expiryDate.isBeforeNow
+}
+
+case class Constraints(contentTypes: Seq[String], maxItems: Int, maxSize: String, maxSizePerItem: String ) {
+
+	validateSizeFormat("maxSize",  maxSize )
+	validateSizeFormat( "maxSizePerItem", maxSizePerItem )
+
+	def validateSizeFormat(name: String, value: String) = {
+		val pattern = "[0-9]+(GB|MB|KB)".r
+		if(pattern.findFirstIn(value).isEmpty) throw new ValidationException(s"$name has an invalid size format ($value)")
+	}
+
+}
 
 object Envelope {
-  def fromJson(json: JsValue, _id: BSONObjectID): Envelope = {
-	  val tempJson = json.asInstanceOf[JsObject] ++ Json.obj("_id" -> _id )
-	  Json.fromJson[Envelope](tempJson).get
+
+	def fromJson(json: JsValue, _id: BSONObjectID, maxTTL: Int): Envelope = {
+	  val rawData = json.asInstanceOf[JsObject] ++ Json.obj("_id" -> _id )
+
+	  val envelope = Json.fromJson[Envelope](rawData).get
+
+
+		val maxExpiryDate: DateTime = DateTime.now().plusDays(maxTTL)
+
+		envelope.expiryDate.isAfter(maxExpiryDate) match {
+			case true => envelope.copy(expiryDate = maxExpiryDate)
+			case false => envelope
+		}
+
   }
 
-  implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+
+
+
+	implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val constraintsReads: Format[Constraints] = Json.format[Constraints]
   implicit val envelopeReads: Format[Envelope] = Json.format[Envelope]
 }

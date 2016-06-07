@@ -45,10 +45,11 @@ class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFak
       result.hasErrors shouldBe false
 
     }
+
     "retrieve a persisted envelope" in {
       val repository = new EnvelopeRepository(DefaultMongoConnection.db)
-      val id = BSONObjectID.generate
-      val envelope = createEnvelope(id)
+      val envelope = Support.envelope
+      val id = envelope._id
 
       await(repository persist envelope)
       val result: Option[Envelope] = await(repository get id)

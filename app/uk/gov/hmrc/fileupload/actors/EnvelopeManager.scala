@@ -18,24 +18,27 @@ package uk.gov.hmrc.fileupload.actors
 
 import akka.actor.{ActorLogging, Props, ActorRef, Actor}
 import akka.util.Timeout
+import org.joda.time.DateTime
 import play.api.libs.json.{Json, JsValue}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.actors.EnvelopeManager.{CreateEnvelope, GetEnvelope}
 import uk.gov.hmrc.fileupload.actors.EnvelopeStorage.Persist
 import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
-import uk.gov.hmrc.fileupload.models.Envelope
+import uk.gov.hmrc.fileupload.models.{ValidationException, Envelope}
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
 import akka.pattern._
+
+import scala.util.{Failure, Success}
 
 object EnvelopeManager{
   case class GetEnvelope(id: String)
 	case class CreateEnvelope(json: JsValue)
 
-  def props(storage: ActorRef, idGenerator: ActorRef): Props = Props(classOf[EnvelopeManager], storage, idGenerator)
+  def props(storage: ActorRef, idGenerator: ActorRef, maxTimeToLive: Int): Props = Props(classOf[EnvelopeManager], storage, idGenerator, maxTimeToLive)
 }
 
-class EnvelopeManager(storage: ActorRef, idGenerator: ActorRef) extends Actor with ActorLogging{
+class EnvelopeManager(storage: ActorRef, idGenerator: ActorRef, maxTTL: Int) extends Actor with ActorLogging{
 
   implicit val ex: ExecutionContext = context.dispatcher
 	implicit val timeout = Timeout(500 millis)
@@ -51,14 +54,23 @@ class EnvelopeManager(storage: ActorRef, idGenerator: ActorRef) extends Actor wi
   }
 
 	def createEnvelopeFrom(source: JsValue, sender: ActorRef): Unit = {
+
+
 		log.info(s"processing CreateEnvelope")
 		val f = for { res <- idGenerator ? NextId
 		              id = res.asInstanceOf[BSONObjectID]
-		              envelope = Envelope.fromJson(source, id)
+		              envelope = Envelope.fromJson(source, id, maxTTL)
 		              msg = EnvelopeStorage.Persist(envelope)
 		} yield msg
 
-		f.pipeTo(storage)(sender)
+		f.onComplete {
+			case Success(msg) => storage.tell(msg, sender)
+			case f @ Failure(t) => {
+				log.debug(s"$t during envelope creation")
+				sender ! t
+			}
+		}
+
 	}
 
   override def postStop(): Unit = log.info("Envelope storage is going offline")

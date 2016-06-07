@@ -45,7 +45,7 @@ package object actors {
 
 	  override lazy val idGenerator: ActorRef = actorSystem.actorOf(IdGenerator.props, "id-generator")
 
-    override lazy val envelopeMgr: ActorRef = actorSystem.actorOf(EnvelopeManager.props(envelopeStorage, idGenerator), "envelope-mgr")
+    override lazy val envelopeMgr: ActorRef = actorSystem.actorOf(EnvelopeManager.props(envelopeStorage, idGenerator, play.api.Play.current.configuration.getInt("envelope.maxTTL").get), "envelope-mgr")
   }
 
   object FileUploadTestActors extends Actors{

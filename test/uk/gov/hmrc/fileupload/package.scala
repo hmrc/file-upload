@@ -65,33 +65,14 @@ package object fileupload {
       Await.result(futureResult, 500 millis)
     }
 
-    def createEnvelope(id: BSONObjectID) = {
-      val contraints = Constraints(contentTypes = Seq("contenttype1"), maxItems = 3, maxSize = "1GB", maxSizePerItem = "100MB" )
-      val expiryDate = new DateTime().plusDays(2)
-      Envelope(_id = id, constraints = contraints, callbackUrl = "http://localhost/myendpoint", expiryDate = expiryDate, metadata = Map("a" -> "1") )
-    }
+	  def constraints = Constraints(contentTypes = Seq("application/vnd.openxmlformats-officedocument.wordprocessingml.document"), maxItems = 100, maxSize = "12GB", maxSizePerItem = "10MB")
+	  def envelope = new Envelope(_id = BSONObjectID.generate, constraints = constraints, callbackUrl = "http://absolute.callback.url", expiryDate = DateTime.now().plusDays(1), metadata = Map("anything" -> "the caller wants to add to the envelope"))
 
-	  val envelopeBody = Json.parse( """
-										{
-										  "constraints": {
-										    "contentTypes": [
-										      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-										      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-										      "application/vnd.oasis.opendocument.spreadsheet"
-										    ],
-										    "maxItems": 100,
-										    "maxSize": "12GB",
-										    "maxSizePerItem": "10MB"
-										  },
-										  "callbackUrl": "http://absolute.callback.url",
-										  "expiryDate": "2016-04-07T13:15:30Z",
-										  "metadata": {
-										    "anything": "the caller wants to add to the envelope"
-										  }
-										}
-	              """)
 
-	  def constraints = Constraints(contentTypes = Seq("application/vnd.openxmlformats-officedocument.wordprocessingml.document"), maxItems = 100, maxSize = "12GB?", maxSizePerItem = "10MB")
-	  def envelope = new Envelope(_id = BSONObjectID.generate, constraints = constraints, callbackUrl = "http://absolute.callback.url", expiryDate = DateTime.now().plusDays(3), metadata = Map("anything" -> "the caller wants to add to the envelope"))
+	  val envelopeBody = Json.toJson[Envelope](envelope )
+
+	  def expiredEnvelope = envelope.copy(expiryDate = DateTime.now().minusMinutes(3))
+	  def farInTheFutureEnvelope = envelope.copy(expiryDate = DateTime.now().plusDays(3))
+
   }
 }

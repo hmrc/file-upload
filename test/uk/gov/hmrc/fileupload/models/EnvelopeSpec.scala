@@ -20,20 +20,26 @@ import java.util.UUID
 
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
+import org.junit.Assert
+import org.junit.Assert.assertTrue
 import play.api.libs.json.Json
 import reactivemongo.bson.BSONObjectID
+import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.play.test.UnitSpec
+
+import scala.util.Try
 
 
 class EnvelopeSpec extends UnitSpec {
 
   val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  val today = new DateTime().withMillis(0L)
+  val today = new DateTime().plusMinutes(10)
 
 
   "a json value" should {
     "be parsed to an envelope object" in {
-      val json = Json.parse(
+	    val formattedExpiryDate: String = formatter.print(today)
+	    val json = Json.parse(
         s"""
           |{"constraints": {
           |    "contentTypes": [
@@ -46,14 +52,15 @@ class EnvelopeSpec extends UnitSpec {
           |    "maxSizePerItem": "10MB"
           |  },
           |  "callbackUrl": "http://absolute.callback.url",
-          |  "expiryDate": "${formatter.print(today)}",
+          |  "expiryDate": "$formattedExpiryDate",
           |  "metadata": {
           |    "anything": "the caller wants to add to the envelope"
           |  }
           |}
         """.stripMargin)
 
-      val result: Envelope = json.as[Envelope]
+	    val objectID: BSONObjectID = BSONObjectID.generate
+	    val result: Envelope = Envelope.fromJson(json, objectID, maxTTL = 2)
 
       val contraints = Constraints(contentTypes = Seq("application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -62,12 +69,19 @@ class EnvelopeSpec extends UnitSpec {
         maxSize = "12GB",
         maxSizePerItem = "10MB")
 
-      val expectedResult = Envelope(BSONObjectID(UUID.randomUUID().toString), contraints,
+      val expectedResult = Envelope(objectID, contraints,
                                     callbackUrl = "http://absolute.callback.url",
-                                    expiryDate = today,
+                                    expiryDate = formatter.parseDateTime(formattedExpiryDate),
                                     metadata = Map("anything" -> "the caller wants to add to the envelope"))
 
       result shouldEqual expectedResult
     }
   }
+
+	"an envelope" should {
+		"not be created when has an expiry date in the past" in {
+
+			assertTrue(Try(Support.envelope.copy(expiryDate = DateTime.now().minusMinutes(3))).isFailure )
+		}
+	}
 }

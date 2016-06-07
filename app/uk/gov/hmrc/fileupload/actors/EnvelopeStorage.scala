@@ -38,7 +38,12 @@ class EnvelopeStorage(val envelopeRepository: EnvelopeRepository) extends Actor 
 
   implicit val ex: ExecutionContext = context.dispatcher
 
-  override def preStart(): Unit = {
+
+	override def unhandled(message: Any): Unit = {
+		log.warning(s"was unable to handle $message")
+	}
+
+	override def preStart(): Unit = {
     log.info("Envelope storage online")
   }
 

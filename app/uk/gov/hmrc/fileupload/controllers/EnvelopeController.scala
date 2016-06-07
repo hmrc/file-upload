@@ -30,6 +30,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 object EnvelopeController extends BaseController {
   import Envelope._
@@ -42,16 +43,21 @@ object EnvelopeController extends BaseController {
   def create() = Action.async { implicit request =>
 
     val json = request.body.asJson.getOrElse( throw new Exception)
+		val envelopeLocation = (id: BSONObjectID) => LOCATION -> s"${request.host}${routes.EnvelopeController.show(id.stringify)}"
 
-	  for{
-	   res <- envelopeManager ? EnvelopeManager.CreateEnvelope(json)
-		  id =  res.asInstanceOf[BSONObjectID]
-	  } yield Ok.withHeaders(LOCATION -> s"${request.host}/${routes.EnvelopeController.show(id.stringify)}")
+	  (envelopeManager ? EnvelopeManager.CreateEnvelope(json)).map {
+					case id: BSONObjectID => Ok.withHeaders(envelopeLocation(id))
+				  case e: Exception => ExceptionHandler(e)
+	  }
+		.mapTo[Result]
+	  .recover{ case _ => InternalServerError}
+
+
   }
 
   def show(id: String) = Action.async{
     ( envelopeManager ? EnvelopeManager.GetEnvelope(id) )
-      .map(_.asInstanceOf[Option[Envelope]])
+	    .mapTo[Option[Envelope]]
       .map( Json.toJson(_) )
       .map( Ok(_))
       .recover{ case t => InternalServerError  }

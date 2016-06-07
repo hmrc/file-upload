@@ -26,6 +26,7 @@ import play.api.libs.json.Json
 import play.api.mvc.{AnyContentAsJson, AnyContent, AnyContentAsEmpty, Result}
 import play.api.test.{FakeHeaders, FakeRequest}
 import reactivemongo.bson.BSONObjectID
+import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.fileupload.actors.{ActorStub, EnvelopeManager, FileUploadTestActors, Actors}
 import uk.gov.hmrc.fileupload.models.{Envelope, Constraints}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
@@ -60,7 +61,7 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
       val result: Result = await( EnvelopeController.create()(fakeRequest) )
 			result.header.status shouldBe Status.OK
 	    val location = result.header.headers.get("Location").get
-	    location shouldBe s"$serverUrl/${routes.EnvelopeController.show(id.stringify).url}"
+	    location shouldBe s"$serverUrl${routes.EnvelopeController.show(id.stringify).url}"
 
 
     }
@@ -69,7 +70,7 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
   "Get Envelope" should {
     "return an envelope resource when request id is valid" in {
       val id = BSONObjectID.generate
-      val envelope = createEnvelope(id)
+      val envelope = Support.envelope
       val request = FakeRequest("GET", s"/envelope/${id.toString}")
       val envelopeMgr: ActorStub = FileUploadTestActors.envelopeMgr
 
