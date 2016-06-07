@@ -58,7 +58,7 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, maxTTL: Int) ext
 			.map(Envelope.fromJson(data, _, maxTTL))
 			.map(Storage.Save)
 			.onComplete{
-			  case Success(msg) => storage.tell(msg, sender)
+			  case Success(msg) => storage.!(msg)(sender)
 			  case Failure(t) => {
 				  log.debug(s"$t during envelope creation")
 				  sender ! t
