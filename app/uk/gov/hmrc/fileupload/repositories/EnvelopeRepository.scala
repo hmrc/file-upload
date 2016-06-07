@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload.repositories
 
-import play.api.libs.json.Json
+import play.api.libs.json.{JsString, Json}
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.DB
 import reactivemongo.api.commands.WriteResult
@@ -35,9 +35,8 @@ class EnvelopeRepository(mongo: () => DB)
   }
 
   def get(id: BSONObjectID)(implicit ec: ExecutionContext): Future[Option[Envelope]] = {
-    find().map( _.headOption )  // FIXME this is wrong
+	  find("_id" -> id.stringify).map(_.headOption)
   }
-
 }
 
 object DefaultMongoConnection extends MongoDbConnection
