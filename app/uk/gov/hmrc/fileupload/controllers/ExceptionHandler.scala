@@ -53,3 +53,10 @@ object NoSuchElementHandler extends ExceptionHandler[NoSuchElementException]{
 		Result(ResponseHeader(BAD_REQUEST), Enumerator( Json.stringify(response).getBytes ))
 	}
 }
+
+object DefaultExceptionHandler extends ExceptionHandler[Exception]{
+	override def apply(exception: Exception): Result = {
+		val response: JsObject = Json.obj("error" -> exception.getMessage)
+		Result(ResponseHeader(BAD_REQUEST), Enumerator( Json.stringify(response).getBytes ))
+	}
+}

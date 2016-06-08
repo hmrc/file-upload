@@ -41,14 +41,14 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, maxTTL: Int) ext
   implicit val ex: ExecutionContext = context.dispatcher
 	implicit val timeout = Timeout(500 millis)
 
-  override def preStart(): Unit = {
+  override def preStart() {
     log.info("Envelope manager online")
+	  super.preStart()
   }
 
   def receive = {
     case GetEnvelope(id) => storage forward (Storage FindById BSONObjectID(id))
     case CreateEnvelope(data) => createEnvelopeFrom(data, sender())
-
   }
 
 	def createEnvelopeFrom(data: JsValue, sender: ActorRef): Unit = {
@@ -59,13 +59,16 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, maxTTL: Int) ext
 			.map(Storage.Save)
 			.onComplete{
 			  case Success(msg) => storage.!(msg)(sender)
-			  case Failure(t) => {
+			  case Failure(t) =>
 				  log.debug(s"$t during envelope creation")
 				  sender ! t
-			  }
 			}
 
 	}
 
-  override def postStop(): Unit = log.info("Envelope storage is going offline")
+  override def postStop() {
+	  log.info("Envelope storage is going offline")
+	  super.postStop()
+  }
+
 }
