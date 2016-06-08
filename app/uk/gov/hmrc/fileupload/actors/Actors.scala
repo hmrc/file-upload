@@ -25,22 +25,25 @@ trait Actors{
 
 	def actorSystem: ActorSystem
 
-	def envelopeMgr: ActorRef
+	def envelopeService: ActorRef
 
-	def envelopeStorage: ActorRef
+	def storage: ActorRef
 
 	def idGenerator: ActorRef
+
 }
 
 object FileUploadActors extends Actors{
 
+	val envelopeRepository = EnvelopeRepository(DefaultMongoConnection.db)
+
 	override lazy val actorSystem: ActorSystem = ActorSystem("file-upload-actor-system")
 
-	override lazy val envelopeStorage: ActorRef = actorSystem.actorOf(Storage.props(EnvelopeRepository(DefaultMongoConnection.db)), "envelope-storage")
+	override lazy val storage: ActorRef = actorSystem.actorOf(Storage.props(envelopeRepository), "storage")
 
 	override lazy val idGenerator: ActorRef = actorSystem.actorOf(IdGenerator.props, "id-generator")
 
-	override lazy val envelopeMgr: ActorRef = actorSystem.actorOf(EnvelopeService.props(envelopeStorage, idGenerator, play.api.Play.current.configuration.getInt("envelope.maxTTL").get), "envelope-mgr")
+	override lazy val envelopeService: ActorRef = actorSystem.actorOf(EnvelopeService.props(storage, idGenerator, Actors.maxTTL), "envelope-service")
 }
 
 object FileUploadTestActors extends Actors{
@@ -49,9 +52,9 @@ object FileUploadTestActors extends Actors{
 
 	override implicit val actorSystem: ActorSystem = ActorSystem("test-actor-system")
 
-	override val envelopeMgr: ActorRef = TestActorRef[ActorStub]
+	override val envelopeService: ActorRef = TestActorRef[ActorStub]
 
-	override val envelopeStorage: ActorRef = TestActorRef[ActorStub]
+	override val storage: ActorRef = TestActorRef[ActorStub]
 
 	override val idGenerator: ActorRef = TestActorRef[ActorStub]
 
@@ -60,13 +63,15 @@ object FileUploadTestActors extends Actors{
 
 object Actors extends Actors{
 
+	val maxTTL = play.api.Play.current.configuration.getInt("envelope.maxTTL").get
+
 	val mode = play.api.Play.current.mode
 
 	override val actorSystem: ActorSystem = if(mode == Mode.Test) FileUploadTestActors.actorSystem else FileUploadActors.actorSystem
 
-	override val envelopeMgr: ActorRef = if(mode == Mode.Test) FileUploadTestActors.envelopeMgr else FileUploadActors.envelopeMgr
+	override val envelopeService: ActorRef = if(mode == Mode.Test) FileUploadTestActors.envelopeService else FileUploadActors.envelopeService
 
-	override val envelopeStorage: ActorRef = if(mode == Mode.Test) FileUploadTestActors.envelopeStorage else FileUploadActors.envelopeStorage
+	override val storage: ActorRef = if(mode == Mode.Test) FileUploadTestActors.storage else FileUploadActors.storage
 
 	override val idGenerator: ActorRef = if(mode == Mode.Test) FileUploadTestActors.idGenerator else FileUploadActors.idGenerator
 }

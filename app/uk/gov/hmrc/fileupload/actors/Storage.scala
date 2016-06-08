@@ -43,40 +43,44 @@ class Storage(val envelopeRepository: EnvelopeRepository) extends Actor with Act
 
 	override def preStart(): Unit = {
     log.info("Envelope storage online")
+		super.preStart()
   }
 
   def receive = {
-    case FindById(id) => findEnvelopeById(id, sender())
-    case Save(envelope) => save(envelope, sender())
-    case Remove(id) => remove(id, sender())
+    case FindById(id) => findEnvelopeById(id, sender)
+    case Save(envelope) => save(envelope, sender)
+    case Remove(id) => remove(id, sender)
   }
 
-  def findEnvelopeById(byId: BSONObjectID, recipient: ActorRef): Unit = {
+  def findEnvelopeById(byId: BSONObjectID, sender: ActorRef): Unit = {
     envelopeRepository
 	    .get(byId)
 	    .onComplete{
-	      case Success(result) => recipient ! result
+	      case Success(result) => sender ! result
 	      case Failure(t) => throw t
       }
   }
 
-	def save(envelope: Envelope, recipient: ActorRef): Unit = {
+	def save(envelope: Envelope, sender: ActorRef): Unit = {
 		envelopeRepository
 			.add(envelope)
 			.onComplete {
-				case Success(result) => recipient ! envelope._id
-				case Failure(t) =>
-					println(s"storage is down ${t.getMessage}")
-					throw t  // FIXME  don't watch should we do when the DB is down
+				case Success(result) => sender ! envelope._id
+				case Failure(e) =>
+					println(s"storage is down ${e.getMessage}")
+					sender ! e
 			}
 	}
 
 	def remove(id: BSONObjectID, sender: ActorRef): Unit = {
 		envelopeRepository.delete(id).onComplete{
 			case Success(result) => sender ! result
-			case Failure(t) => sender ! t
+			case Failure(e) => sender ! e
 		}
 	}
 
-  override def postStop(): Unit = log.info("Envelope storage is going offline")
+  override def postStop(): Unit = {
+	  log.info("Envelope storage is going offline")
+	  super.postStop()
+  }
 }

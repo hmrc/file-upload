@@ -34,13 +34,11 @@ object EnvelopeService{
 	case class CreateEnvelope(json: JsValue)
 	case class DeleteEnvelope(id: String)
 
-  def props(storage: ActorRef, idGenerator: ActorRef, maxTimeToLive: Int): Props = Props(classOf[EnvelopeService], storage, idGenerator, maxTimeToLive)
-
-
+  def props(storage: ActorRef, idGenerator: ActorRef, maxTTL: Int): Props = Props(classOf[EnvelopeService], storage, idGenerator, maxTTL)
 }
 
 class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, maxTTL: Int) extends Actor with ActorLogging{
-
+	import Storage._
   implicit val ex: ExecutionContext = context.dispatcher
 	implicit val timeout = Timeout(500 millis)
 
@@ -50,9 +48,9 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, maxTTL: Int) ext
   }
 
   def receive = {
-    case GetEnvelope(id) => storage forward (Storage FindById BSONObjectID(id))
+    case GetEnvelope(id) => storage forward FindById(BSONObjectID(id))
     case CreateEnvelope(data) => createEnvelopeFrom(data, sender())
-    case DeleteEnvelope(id) => storage forward (Storage Remove BSONObjectID(id))
+    case DeleteEnvelope(id) => storage forward Remove(BSONObjectID(id))
   }
 
 	def createEnvelopeFrom(data: JsValue, sender: ActorRef): Unit = {
@@ -63,9 +61,9 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, maxTTL: Int) ext
 			.map(Storage.Save)
 			.onComplete{
 			  case Success(msg) => storage.!(msg)(sender)
-			  case Failure(t) =>
-				  log.debug(s"$t during envelope creation")
-				  sender ! t
+			  case Failure(e) =>
+				  log.error(s"$e during envelope creation")
+				  sender ! e
 			}
 
 	}

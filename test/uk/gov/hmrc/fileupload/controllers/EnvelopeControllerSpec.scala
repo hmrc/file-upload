@@ -56,7 +56,7 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 	    }
 
 			val id: BSONObjectID = BSONObjectID.generate
-	    val envelopeMgr: ActorStub = FileUploadTestActors.envelopeMgr
+	    val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
 			envelopeMgr.setReply(id)
 
       val result: Result = await( EnvelopeController.create()(fakeRequest) )
@@ -73,7 +73,7 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
       val id = BSONObjectID.generate
       val envelope = Support.envelope
       val request = FakeRequest("GET", s"/envelope/${id.toString}")
-      val envelopeMgr: ActorStub = FileUploadTestActors.envelopeMgr
+      val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
 
       envelopeMgr.setReply(Some(envelope))
 
@@ -96,7 +96,7 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 			val id = BSONObjectID.generate
 			val request = FakeRequest("DELETE", s"/envelope/${id.toString}")
 
-			val envelopeMgr: ActorStub = FileUploadTestActors.envelopeMgr
+			val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
 			envelopeMgr.setReply(true)
 
 			val futureResult = EnvelopeController.delete(id.toString)(request)
@@ -108,7 +108,7 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 			val id = BSONObjectID.generate
 			val request = FakeRequest("DELETE", s"/envelope/${id.toString}")
 
-			val envelopeMgr: ActorStub = FileUploadTestActors.envelopeMgr
+			val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
 			envelopeMgr.setReply(false)
 
 			val futureResult = EnvelopeController.delete(id.toString)(request)
@@ -120,7 +120,7 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 			val id = BSONObjectID.generate
 			val request = FakeRequest("DELETE", s"/envelope/${id.toString}")
 
-			val envelopeMgr: ActorStub = FileUploadTestActors.envelopeMgr
+			val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
 			envelopeMgr.setReply(new Exception("something broken"))
 
 			val futureResult = EnvelopeController.delete(id.toString)(request)

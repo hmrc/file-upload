@@ -21,8 +21,8 @@ import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
 
 object IdGenerator {
-	def props: Props = Props[IdGenerator]
 	case object NextId
+	def props: Props = Props[IdGenerator]
 }
 
 class IdGenerator extends Actor {

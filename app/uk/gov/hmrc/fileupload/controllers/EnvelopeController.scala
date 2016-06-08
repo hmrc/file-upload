@@ -35,29 +35,29 @@ object EnvelopeController extends BaseController {
 	import Envelope._
 
   implicit val system = Actors.actorSystem
-  val envelopeManager = Actors.envelopeMgr
-  implicit val ec = system.dispatcher
+  implicit val executionContext = system.dispatcher
   implicit val defaultTimeout = Timeout(2 second)
+  val envelopeService = Actors.envelopeService
 
   def create() = Action.async { implicit request =>
 
-	  def getData = () => request.body.asJson.getOrElse( throw new Exception)
+	  def getData = () => Future(request.body.asJson.getOrElse( throw new Exception))
 	  def envelopeLocation = (id: BSONObjectID) => LOCATION -> s"${request.host}${routes.EnvelopeController.show(id.stringify)}"
-	  def createEnvelope = (json: JsValue) => envelopeManager ? EnvelopeService.CreateEnvelope(json)
+	  def createEnvelope = (json: JsValue) => envelopeService ? EnvelopeService.CreateEnvelope(json)
 	  def onEnvelopeCreated = (any: Any) => any match {
 		  case id: BSONObjectID => Ok.withHeaders(envelopeLocation(id))
 		  case e: Exception => ExceptionHandler(e)
 	  }
 
-	  Future(getData())
+	  getData()
 		  .flatMap(createEnvelope)
 		  .map(onEnvelopeCreated)
 		  .mapTo[Result]
-		  .recover{ case _ => InternalServerError}
+		 .recover{ case _ => InternalServerError}
   }
 
   def show(id: String) = Action.async{
-    ( envelopeManager ? EnvelopeService.GetEnvelope(id) )
+    ( envelopeService ? EnvelopeService.GetEnvelope(id) )
 	    .mapTo[Option[Envelope]]
       .map( Json.toJson(_) )
       .map( Ok(_))
@@ -66,7 +66,7 @@ object EnvelopeController extends BaseController {
 
 	def delete(id: String) = Action.async {
 
-		def deleteEnvelope = (id: String) => envelopeManager ? EnvelopeService.DeleteEnvelope(id)
+		def deleteEnvelope = (id: String) => envelopeService ? EnvelopeService.DeleteEnvelope(id)
 		def onEnvelopeDeleted = (any: Any) => any match {
 			case true => Ok
 			case false => NotFound
