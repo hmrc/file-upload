@@ -66,13 +66,11 @@ object EnvelopeController extends BaseController {
 
 	def delete(id: String) = Action.async {
 
-		def deleteEnvelope = (id: String) => {
-			envelopeManager ? EnvelopeService.DeleteEnvelope(id)
-		}
+		def deleteEnvelope = (id: String) => envelopeManager ? EnvelopeService.DeleteEnvelope(id)
 		def onEnvelopeDeleted = (any: Any) => any match {
 			case true => Ok
 			case false => NotFound
-			case e: Exception => ExceptionHandler(e)
+			case e: Throwable => ExceptionHandler(e)
 		}
 
 		deleteEnvelope(id)

@@ -21,7 +21,7 @@ import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{ResponseHeader, Result}
 import uk.gov.hmrc.fileupload.models.ValidationException
-
+import play.api.Logger
 object ExceptionHandler{
 
 	def apply[T <: Throwable](exception: T): Result = exception match {
@@ -65,6 +65,7 @@ object BadRequestHandler extends ExceptionHandler[BadRequestException]{
 
 object DefaultExceptionHandler extends ExceptionHandler[Throwable]{
 	override def apply(exception: Throwable): Result = {
+		Logger.error("Internal server exception", exception)
 		val response: JsObject = Json.obj("reason" -> "Internal Server Error")
 		Result(ResponseHeader(INTERNAL_SERVER_ERROR), Enumerator( Json.stringify(response).getBytes ))
 	}

@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package uk.gov.hmrc
 
 import _root_.play.api.libs.iteratee.{Iteratee, Enumeratee, Enumerator}
@@ -36,31 +52,7 @@ package object fileupload {
       override def reportFailure(cause: Throwable): Unit = throw cause
     }
 
-    class DBStub extends DB {
-      override def connection: MongoConnection = ???
-
-      override def failoverStrategy: FailoverStrategy = ???
-
-      override def name: String = ???
-    }
-
-    object EnvelopRepositoryStub{
-      def OkWriteResult(n: Int) : Future[WriteResult] = Future.successful(DefaultWriteResult(ok = true, n, Seq(), None, Some(1), None))
-    }
-
-    class EnvelopRepositoryStub(var  data: Map[BSONObjectID, Envelope] = Map()) extends EnvelopeRepository(() => new DBStub){
-      import EnvelopRepositoryStub._
-
-      override def add(envelope: Envelope)(implicit ex: ExecutionContext): Future[WriteResult] = {
-        data = data ++ Map(envelope._id -> envelope)
-        OkWriteResult(1)
-      }
-
-      override def get(byId: BSONObjectID)(implicit ec: ExecutionContext): Future[Option[Envelope]] = Future.successful(data.get(byId))
-    }
-
     val blockingExeContext: ExecutionContext = new BlockingExecutionContext()
-    val envelopRepositoryStub = new EnvelopRepositoryStub
 
     def consume(data: Enumerator[Array[Byte]])(implicit ec: ExecutionContext): Array[Byte] = {
       val futureResult: Future[Array[Byte]] = data  |>>> Iteratee.consume[Array[Byte]]()

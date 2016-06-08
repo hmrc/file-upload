@@ -121,7 +121,7 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 			val request = FakeRequest("DELETE", s"/envelope/${id.toString}")
 
 			val envelopeMgr: ActorStub = FileUploadTestActors.envelopeMgr
-			envelopeMgr.setReply(Try(throw new Exception("something broken")))
+			envelopeMgr.setReply(new Exception("something broken"))
 
 			val futureResult = EnvelopeController.delete(id.toString)(request)
 			val result = Await.result(futureResult, defaultTimeout)
