@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.actors
 import akka.actor.{Actor, ActorRef, ActorSystem}
 import akka.testkit.TestActorRef
 import play.api.Mode
-import uk.gov.hmrc.fileupload.repositories.EnvelopeRepository
+import uk.gov.hmrc.fileupload.repositories.{DefaultMongoConnection, EnvelopeRepository}
 
 trait Actors{
 
@@ -36,7 +36,7 @@ object FileUploadActors extends Actors{
 
 	override lazy val actorSystem: ActorSystem = ActorSystem("file-upload-actor-system")
 
-	override lazy val envelopeStorage: ActorRef = actorSystem.actorOf(Storage.props(EnvelopeRepository(EnvelopeRepository.db)), "envelope-storage")
+	override lazy val envelopeStorage: ActorRef = actorSystem.actorOf(Storage.props(EnvelopeRepository(DefaultMongoConnection.db)), "envelope-storage")
 
 	override lazy val idGenerator: ActorRef = actorSystem.actorOf(IdGenerator.props, "id-generator")
 

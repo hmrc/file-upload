@@ -20,7 +20,7 @@ import akka.actor.{ActorLogging, Props, ActorRef, Actor}
 import akka.util.Timeout
 import play.api.libs.json.JsValue
 import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.fileupload.actors.EnvelopeService.{CreateEnvelope, GetEnvelope}
+import uk.gov.hmrc.fileupload.actors.EnvelopeService.{DeleteEnvelope, CreateEnvelope, GetEnvelope}
 import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
 import uk.gov.hmrc.fileupload.models.Envelope
 import scala.concurrent.ExecutionContext
@@ -32,8 +32,11 @@ import scala.util.{Failure, Success}
 object EnvelopeService{
   case class GetEnvelope(id: String)
 	case class CreateEnvelope(json: JsValue)
+	case class DeleteEnvelope(id: String)
 
   def props(storage: ActorRef, idGenerator: ActorRef, maxTimeToLive: Int): Props = Props(classOf[EnvelopeService], storage, idGenerator, maxTimeToLive)
+
+
 }
 
 class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, maxTTL: Int) extends Actor with ActorLogging{
@@ -49,6 +52,7 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, maxTTL: Int) ext
   def receive = {
     case GetEnvelope(id) => storage forward (Storage FindById BSONObjectID(id))
     case CreateEnvelope(data) => createEnvelopeFrom(data, sender())
+    case DeleteEnvelope(id) => storage forward (Storage Remove BSONObjectID(id))
   }
 
 	def createEnvelopeFrom(data: JsValue, sender: ActorRef): Unit = {

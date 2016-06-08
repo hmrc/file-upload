@@ -32,6 +32,7 @@ import uk.gov.hmrc.fileupload.models.{Envelope, Constraints}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.util.Try
 
 class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 
@@ -90,6 +91,48 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
     }
   }
 
+	"Delete Envelope" should {
+		"respond with 200 OK status" in {
+			val id = BSONObjectID.generate
+			val request = FakeRequest("DELETE", s"/envelope/${id.toString}")
 
+			val envelopeMgr: ActorStub = FileUploadTestActors.envelopeMgr
+			envelopeMgr.setReply(true)
+
+			val futureResult = EnvelopeController.delete(id.toString)(request)
+			status(futureResult) shouldBe Status.OK
+
+		}
+
+		"respond with 404 NOT FOUND status" in {
+			val id = BSONObjectID.generate
+			val request = FakeRequest("DELETE", s"/envelope/${id.toString}")
+
+			val envelopeMgr: ActorStub = FileUploadTestActors.envelopeMgr
+			envelopeMgr.setReply(false)
+
+			val futureResult = EnvelopeController.delete(id.toString)(request)
+			status(futureResult) shouldBe Status.NOT_FOUND
+
+		}
+
+		"respond with 500 INTERNAL SERVER ERROR status" in {
+			val id = BSONObjectID.generate
+			val request = FakeRequest("DELETE", s"/envelope/${id.toString}")
+
+			val envelopeMgr: ActorStub = FileUploadTestActors.envelopeMgr
+			envelopeMgr.setReply(Try(throw new Exception("something broken")))
+
+			val futureResult = EnvelopeController.delete(id.toString)(request)
+			val result = Await.result(futureResult, defaultTimeout)
+
+			val actualRespone = Json.parse(consume(result.body))
+			val expectedResponse = Json.parse("""{"reason": "Internal Server Error" }""")
+
+			result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
+			actualRespone shouldBe expectedResponse
+		}
+
+	}
 
 }

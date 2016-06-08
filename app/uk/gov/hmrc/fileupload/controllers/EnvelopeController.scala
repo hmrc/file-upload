@@ -29,9 +29,10 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 import scala.concurrent.Future
+import scala.util.{Failure, Success, Try}
 
 object EnvelopeController extends BaseController {
-  import Envelope._
+	import Envelope._
 
   implicit val system = Actors.actorSystem
   val envelopeManager = Actors.envelopeMgr
@@ -62,4 +63,21 @@ object EnvelopeController extends BaseController {
       .map( Ok(_))
       .recover{ case t => InternalServerError  }
   }
+
+	def delete(id: String) = Action.async {
+
+		def deleteEnvelope = (id: String) => {
+			envelopeManager ? EnvelopeService.DeleteEnvelope(id)
+		}
+		def onEnvelopeDeleted = (any: Any) => any match {
+			case true => Ok
+			case false => NotFound
+			case e: Exception => ExceptionHandler(e)
+		}
+
+		deleteEnvelope(id)
+		  .map(onEnvelopeDeleted)
+		  .mapTo[Result]
+		  .recover { case e =>  ExceptionHandler(e) }
+	}
 }

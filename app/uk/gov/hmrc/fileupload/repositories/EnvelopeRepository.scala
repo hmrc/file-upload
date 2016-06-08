@@ -24,10 +24,11 @@ import uk.gov.hmrc.fileupload.models.Envelope
 import uk.gov.hmrc.mongo.ReactiveRepository
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 object DefaultMongoConnection extends MongoDbConnection
 
-object EnvelopeRepository extends MongoDbConnection {
+object EnvelopeRepository  {
 	def apply(mongo: () => DB): EnvelopeRepository = new EnvelopeRepository(mongo)
 }
 
@@ -39,8 +40,11 @@ class EnvelopeRepository(mongo: () => DB)
   }
 
   def get(id: BSONObjectID)(implicit ec: ExecutionContext): Future[Option[Envelope]] = {
-	  println(id.stringify)
 	  find("_id" -> id.stringify).map(_.headOption)
   }
+
+	def delete(id: BSONObjectID)(implicit ec: ExecutionContext): Future[Boolean] = {
+		remove("_id" -> id.stringify).map(_.ok)
+	}
 
 }

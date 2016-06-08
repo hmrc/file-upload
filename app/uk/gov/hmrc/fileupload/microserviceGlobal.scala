@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload
 import com.typesafe.config.Config
 import play.api.mvc.{Result, RequestHeader}
 import play.api.{Application, Configuration, Play}
-import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
+import uk.gov.hmrc.fileupload.controllers.{BadRequestException, ExceptionHandler}
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
@@ -69,6 +69,6 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   override val authFilter = Some(MicroserviceAuthFilter)
 
 	override def onBadRequest(request: RequestHeader, error: String): Future[Result] = {
-		Future(ExceptionHandler(new Exception(error)))(ExecutionContext.global)
+		Future(ExceptionHandler(new BadRequestException(error)))(ExecutionContext.global)
 	}
 }

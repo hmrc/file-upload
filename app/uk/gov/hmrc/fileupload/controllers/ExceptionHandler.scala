@@ -24,14 +24,16 @@ import uk.gov.hmrc.fileupload.models.ValidationException
 
 object ExceptionHandler{
 
-	def apply[T <: Exception](exception: T): Result = exception match {
+	def apply[T <: Throwable](exception: T): Result = exception match {
 		case e : ValidationException => ValidationExceptionHandler(e)
 		case e : NoSuchElementException => NoSuchElementHandler(e)
+		case e : BadRequestException => BadRequestHandler(e)
+		case e : Throwable => DefaultExceptionHandler(e)
 	}
 
 }
 
-sealed trait ExceptionHandler[T <: Exception] {
+sealed trait ExceptionHandler[T <: Throwable] {
 
 	def apply(exception: T): Result
 
@@ -41,7 +43,7 @@ sealed trait ExceptionHandler[T <: Exception] {
 object ValidationExceptionHandler extends ExceptionHandler[ValidationException]{
 
 	def apply(exception: ValidationException): Result = {
-		val response: JsObject = Json.obj("error" -> exception.reason)
+		val response: JsObject = Json.obj("reason" -> exception.reason)
 		Result(ResponseHeader(BAD_REQUEST), Enumerator( Json.stringify(response).getBytes ))
 	}
 }
@@ -49,14 +51,21 @@ object ValidationExceptionHandler extends ExceptionHandler[ValidationException]{
 object NoSuchElementHandler extends ExceptionHandler[NoSuchElementException]{
 
 	def apply(exception: NoSuchElementException): Result = {
-		val response: JsObject = Json.obj("error" -> "invalid json format")
+		val response: JsObject = Json.obj("reason" -> "invalid json format")
 		Result(ResponseHeader(BAD_REQUEST), Enumerator( Json.stringify(response).getBytes ))
 	}
 }
 
-object DefaultExceptionHandler extends ExceptionHandler[Exception]{
-	override def apply(exception: Exception): Result = {
-		val response: JsObject = Json.obj("error" -> exception.getMessage)
+object BadRequestHandler extends ExceptionHandler[BadRequestException]{
+	override def apply(exception: BadRequestException): Result = {
+		val response: JsObject = Json.obj("reason" -> exception.getMessage)
 		Result(ResponseHeader(BAD_REQUEST), Enumerator( Json.stringify(response).getBytes ))
+	}
+}
+
+object DefaultExceptionHandler extends ExceptionHandler[Throwable]{
+	override def apply(exception: Throwable): Result = {
+		val response: JsObject = Json.obj("reason" -> "Internal Server Error")
+		Result(ResponseHeader(INTERNAL_SERVER_ERROR), Enumerator( Json.stringify(response).getBytes ))
 	}
 }

@@ -5,6 +5,7 @@ import _root_.play.api.libs.json.{JsString, Json}
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, DefaultTimeout, TestKit}
 import org.joda.time.DateTime
+import org.openqa.selenium.By.ById
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import reactivemongo.api.commands.{DefaultWriteResult, WriteResult}
 import reactivemongo.bson.BSONObjectID
@@ -13,6 +14,7 @@ import uk.gov.hmrc.fileupload.models.Constraints
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.util.Try
 
 /**
   * Created by Josiah on 6/4/2016.

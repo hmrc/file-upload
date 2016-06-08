@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.repositories
 
 import org.joda.time.DateTime
+import org.junit
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.fileupload.models.{Constraints, Envelope}
@@ -34,12 +35,7 @@ class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFak
   "repository" should {
     "persist an envelope" in {
       val repository = new EnvelopeRepository(DefaultMongoConnection.db)
-      val contraints = Constraints(contentTypes = Seq("contenttype1"), maxItems = 3, maxSize = "1GB", maxSizePerItem = "100MB")
-
-      val expiryDate = new DateTime().plusDays(2)
-      val id = BSONObjectID.generate
       val envelope = Support.envelope
-
 
       val result = await(repository add envelope)
       result.hasErrors shouldBe false
@@ -57,6 +53,18 @@ class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFak
       result shouldBe Some(envelope)
 
     }
+
+	  "remove a persisted envelope" in {
+		  val repository = new EnvelopeRepository(DefaultMongoConnection.db)
+		  val envelope = Support.envelope
+		  val id = envelope._id
+
+		  await(repository add envelope)
+		  val result: Boolean = await(repository delete id)
+
+		  result shouldBe true
+		  junit.Assert.assertTrue( await(repository get id).isEmpty )
+	  }
   }
 
 

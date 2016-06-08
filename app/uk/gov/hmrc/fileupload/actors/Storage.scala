@@ -17,17 +17,20 @@
 package uk.gov.hmrc.fileupload.actors
 
 import akka.actor.{ActorLogging, ActorRef, Props, Actor}
+import play.api.libs.json.Json
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.models.Envelope
 import uk.gov.hmrc.fileupload.repositories.EnvelopeRepository
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.util.parsing.json.JSONObject
 import scala.util.{Failure, Success}
 
 object Storage{
   case class FindById(id: BSONObjectID)
 	case class Save(envelope: Envelope)
+	case class Remove(id: BSONObjectID)
 
   def props(envelopeRepository: EnvelopeRepository): Props = Props(classOf[Storage], envelopeRepository)
 
@@ -45,6 +48,7 @@ class Storage(val envelopeRepository: EnvelopeRepository) extends Actor with Act
   def receive = {
     case FindById(id) => findEnvelopeById(id, sender())
     case Save(envelope) => save(envelope, sender())
+    case Remove(id) => remove(id, sender())
   }
 
   def findEnvelopeById(byId: BSONObjectID, recipient: ActorRef): Unit = {
@@ -65,6 +69,13 @@ class Storage(val envelopeRepository: EnvelopeRepository) extends Actor with Act
 					println(s"storage is down ${t.getMessage}")
 					throw t  // FIXME  don't watch should we do when the DB is down
 			}
+	}
+
+	def remove(id: BSONObjectID, sender: ActorRef): Unit = {
+		envelopeRepository.delete(id).onComplete{
+			case Success(result) => sender ! result
+			case Failure(t) => sender ! t
+		}
 	}
 
   override def postStop(): Unit = log.info("Envelope storage is going offline")

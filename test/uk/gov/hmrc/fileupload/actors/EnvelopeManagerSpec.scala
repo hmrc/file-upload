@@ -15,6 +15,8 @@ import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
 import uk.gov.hmrc.fileupload.models.{ValidationException, Envelope}
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.util.Try
+
 /**
   * Created by Josiah on 6/3/2016.
   */
@@ -77,6 +79,16 @@ class EnvelopeManagerSpec extends ActorSpec{
 				val Save(envelope) =  inbox.receive(timeout.duration).asInstanceOf[Save]
 				assertTrue( isWithinAMinute(maxExpiryDate, envelope.expiryDate) )
 
+			}
+		}
+	}
+
+	"An EnvelopeManager" should  {
+		"respond with Success after deleting an envelope" in {
+			within(timeout.duration){
+				val id = "5752051b69ff59a8732f6474"
+				envelopMgr ! DeleteEnvelope(id)
+				expectMsg( Storage.Remove(BSONObjectID(id)) )
 			}
 		}
 	}
