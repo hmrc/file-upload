@@ -37,6 +37,7 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
   import FileUploadTestActors._
   import scala.language.postfixOps
   import Envelope._
+	import Support.Implicits._
 
   implicit val ec = ExecutionContext.global
   override implicit val defaultTimeout = 500 milliseconds

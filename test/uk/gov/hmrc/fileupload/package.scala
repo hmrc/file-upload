@@ -68,7 +68,10 @@ package object fileupload {
 	  def expiredEnvelope = envelope.copy(expiryDate = DateTime.now().minusMinutes(3))
 	  def farInTheFutureEnvelope = envelope.copy(expiryDate = DateTime.now().plusDays(3))
 
-	  implicit def underLyingActor[T <: Actor](actorRef: ActorRef): T = actorRef.asInstanceOf[TestActorRef[T]].underlyingActor
+
+	  object Implicits{
+		  implicit def underLyingActor[T <: Actor](actorRef: ActorRef): T = actorRef.asInstanceOf[TestActorRef[T]].underlyingActor
+	  }
 
   }
 }

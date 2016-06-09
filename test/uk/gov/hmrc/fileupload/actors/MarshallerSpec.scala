@@ -55,6 +55,7 @@ class MarshallerSpec extends ActorSpec{
 				val json = Json.toJson[Envelope](envelope)
 
 				marshaller ! UnMarshall(json, classOf[Envelope])
+
 				expectMsg(envelope)
 			}
 		}
