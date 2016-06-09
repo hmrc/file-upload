@@ -65,6 +65,14 @@ class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFak
 		  result shouldBe true
 		  junit.Assert.assertTrue( await(repository get id).isEmpty )
 	  }
+
+	  "return nothing for a none existent envelope" in {
+		  val repository = new EnvelopeRepository(DefaultMongoConnection.db)
+			val id = BSONObjectID.generate
+
+		  val result = await(repository get id)
+		  result shouldBe None
+	  }
   }
 
 

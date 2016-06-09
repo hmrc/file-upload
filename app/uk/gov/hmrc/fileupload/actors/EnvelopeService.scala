@@ -22,6 +22,7 @@ import play.api.libs.json.JsValue
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.actors.EnvelopeService.{DeleteEnvelope, CreateEnvelope, GetEnvelope}
 import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
+import uk.gov.hmrc.fileupload.controllers.BadRequestException
 import uk.gov.hmrc.fileupload.models.Envelope
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -34,11 +35,13 @@ object EnvelopeService{
 	case class CreateEnvelope(json: JsValue)
 	case class DeleteEnvelope(id: String)
 
-  def props(storage: ActorRef, idGenerator: ActorRef, maxTTL: Int): Props = Props(classOf[EnvelopeService], storage, idGenerator, maxTTL)
+  def props(storage: ActorRef, idGenerator: ActorRef, marshaller: ActorRef, maxTTL: Int): Props =
+	  Props(classOf[EnvelopeService], storage, idGenerator, marshaller, maxTTL)
 }
 
-class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, maxTTL: Int) extends Actor with ActorLogging{
+class EnvelopeService(storage: ActorRef, idGenerator: ActorRef,marshaller: ActorRef, maxTTL: Int) extends Actor with ActorLogging{
 	import Storage._
+	import Marshaller._
   implicit val ex: ExecutionContext = context.dispatcher
 	implicit val timeout = Timeout(500 millis)
 
@@ -48,16 +51,26 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, maxTTL: Int) ext
   }
 
   def receive = {
-    case GetEnvelope(id) => storage forward FindById(BSONObjectID(id))
-    case CreateEnvelope(data) => createEnvelopeFrom(data, sender())
-    case DeleteEnvelope(id) => storage forward Remove(BSONObjectID(id))
+    case GetEnvelope(id)        => getEnvelopeFor(id, sender())
+    case CreateEnvelope(data)   => createEnvelopeFrom(data, sender())
+    case DeleteEnvelope(id)     => storage forward Remove(BSONObjectID(id))
   }
+
+	def getEnvelopeFor(id: String, sender: ActorRef): Unit ={
+		val oid = BSONObjectID(id)
+		(storage ? FindById(oid)).onComplete{
+			case Success(Some(env))       => marshaller.!(Marshall(env))(sender)
+			case Success(None)            => sender ! new BadRequestException(s"no envelope exists for id:$id")
+			case Success(t: Throwable)    => sender ! t
+			case Failure(t)               => sender ! t
+		}
+	}
 
 	def createEnvelopeFrom(data: JsValue, sender: ActorRef): Unit = {
 		log.info(s"processing CreateEnvelope")
 		(idGenerator ? NextId)
 		  .mapTo[BSONObjectID]
-			.map(Envelope.fromJson(data, _, maxTTL))
+			.map(Envelope.fromJson(data, _, maxTTL))  // TODO delegate to marshaller
 			.map(Storage.Save)
 			.onComplete{
 			  case Success(msg) => storage.!(msg)(sender)

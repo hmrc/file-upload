@@ -31,6 +31,8 @@ trait Actors{
 
 	def idGenerator: ActorRef
 
+	def marshaller: ActorRef
+
 }
 
 object FileUploadActors extends Actors{
@@ -43,7 +45,10 @@ object FileUploadActors extends Actors{
 
 	override lazy val idGenerator: ActorRef = actorSystem.actorOf(IdGenerator.props, "id-generator")
 
-	override lazy val envelopeService: ActorRef = actorSystem.actorOf(EnvelopeService.props(storage, idGenerator, Actors.maxTTL), "envelope-service")
+	override lazy val marshaller: ActorRef = actorSystem.actorOf(Marshaller.props, "marshaller")
+
+	override lazy val envelopeService: ActorRef = actorSystem.actorOf(EnvelopeService.props(storage, idGenerator, marshaller, Actors.maxTTL), "envelope-service")
+
 }
 
 object FileUploadTestActors extends Actors{
@@ -58,7 +63,8 @@ object FileUploadTestActors extends Actors{
 
 	override val idGenerator: ActorRef = TestActorRef[ActorStub]
 
-	implicit def underLyingActor[T <: Actor](actorRef: ActorRef): T = actorRef.asInstanceOf[TestActorRef[T]].underlyingActor
+	override def marshaller: ActorRef = TestActorRef[ActorStub]
+
 }
 
 object Actors extends Actors{
@@ -74,6 +80,8 @@ object Actors extends Actors{
 	override val storage: ActorRef = if(mode == Mode.Test) FileUploadTestActors.storage else FileUploadActors.storage
 
 	override val idGenerator: ActorRef = if(mode == Mode.Test) FileUploadTestActors.idGenerator else FileUploadActors.idGenerator
+
+	override val marshaller: ActorRef = if(mode == Mode.Test) FileUploadTestActors.marshaller else FileUploadActors.marshaller
 }
 
 class ActorStub extends Actor{

@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.fileupload.models
 
+import java.lang.Math._
 import java.util.UUID
 
+import akka.actor.{ActorRef, Inbox}
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.junit.Assert
@@ -25,6 +27,9 @@ import org.junit.Assert.assertTrue
 import play.api.libs.json.{JsString, Json}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.Support
+import uk.gov.hmrc.fileupload.actors.EnvelopeService
+import uk.gov.hmrc.fileupload.actors.EnvelopeService.CreateEnvelope
+import uk.gov.hmrc.fileupload.actors.Storage.Save
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.util.Try
@@ -79,9 +84,29 @@ class EnvelopeSpec extends UnitSpec {
   }
 
 	"an envelope" should {
-		"not be created when has an expiry date in the past" in {
+		"not be created when it has an expiry date in the past" in {
 
 			assertTrue(Try(Support.envelope.copy(expiryDate = DateTime.now().minusMinutes(3))).isFailure )
 		}
+	}
+
+	"an envelope's" should {
+		"expiryDate should be overridden when it is greater than the max expiry days configured" in {
+
+			import Envelope._
+
+			val now: DateTime = DateTime.now()
+			val maxExpiryDate: DateTime = now.plusDays(2)
+
+			val id = BSONObjectID.generate
+
+			val envelope = Envelope.fromJson(Json.toJson(Support.farInTheFutureEnvelope), id, maxTTL = 2)
+
+			assertTrue( isWithinAMinute(maxExpiryDate, envelope.expiryDate) )
+		}
+	}
+
+	def isWithinAMinute(maxExpiryDate: DateTime, exipiryDate: DateTime): Boolean = {
+		abs(exipiryDate.getMillis - maxExpiryDate.getMillis) < 60 * 1000
 	}
 }

@@ -18,8 +18,8 @@ package uk.gov.hmrc
 
 import _root_.play.api.libs.iteratee.{Iteratee, Enumeratee, Enumerator}
 import _root_.play.api.libs.json.{JsString, Json}
-import akka.actor.ActorSystem
-import akka.testkit.{ImplicitSender, DefaultTimeout, TestKit}
+import akka.actor.{ActorRef, Actor, ActorSystem}
+import akka.testkit.{TestActorRef, ImplicitSender, DefaultTimeout, TestKit}
 import org.joda.time.DateTime
 import org.openqa.selenium.By.ById
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
@@ -67,6 +67,8 @@ package object fileupload {
 
 	  def expiredEnvelope = envelope.copy(expiryDate = DateTime.now().minusMinutes(3))
 	  def farInTheFutureEnvelope = envelope.copy(expiryDate = DateTime.now().plusDays(3))
+
+	  implicit def underLyingActor[T <: Actor](actorRef: ActorRef): T = actorRef.asInstanceOf[TestActorRef[T]].underlyingActor
 
   }
 }

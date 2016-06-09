@@ -35,10 +35,7 @@ class EnvelopeRepository(mongo: () => DB)
   extends ReactiveRepository[Envelope, BSONObjectID](collectionName = "envelopes", mongo, domainFormat = Envelope.envelopeReads ){
 
   def add(envelope: Envelope)(implicit ex: ExecutionContext): Future[Boolean] ={
-    insert(envelope).map {
-	    case wr : WriteResult if wr.ok && wr.n > 0 => true
-	    case _ => false
-    }
+    insert(envelope) map toBoolean
   }
 
   def get(id: BSONObjectID)(implicit ec: ExecutionContext): Future[Option[Envelope]] = {
@@ -46,10 +43,12 @@ class EnvelopeRepository(mongo: () => DB)
   }
 
 	def delete(id: BSONObjectID)(implicit ec: ExecutionContext): Future[Boolean] = {
-		remove("_id" -> id.stringify).map {
-			case wr : WriteResult if wr.ok && wr.n > 0 => true
-			case _ => false
-		}
+		remove("_id" -> id.stringify) map toBoolean
+	}
+
+	def toBoolean(wr: WriteResult): Boolean = wr match {
+		case wr : WriteResult if wr.ok && wr.n > 0 => true
+		case _ => false
 	}
 
 }

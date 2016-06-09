@@ -16,23 +16,18 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import java.util.UUID
 
-import akka.testkit.TestActorRef
-import org.joda.time.DateTime
-import play.api.Play
-import play.api.http.{HeaderNames, Status}
+import play.api.http.Status
 import play.api.libs.json.Json
-import play.api.mvc.{AnyContentAsJson, AnyContent, AnyContentAsEmpty, Result}
+import play.api.mvc.{AnyContentAsJson, Result}
 import play.api.test.{FakeHeaders, FakeRequest}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.actors.{ActorStub, EnvelopeService$, FileUploadTestActors, Actors}
-import uk.gov.hmrc.fileupload.models.{Envelope, Constraints}
+import uk.gov.hmrc.fileupload.actors.{ActorStub, FileUploadTestActors}
+import uk.gov.hmrc.fileupload.models.Envelope
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
-import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.util.Try
+import scala.concurrent.{Await, ExecutionContext}
 
 class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 
@@ -75,18 +70,18 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
       val request = FakeRequest("GET", s"/envelope/${id.toString}")
       val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
 
-      envelopeMgr.setReply(Some(envelope))
+      envelopeMgr.setReply(Json.toJson[Envelope](envelope))
 
 
       val futureResult = EnvelopeController.show(id.toString)(request)
 
       val result = Await.result(futureResult, defaultTimeout)
 
-      val actualRespone = Json.parse(consume(result.body))
+      val actualResponse = Json.parse(consume(result.body))
       val expectedResponse = Json.toJson(envelope)
 
       result.header.status shouldBe Status.OK
-      actualRespone shouldBe expectedResponse
+	    actualResponse shouldBe expectedResponse
 
     }
   }
