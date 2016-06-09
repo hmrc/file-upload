@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload.actors
 
-import akka.actor.{Props, Actor}
+import akka.actor.{ActorRef, Props, Actor}
 import play.api.libs.json.{Json, JsValue}
 import uk.gov.hmrc.fileupload.models.Envelope
 
@@ -35,16 +35,8 @@ class Marshaller extends Actor{
 	import Envelope._
 
 	def receive = {
-		case Marshall(obj) =>
-			toJson(obj) match{
-				case Success(json) => sender ! json
-				case Failure(t)		 => sender ! t
-			}
-		case json UnMarshall toType =>
-			fromJson(json, toType) match {
-				case Success(envelope) 	=> sender ! envelope
-				case Failure(t)			 		=> sender ! t
-			}
+		case Marshall(obj) 						=> sendResultOf(toJson(obj), sender)
+		case json UnMarshall toType 	=> sendResultOf(fromJson(json, toType), sender)
 	}
 
 	def toJson(any: Any): Try[JsValue] = any match {
@@ -53,6 +45,13 @@ class Marshaller extends Actor{
 
 	def fromJson(json: JsValue, toType: Class[_]): Try[Envelope] = toType match {
 		case  aType if aType == classOf[Envelope] => Try(Json.fromJson[Envelope](json).get)
+	}
+
+	def sendResultOf[T](op: Try[T], recipient: ActorRef) = {
+		op match{
+			case Success(result) => recipient ! result
+				case Failure(t) 	=> recipient ! t
+		}
 	}
 
 }
