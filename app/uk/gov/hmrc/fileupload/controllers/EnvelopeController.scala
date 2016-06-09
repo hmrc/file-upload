@@ -42,22 +42,25 @@ object EnvelopeController extends BaseController {
 
   def create() = Action.async { implicit request =>
 
-	  def getData = () => Future(request.body.asJson.getOrElse( throw new Exception))
+	  def fromRequestBody = () => Future(request.body.asJson.getOrElse( throw new Exception))
 	  def createEnvelope = (json: JsValue) => envelopeService ? CreateEnvelope(json)
 	  def envelopeLocation = (id: BSONObjectID) => LOCATION -> s"${request.host}${routes.EnvelopeController.show(id.stringify)}"
 	  def onEnvelopeCreated = (any: Any) => mapToResult(any) {case id: BSONObjectID => Ok.withHeaders(envelopeLocation(id)) }
 
-	  getData()
+	  fromRequestBody()
 		  .flatMap(createEnvelope)
 		  .map(onEnvelopeCreated)
-		 .recover{ case _ => InternalServerError}
+		 .recover{ case e => ExceptionHandler(e) }
   }
 
   def show(id: String) = Action.async{
-    ( envelopeService ? GetEnvelope(id) )
-	    .mapTo[JsValue]
-      .map( Ok(_))
-      .recover{ case t => InternalServerError  }
+
+	  def findEnvelopeFor = (id: String) =>  envelopeService ? GetEnvelope(id)
+	  def onEnvelopeFound = (any: Any) => mapToResult(any){case json: JsValue => Ok(json) }
+
+    findEnvelopeFor(id)
+	    .map(onEnvelopeFound)
+      .recover{ case e => ExceptionHandler(e)  }
   }
 
 	def delete(id: String) = Action.async {

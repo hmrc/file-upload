@@ -29,6 +29,7 @@ import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.fileupload.actors.Storage.Save
 import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
+import uk.gov.hmrc.fileupload.controllers.BadRequestException
 import uk.gov.hmrc.fileupload.models.{ValidationException, Envelope}
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -51,7 +52,7 @@ class EnvelopeServiceSpec extends ActorSpec{
 
 
 	"An EnvelopeService" should  {
-		"respond with BSONObjectID when it receives a GetEnvelop message" in {
+		"respond with an envelope when it receives a GetEnvelop message" in {
 			within(timeout){
 	      val envelope = Support.envelope
 	      val json = Json.toJson[Envelope](envelope)
@@ -64,7 +65,18 @@ class EnvelopeServiceSpec extends ActorSpec{
 	      expectMsg(json)
       }
     }
+		"respond with a BadRequestException when it receives a GetEnvelope message with an invalid id" in {
+			within(timeout){
+	      val id = BSONObjectID.generate.stringify
+
+	      storage.underlyingActor.setReply(None)
+
+	      envelopMgr ! GetEnvelope(id)
+	      expectMsg(new BadRequestException(s"no envelope exists for id:$id"))
+      }
+    }
   }
+
 
 	"An EnvelopeService" should {
 		"respond with id  of created envelope when it receives a CreateEnvelope message" in {

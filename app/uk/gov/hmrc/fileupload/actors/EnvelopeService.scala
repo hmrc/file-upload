@@ -43,7 +43,7 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef,marshaller: Actor
 	import Storage._
 	import Marshaller._
   implicit val ex: ExecutionContext = context.dispatcher
-	implicit val timeout = Timeout(500 millis)
+	implicit val timeout = Timeout(2 seconds)
 
   override def preStart() {
     log.info("Envelope manager online")
@@ -59,8 +59,8 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef,marshaller: Actor
 	def getEnvelopeFor(id: String, sender: ActorRef): Unit ={
 		val oid = BSONObjectID(id)
 		(storage ? FindById(oid)).onComplete{
-			case Success(Some(env))       => marshaller.!(Marshall(env))(sender)
 			case Success(None)            => sender ! new BadRequestException(s"no envelope exists for id:$id")
+			case Success(Some(env))       => marshaller.!(Marshall(env))(sender)
 			case Success(t: Throwable)    => sender ! t
 			case Failure(t)               => sender ! t
 		}
@@ -78,7 +78,6 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef,marshaller: Actor
 				  log.error(s"$e during envelope creation")
 				  sender ! e
 			}
-
 	}
 
   override def postStop() {

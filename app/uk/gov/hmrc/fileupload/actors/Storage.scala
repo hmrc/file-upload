@@ -17,15 +17,12 @@
 package uk.gov.hmrc.fileupload.actors
 
 import akka.actor.{ActorLogging, ActorRef, Props, Actor}
-import play.api.libs.json.Json
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.models.Envelope
 import uk.gov.hmrc.fileupload.repositories.EnvelopeRepository
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
-import scala.util.parsing.json.JSONObject
-import scala.util.{Failure, Success}
+import scala.concurrent.{Await, ExecutionContext}
+import scala.util.{Try, Failure, Success}
 
 object Storage{
   case class FindById(id: BSONObjectID)
@@ -56,7 +53,7 @@ class Storage(val envelopeRepository: EnvelopeRepository) extends Actor with Act
     envelopeRepository
 	    .get(byId)
 	    .onComplete{
-	      case Success(result)  => sender ! result
+	      case Success(result)   => sender ! result
 	      case Failure(t)       => sender ! t
       }
   }
