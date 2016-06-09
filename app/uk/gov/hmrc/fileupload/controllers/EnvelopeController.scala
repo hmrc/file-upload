@@ -44,15 +44,11 @@ object EnvelopeController extends BaseController {
 	  def getData = () => Future(request.body.asJson.getOrElse( throw new Exception))
 	  def envelopeLocation = (id: BSONObjectID) => LOCATION -> s"${request.host}${routes.EnvelopeController.show(id.stringify)}"
 	  def createEnvelope = (json: JsValue) => envelopeService ? EnvelopeService.CreateEnvelope(json)
-	  def onEnvelopeCreated = (any: Any) => any match {
-		  case id: BSONObjectID => Ok.withHeaders(envelopeLocation(id))
-		  case e: Exception => ExceptionHandler(e)
-	  }
+	  def onEnvelopeCreated = (any: Any) => mapToResult(any) {case id: BSONObjectID => Ok.withHeaders(envelopeLocation(id)) }
 
 	  getData()
 		  .flatMap(createEnvelope)
 		  .map(onEnvelopeCreated)
-		  .mapTo[Result]
 		 .recover{ case _ => InternalServerError}
   }
 
@@ -67,15 +63,17 @@ object EnvelopeController extends BaseController {
 	def delete(id: String) = Action.async {
 
 		def deleteEnvelope = (id: String) => envelopeService ? EnvelopeService.DeleteEnvelope(id)
-		def onEnvelopeDeleted = (any: Any) => any match {
+		def onEnvelopeDeleted = (any: Any) => mapToResult(any) {
 			case true => Ok
 			case false => NotFound
-			case e: Throwable => ExceptionHandler(e)
 		}
 
 		deleteEnvelope(id)
 		  .map(onEnvelopeDeleted)
-		  .mapTo[Result]
 		  .recover { case e =>  ExceptionHandler(e) }
+	}
+
+	def mapToResult(any: Any)(pf: PartialFunction[Any, Result]): Result = {
+		pf.orElse[Any, Result]{ case e: Throwable => ExceptionHandler(e) }(any)
 	}
 }
