@@ -20,6 +20,8 @@ import akka.actor.{Props, Actor}
 import play.api.libs.json.{Json, JsValue}
 import uk.gov.hmrc.fileupload.models.Envelope
 
+import scala.util.{Try, Success, Failure}
+
 
 object Marshaller {
 	case class Marshall(obj: Any)
@@ -32,22 +34,25 @@ class Marshaller extends Actor{
 	import Marshaller._
 	import Envelope._
 
-	override def preRestart(reason: Throwable, message: Option[Any]) = {
-		sender ! reason
-		super.preRestart(reason, message)
-	}
-
 	def receive = {
-		case Marshall(obj) => sender ! toJson(obj)
-		case json UnMarshall toType => sender ! fromJson(json, toType)
+		case Marshall(obj) =>
+			toJson(obj) match{
+				case Success(json) => sender ! json
+				case Failure(t)		 => sender ! t
+			}
+		case json UnMarshall toType =>
+			fromJson(json, toType) match {
+				case Success(envelope) 	=> sender ! envelope
+				case Failure(t)			 		=> sender ! t
+			}
 	}
 
-	def toJson(any: Any): JsValue = any match {
-		case  obj if obj.isInstanceOf[Envelope] => Json.toJson[Envelope](obj.asInstanceOf[Envelope])
+	def toJson(any: Any): Try[JsValue] = any match {
+		case  obj if obj.isInstanceOf[Envelope] => Try(Json.toJson[Envelope](obj.asInstanceOf[Envelope]))
 	}
 
-	def fromJson(json: JsValue, toType: Class[_]): Any = toType match {
-		case  aType if aType == classOf[Envelope] => Json.fromJson[Envelope](json).get
+	def fromJson(json: JsValue, toType: Class[_]): Try[Envelope] = toType match {
+		case  aType if aType == classOf[Envelope] => Try(Json.fromJson[Envelope](json).get)
 	}
 
 }
