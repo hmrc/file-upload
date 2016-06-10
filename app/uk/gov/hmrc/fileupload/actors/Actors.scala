@@ -85,11 +85,13 @@ object Actors extends Actors{
 }
 
 class ActorStub extends Actor{
-	var _reply: Option[Any] = None
 
-	def setReply(reply: Any): Unit = _reply = Some(reply)
+	def setReceive(me: Receive) = context.become(me)
+
+	def setReply(reply: Any)  = setReceive({ case _ => sender ! reply} )
 
 	override def receive = {
-		case _ => sender() ! _reply.getOrElse( throw new RuntimeException("No reply set"))
+		case _ => throw new RuntimeException("No receive set")
 	}
+
 }
