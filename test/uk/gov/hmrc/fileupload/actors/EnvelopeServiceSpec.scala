@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.actors
 
 import java.lang.Math.abs
-import java.util.NoSuchElementException
+import java.util.{NoSuchElementException, UUID}
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Inbox}
 import akka.testkit.{TestActorRef, TestActors}
@@ -26,7 +26,6 @@ import org.joda.time.DateTime
 import org.junit.Assert
 import org.junit.Assert.assertTrue
 import play.api.libs.json.{JsObject, JsValue, Json}
-import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.fileupload.actors.Storage.Save
 import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
@@ -58,7 +57,7 @@ class EnvelopeServiceSpec extends ActorSpec{
 			within(timeout){
 	      val envelope = Support.envelope
 	      val json = Json.toJson[Envelope](envelope)
-	      val id = envelope._id.stringify
+	      val id = envelope._id
 
 	      marshaller.underlyingActor.setReply(json)
 	      storage.underlyingActor.setReply(Some(envelope))
@@ -69,7 +68,7 @@ class EnvelopeServiceSpec extends ActorSpec{
     }
 		"respond with a BadRequestException when it receives a GetEnvelope message with an invalid id" in {
 			within(timeout){
-	      val id = BSONObjectID.generate.stringify
+	      val id = UUID.randomUUID().toString
 
 	      storage.underlyingActor.setReply(None)
 
@@ -84,7 +83,7 @@ class EnvelopeServiceSpec extends ActorSpec{
 		"respond with id  of created envelope when it receives a CreateEnvelope message" in {
 			within(timeout) {
 				val rawData = Support.envelopeBody
-				val id = BSONObjectID.generate
+				val id = UUID.randomUUID().toString
 
 				IdGenerator.underlyingActor.setReply(id)
 				storage.underlyingActor.setReply(id)
@@ -98,7 +97,7 @@ class EnvelopeServiceSpec extends ActorSpec{
 		"respond with an exception when creation fails" in {
       within(timeout) {
         val wrongData = Json.parse( """{"wrong": "json"}""" )
-        IdGenerator.underlyingActor.setReply(BSONObjectID.generate)
+        IdGenerator.underlyingActor.setReply(UUID.randomUUID().toString)
 
         envelopMgr ! CreateEnvelope(wrongData)
 

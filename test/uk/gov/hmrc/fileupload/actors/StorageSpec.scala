@@ -16,17 +16,18 @@
 
 package uk.gov.hmrc.fileupload.actors
 
+import java.util.UUID
+
 import akka.testkit.TestActors
+import com.fasterxml.jackson.annotation.ObjectIdGenerators.UUIDGenerator
 import org.joda.time.DateTime
 import org.mockito.Matchers
 import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
-import play.api.libs.json.{JsResult, JsObject, Json}
+import play.api.libs.json.{JsObject, JsResult, Json}
 import reactivemongo.api.commands.DefaultWriteResult
-import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.Support
-
-import uk.gov.hmrc.fileupload.models.{Envelope, Constraints}
+import uk.gov.hmrc.fileupload.models.{Constraints, Envelope}
 import uk.gov.hmrc.fileupload.repositories.EnvelopeRepository
 
 import scala.concurrent.Future
@@ -56,7 +57,7 @@ class StorageSpec extends ActorSpec with MockitoSugar {
     }
 
     "Respond with nothing when it receives a find by id for a non existent id" in {
-      val id = BSONObjectID.generate
+      val id = UUID.randomUUID().toString
 	    when(envelopeRepository.get(Matchers.any())(Matchers.any())).thenReturn(Future.successful(None))
       storage ! FindById(id)
       expectMsg(None)
@@ -65,8 +66,8 @@ class StorageSpec extends ActorSpec with MockitoSugar {
 	  "respond with an Id when it receives a create envelope message" in {
 		  within(500 millis) {
 
-			  val id = BSONObjectID.generate
-			  val rawData = Support.envelopeBody.asInstanceOf[JsObject] ++ Json.obj("_id" -> id.stringify)
+			  val id = UUID.randomUUID().toString
+			  val rawData = Support.envelopeBody.asInstanceOf[JsObject] ++ Json.obj("_id" -> id)
 			  val envelope = Json.fromJson[Envelope](rawData).get
 
 			  when(envelopeRepository.add(Matchers.any())(Matchers.any())).thenReturn(Future.successful(true))

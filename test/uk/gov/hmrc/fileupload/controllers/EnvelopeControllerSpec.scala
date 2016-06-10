@@ -17,11 +17,12 @@
 package uk.gov.hmrc.fileupload.controllers
 
 
+import java.util.UUID
+
 import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.mvc.{AnyContentAsJson, Result}
 import play.api.test.{FakeHeaders, FakeRequest}
-import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.fileupload.actors.{ActorStub, FileUploadTestActors}
 import uk.gov.hmrc.fileupload.models.Envelope
@@ -51,14 +52,14 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 		    override lazy val host = serverUrl
 	    }
 
-			val id: BSONObjectID = BSONObjectID.generate
+			val id: String = UUID.randomUUID().toString
 	    val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
 			envelopeMgr.setReply(id)
 
       val result: Result = await( EnvelopeController.create()(fakeRequest) )
 			result.header.status shouldBe Status.OK
 	    val location = result.header.headers.get("Location").get
-	    location shouldBe s"$serverUrl${routes.EnvelopeController.show(id.stringify).url}"
+	    location shouldBe s"$serverUrl${routes.EnvelopeController.show(id).url}"
 
 
     }
@@ -66,15 +67,15 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 
   "Get Envelope" should {
     "return an envelope resource when request id is valid" in {
-      val id = BSONObjectID.generate
+			val id: String = UUID.randomUUID().toString
       val envelope = Support.envelope
-      val request = FakeRequest("GET", s"/envelope/${id.toString}")
+      val request = FakeRequest("GET", s"/envelope/$id")
       val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
 
       envelopeMgr.setReply(Json.toJson[Envelope](envelope))
 
 
-      val futureResult = EnvelopeController.show(id.toString)(request)
+      val futureResult = EnvelopeController.show(id)(request)
 
       val result = Await.result(futureResult, defaultTimeout)
 
@@ -89,37 +90,37 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 
 	"Delete Envelope" should {
 		"respond with 200 OK status" in {
-			val id = BSONObjectID.generate
-			val request = FakeRequest("DELETE", s"/envelope/${id.toString}")
+			val id: String = UUID.randomUUID().toString
+			val request = FakeRequest("DELETE", s"/envelope/${id}")
 
 			val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
 			envelopeMgr.setReply(true)
 
-			val futureResult = EnvelopeController.delete(id.toString)(request)
+			val futureResult = EnvelopeController.delete(id)(request)
 			status(futureResult) shouldBe Status.OK
 
 		}
 
 		"respond with 404 NOT FOUND status" in {
-			val id = BSONObjectID.generate
-			val request = FakeRequest("DELETE", s"/envelope/${id.toString}")
+			val id: String = UUID.randomUUID().toString
+			val request = FakeRequest("DELETE", s"/envelope/$id")
 
 			val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
 			envelopeMgr.setReply(false)
 
-			val futureResult = EnvelopeController.delete(id.toString)(request)
+			val futureResult = EnvelopeController.delete(id)(request)
 			status(futureResult) shouldBe Status.NOT_FOUND
 
 		}
 
 		"respond with 500 INTERNAL SERVER ERROR status" in {
-			val id = BSONObjectID.generate
-			val request = FakeRequest("DELETE", s"/envelope/${id.toString}")
+			val id: String = UUID.randomUUID().toString
+			val request = FakeRequest("DELETE", s"/envelope/$id")
 
 			val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
 			envelopeMgr.setReply(new Exception("something broken"))
 
-			val futureResult = EnvelopeController.delete(id.toString)(request)
+			val futureResult = EnvelopeController.delete(id)(request)
 			val result = Await.result(futureResult, defaultTimeout)
 
 			val actualRespone = Json.parse(consume(result.body))

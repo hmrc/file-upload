@@ -16,17 +16,20 @@
 
 package uk.gov.hmrc.fileupload.actors
 
-import akka.actor.{ActorLogging, Props, ActorRef, Actor}
+import java.util.UUID
+
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
 import play.api.libs.json.JsValue
-import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.fileupload.actors.EnvelopeService.{DeleteEnvelope, CreateEnvelope, GetEnvelope}
+import uk.gov.hmrc.fileupload.actors.EnvelopeService.{CreateEnvelope, DeleteEnvelope, GetEnvelope}
 import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
 import uk.gov.hmrc.fileupload.controllers.BadRequestException
 import uk.gov.hmrc.fileupload.models.Envelope
+
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import akka.pattern._
+
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
@@ -53,12 +56,11 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef,marshaller: Actor
   def receive = {
     case GetEnvelope(id)        => getEnvelopeFor(id, sender())
     case CreateEnvelope(data)   => createEnvelopeFrom(data, sender())
-    case DeleteEnvelope(id)     => storage forward Remove(BSONObjectID(id))
+    case DeleteEnvelope(id)     => storage forward Remove(id)
   }
 
 	def getEnvelopeFor(id: String, sender: ActorRef): Unit ={
-		val oid = BSONObjectID(id)
-		(storage ? FindById(oid)).onComplete{
+		(storage ? FindById(id)).onComplete{
 			case Success(None)            => sender ! new BadRequestException(s"no envelope exists for id:$id")
 			case Success(Some(env))       => marshaller.!(Marshall(env))(sender)
 			case Success(t: Throwable)    => sender ! t
@@ -69,7 +71,7 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef,marshaller: Actor
 	def createEnvelopeFrom(data: JsValue, sender: ActorRef): Unit = {
 		log.info(s"processing CreateEnvelope")
 		(idGenerator ? NextId)
-		  .mapTo[BSONObjectID]
+		  .mapTo[String]
 			.map(Envelope.fromJson(data, _, maxTTL))  // TODO delegate to marshaller
 			.map(Storage.Save)
 			.onComplete{

@@ -38,12 +38,12 @@ class EnvelopeRepository(mongo: () => DB)
     insert(envelope) map toBoolean
   }
 
-  def get(id: BSONObjectID)(implicit ec: ExecutionContext): Future[Option[Envelope]] = {
-	  find("_id" -> id.stringify).map(_.headOption)
+  def get(id: String)(implicit ec: ExecutionContext): Future[Option[Envelope]] = {
+	  find("_id" -> id).map(_.headOption)
   }
 
-	def delete(id: BSONObjectID)(implicit ec: ExecutionContext): Future[Boolean] = {
-		remove("_id" -> id.stringify) map toBoolean
+	def delete(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {
+		remove("_id" -> id) map toBoolean
 	}
 
 	def toBoolean(wr: WriteResult): Boolean = wr match {

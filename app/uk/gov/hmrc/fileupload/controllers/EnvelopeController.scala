@@ -20,7 +20,6 @@ package uk.gov.hmrc.fileupload.controllers
 import akka.util.Timeout
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
-import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.actors.{EnvelopeService, Actors}
 import uk.gov.hmrc.fileupload.models.Envelope
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -44,8 +43,8 @@ object EnvelopeController extends BaseController {
 
 	  def fromRequestBody = () => Future(request.body.asJson.getOrElse( throw new Exception))
 	  def createEnvelope = (json: JsValue) => envelopeService ? CreateEnvelope(json)
-	  def envelopeLocation = (id: BSONObjectID) => LOCATION -> s"${request.host}${routes.EnvelopeController.show(id.stringify)}"
-	  def onEnvelopeCreated = (any: Any) => mapToResult(any) {case id: BSONObjectID => Ok.withHeaders(envelopeLocation(id)) }
+	  def envelopeLocation = (id: String) => LOCATION -> s"${request.host}${routes.EnvelopeController.show(id)}"
+	  def onEnvelopeCreated = (any: Any) => mapToResult(any) {case id: String => Ok.withHeaders(envelopeLocation(id)) }
 
 	  fromRequestBody()
 		  .flatMap(createEnvelope)

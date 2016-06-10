@@ -17,7 +17,6 @@
 package uk.gov.hmrc.fileupload.actors
 
 import akka.actor.{ActorLogging, ActorRef, Props, Actor}
-import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.models.Envelope
 import uk.gov.hmrc.fileupload.repositories.EnvelopeRepository
 
@@ -25,9 +24,9 @@ import scala.concurrent.{Await, ExecutionContext}
 import scala.util.{Try, Failure, Success}
 
 object Storage{
-  case class FindById(id: BSONObjectID)
+  case class FindById(id: String)
 	case class Save(envelope: Envelope)
-	case class Remove(id: BSONObjectID)
+	case class Remove(id: String)
 
   def props(envelopeRepository: EnvelopeRepository): Props = Props(classOf[Storage], envelopeRepository)
 
@@ -49,7 +48,7 @@ class Storage(val envelopeRepository: EnvelopeRepository) extends Actor with Act
     case Remove(id) => remove(id, sender)
   }
 
-  def findEnvelopeById(byId: BSONObjectID, sender: ActorRef): Unit = {
+  def findEnvelopeById(byId: String, sender: ActorRef): Unit = {
     envelopeRepository
 	    .get(byId)
 	    .onComplete{
@@ -69,7 +68,7 @@ class Storage(val envelopeRepository: EnvelopeRepository) extends Actor with Act
 			}
 	}
 
-	def remove(id: BSONObjectID, sender: ActorRef): Unit = {
+	def remove(id: String, sender: ActorRef): Unit = {
 		envelopeRepository.delete(id).onComplete{
 			case Success(result) => sender ! result
 			case Failure(e) => sender ! e
