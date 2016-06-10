@@ -17,7 +17,9 @@
 package uk.gov.hmrc.fileupload
 
 import com.typesafe.config.Config
+import play.api.mvc.{Result, RequestHeader}
 import play.api.{Application, Configuration, Play}
+import uk.gov.hmrc.fileupload.controllers.{BadRequestException, ExceptionHandler}
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
@@ -25,6 +27,8 @@ import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import net.ceedubs.ficus.Ficus._
+
+import scala.concurrent.{ExecutionContext, Future}
 
 
 object ControllerConfiguration extends ControllerConfig {
@@ -51,6 +55,9 @@ object MicroserviceAuthFilter extends AuthorisationFilter {
 }
 
 object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
+
+
+
   override val auditConnector = MicroserviceAuditConnector
 
   override def microserviceMetricsConfig(implicit app: Application): Option[Configuration] = app.configuration.getConfig(s"microservice.metrics")
@@ -60,4 +67,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   override val microserviceAuditFilter = MicroserviceAuditFilter
 
   override val authFilter = Some(MicroserviceAuthFilter)
+
+	override def onBadRequest(request: RequestHeader, error: String): Future[Result] = {
+		Future(ExceptionHandler(new BadRequestException(error)))(ExecutionContext.global)
+	}
 }

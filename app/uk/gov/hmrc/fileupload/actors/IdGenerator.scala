@@ -14,18 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.controllers
+package uk.gov.hmrc.fileupload.actors
 
-import uk.gov.hmrc.play.microservice.controller.BaseController
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import play.api.mvc._
-import scala.concurrent.Future
+import akka.actor.{Props, Actor}
+import reactivemongo.bson.BSONObjectID
+import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
 
-object MicroserviceHelloWorld extends MicroserviceHelloWorld
+object IdGenerator {
+	case object NextId
+	def props: Props = Props[IdGenerator]
+}
 
-trait MicroserviceHelloWorld extends BaseController {
+class IdGenerator extends Actor {
 
-	def hello() = Action.async { implicit request =>
-		Future.successful(Ok("Hello world"))
+	def receive = {
+		case NextId => sender() ! BSONObjectID.generate
 	}
 }
