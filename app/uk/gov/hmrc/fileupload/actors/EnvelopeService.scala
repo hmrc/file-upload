@@ -20,7 +20,7 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsObject, JsValue, Json}
 import uk.gov.hmrc.fileupload.actors.EnvelopeService.{CreateEnvelope, DeleteEnvelope, GetEnvelope}
 import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
 import uk.gov.hmrc.fileupload.controllers.BadRequestException
@@ -29,62 +29,96 @@ import uk.gov.hmrc.fileupload.models.Envelope
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import akka.pattern._
+import uk.gov.hmrc.fileupload.actors.Marshaller.UnMarshall
 
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
-object EnvelopeService{
+object EnvelopeService {
+
   case class GetEnvelope(id: String)
-	case class CreateEnvelope(json: JsValue)
-	case class DeleteEnvelope(id: String)
+
+  case class CreateEnvelope(json: JsValue)
+
+  case class DeleteEnvelope(id: String)
 
   def props(storage: ActorRef, idGenerator: ActorRef, marshaller: ActorRef, maxTTL: Int): Props =
-	  Props(classOf[EnvelopeService], storage, idGenerator, marshaller, maxTTL)
+    Props(classOf[EnvelopeService], storage, idGenerator, marshaller, maxTTL)
 }
 
-class EnvelopeService(storage: ActorRef, idGenerator: ActorRef,marshaller: ActorRef, maxTTL: Int) extends Actor with ActorLogging{
-	import Storage._
-	import Marshaller._
+class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: ActorRef, maxTTL: Int) extends Actor with ActorLogging {
+
+  import Storage._
+  import Marshaller._
+
   implicit val ex: ExecutionContext = context.dispatcher
-	implicit val timeout = Timeout(2 seconds)
+  implicit val timeout = Timeout(2 seconds)
 
   override def preStart() {
     log.info("Envelope manager online")
-	  super.preStart()
+    super.preStart()
   }
 
   def receive = {
-    case GetEnvelope(id)        => getEnvelopeFor(id, sender())
-    case CreateEnvelope(data)   => createEnvelopeFrom(data, sender())
-    case DeleteEnvelope(id)     => storage forward Remove(id)
+    case GetEnvelope(id) => getEnvelopeFor(id, sender())
+    case CreateEnvelope(data) => createEnvelopeFrom(data, sender())
+    case DeleteEnvelope(id) => storage forward Remove(id)
   }
 
-	def getEnvelopeFor(id: String, sender: ActorRef): Unit ={
-		(storage ? FindById(id)).onComplete{
-			case Success(None)            => sender ! new BadRequestException(s"no envelope exists for id:$id")
-			case Success(Some(env))       => marshaller.!(Marshall(env))(sender)
-			case Success(t: Throwable)    => sender ! t
-			case Failure(t)               => sender ! t
-		}
-	}
+  def getEnvelopeFor(id: String, sender: ActorRef): Unit = {
+    (storage ? FindById(id)).onComplete {
+      case Success(None) => sender ! new BadRequestException(s"no envelope exists for id:$id")
+      case Success(Some(env)) => marshaller.!(Marshall(env))(sender)
+      case Success(t: Throwable) => sender ! t
+      case Failure(t) => sender ! t
+    }
+  }
 
-	def createEnvelopeFrom(data: JsValue, sender: ActorRef): Unit = {
-		log.info(s"processing CreateEnvelope")
-		(idGenerator ? NextId)
-		  .mapTo[String]
-			.map(Envelope.fromJson(data, _, maxTTL))  // TODO delegate to marshaller
-			.map(Storage.Save)
-			.onComplete{
-			  case Success(msg) => storage.!(msg)(sender)
-			  case Failure(e) =>
-				  log.error(s"$e during envelope creation")
-				  sender ! e
-			}
-	}
+  def createEnvelopeFrom(data: JsValue, sender: ActorRef): Unit = {
+    log.info(s"processing CreateEnvelope")
+    (idGenerator ? NextId)
+      .mapTo[String]
+      .map(id => data.asInstanceOf[JsObject] ++ Json.obj("_id" -> id))
+      .flatMap(marshaller ? UnMarshall(_, classOf[Envelope]))
+      .mapTo[Envelope]
+      .map(Storage.Save)
+      .onComplete {
+        case Success(msg) => storage.!(msg)(sender)
+        case Failure(e) =>
+          log.error(s"$e during envelope creation")
+          sender ! e
+      }
+
+
+//    log.info(s"processing CreateEnvelope")
+//    val conversionFuture: Future[Any] = (idGenerator ? NextId)
+//      .mapTo[String]
+//      .map(id => data.asInstanceOf[JsObject] ++ Json.obj("_id" -> id))
+//      .flatMap(marshaller ? UnMarshall(_, classOf[Envelope]))
+//
+//    conversionFuture.onComplete {
+//      case Success(e: NoSuchElementException) => {
+//        log.error(s"$e during envelope creation")
+//        sender ! e
+//      }
+//
+//
+//    }
+//
+//    conversionFuture
+//      .mapTo[Envelope]
+//      .map(Storage.Save)
+//      .onComplete {
+//        case Success(msg) => storage.!(msg)(sender)
+//        case Failure(e) =>
+//          log.error(s"$e during envelope creation")
+//          sender ! e
+//      }
+  }
 
   override def postStop() {
-	  log.info("Envelope storage is going offline")
-	  super.postStop()
+    log.info("Envelope storage is going offline")
+    super.postStop()
   }
 
 }

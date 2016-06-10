@@ -87,6 +87,7 @@ class EnvelopeServiceSpec extends ActorSpec{
 
 				IdGenerator.underlyingActor.setReply(id)
 				storage.underlyingActor.setReply(id)
+        marshaller.underlyingActor.setReply(Support.envelope)
 
 				envelopMgr ! CreateEnvelope( rawData )
 
@@ -97,7 +98,10 @@ class EnvelopeServiceSpec extends ActorSpec{
 		"respond with an exception when creation fails" in {
       within(timeout) {
         val wrongData = Json.parse( """{"wrong": "json"}""" )
-        IdGenerator.underlyingActor.setReply(UUID.randomUUID().toString)
+        val id: String = UUID.randomUUID().toString
+        IdGenerator.underlyingActor.setReply(id)
+        storage.underlyingActor.setReply(id)
+        marshaller.underlyingActor.setReply(new NoSuchElementException("JsError.get"))
 
         envelopMgr ! CreateEnvelope(wrongData)
 

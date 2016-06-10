@@ -24,34 +24,38 @@ import scala.util.{Try, Success, Failure}
 
 
 object Marshaller {
-	case class Marshall(obj: Any)
-	case class UnMarshall(json: JsValue, toType: Class[_])
 
-	def props = Props[Marshaller]
+  case class Marshall(obj: Any)
+
+  case class UnMarshall(json: JsValue, toType: Class[_])
+
+  def props = Props[Marshaller]
 }
 
-class Marshaller extends Actor{
-	import Marshaller._
-	import Envelope._
+class Marshaller extends Actor {
 
-	def receive = {
-		case Marshall(obj) 						=> sendResultOf(toJson(obj), sender)
-		case json UnMarshall toType 	=> sendResultOf(fromJson(json, toType), sender)
-	}
+  import Marshaller._
+  import Envelope._
 
-	def toJson(any: Any): Try[JsValue] = any match {
-		case  obj if obj.isInstanceOf[Envelope] => Try(Json.toJson[Envelope](obj.asInstanceOf[Envelope]))
-	}
+  def receive = {
+    case Marshall(obj) => sendResultOf(toJson(obj), sender)
+    case json UnMarshall toType => sendResultOf(fromJson(json, toType), sender)
+  }
 
-	def fromJson(json: JsValue, toType: Class[_]): Try[Envelope] = toType match {
-		case  aType if aType == classOf[Envelope] => Try(Json.fromJson[Envelope](json).get)
-	}
+  def toJson(any: Any): Try[JsValue] = any match {
+    case obj if obj.isInstanceOf[Envelope] => Try(Json.toJson[Envelope](obj.asInstanceOf[Envelope]))
+  }
 
-	def sendResultOf[T](op: Try[T], recipient: ActorRef) = {
-		op match{
-			case Success(result) => recipient ! result
-				case Failure(t) 	=> recipient ! t
-		}
-	}
+  def fromJson(json: JsValue, toType: Class[_]): Try[Envelope] = toType match {
+    case aType if aType == classOf[Envelope] => Try(Json.fromJson[Envelope](json).get)
+  }
+
+  def sendResultOf[T](op: Try[T], recipient: ActorRef) = {
+    op match {
+      case Success(result) => recipient ! result
+      case Failure(t) =>
+        recipient ! t
+    }
+  }
 
 }

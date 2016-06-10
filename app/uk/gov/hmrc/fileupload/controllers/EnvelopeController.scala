@@ -44,7 +44,7 @@ object EnvelopeController extends BaseController {
 	  def fromRequestBody = () => Future(request.body.asJson.getOrElse( throw new Exception))
 	  def createEnvelope = (json: JsValue) => envelopeService ? CreateEnvelope(json)
 	  def envelopeLocation = (id: String) => LOCATION -> s"${request.host}${routes.EnvelopeController.show(id)}"
-	  def onEnvelopeCreated = (any: Any) => mapToResult(any) {case id: String => Ok.withHeaders(envelopeLocation(id)) }
+	  def onEnvelopeCreated = (any: Any) => mapToResult(any) { case id: String => Ok.withHeaders(envelopeLocation(id)) }
 
 	  fromRequestBody()
 		  .flatMap(createEnvelope)
