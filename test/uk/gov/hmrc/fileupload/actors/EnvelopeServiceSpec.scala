@@ -17,20 +17,22 @@
 package uk.gov.hmrc.fileupload.actors
 
 import java.lang.Math.abs
+import java.util.NoSuchElementException
 
-import akka.actor.{ActorRef, Inbox, Actor, ActorSystem}
+import akka.actor.{Actor, ActorRef, ActorSystem, Inbox}
 import akka.testkit.{TestActorRef, TestActors}
 import akka.util.Timeout
 import org.joda.time.DateTime
 import org.junit.Assert
 import org.junit.Assert.assertTrue
-import play.api.libs.json.{Json, JsObject, JsValue}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.fileupload.actors.Storage.Save
 import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
 import uk.gov.hmrc.fileupload.controllers.BadRequestException
-import uk.gov.hmrc.fileupload.models.{ValidationException, Envelope}
+import uk.gov.hmrc.fileupload.models.{Envelope, ValidationException}
+
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Try
@@ -92,6 +94,17 @@ class EnvelopeServiceSpec extends ActorSpec{
 				expectMsg(id)
 			}
 		}
+
+		"respond with an exception when creation fails" in {
+      within(timeout) {
+        val wrongData = Json.parse( """{"wrong": "json"}""" )
+        IdGenerator.underlyingActor.setReply(BSONObjectID.generate)
+
+        envelopMgr ! CreateEnvelope(wrongData)
+
+        expectMsgClass(classOf[NoSuchElementException])
+      }
+    }
 	}
 
 	"An EnvelopeService" should  {
