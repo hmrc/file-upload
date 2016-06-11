@@ -52,9 +52,8 @@ class Marshaller extends Actor {
 
   def sendResultOf[T](op: Try[T], recipient: ActorRef) = {
     op match {
-      case Success(result) => recipient ! result
-      case Failure(t) =>
-        recipient ! t
+      case Success(result)  => recipient ! result
+      case Failure(t)       => recipient ! t
     }
   }
 
