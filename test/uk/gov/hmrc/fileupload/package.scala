@@ -48,7 +48,7 @@ package object fileupload {
 
     class BlockingExecutionContext extends ExecutionContext{
 
-      override def execute(runnable: Runnable): Unit = runnable.run()
+      override def execute(runnable: Runnable): Unit = Try(runnable.run())
 
       override def reportFailure(cause: Throwable): Unit = throw cause
     }
