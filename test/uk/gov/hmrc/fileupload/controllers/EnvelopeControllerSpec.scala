@@ -29,6 +29,7 @@ import uk.gov.hmrc.fileupload.models.Envelope
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.{Await, ExecutionContext}
+import scala.util.{Success, Try}
 
 class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 
@@ -72,7 +73,7 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
       val request = FakeRequest("GET", s"/envelope/$id")
       val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
 
-      envelopeMgr.setReply(Json.toJson[Envelope](envelope))
+      envelopeMgr.setReply(Try(Json.toJson[Envelope](envelope)))
 
 
       val futureResult = EnvelopeController.show(id)(request)

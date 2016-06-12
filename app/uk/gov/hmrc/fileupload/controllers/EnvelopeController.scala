@@ -21,18 +21,17 @@ import akka.util.Timeout
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.actors.{EnvelopeService, Actors}
+import uk.gov.hmrc.fileupload.actors.Implicits.FutureUtil
 import uk.gov.hmrc.fileupload.models.Envelope
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import akka.pattern._
 import scala.concurrent.duration._
 import scala.language.postfixOps
-
 import scala.concurrent.Future
-import scala.util.{Failure, Success, Try}
+import Envelope._
+import EnvelopeService._
 
 object EnvelopeController extends BaseController {
-	import Envelope._
-	import EnvelopeService._
 
   implicit val system = Actors.actorSystem
   implicit val executionContext = system.dispatcher
@@ -48,6 +47,7 @@ object EnvelopeController extends BaseController {
 
 	  fromRequestBody()
 		  .flatMap(createEnvelope)
+      .breakOnFailure
 		  .map(onEnvelopeCreated)
 		 .recover{ case e => ExceptionHandler(e) }
   }
@@ -58,6 +58,7 @@ object EnvelopeController extends BaseController {
 	  def onEnvelopeFound = (any: Any) => mapToResult(any){case json: JsValue => Ok(json) }
 
     findEnvelopeFor(id)
+      .flattenTry
 	    .map(onEnvelopeFound)
       .recover{ case e => ExceptionHandler(e)  }
   }

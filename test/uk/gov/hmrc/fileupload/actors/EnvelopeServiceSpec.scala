@@ -34,7 +34,7 @@ import uk.gov.hmrc.fileupload.models.{Envelope, ValidationException}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by Josiah on 6/3/2016.
@@ -48,7 +48,7 @@ class EnvelopeServiceSpec extends ActorSpec{
 	val storage = TestActorRef[ActorStub]
 	val IdGenerator = TestActorRef[ActorStub]
 	val marshaller = TestActorRef[ActorStub]
-  val envelopMgr = system.actorOf(EnvelopeService.props(storage, IdGenerator, marshaller, MAX_TIME_TO_LIVE))
+  val envelopService = system.actorOf(EnvelopeService.props(storage, IdGenerator, marshaller, MAX_TIME_TO_LIVE))
 	implicit val ec = system.dispatcher
 
 
@@ -59,11 +59,11 @@ class EnvelopeServiceSpec extends ActorSpec{
 	      val json = Json.toJson[Envelope](envelope)
 	      val id = envelope._id
 
-	      marshaller.underlyingActor.setReply(json)
+	      marshaller.underlyingActor.setReply(Success(json))
 	      storage.underlyingActor.setReply(Some(envelope))
 
-	      envelopMgr ! GetEnvelope(id)
-	      expectMsg(json)
+	      envelopService ! GetEnvelope(id)
+	      expectMsg(Success(json))
       }
     }
 		"respond with a BadRequestException when it receives a GetEnvelope message with an invalid id" in {
@@ -72,7 +72,7 @@ class EnvelopeServiceSpec extends ActorSpec{
 
 	      storage.underlyingActor.setReply(None)
 
-	      envelopMgr ! GetEnvelope(id)
+	      envelopService ! GetEnvelope(id)
 	      expectMsg(new BadRequestException(s"no envelope exists for id:$id"))
       }
     }
@@ -87,9 +87,9 @@ class EnvelopeServiceSpec extends ActorSpec{
 
 				IdGenerator.underlyingActor.setReply(id)
 				storage.underlyingActor.setReply(id)
-        marshaller.underlyingActor.setReply(Support.envelope)
+        marshaller.underlyingActor.setReply(Try(Support.envelope))
 
-				envelopMgr ! CreateEnvelope( rawData )
+				envelopService ! CreateEnvelope( rawData )
 
 				expectMsg(id)
 			}
@@ -101,9 +101,9 @@ class EnvelopeServiceSpec extends ActorSpec{
         val id: String = UUID.randomUUID().toString
         IdGenerator.underlyingActor.setReply(id)
         storage.underlyingActor.setReply(id)
-        marshaller.underlyingActor.setReply(new NoSuchElementException("JsError.get"))
+        marshaller.underlyingActor.setReply(Failure(new NoSuchElementException("JsError.get")))
 
-        envelopMgr ! CreateEnvelope(wrongData)
+        envelopService ! CreateEnvelope(wrongData)
 
         expectMsgClass(classOf[NoSuchElementException])
       }
@@ -115,7 +115,7 @@ class EnvelopeServiceSpec extends ActorSpec{
 			within(timeout){
 				val id = "5752051b69ff59a8732f6474"
 				storage.underlyingActor.setReply(true)
-				envelopMgr ! DeleteEnvelope(id)
+				envelopService ! DeleteEnvelope(id)
 				expectMsg(true)
 			}
 		}

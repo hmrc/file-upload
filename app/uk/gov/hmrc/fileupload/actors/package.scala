@@ -37,8 +37,8 @@ package object actors {
 				*/
 			def breakOnFailure(implicit ec: ExecutionContext): Future[Any] = {
 				f.flatMap{
-					case e: Throwable => Future(throw e)
-					case other => Future(other)
+					case e: Throwable => Future.failed(e)
+					case other => Future.successful(other)
 				}
 			}
 
@@ -55,9 +55,9 @@ package object actors {
 				*/
 			def flattenTry(implicit ec: ExecutionContext): Future[Any] = {
 				f.flatMap{
-					case Success(s) 		=> Future(s)
-					case Failure(e)     => Future(throw e)
-					case other          => Future(other)
+					case s @ Success(_) 		=> Future.fromTry(s)
+					case t @ Failure(_)     => Future.fromTry(t)
+					case other          		=> Future.successful(other)
 				}
 			}
 		}
