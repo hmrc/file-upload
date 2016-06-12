@@ -21,6 +21,9 @@ import akka.testkit.TestActorRef
 import play.api.Mode
 import uk.gov.hmrc.fileupload.repositories.{DefaultMongoConnection, EnvelopeRepository}
 
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Success
+
 trait Actors{
 
 	def actorSystem: ActorSystem

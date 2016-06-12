@@ -16,42 +16,35 @@
 
 package uk.gov.hmrc.fileupload.actors
 
-import akka.actor.{ActorRef, Props, Actor}
+import akka.actor.{Props, Actor}
 import play.api.libs.json.{Json, JsValue}
 import uk.gov.hmrc.fileupload.models.Envelope
-
-import scala.util.{Try, Success, Failure}
-
+import scala.util.Try
+import Marshaller._
+import Envelope._
 
 object Marshaller {
-	case class Marshall(obj: Any)
-	case class UnMarshall(json: JsValue, toType: Class[_])
 
-	def props = Props[Marshaller]
+  case class Marshall(obj: Any)
+
+  case class UnMarshall(json: JsValue, toType: Class[_])
+
+  def props = Props[Marshaller]
 }
 
-class Marshaller extends Actor{
-	import Marshaller._
-	import Envelope._
+class Marshaller extends Actor {
 
-	def receive = {
-		case Marshall(obj) 						=> sendResultOf(toJson(obj), sender)
-		case json UnMarshall toType 	=> sendResultOf(fromJson(json, toType), sender)
-	}
+  def receive = {
+    case Marshall(obj) => sender ! toJson(obj)    // TODO need to update Envelope Service and Controller
+    case json UnMarshall toType => sender ! fromJson(json, toType)
+  }
 
-	def toJson(any: Any): Try[JsValue] = any match {
-		case  obj if obj.isInstanceOf[Envelope] => Try(Json.toJson[Envelope](obj.asInstanceOf[Envelope]))
-	}
+  def toJson(any: Any): Try[JsValue] = any match {
+    case obj if obj.isInstanceOf[Envelope] => Try(Json.toJson[Envelope](obj.asInstanceOf[Envelope]))
+  }
 
-	def fromJson(json: JsValue, toType: Class[_]): Try[Envelope] = toType match {
-		case  aType if aType == classOf[Envelope] => Try(Json.fromJson[Envelope](json).get)
-	}
-
-	def sendResultOf[T](op: Try[T], recipient: ActorRef) = {
-		op match{
-			case Success(result) => recipient ! result
-				case Failure(t) 	=> recipient ! t
-		}
-	}
+  def fromJson(json: JsValue, toType: Class[_]): Try[Envelope] = toType match {
+    case aType if aType == classOf[Envelope] => Try(Json.fromJson[Envelope](json).get)
+  }
 
 }

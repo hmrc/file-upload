@@ -16,15 +16,16 @@
 
 package uk.gov.hmrc
 
-import _root_.play.api.libs.iteratee.{Iteratee, Enumeratee, Enumerator}
+import java.util.UUID
+
+import _root_.play.api.libs.iteratee.{Enumeratee, Enumerator, Iteratee}
 import _root_.play.api.libs.json.{JsString, Json}
-import akka.actor.{ActorRef, Actor, ActorSystem}
-import akka.testkit.{TestActorRef, ImplicitSender, DefaultTimeout, TestKit}
+import akka.actor.{Actor, ActorRef, ActorSystem}
+import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
 import org.joda.time.DateTime
 import org.openqa.selenium.By.ById
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import reactivemongo.api.commands.{DefaultWriteResult, WriteResult}
-import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.models.Constraints
 
 import scala.concurrent.Await
@@ -47,7 +48,7 @@ package object fileupload {
 
     class BlockingExecutionContext extends ExecutionContext{
 
-      override def execute(runnable: Runnable): Unit = runnable.run()
+      override def execute(runnable: Runnable): Unit = Try(runnable.run())
 
       override def reportFailure(cause: Throwable): Unit = throw cause
     }
@@ -60,7 +61,7 @@ package object fileupload {
     }
 
 	  def constraints = Constraints(contentTypes = Seq("application/vnd.openxmlformats-officedocument.wordprocessingml.document"), maxItems = 100, maxSize = "12GB", maxSizePerItem = "10MB")
-	  def envelope = new Envelope(_id = BSONObjectID.generate, constraints = constraints, callbackUrl = "http://absolute.callback.url", expiryDate = DateTime.now().plusDays(1), metadata = Map("anything" -> JsString("the caller wants to add to the envelope")))
+	  def envelope = new Envelope(_id = UUID.randomUUID().toString, constraints = constraints, callbackUrl = "http://absolute.callback.url", expiryDate = DateTime.now().plusDays(1), metadata = Map("anything" -> JsString("the caller wants to add to the envelope")))
 
 
 	  val envelopeBody = Json.toJson[Envelope](envelope )

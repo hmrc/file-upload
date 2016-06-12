@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.fileupload.actors
 
-import akka.actor.{Props, Actor}
-import reactivemongo.bson.BSONObjectID
+import java.util.UUID
+
+import akka.actor.{Actor, Props}
 import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
 
 object IdGenerator {
@@ -28,6 +29,6 @@ object IdGenerator {
 class IdGenerator extends Actor {
 
 	def receive = {
-		case NextId => sender() ! BSONObjectID.generate
+		case NextId => sender() ! UUID.randomUUID().toString
 	}
 }

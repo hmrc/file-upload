@@ -18,10 +18,8 @@ package uk.gov.hmrc.fileupload.models
 
 import org.joda.time.DateTime
 import play.api.libs.json._
-import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.mongo.json.BSONObjectIdFormats._
 
-case class Envelope(_id: BSONObjectID, constraints: Constraints, callbackUrl: String, expiryDate: DateTime, metadata: Map[String, JsValue] ) {
+case class Envelope(_id: String, constraints: Constraints, callbackUrl: String, expiryDate: DateTime, metadata: Map[String, JsValue] ) {
 	if(isExpired()) throw ValidationException("expiry date cannot be in the past")
 
 	def isExpired(): Boolean = expiryDate.isBeforeNow
@@ -45,7 +43,7 @@ object Envelope {
 	implicit val constraintsReads: Format[Constraints] = Json.format[Constraints]
 	implicit val envelopeReads: Format[Envelope] = Json.format[Envelope]
 
-	def fromJson(json: JsValue, _id: BSONObjectID, maxTTL: Int): Envelope = {
+	def fromJson(json: JsValue, _id: String, maxTTL: Int): Envelope = {
 	  val rawData = json.asInstanceOf[JsObject] ++ Json.obj("_id" -> _id )
 	  val envelope = Json.fromJson[Envelope](rawData).get
 		val maxExpiryDate: DateTime = DateTime.now().plusDays(maxTTL)

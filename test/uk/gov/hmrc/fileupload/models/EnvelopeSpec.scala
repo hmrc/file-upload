@@ -25,7 +25,6 @@ import org.joda.time.format.DateTimeFormat
 import org.junit.Assert
 import org.junit.Assert.assertTrue
 import play.api.libs.json.{JsString, Json}
-import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.fileupload.actors.EnvelopeService
 import uk.gov.hmrc.fileupload.actors.EnvelopeService.CreateEnvelope
@@ -64,8 +63,8 @@ class EnvelopeSpec extends UnitSpec {
           |}
         """.stripMargin)
 
-	    val objectID: BSONObjectID = BSONObjectID.generate
-	    val result: Envelope = Envelope.fromJson(json, objectID, maxTTL = 2)
+	    val id: String = UUID.randomUUID().toString
+	    val result: Envelope = Envelope.fromJson(json, id, maxTTL = 2)
 
       val contraints = Constraints(contentTypes = Seq("application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -74,7 +73,7 @@ class EnvelopeSpec extends UnitSpec {
         maxSize = "12GB",
         maxSizePerItem = "10MB")
 
-      val expectedResult = Envelope(objectID, contraints,
+      val expectedResult = Envelope(id, contraints,
                                     callbackUrl = "http://absolute.callback.url",
                                     expiryDate = formatter.parseDateTime(formattedExpiryDate),
                                     metadata = Map("anything" -> JsString("the caller wants to add to the envelope")))
@@ -98,7 +97,7 @@ class EnvelopeSpec extends UnitSpec {
 			val now: DateTime = DateTime.now()
 			val maxExpiryDate: DateTime = now.plusDays(2)
 
-			val id = BSONObjectID.generate
+			val id = UUID.randomUUID().toString
 
 			val envelope = Envelope.fromJson(Json.toJson(Support.farInTheFutureEnvelope), id, maxTTL = 2)
 

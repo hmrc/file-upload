@@ -17,23 +17,24 @@
 package uk.gov.hmrc.fileupload.actors
 
 import java.lang.Math.abs
+import java.util.{NoSuchElementException, UUID}
 
-import akka.actor.{ActorRef, Inbox, Actor, ActorSystem}
+import akka.actor.{Actor, ActorRef, ActorSystem, Inbox}
 import akka.testkit.{TestActorRef, TestActors}
 import akka.util.Timeout
 import org.joda.time.DateTime
 import org.junit.Assert
 import org.junit.Assert.assertTrue
-import play.api.libs.json.{Json, JsObject, JsValue}
-import reactivemongo.bson.BSONObjectID
+import play.api.libs.json.{JsObject, JsValue, Json}
 import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.fileupload.actors.Storage.Save
 import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
 import uk.gov.hmrc.fileupload.controllers.BadRequestException
-import uk.gov.hmrc.fileupload.models.{ValidationException, Envelope}
+import uk.gov.hmrc.fileupload.models.{Envelope, ValidationException}
+
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by Josiah on 6/3/2016.
@@ -47,7 +48,7 @@ class EnvelopeServiceSpec extends ActorSpec{
 	val storage = TestActorRef[ActorStub]
 	val IdGenerator = TestActorRef[ActorStub]
 	val marshaller = TestActorRef[ActorStub]
-  val envelopMgr = system.actorOf(EnvelopeService.props(storage, IdGenerator, marshaller, MAX_TIME_TO_LIVE))
+  val envelopService = system.actorOf(EnvelopeService.props(storage, IdGenerator, marshaller, MAX_TIME_TO_LIVE))
 	implicit val ec = system.dispatcher
 
 
@@ -56,22 +57,22 @@ class EnvelopeServiceSpec extends ActorSpec{
 			within(timeout){
 	      val envelope = Support.envelope
 	      val json = Json.toJson[Envelope](envelope)
-	      val id = envelope._id.stringify
+	      val id = envelope._id
 
-	      marshaller.underlyingActor.setReply(json)
+	      marshaller.underlyingActor.setReply(Success(json))
 	      storage.underlyingActor.setReply(Some(envelope))
 
-	      envelopMgr ! GetEnvelope(id)
-	      expectMsg(json)
+	      envelopService ! GetEnvelope(id)
+	      expectMsg(Success(json))
       }
     }
 		"respond with a BadRequestException when it receives a GetEnvelope message with an invalid id" in {
 			within(timeout){
-	      val id = BSONObjectID.generate.stringify
+	      val id = UUID.randomUUID().toString
 
 	      storage.underlyingActor.setReply(None)
 
-	      envelopMgr ! GetEnvelope(id)
+	      envelopService ! GetEnvelope(id)
 	      expectMsg(new BadRequestException(s"no envelope exists for id:$id"))
       }
     }
@@ -82,16 +83,31 @@ class EnvelopeServiceSpec extends ActorSpec{
 		"respond with id  of created envelope when it receives a CreateEnvelope message" in {
 			within(timeout) {
 				val rawData = Support.envelopeBody
-				val id = BSONObjectID.generate
+				val id = UUID.randomUUID().toString
 
 				IdGenerator.underlyingActor.setReply(id)
 				storage.underlyingActor.setReply(id)
+        marshaller.underlyingActor.setReply(Try(Support.envelope))
 
-				envelopMgr ! CreateEnvelope( rawData )
+				envelopService ! CreateEnvelope( rawData )
 
 				expectMsg(id)
 			}
 		}
+
+		"respond with an exception when creation fails" in {
+      within(timeout) {
+        val wrongData = Json.parse( """{"wrong": "json"}""" )
+        val id: String = UUID.randomUUID().toString
+        IdGenerator.underlyingActor.setReply(id)
+        storage.underlyingActor.setReply(id)
+        marshaller.underlyingActor.setReply(Failure(new NoSuchElementException("JsError.get")))
+
+        envelopService ! CreateEnvelope(wrongData)
+
+        expectMsgClass(classOf[NoSuchElementException])
+      }
+    }
 	}
 
 	"An EnvelopeService" should  {
@@ -99,7 +115,7 @@ class EnvelopeServiceSpec extends ActorSpec{
 			within(timeout){
 				val id = "5752051b69ff59a8732f6474"
 				storage.underlyingActor.setReply(true)
-				envelopMgr ! DeleteEnvelope(id)
+				envelopService ! DeleteEnvelope(id)
 				expectMsg(true)
 			}
 		}

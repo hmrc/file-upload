@@ -16,13 +16,15 @@
 
 package uk.gov.hmrc.fileupload.repositories
 
+import java.util.UUID
+
 import org.joda.time.DateTime
 import org.junit
-import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.fileupload.models.{Constraints, Envelope}
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
@@ -68,7 +70,7 @@ class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFak
 
 	  "return nothing for a none existent envelope" in {
 		  val repository = new EnvelopeRepository(DefaultMongoConnection.db)
-			val id = BSONObjectID.generate
+			val id = UUID.randomUUID().toString
 
 		  val result = await(repository get id)
 		  result shouldBe None
