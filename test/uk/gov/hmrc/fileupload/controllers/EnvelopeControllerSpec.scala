@@ -58,7 +58,7 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 			envelopeMgr.setReply(id)
 
       val result: Result = await( EnvelopeController.create()(fakeRequest) )
-			result.header.status shouldBe Status.OK
+			result.header.status shouldBe Status.CREATED
 	    val location = result.header.headers.get("Location").get
 	    location shouldBe s"$serverUrl${routes.EnvelopeController.show(id).url}"
 
@@ -125,7 +125,7 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 			val result = Await.result(futureResult, defaultTimeout)
 
 			val actualRespone = Json.parse(consume(result.body))
-			val expectedResponse = Json.parse("""{"reason": "Internal Server Error" }""")
+			val expectedResponse = Json.parse("""{"error" : {"msg": "Internal Server Error" }}""")
 
 			result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
 			actualRespone shouldBe expectedResponse

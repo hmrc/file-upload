@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.controllers
 
 import play.api.http.Status._
 import play.api.libs.iteratee.Enumerator
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.mvc.{ResponseHeader, Result}
 import uk.gov.hmrc.fileupload.models.ValidationException
 import play.api.Logger
@@ -43,7 +43,7 @@ sealed trait ExceptionHandler[T <: Throwable] {
 object ValidationExceptionHandler extends ExceptionHandler[ValidationException]{
 
 	def apply(exception: ValidationException): Result = {
-		val response: JsObject = Json.obj("reason" -> exception.reason)
+		val response = JsObject(Seq("error" -> Json.obj("msg" -> exception.reason)))
 		Result(ResponseHeader(BAD_REQUEST), Enumerator( Json.stringify(response).getBytes ))
 	}
 }
@@ -51,14 +51,14 @@ object ValidationExceptionHandler extends ExceptionHandler[ValidationException]{
 object NoSuchElementHandler extends ExceptionHandler[NoSuchElementException]{
 
 	def apply(exception: NoSuchElementException): Result = {
-		val response: JsObject = Json.obj("reason" -> "invalid json format")
+		val response: JsObject = JsObject(Seq("error" -> Json.obj("msg" -> "invalid json format")))
 		Result(ResponseHeader(BAD_REQUEST), Enumerator( Json.stringify(response).getBytes ))
 	}
 }
 
 object BadRequestHandler extends ExceptionHandler[BadRequestException]{
 	override def apply(exception: BadRequestException): Result = {
-		val response: JsObject = Json.obj("reason" -> exception.getMessage)
+		val response: JsObject = JsObject(Seq("error" -> Json.obj("msg" -> exception.getMessage)))
 		Result(ResponseHeader(BAD_REQUEST), Enumerator( Json.stringify(response).getBytes ))
 	}
 }
@@ -66,7 +66,9 @@ object BadRequestHandler extends ExceptionHandler[BadRequestException]{
 object DefaultExceptionHandler extends ExceptionHandler[Throwable]{
 	override def apply(exception: Throwable): Result = {
 		Logger.error("Internal server exception", exception)
-		val response: JsObject = Json.obj("reason" -> "Internal Server Error")
+		val response = JsObject(Seq("error" -> Json.obj("msg" -> "Internal Server Error")))
 		Result(ResponseHeader(INTERNAL_SERVER_ERROR), Enumerator( Json.stringify(response).getBytes ))
 	}
 }
+
+

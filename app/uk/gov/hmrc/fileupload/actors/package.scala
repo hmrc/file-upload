@@ -49,7 +49,7 @@ package object actors {
 				*     case Success(Success(x)) => ...
 				*     case Success(Failure(t)) => ...
 				*   }
-				*   use this function to flatten the Future's Try
+				*   use this function to flatten Future[Try[T]] to Future[T]
 				* @param ec ExecutionContext
 				* @return the result of the inner Try or the original future
 				*/

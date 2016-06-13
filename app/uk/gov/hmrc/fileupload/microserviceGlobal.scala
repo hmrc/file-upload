@@ -66,9 +66,13 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
   override val microserviceAuditFilter = MicroserviceAuditFilter
 
-  override val authFilter = Some(MicroserviceAuthFilter)
+  override val authFilter = None
 
 	override def onBadRequest(request: RequestHeader, error: String): Future[Result] = {
 		Future(ExceptionHandler(new BadRequestException(error)))(ExecutionContext.global)
 	}
+
+  override def onError(request: RequestHeader, ex: Throwable): Future[Result] = {
+    Future(ExceptionHandler(ex))(ExecutionContext.global)
+  }
 }
