@@ -9,4 +9,6 @@ cache:
   directories:
     - '$HOME/.ivy2/cache'
 services: mongodb
-    
+env:
+  global:
+    - MONGODB_VERSION=2.6.10    
