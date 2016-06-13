@@ -1,5 +1,8 @@
 
 sudo: false
+env:
+  global:
+    - MONGODB_VERSION=2.6.10    
 language: scala
 scala:
 - 2.11.6
@@ -8,7 +11,13 @@ jdk:
 cache:
   directories:
     - '$HOME/.ivy2/cache'
-services: mongodb
-env:
-  global:
-    - MONGODB_VERSION=2.6.10    
+before_install:
+  - wget http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-$MONGODB_VERSION.tgz
+  - tar xfz mongodb-linux-x86_64-$MONGODB_VERSION.tgz
+  - export PATH=`pwd`/mongodb-linux-x86_64-$MONGODB_VERSION/bin:$PATH
+  - mkdir -p data/db
+  - mongod --dbpath=data/db &
+  - sleep 3
+services: 
+  - mongodb
+  
