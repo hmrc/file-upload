@@ -107,7 +107,7 @@ If the request is successfully processed the service responds with a 201 status 
 In case of failure the service responds with a json containing the reason of failure:
 ```json
 {
-   "error" {
+   "error": {
       "msg": "Service unavailable"
    }
 }
@@ -155,7 +155,7 @@ If successfully processed the response contains the envelope details specified a
 In case of failure the service responds with a json containing the reason of failure:
 ```json
 {
-   "error" {
+   "error": {
       "msg": "Service unavailable"
    }
 }
@@ -174,7 +174,7 @@ If successfull the service responds with status 200 OK and no body.
 In case of failure the service responds with a json containing the reason of failure:
 ```json
 {
-   "error" {
+   "error": {
       "msg": "Service unavailable"
    }
 }
