@@ -7,10 +7,12 @@ The envelope resources are exposed on the /file-upload/envelope endpoint.
 
 ##Create Envelope
 ###Request
+```
 Authorization : Bearer {AUTH_BEARER}
 POST yourdomain.com/file-upload/envelope
 
 {PAYLOAD}
+```
 
 ###Request Parameters
 <md-table-container>
@@ -111,8 +113,10 @@ In case of failure the service responds with a json containing the reason of fai
 
 ##Read Envelope
 ###Request
+```
 Authorization : Bearer {AUTH_BEARER}
 GET yourdomain.com/file-upload/envelope/{ENVELOPE_ID}
+```
 
 ###Response
 If successfully processed the response contains the envelope details specified at creation time plus the id and the list of files currently stored:
@@ -155,8 +159,10 @@ In case of failure the service responds with a json containing the reason of fai
 
 ##Delete Envelope
 ###Request
+```
 Authorization : Bearer {AUTH_BEARER}
 DELETE yourdomain.com/file-upload/envelope/{ENVELOPE_ID}
+```
 
 ###Response
 If successfull the service responds with status 200 OK and no body.
