@@ -18,6 +18,3 @@ before_install:
   - mkdir -p data/db
   - mongod --dbpath=data/db &
   - sleep 3
-services: 
-  - mongodb
-  
