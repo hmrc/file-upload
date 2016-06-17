@@ -76,7 +76,7 @@ class EnvelopeSpec extends UnitSpec {
       val expectedResult = Envelope(id, contraints,
                                     callbackUrl = "http://absolute.callback.url",
                                     expiryDate = formatter.parseDateTime(formattedExpiryDate),
-                                    metadata = Map("anything" -> JsString("the caller wants to add to the envelope")))
+                                    metadata = Map("anything" -> JsString("the caller wants to add to the envelope")), None)
 
       result shouldEqual expectedResult
     }

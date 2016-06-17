@@ -60,13 +60,29 @@ object FileUploadTestActors extends Actors{
 
 	override implicit val actorSystem: ActorSystem = ActorSystem("test-actor-system")
 
-	override val envelopeService: ActorRef = TestActorRef[ActorStub]
+	override val envelopeService: ActorRef = {
+		val actor = TestActorRef[ActorStub]
+		actor.underlyingActor.name = Some("envelopeService")
+		actor
+	}
 
-	override val storage: ActorRef = TestActorRef[ActorStub]
+	override val storage: ActorRef = {
+		val actor = TestActorRef[ActorStub]
+		actor.underlyingActor.name = Some("storage")
+		actor
+	}
 
-	override val idGenerator: ActorRef = TestActorRef[ActorStub]
+	override val idGenerator: ActorRef = {
+		val actor = TestActorRef[ActorStub]
+		actor.underlyingActor.name = Some("idGenerator")
+		actor
+	}
 
-	override def marshaller: ActorRef = TestActorRef[ActorStub]
+	override val marshaller: ActorRef = {
+		val actor = TestActorRef[ActorStub]
+		actor.underlyingActor.name = Some("marshaller")
+		actor
+	}
 
 }
 
@@ -89,12 +105,14 @@ object Actors extends Actors{
 
 class ActorStub extends Actor{
 
+	var name: Option[String] = None
+
 	def setReceive(me: Receive) = context.become(me)
 
-	def setReply(reply: Any)  = setReceive({ case _ => sender ! reply} )
+	def setReply(reply: Any)  = setReceive({ case _ => sender ! reply})
 
 	override def receive = {
-		case _ => throw new RuntimeException("No receive set")
+		case _ => throw new RuntimeException(s"No receive set for ${name.getOrElse("UNNAMED")}")
 	}
 
 }

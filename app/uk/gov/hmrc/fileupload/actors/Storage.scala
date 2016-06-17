@@ -27,6 +27,7 @@ object Storage{
   case class FindById(id: String)
 	case class Save(envelope: Envelope)
 	case class Remove(id: String)
+	case class AddFile(envelopeId: String, fileId: String)
 
   def props(envelopeRepository: EnvelopeRepository): Props = Props(classOf[Storage], envelopeRepository)
 
@@ -42,10 +43,11 @@ class Storage(val envelopeRepository: EnvelopeRepository) extends Actor with Act
 		super.preStart()
   }
 
-  def receive = {
+	def receive = {
     case FindById(id) => findEnvelopeById(id, sender)
     case Save(envelope) => save(envelope, sender)
     case Remove(id) => remove(id, sender)
+    case AddFile(envelopeId, fileId) => addFile(envelopeId, fileId, sender)
   }
 
   def findEnvelopeById(byId: String, sender: ActorRef): Unit = {
@@ -75,7 +77,20 @@ class Storage(val envelopeRepository: EnvelopeRepository) extends Actor with Act
 		}
 	}
 
-  override def postStop(): Unit = {
+	def addFile(envelopeId: String, fileId: String, sender: ActorRef): Unit = {
+		println(s"processing add message from $sender")
+		envelopeRepository.addFile(envelopeId, fileId).onComplete {
+			case Success(result) =>
+				println(s"upload successful replying to  $sender")
+				sender ! result
+			case Failure(e) =>
+				println(s"upload unsuccessful replying to  $sender")
+				sender ! e
+		}
+	}
+
+
+	override def postStop(): Unit = {
 	  log.info("Envelope storage is going offline")
 	  super.postStop()
   }

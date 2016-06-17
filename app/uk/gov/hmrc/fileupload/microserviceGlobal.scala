@@ -17,9 +17,10 @@
 package uk.gov.hmrc.fileupload
 
 import com.typesafe.config.Config
-import play.api.mvc.{Result, RequestHeader}
+import play.api.mvc.{EssentialFilter, Result, RequestHeader}
 import play.api.{Application, Configuration, Play}
 import uk.gov.hmrc.fileupload.controllers.{BadRequestException, ExceptionHandler}
+import uk.gov.hmrc.fileupload.filters.FileUploadValidationFilter
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
@@ -75,4 +76,6 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   override def onError(request: RequestHeader, ex: Throwable): Future[Result] = {
     Future(ExceptionHandler(ex))(ExecutionContext.global)
   }
+
+	override def microserviceFilters: Seq[EssentialFilter] = defaultMicroserviceFilters   ++ Seq(FileUploadValidationFilter)
 }

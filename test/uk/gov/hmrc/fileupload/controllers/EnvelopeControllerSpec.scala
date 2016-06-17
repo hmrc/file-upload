@@ -72,9 +72,10 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
       val envelope = Support.envelope
       val request = FakeRequest("GET", s"/envelope/$id")
       val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
+      val marshaller: ActorStub = FileUploadTestActors.marshaller
 
-      envelopeMgr.setReply(Try(Json.toJson[Envelope](envelope)))
-
+      envelopeMgr.setReply(envelope)
+      marshaller.setReply(Try(Json.toJson[Envelope](envelope)))
 
       val futureResult = EnvelopeController.show(id)(request)
 

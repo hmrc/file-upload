@@ -58,12 +58,12 @@ class EnvelopeServiceSpec extends ActorSpec{
 	      val envelope = Support.envelope
 	      val json = Json.toJson[Envelope](envelope)
 	      val id = envelope._id
+				println(json)
 
-	      marshaller.underlyingActor.setReply(Success(json))
 	      storage.underlyingActor.setReply(Some(envelope))
 
 	      envelopService ! GetEnvelope(id)
-	      expectMsg(Success(json))
+	      expectMsg(envelope)
       }
     }
 		"respond with a BadRequestException when it receives a GetEnvelope message with an invalid id" in {
@@ -108,14 +108,20 @@ class EnvelopeServiceSpec extends ActorSpec{
         expectMsgClass(classOf[NoSuchElementException])
       }
     }
-	}
 
-	"An EnvelopeService" should  {
 		"respond with Success after deleting an envelope" in {
 			within(timeout){
 				val id = "5752051b69ff59a8732f6474"
 				storage.underlyingActor.setReply(true)
 				envelopService ! DeleteEnvelope(id)
+				expectMsg(true)
+			}
+		}
+
+		"update an envelope to add a new file" in {
+			within(timeout){
+				storage.underlyingActor.setReply(true)
+				envelopService ! UpdateEnvelope(envelopeId = "123", fileId = "456")
 				expectMsg(true)
 			}
 		}

@@ -22,12 +22,13 @@ import akka.testkit.TestActors
 import com.fasterxml.jackson.annotation.ObjectIdGenerators.UUIDGenerator
 import org.joda.time.DateTime
 import org.mockito.Matchers
+import org.mockito.Matchers.any
 import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
 import play.api.libs.json.{JsObject, JsResult, Json}
 import reactivemongo.api.commands.DefaultWriteResult
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.models.{Constraints, Envelope}
+import uk.gov.hmrc.fileupload.models.{DuplicateFileException, Constraints, Envelope}
 import uk.gov.hmrc.fileupload.repositories.EnvelopeRepository
 
 import scala.concurrent.Future
@@ -50,7 +51,7 @@ class StorageSpec extends ActorSpec with MockitoSugar {
       within(500 millis){
         val optEnvelope = Some(Support.envelope)
         val envelope = optEnvelope.get
-	      when(envelopeRepository.get(Matchers.any())(Matchers.any())).thenReturn(Future.successful(optEnvelope))
+	      when(envelopeRepository.get(any())(any())).thenReturn(Future.successful(optEnvelope))
         storage ! FindById(envelope._id)
         expectMsg(optEnvelope)
       }
@@ -58,19 +59,19 @@ class StorageSpec extends ActorSpec with MockitoSugar {
 
     "Respond with nothing when it receives a find by id for a non existent id" in {
       val id = UUID.randomUUID().toString
-	    when(envelopeRepository.get(Matchers.any())(Matchers.any())).thenReturn(Future.successful(None))
+	    when(envelopeRepository.get(any())(any())).thenReturn(Future.successful(None))
       storage ! FindById(id)
       expectMsg(None)
     }
 
-	  "respond with an Id when it receives a create envelope message" in {
+	  "respond with a Id when it receives a create envelope message" in {
 		  within(500 millis) {
 
 			  val id = UUID.randomUUID().toString
 			  val rawData = Support.envelopeBody.asInstanceOf[JsObject] ++ Json.obj("_id" -> id)
 			  val envelope = Json.fromJson[Envelope](rawData).get
 
-			  when(envelopeRepository.add(Matchers.any())(Matchers.any())).thenReturn(Future.successful(true))
+			  when(envelopeRepository.add(any())(any())).thenReturn(Future.successful(true))
 
 			  storage ! Save(envelope)
 
@@ -78,25 +79,62 @@ class StorageSpec extends ActorSpec with MockitoSugar {
 		  }
 	  }
 
-	  "respond with an success true after deleting an Envelope" in {
+	  "respond with success true after deleting an Envelope" in {
 		  within(500 millis) {
 
-			  when(envelopeRepository.delete(Matchers.any())(Matchers.any())).thenReturn(Future.successful(true))
+			  when(envelopeRepository.delete(any())(any())).thenReturn(Future.successful(true))
 			  storage ! Remove(envelope._id )
 
 			  expectMsg(true)
 		  }
 	  }
 
-	  "respond with an success false when not able to delete an Envelope" in {
+	  "respond with success false when not able to delete an Envelope" in {
 		  within(500 millis) {
 
-			  when(envelopeRepository.delete(Matchers.any())(Matchers.any())).thenReturn(Future.successful(false))
+			  when(envelopeRepository.delete(any())(any())).thenReturn(Future.successful(false))
 			  storage ! Remove(envelope._id )
 
 			  expectMsg(false)
 		  }
 	  }
+
+	  "respond with a success true after adding a file to an envelope" in {
+		  within(500 millis) {
+
+			  when(envelopeRepository.addFile(any(), any())(any())).thenReturn(Future.successful(true))
+			  storage ! AddFile(envelope._id, fileId = "456" )
+
+			  expectMsg(true)
+		  }
+	  }
+
+	  "respond with a success false after adding a file to an envelope" in {
+		  within(500 millis) {
+
+			  when(envelopeRepository.addFile(any(), any())(any())).thenReturn(Future.successful(false))
+			  storage ! AddFile(envelope._id, fileId = "456" )
+
+			  expectMsg(false)
+		  }
+	  }
+	  "respond with a failure when adding of file fails" in {
+		  within(500 millis){
+			  when(envelopeRepository.addFile(any(), any())(any())).thenReturn(Future.failed(new RuntimeException))
+			  storage ! AddFile(envelope._id, fileId = "456" )
+			  expectMsgClass(classOf[RuntimeException])
+		  }
+	  }
+
+	  "respond with a failure when a file is already in the envelope" in {
+		  within(500 millis){
+			  val envelope = Support.envelope.copy(files = Some(Seq("filestore.txt")))
+			  when(envelopeRepository.addFile(any(), any())(any())).thenReturn(Future.failed(new DuplicateFileException("")))
+			  storage ! AddFile(envelope._id, fileId = "456" )
+			  expectMsgClass(classOf[DuplicateFileException])
+		  }
+	  }
+
   }
 
 

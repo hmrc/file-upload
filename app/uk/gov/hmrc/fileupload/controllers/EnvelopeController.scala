@@ -20,23 +20,29 @@ package uk.gov.hmrc.fileupload.controllers
 import akka.util.Timeout
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.actors.{EnvelopeService, Actors}
+import uk.gov.hmrc.fileupload.actors.{Marshaller, Actors, EnvelopeService}
 import uk.gov.hmrc.fileupload.actors.Implicits.FutureUtil
 import uk.gov.hmrc.fileupload.models.Envelope
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import akka.pattern._
+
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.concurrent.Future
 import Envelope._
+import Marshaller._
 import EnvelopeService._
+import play.api.libs.iteratee.Iteratee
+import play.api.libs.ws.WS
 
 object EnvelopeController extends BaseController {
 
   implicit val system = Actors.actorSystem
   implicit val executionContext = system.dispatcher
-  implicit val defaultTimeout = Timeout(2 second)
+  implicit val defaultTimeout = Timeout(2 seconds)
+
   val envelopeService = Actors.envelopeService
+	val marshaller = Actors.marshaller
 
   def create() = Action.async { implicit request =>
 
@@ -54,10 +60,12 @@ object EnvelopeController extends BaseController {
 
   def show(id: String) = Action.async{
 
-	  def findEnvelopeFor = (id: String) =>  envelopeService ? GetEnvelope(id)
+	  def findEnvelopeFor = (id: String) =>  (envelopeService ? GetEnvelope(id)).mapTo[Envelope]
+	  def toJson = (e: Envelope) => marshaller ? Marshall(e, classOf[Envelope])
 	  def onEnvelopeFound = (any: Any) => mapToResult(any){case json: JsValue => Ok(json) }
 
     findEnvelopeFor(id)
+	    .flatMap(toJson)
       .flattenTry
 	    .map(onEnvelopeFound)
       .recover{ case e => ExceptionHandler(e)  }
@@ -76,7 +84,9 @@ object EnvelopeController extends BaseController {
 		  .recover { case e =>  ExceptionHandler(e) }
 	}
 
+	// TODO not necessary, remove
 	def mapToResult(any: Any)(pf: PartialFunction[Any, Result]): Result = {
 		pf.orElse[Any, Result]{ case e: Throwable => ExceptionHandler(e) }(any)
 	}
+
 }
