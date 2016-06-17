@@ -30,7 +30,7 @@ import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.fileupload.actors.Storage.Save
 import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
 import uk.gov.hmrc.fileupload.controllers.BadRequestException
-import uk.gov.hmrc.fileupload.models.{Envelope, ValidationException}
+import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException, ValidationException}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -73,7 +73,7 @@ class EnvelopeServiceSpec extends ActorSpec{
 	      storage.underlyingActor.setReply(None)
 
 	      envelopService ! GetEnvelope(id)
-	      expectMsg(new BadRequestException(s"no envelope exists for id:$id"))
+	      expectMsg(new EnvelopeNotFoundException(s"no envelope exists for id:$id"))
       }
     }
   }

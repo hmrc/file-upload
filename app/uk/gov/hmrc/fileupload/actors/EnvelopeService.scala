@@ -21,10 +21,10 @@ import java.util.UUID
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
 import play.api.libs.json.{JsObject, JsValue, Json}
-import uk.gov.hmrc.fileupload.actors.EnvelopeService.{UpdateEnvelope, CreateEnvelope, DeleteEnvelope, GetEnvelope}
+import uk.gov.hmrc.fileupload.actors.EnvelopeService.{CreateEnvelope, DeleteEnvelope, GetEnvelope, UpdateEnvelope}
 import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
 import uk.gov.hmrc.fileupload.controllers.BadRequestException
-import uk.gov.hmrc.fileupload.models.Envelope
+import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -81,7 +81,7 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
     (storage ? FindById(id))
 	    .breakOnFailure
 	    .onComplete {
-	      case Success(None)              => sender ! new BadRequestException(s"no envelope exists for id:$id")
+	      case Success(None)              => sender ! new EnvelopeNotFoundException(s"no envelope exists for id:$id")
 	      case Success(Some(envelope))    => sender ! envelope
 	      case Failure(t)                 => sender ! t
     }
