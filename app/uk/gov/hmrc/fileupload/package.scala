@@ -14,8 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.models
+package uk.gov.hmrc
 
-case class ValidationException(reason: String) extends IllegalArgumentException(reason){
+import _root_.play.api.libs.json.JsValue
+import reactivemongo.api.gridfs.{ReadFile, GridFS}
+import reactivemongo.json.JSONSerializationPack
 
+import scala.concurrent.Future
+import scala.util.Try
+
+package object fileupload {
+  type ByteStream = Array[Byte]
+	type JSONGridFS = GridFS[JSONSerializationPack.type]
+	type JSONReadFile = ReadFile[JSONSerializationPack.type, JsValue]
+	type StreamedResults = Future[(JSONReadFile, Try[Boolean])]
 }

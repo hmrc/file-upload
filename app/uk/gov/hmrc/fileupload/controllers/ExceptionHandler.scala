@@ -20,18 +20,21 @@ import play.api.http.Status._
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.mvc.{ResponseHeader, Result}
-import uk.gov.hmrc.fileupload.models.ValidationException
+import uk.gov.hmrc.fileupload.models.{EnvelopeNotFoundException, ValidationException}
 import play.api.Logger
 object ExceptionHandler{
 
 	def apply[T <: Throwable](exception: T): Result = exception match {
-		case e : ValidationException => ValidationExceptionHandler(e)
+		case e : ValidationException => IllegalArgumentHandler(e)
 		case e : NoSuchElementException => NoSuchElementHandler(e)
 		case e : BadRequestException => BadRequestHandler(e)
+		case e : EnvelopeNotFoundException => EnvelopeNotFoundHandler(e)
 		case e : Throwable => DefaultExceptionHandler(e)
 	}
 
 }
+
+// TODO merge exception handlers; they are basically doing the same thing
 
 sealed trait ExceptionHandler[T <: Throwable] {
 
@@ -39,11 +42,10 @@ sealed trait ExceptionHandler[T <: Throwable] {
 
 }
 
+object IllegalArgumentHandler extends ExceptionHandler[IllegalArgumentException]{
 
-object ValidationExceptionHandler extends ExceptionHandler[ValidationException]{
-
-	def apply(exception: ValidationException): Result = {
-		val response = JsObject(Seq("error" -> Json.obj("msg" -> exception.reason)))
+	def apply(exception: IllegalArgumentException): Result = {
+		val response = JsObject(Seq("error" -> Json.obj("msg" -> exception.getMessage)))
 		Result(ResponseHeader(BAD_REQUEST), Enumerator( Json.stringify(response).getBytes ))
 	}
 }
@@ -62,6 +64,14 @@ object BadRequestHandler extends ExceptionHandler[BadRequestException]{
 		Result(ResponseHeader(BAD_REQUEST), Enumerator( Json.stringify(response).getBytes ))
 	}
 }
+
+object EnvelopeNotFoundHandler extends ExceptionHandler[EnvelopeNotFoundException]{
+	override def apply(exception: EnvelopeNotFoundException): Result = {
+		val response: JsObject = JsObject(Seq("error" -> Json.obj("msg" -> exception.getMessage)))
+		Result(ResponseHeader(NOT_FOUND), Enumerator( Json.stringify(response).getBytes ))
+	}
+}
+
 
 object DefaultExceptionHandler extends ExceptionHandler[Throwable]{
 	override def apply(exception: Throwable): Result = {

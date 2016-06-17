@@ -75,6 +75,18 @@ class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFak
 		  val result = await(repository get id)
 		  result shouldBe None
 	  }
+
+	  "adds a file to a envelope" in {
+		  val repository = new EnvelopeRepository(DefaultMongoConnection.db)
+		  val envelope = Support.envelope
+		  val id = envelope._id
+		  await(repository add envelope)
+
+		  val result = await( repository.addFile( id, fileId = "456") )
+		  result shouldBe true
+	  }
+
+
   }
 
 

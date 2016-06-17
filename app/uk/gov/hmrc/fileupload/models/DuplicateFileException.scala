@@ -16,6 +16,6 @@
 
 package uk.gov.hmrc.fileupload.models
 
-case class ValidationException(reason: String) extends IllegalArgumentException(reason){
+case class DuplicateFileException(message: String) extends Exception(message) {
 
 }

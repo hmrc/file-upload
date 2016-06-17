@@ -16,25 +16,31 @@
 
 package uk.gov.hmrc.fileupload.repositories
 
-import play.modules.reactivemongo.MongoDbConnection
-import reactivemongo.api.DB
+import play.api.libs.iteratee.Iteratee
+import play.modules.reactivemongo.{JSONFileToSave, MongoDbConnection}
+import reactivemongo.api.{DBMetaCommands, DB}
 import reactivemongo.api.commands.WriteResult
+import reactivemongo.api.gridfs.GridFS
 import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.fileupload.models.Envelope
+import uk.gov.hmrc.fileupload._
+import uk.gov.hmrc.fileupload.controllers.BadRequestException
+import uk.gov.hmrc.fileupload.models.{EnvelopeNotFoundException, Envelope}
 import uk.gov.hmrc.mongo.ReactiveRepository
-
+import play.modules.reactivemongo.GridFSController._
+import reactivemongo.json._
 import scala.concurrent.{ExecutionContext, Future}
 
 object DefaultMongoConnection extends MongoDbConnection
 
 object EnvelopeRepository  {
-	def apply(mongo: () => DB): EnvelopeRepository = new EnvelopeRepository(mongo)
+	def apply(mongo: () => DB with DBMetaCommands): EnvelopeRepository = new EnvelopeRepository(mongo)
 }
 
-class EnvelopeRepository(mongo: () => DB)
+class EnvelopeRepository(mongo: () => DB with DBMetaCommands)
   extends ReactiveRepository[Envelope, BSONObjectID](collectionName = "envelopes", mongo, domainFormat = Envelope.envelopeReads ){
 
-  def add(envelope: Envelope)(implicit ex: ExecutionContext): Future[Boolean] ={
+
+	def add(envelope: Envelope)(implicit ex: ExecutionContext): Future[Boolean] ={
     insert(envelope) map toBoolean
   }
 
@@ -46,9 +52,32 @@ class EnvelopeRepository(mongo: () => DB)
 		remove("_id" -> id) map toBoolean
 	}
 
+	def addFile(envelopeId: String, fileId: String)(implicit ec: ExecutionContext): Future[Boolean] = {
+		get(envelopeId).flatMap {
+			case Some(envelope) => {
+				val update = envelope.files match {
+					case None => envelope.copy(files = Some(Seq(fileId)))
+					case Some(seq) => envelope.copy(files = Some(seq ++ Seq(fileId)))
+				}
+				delete(envelopeId).flatMap {    // FIXME api provides no update method
+					case true => add(update)
+					case false => Future.successful(false)
+				}
+			}
+			case None => Future.failed(new EnvelopeNotFoundException(s"No envelope exists for id: $envelopeId"))
+		}
+
+	}
+
+
 	def toBoolean(wr: WriteResult): Boolean = wr match {
 		case wr : WriteResult if wr.ok && wr.n > 0 => true
 		case _ => false
 	}
 
+	def iterateeForUpload(file: String)(implicit ec: ExecutionContext) : Iteratee[ByteStream, Future[JSONReadFile]] = {
+		import reactivemongo.json.collection._
+		val gfs: JSONGridFS = GridFS[JSONSerializationPack.type](mongo(), "envelopes")
+		gfs.iteratee(JSONFileToSave(Some(file)))
+	}
 }

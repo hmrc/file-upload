@@ -19,10 +19,15 @@ package uk.gov.hmrc.fileupload.models
 import org.joda.time.DateTime
 import play.api.libs.json._
 
-case class Envelope(_id: String, constraints: Constraints, callbackUrl: String, expiryDate: DateTime, metadata: Map[String, JsValue] ) {
-	if(isExpired()) throw ValidationException("expiry date cannot be in the past")
+case class Envelope(_id: String, constraints: Constraints, callbackUrl: String, expiryDate: DateTime, metadata: Map[String, JsValue], files: Option[Seq[String]] = None ) {
+	require(!isExpired(), "expiry date cannot be in the past")
 
 	def isExpired(): Boolean = expiryDate.isBeforeNow
+
+	def contains(file: String) = files match {
+		case Some(f) => f.contains(file)
+		case None => false
+	}
 }
 
 case class Constraints(contentTypes: Seq[String], maxItems: Int, maxSize: String, maxSizePerItem: String ) {
@@ -34,6 +39,8 @@ case class Constraints(contentTypes: Seq[String], maxItems: Int, maxSize: String
 		val pattern = "[0-9]+(KB|MB|GB|TB|PB)".r
 		if(pattern.findFirstIn(value).isEmpty) throw new ValidationException(s"$name has an invalid size format ($value)")
 	}
+
+
 
 }
 

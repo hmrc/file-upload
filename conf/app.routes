@@ -1,6 +1,7 @@
 # microservice specific routes
 
-GET        /envelope/:id            uk.gov.hmrc.fileupload.controllers.EnvelopeController.show(id: String)
-POST       /envelope           uk.gov.hmrc.fileupload.controllers.EnvelopeController.create()
-DELETE     /envelope/:id           uk.gov.hmrc.fileupload.controllers.EnvelopeController.delete(id: String)
+GET        /envelope/:id                                    uk.gov.hmrc.fileupload.controllers.EnvelopeController.show(id: String)
+POST       /envelope                                        uk.gov.hmrc.fileupload.controllers.EnvelopeController.create()
+DELETE     /envelope/:id                                    uk.gov.hmrc.fileupload.controllers.EnvelopeController.delete(id: String)
+PUT        /envelope/:envelopeId/file/:fileId/content       uk.gov.hmrc.fileupload.controllers.FileuploadController.upload(envelopeId: String, fileId: String)
 

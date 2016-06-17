@@ -19,16 +19,21 @@ package uk.gov.hmrc
 import java.util.UUID
 
 import _root_.play.api.libs.iteratee.{Enumeratee, Enumerator, Iteratee}
-import _root_.play.api.libs.json.{JsString, Json}
+import _root_.play.api.libs.json.{JsValue, JsString, Json}
 import akka.actor.{Actor, ActorRef, ActorSystem}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
 import org.joda.time.DateTime
 import org.openqa.selenium.By.ById
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
+import reactivemongo.api.DBMetaCommands
+import reactivemongo.api.collections.bson.BSONCollectionProducer
+import reactivemongo.api.collections.{GenericCollection, GenericCollectionProducer}
 import reactivemongo.api.commands.{DefaultWriteResult, WriteResult}
+import reactivemongo.api.gridfs.{ReadFile, GridFS}
+import reactivemongo.json.JSONSerializationPack
 import uk.gov.hmrc.fileupload.models.Constraints
 
-import scala.concurrent.Await
+import scala.concurrent.{Future, Await}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.Try
@@ -37,6 +42,11 @@ import scala.util.Try
   * Created by Josiah on 6/4/2016.
   */
 package object fileupload {
+
+	type ByteStream = Array[Byte]
+	type JSONGridFS = GridFS[JSONSerializationPack.type]
+	type JSONReadFile = ReadFile[JSONSerializationPack.type, JsValue]
+	type StreamedResults = Future[(JSONReadFile, Try[Boolean])]
 
   object Support{
     import reactivemongo.api.commands.WriteResult
@@ -73,6 +83,33 @@ package object fileupload {
 	  object Implicits{
 		  implicit def underLyingActor[T <: Actor](actorRef: ActorRef): T = actorRef.asInstanceOf[TestActorRef[T]].underlyingActor
 	  }
+
+	  class DBStub extends DB with DBMetaCommands {
+		  override def connection: MongoConnection = ???
+
+		  override def failoverStrategy: FailoverStrategy = ???
+
+		  override def name: String = ???
+	  }
+
+	  object EnvelopRepositoryStub{
+		  def OkWriteResult(n: Int) : Future[WriteResult] = Future.successful(DefaultWriteResult(ok = true, n, Seq(), None, Some(1), None))
+	  }
+
+	  class EnvelopRepositoryStub(var  data: Map[String, Envelope] = Map(), val iteratee: Iteratee[ByteStream, Future[JSONReadFile]]) extends EnvelopeRepository(() => new DBStub){
+		  import EnvelopRepositoryStub._
+
+		  override def add(envelope: Envelope)(implicit ex: ExecutionContext): Future[Boolean] = {
+			  data = data ++ Map(envelope._id -> envelope)
+			  Future.successful(true)
+		  }
+
+		  override def get(byId: String)(implicit ec: ExecutionContext): Future[Option[Envelope]] = Future.successful(data.get(byId))
+
+		  override def iterateeForUpload(file: String)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = iteratee
+	  }
+
+
 
   }
 }

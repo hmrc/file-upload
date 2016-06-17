@@ -21,10 +21,10 @@ import java.util.UUID
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
 import play.api.libs.json.{JsObject, JsValue, Json}
-import uk.gov.hmrc.fileupload.actors.EnvelopeService.{CreateEnvelope, DeleteEnvelope, GetEnvelope}
+import uk.gov.hmrc.fileupload.actors.EnvelopeService.{CreateEnvelope, DeleteEnvelope, GetEnvelope, UpdateEnvelope}
 import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
 import uk.gov.hmrc.fileupload.controllers.BadRequestException
-import uk.gov.hmrc.fileupload.models.Envelope
+import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -41,6 +41,10 @@ object EnvelopeService {
   case class CreateEnvelope(json: JsValue)
 
   case class DeleteEnvelope(id: String)
+
+	case class UpdateEnvelope(envelopeId: String, fileId: String)
+	case object EnvelopeUpdated
+	case object EnvelopeNotFound
 
   def props(storage: ActorRef, idGenerator: ActorRef, marshaller: ActorRef, maxTTL: Int): Props =
     Props(classOf[EnvelopeService], storage, idGenerator, marshaller, maxTTL)
@@ -60,19 +64,26 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
     super.preStart()
   }
 
-  def receive = {
-    case GetEnvelope(id)        => getEnvelopeFor(id, sender())
-    case CreateEnvelope(data)   => createEnvelopeFrom(data, sender())
+
+	def receive = {
+    case GetEnvelope(id)        => getEnvelopeFor(id, sender)
+    case CreateEnvelope(data)   => createEnvelopeFrom(data, sender)
     case DeleteEnvelope(id)     => storage forward Remove(id)
+    case UpdateEnvelope(envelopeId, fileId) =>
+	    println(s"forwarding add file message from $sender to storage")
+	    // FIXME we can't just forward this request to the storage
+	    // FIXME we have to wait on the storage and then rollback the fileupload
+	    // FIXME on failure
+	    storage forward AddFile(envelopeId, fileId)
   }
 
   def getEnvelopeFor(id: String, sender: ActorRef): Unit = {
     (storage ? FindById(id))
 	    .breakOnFailure
 	    .onComplete {
-	      case Success(None)        => sender ! new BadRequestException(s"no envelope exists for id:$id")
-	      case Success(Some(env))   => marshaller.!(Marshall(env))(sender)
-	      case Failure(t)           => sender ! t
+	      case Success(None)              => sender ! new EnvelopeNotFoundException(s"no envelope exists for id:$id")
+	      case Success(Some(envelope))    => sender ! envelope
+	      case Failure(t)                 => sender ! t
     }
   }
 
@@ -81,7 +92,7 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
     (idGenerator ? NextId)
       .mapTo[String]
       .map(id => data.asInstanceOf[JsObject] ++ Json.obj("_id" -> id))
-      .flatMap(marshaller ? UnMarshall(_, classOf[Envelope]))
+      .flatMap(marshaller ? UnMarshall(_, classOf[Envelope]))   // move this to the controller
 	    .flattenTry
       .mapTo[Envelope]
       .map(Storage.Save)
@@ -93,7 +104,7 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
       }
   }
 
-  override def postStop() {
+	override def postStop() {
     log.info("Envelope storage is going offline")
     super.postStop()
   }
