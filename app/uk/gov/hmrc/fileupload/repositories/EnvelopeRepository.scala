@@ -64,7 +64,7 @@ class EnvelopeRepository(mongo: () => DB with DBMetaCommands)
 					case false => Future.successful(false)
 				}
 			}
-			case None => Future.failed(new EnvelopeNotFoundException(s"No envelope exists for id: $envelopeId"))
+			case None => Future.failed(new EnvelopeNotFoundException(envelopeId))
 		}
 
 	}

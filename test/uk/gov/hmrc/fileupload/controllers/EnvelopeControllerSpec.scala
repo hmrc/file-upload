@@ -111,8 +111,13 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 			envelopeMgr.setReply(false)
 
 			val futureResult = EnvelopeController.delete(id)(request)
-			status(futureResult) shouldBe Status.NOT_FOUND
+			val result = Await.result(futureResult, defaultTimeout)
 
+			val actualRespone = Json.parse(consume(result.body))
+
+			result.header.status shouldBe Status.NOT_FOUND
+			val expectedResponse = Json.parse(s"""{"error" : {"msg": "Envelope $id not found" }}""")
+			actualRespone shouldBe expectedResponse
 		}
 
 		"respond with 500 INTERNAL SERVER ERROR status" in {

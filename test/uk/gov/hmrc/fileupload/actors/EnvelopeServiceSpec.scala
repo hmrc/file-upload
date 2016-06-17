@@ -73,7 +73,7 @@ class EnvelopeServiceSpec extends ActorSpec{
 	      storage.underlyingActor.setReply(None)
 
 	      envelopService ! GetEnvelope(id)
-	      expectMsg(new EnvelopeNotFoundException(s"no envelope exists for id:$id"))
+	      expectMsg(new EnvelopeNotFoundException(id))
       }
     }
   }

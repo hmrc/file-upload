@@ -81,7 +81,7 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
     (storage ? FindById(id))
 	    .breakOnFailure
 	    .onComplete {
-	      case Success(None)              => sender ! new EnvelopeNotFoundException(s"no envelope exists for id:$id")
+	      case Success(None)              => sender ! new EnvelopeNotFoundException(id)
 	      case Success(Some(envelope))    => sender ! envelope
 	      case Failure(t)                 => sender ! t
     }
