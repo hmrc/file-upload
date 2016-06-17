@@ -49,7 +49,7 @@ object EnvelopeController extends BaseController {
 	  def fromRequestBody = () => Future(request.body.asJson.getOrElse( throw new Exception))
 	  def createEnvelope = (json: JsValue) => envelopeService ? CreateEnvelope(json)
 	  def envelopeLocation = (id: String) => LOCATION -> s"${request.host}${routes.EnvelopeController.show(id)}"
-	  def onEnvelopeCreated = (any: Any) => mapToResult(any) { case id: String => Created.withHeaders(envelopeLocation(id)) }
+	  def onEnvelopeCreated : (Any) => Result = { case id: String => Created.withHeaders(envelopeLocation(id)) }
 
 	  fromRequestBody()
 		  .flatMap(createEnvelope)
@@ -62,7 +62,7 @@ object EnvelopeController extends BaseController {
 
 	  def findEnvelopeFor = (id: String) =>  (envelopeService ? GetEnvelope(id)).mapTo[Envelope]
 	  def toJson = (e: Envelope) => marshaller ? Marshall(e, classOf[Envelope])
-	  def onEnvelopeFound = (any: Any) => mapToResult(any){case json: JsValue => Ok(json) }
+	  def onEnvelopeFound : (Any) => Result = {case json: JsValue => Ok(json) }
 
     findEnvelopeFor(id)
 	    .flatMap(toJson)
@@ -74,7 +74,7 @@ object EnvelopeController extends BaseController {
 	def delete(id: String) = Action.async {
 
 		def deleteEnvelope = (id: String) => envelopeService ? DeleteEnvelope(id)
-		def onEnvelopeDeleted = (any: Any) => mapToResult(any) {
+		def onEnvelopeDeleted: (Any) => Result = {
 			case true => Ok
 			case false => NotFound
 		}
@@ -84,9 +84,5 @@ object EnvelopeController extends BaseController {
 		  .recover { case e =>  ExceptionHandler(e) }
 	}
 
-	// TODO not necessary, remove
-	def mapToResult(any: Any)(pf: PartialFunction[Any, Result]): Result = {
-		pf.orElse[Any, Result]{ case e: Throwable => ExceptionHandler(e) }(any)
-	}
 
 }
