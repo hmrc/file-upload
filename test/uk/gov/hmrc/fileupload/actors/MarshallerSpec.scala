@@ -66,7 +66,7 @@ class MarshallerSpec extends ActorSpec{
         val json = Json.parse("""{ "key" : "value"}""")
 				var result: Option[NoSuchElementException] = None
 
-				val future = (marshaller ? UnMarshall(json, classOf[Envelope])).flattenTry
+				val future = (marshaller ? UnMarshall(json, classOf[Envelope])).breakOnFailure
         Await.ready(future, timeout.duration)
 				future.onComplete {
 					case Failure(e: NoSuchElementException) => result = Some(e)
