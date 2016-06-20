@@ -16,69 +16,69 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import play.api.Logger
 import play.api.http.Status._
 import play.api.libs.iteratee.Enumerator
-import play.api.libs.json.{JsObject, JsString, Json}
+import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{ResponseHeader, Result}
+import uk.gov.hmrc.fileupload.controllers.ExceptionHandler.exceptionHandler
 import uk.gov.hmrc.fileupload.models.{EnvelopeNotFoundException, ValidationException}
-import play.api.Logger
-object ExceptionHandler{
 
-	def apply[T <: Throwable](exception: T): Result = exception match {
-		case e : ValidationException => IllegalArgumentHandler(e)
-		case e : NoSuchElementException => NoSuchElementHandler(e)
-		case e : BadRequestException => BadRequestHandler(e)
-		case e : EnvelopeNotFoundException => EnvelopeNotFoundHandler(e)
-		case e : Throwable => DefaultExceptionHandler(e)
-	}
+object ExceptionHandler {
 
+  def apply[T <: Throwable](exception: T): Result = exception match {
+    case e: ValidationException => IllegalArgumentHandler(e)
+    case e: NoSuchElementException => NoSuchElementHandler(e)
+    case e: BadRequestException => BadRequestHandler(e)
+    case e: EnvelopeNotFoundException => EnvelopeNotFoundHandler(e)
+    case e: Throwable => DefaultExceptionHandler(e)
+  }
+
+  def exceptionHandler[T <: Throwable](responseHeader: Int, responseMessage: String): Result = {
+    val response: JsObject = JsObject(Seq("error" -> Json.obj("msg" -> responseMessage)))
+    Result(ResponseHeader(responseHeader), Enumerator(Json.stringify(response).getBytes))
+  }
 }
-
-// TODO merge exception handlers; they are basically doing the same thing
 
 sealed trait ExceptionHandler[T <: Throwable] {
 
-	def apply(exception: T): Result
-
+  def apply(exception: T): Result
 }
 
-object IllegalArgumentHandler extends ExceptionHandler[IllegalArgumentException]{
+object IllegalArgumentHandler extends ExceptionHandler[IllegalArgumentException] {
 
-	def apply(exception: IllegalArgumentException): Result = {
-		val response = JsObject(Seq("error" -> Json.obj("msg" -> exception.getMessage)))
-		Result(ResponseHeader(BAD_REQUEST), Enumerator( Json.stringify(response).getBytes ))
-	}
+  def apply(exception: IllegalArgumentException): Result = {
+    exceptionHandler(BAD_REQUEST, exception.getMessage)
+  }
 }
 
-object NoSuchElementHandler extends ExceptionHandler[NoSuchElementException]{
+object NoSuchElementHandler extends ExceptionHandler[NoSuchElementException] {
 
-	def apply(exception: NoSuchElementException): Result = {
-		val response: JsObject = JsObject(Seq("error" -> Json.obj("msg" -> "invalid json format")))
-		Result(ResponseHeader(BAD_REQUEST), Enumerator( Json.stringify(response).getBytes ))
-	}
+  def apply(exception: NoSuchElementException): Result = {
+    val message = "Invalid json format"
+    Logger.error(message, exception)
+    exceptionHandler(BAD_REQUEST, message)
+  }
 }
 
-object BadRequestHandler extends ExceptionHandler[BadRequestException]{
-	override def apply(exception: BadRequestException): Result = {
-		val response: JsObject = JsObject(Seq("error" -> Json.obj("msg" -> exception.getMessage)))
-		Result(ResponseHeader(BAD_REQUEST), Enumerator( Json.stringify(response).getBytes ))
-	}
+object BadRequestHandler extends ExceptionHandler[BadRequestException] {
+  override def apply(exception: BadRequestException): Result = {
+    exceptionHandler(BAD_REQUEST, exception.getMessage)
+  }
 }
 
-object EnvelopeNotFoundHandler extends ExceptionHandler[EnvelopeNotFoundException]{
-	override def apply(exception: EnvelopeNotFoundException): Result = {
-		val response: JsObject = JsObject(Seq("error" -> Json.obj("msg" -> exception.getMessage)))
-		Result(ResponseHeader(NOT_FOUND), Enumerator( Json.stringify(response).getBytes ))
-	}
+object EnvelopeNotFoundHandler extends ExceptionHandler[EnvelopeNotFoundException] {
+  override def apply(exception: EnvelopeNotFoundException): Result = {
+    exceptionHandler(NOT_FOUND, exception.getMessage)
+  }
 }
 
-
-object DefaultExceptionHandler extends ExceptionHandler[Throwable]{
-	override def apply(exception: Throwable): Result = {
-		Logger.error("Internal server exception", exception)
-		val response = JsObject(Seq("error" -> Json.obj("msg" -> "Internal Server Error")))
-		Result(ResponseHeader(INTERNAL_SERVER_ERROR), Enumerator( Json.stringify(response).getBytes ))
-	}
+object DefaultExceptionHandler extends ExceptionHandler[Throwable] {
+  override def apply(exception: Throwable): Result = {
+    val message = "Internal Server Error"
+    Logger.error(message, exception)
+    exceptionHandler(INTERNAL_SERVER_ERROR, message)
+  }
 }
 
 
