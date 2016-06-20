@@ -20,9 +20,9 @@ import org.joda.time.DateTime
 import play.api.libs.json._
 
 case class Envelope(_id: String, constraints: Option[Constraints] = None, callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None, metadata: Option[Map[String, JsValue]] = None, files: Option[Seq[String]] = None ) {
-	require(!isExpired(), "expiry date cannot be in the past")
+	require(!isExpired, "expiry date cannot be in the past")
 
-	def isExpired(): Boolean = expiryDate match {
+	def isExpired: Boolean = expiryDate match {
 		case Some(dateTime) => dateTime.isBeforeNow
 		case None => false
 	}

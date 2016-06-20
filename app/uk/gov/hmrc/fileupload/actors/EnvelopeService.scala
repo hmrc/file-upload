@@ -96,7 +96,7 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
         d.asInstanceOf[JsObject] ++ Json.obj("_id" -> id)
       })
       .flatMap(marshaller ? UnMarshall(_, classOf[Envelope]))   // move this to the controller
-	    .flattenTry
+	    .breakOnFailure
       .mapTo[Envelope]
       .map(Storage.Save)
       .onComplete {

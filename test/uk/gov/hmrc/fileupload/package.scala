@@ -36,6 +36,7 @@ import uk.gov.hmrc.fileupload.models.Constraints
 import scala.concurrent.{Future, Await}
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.language.implicitConversions
 import scala.util.Try
 
 /**

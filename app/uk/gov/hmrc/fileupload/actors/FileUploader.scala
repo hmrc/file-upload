@@ -17,20 +17,16 @@
 package uk.gov.hmrc.fileupload.actors
 
 
-import akka.actor.{Actor, ActorLogging, PoisonPill, Props}
-import akka.pattern._
-import akka.util.Timeout
-import play.api.libs.iteratee.Input.El
-import play.api.libs.iteratee.{Input, Iteratee}
-import play.api.mvc.{AnyContentAsText, Results, BodyParser}
+import akka.actor.{Actor, ActorLogging, Props}
+import play.api.libs.iteratee.Input
+
+import scala.concurrent.Future
+import play.api.mvc.BodyParser
 import uk.gov.hmrc.fileupload.repositories.EnvelopeRepository
 import uk.gov.hmrc.fileupload.ByteStream
-import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.concurrent._
+import scala.util.{Success, Failure}
 import scala.util.control.NonFatal
-import scala.util.{Failure, Success}
-
 
 
 object FileUploader{
@@ -41,31 +37,22 @@ object FileUploader{
   case class Failed(reason: String) extends Status
   case class Chunk(envelopeId: String, fileId: String, bytes: ByteStream)
 
-  def props(envelopeId: String, fileId: String, envelopeRepository: EnvelopeRepository): Props = Props(classOf[FileUploader], envelopeId, fileId, envelopeRepository)
+  def props(envelopeId: String, fileId: String, envelopeRepository: EnvelopeRepository): Props =
+	  Props(classOf[FileUploader], envelopeId, fileId, envelopeRepository)
 
-	def parseBody(envelopeId: String, fileId: String) : BodyParser[String] = BodyParser{ request =>
-		// FIXME we are not actually parsing the body; we are storing it in the DB
-		// FIXME use an EssentialFilter instead to clarify our intent
+	def parseBody(envelopeId: String, fileId: String) : BodyParser[String] = BodyParser{ _ =>
+
 		implicit val ec = Actors.actorSystem.dispatcher
-		implicit val timeout = Timeout(500 millis)
-		val fileUploader = Actors.actorSystem.actorOf(FileUploader.props(envelopeId, fileId, FileUploadActors.envelopeRepository))
+		val fileUploader = Actors.fileUploader(envelopeId, fileId)
 
-		Iteratee.foreach[ByteStream]( fileUploader ! _ ).map{ _ =>
-			Await.result((fileUploader ? FileUploader.EOF)
-				.mapTo[FileUploader.Status]
-				.map{
-					case Completed => Right("upload successful")
-					case Failed(reason) => Left(Results.InternalServerError)
-				}, timeout.duration)
-		}
+		IterateeAdapter(fileUploader)
 	}
 }
 
 class FileUploader(envelopeId: String, fileId: String, envelopeRepository: EnvelopeRepository) extends Actor with ActorLogging{
 	import FileUploader._
+
   implicit val ec = context.dispatcher
-
-
   var status: Status = Uploading
   var sink = Future.successful(envelopeRepository.iterateeForUpload(fileId))
 
@@ -75,18 +62,14 @@ class FileUploader(envelopeId: String, fileId: String, envelopeRepository: Envel
 
   def receive = {
     case stream : ByteStream   =>
-      sink = sink.flatMap(itr => itr.feed(El(stream)))
+      sink = sink.flatMap(itr => itr.feed(Input.El(stream)))
     case EOF =>
       sink = sink.flatMap(itr => itr.feed(Input.EOF))
       status = Completed
       val replyTo = sender
       sink.onComplete{
-        case Failure(NonFatal(e)) =>
-          replyTo ! Failed(e.getMessage)
-          self ! PoisonPill
-        case Success(_) =>
-          replyTo ! status
-          self ! PoisonPill
+        case Failure(NonFatal(e)) => replyTo ! Failed(e.getMessage)
+        case Success(_) => replyTo ! status
       }
 
   }
