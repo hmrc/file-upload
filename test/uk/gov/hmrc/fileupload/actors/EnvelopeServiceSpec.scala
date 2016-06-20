@@ -89,7 +89,7 @@ class EnvelopeServiceSpec extends ActorSpec{
 				storage.underlyingActor.setReply(id)
         marshaller.underlyingActor.setReply(Try(Support.envelope))
 
-				envelopService ! CreateEnvelope( rawData )
+				envelopService ! CreateEnvelope( Some(rawData) )
 
 				expectMsg(id)
 			}
@@ -103,7 +103,7 @@ class EnvelopeServiceSpec extends ActorSpec{
         storage.underlyingActor.setReply(id)
         marshaller.underlyingActor.setReply(Failure(new NoSuchElementException("JsError.get")))
 
-        envelopService ! CreateEnvelope(wrongData)
+        envelopService ! CreateEnvelope(Some(wrongData))
 
         expectMsgClass(classOf[NoSuchElementException])
       }

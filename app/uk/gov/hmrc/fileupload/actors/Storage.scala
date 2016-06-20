@@ -54,8 +54,8 @@ class Storage(val envelopeRepository: EnvelopeRepository) extends Actor with Act
     envelopeRepository
 	    .get(byId)
 	    .onComplete{
-	      case Success(result)   => sender ! result
-	      case Failure(t)       => sender ! t
+	      case Success(result) => sender ! result
+	      case Failure(t)      => sender ! t
       }
   }
 

@@ -70,14 +70,14 @@ package object fileupload {
       Await.result(futureResult, 500 millis)
     }
 
-	  def constraints = Constraints(contentTypes = Seq("application/vnd.openxmlformats-officedocument.wordprocessingml.document"), maxItems = 100, maxSize = "12GB", maxSizePerItem = "10MB")
-	  def envelope = new Envelope(_id = UUID.randomUUID().toString, constraints = constraints, callbackUrl = "http://absolute.callback.url", expiryDate = DateTime.now().plusDays(1), metadata = Map("anything" -> JsString("the caller wants to add to the envelope")))
+	  def constraints = Constraints(contentTypes = Some(Seq("application/vnd.openxmlformats-officedocument.wordprocessingml.document")), maxItems = Some(100), maxSize = Some("12GB"), maxSizePerItem = Some("10MB"))
+	  def envelope = new Envelope(_id = UUID.randomUUID().toString, constraints = Some(constraints), callbackUrl = Some("http://absolute.callback.url"), expiryDate = Some(DateTime.now().plusDays(1)), metadata = Some(Map("anything" -> JsString("the caller wants to add to the envelope"))))
 
 
-	  val envelopeBody = Json.toJson[Envelope](envelope )
+	  val envelopeBody = Json.toJson[Envelope](envelope)
 
-	  def expiredEnvelope = envelope.copy(expiryDate = DateTime.now().minusMinutes(3))
-	  def farInTheFutureEnvelope = envelope.copy(expiryDate = DateTime.now().plusDays(3))
+	  def expiredEnvelope = envelope.copy(expiryDate = Some(DateTime.now().minusMinutes(3)))
+	  def farInTheFutureEnvelope = envelope.copy(expiryDate = Some(DateTime.now().plusDays(3)))
 
 
 	  object Implicits{

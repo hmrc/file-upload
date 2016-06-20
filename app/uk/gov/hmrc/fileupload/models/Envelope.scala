@@ -19,10 +19,13 @@ package uk.gov.hmrc.fileupload.models
 import org.joda.time.DateTime
 import play.api.libs.json._
 
-case class Envelope(_id: String, constraints: Constraints, callbackUrl: String, expiryDate: DateTime, metadata: Map[String, JsValue], files: Option[Seq[String]] = None ) {
+case class Envelope(_id: String, constraints: Option[Constraints] = None, callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None, metadata: Option[Map[String, JsValue]] = None, files: Option[Seq[String]] = None ) {
 	require(!isExpired(), "expiry date cannot be in the past")
 
-	def isExpired(): Boolean = expiryDate.isBeforeNow
+	def isExpired(): Boolean = expiryDate match {
+		case Some(dateTime) => dateTime.isBeforeNow
+		case None => false
+	}
 
 	def contains(file: String) = files match {
 		case Some(f) => f.contains(file)
@@ -30,17 +33,15 @@ case class Envelope(_id: String, constraints: Constraints, callbackUrl: String, 
 	}
 }
 
-case class Constraints(contentTypes: Seq[String], maxItems: Int, maxSize: String, maxSizePerItem: String ) {
+case class Constraints(contentTypes: Option[Seq[String]] = None, maxItems: Option[Int] = None, maxSize: Option[String] = None, maxSizePerItem: Option[String] = None ) {
 
-	validateSizeFormat("maxSize",  maxSize )
-	validateSizeFormat( "maxSizePerItem", maxSizePerItem )
+	maxSize.foreach( validateSizeFormat("maxSize",  _ ) )
+  maxSizePerItem.foreach( validateSizeFormat( "maxSizePerItem", _ ) )
 
 	def validateSizeFormat(name: String, value: String) = {
 		val pattern = "[0-9]+(KB|MB|GB|TB|PB)".r
 		if(pattern.findFirstIn(value).isEmpty) throw new ValidationException(s"$name has an invalid size format ($value)")
 	}
-
-
 
 }
 
@@ -55,11 +56,8 @@ object Envelope {
 	  val envelope = Json.fromJson[Envelope](rawData).get
 		val maxExpiryDate: DateTime = DateTime.now().plusDays(maxTTL)
 
-		envelope.expiryDate.isAfter(maxExpiryDate) match {
-			case true => envelope.copy(expiryDate = maxExpiryDate)
-			case false => envelope
-		}
-
+    val expiryDate = envelope.expiryDate.map( d => if(d.isBefore(maxExpiryDate)) d else maxExpiryDate )
+    envelope.copy(expiryDate = expiryDate)
   }
 
 }

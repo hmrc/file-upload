@@ -64,6 +64,7 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 
 
     }
+
   }
 
   "Get Envelope" should {
@@ -136,7 +137,26 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 			result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
 			actualRespone shouldBe expectedResponse
 		}
-
 	}
+
+  "create envelope with no body" should {
+    "return response with OK status and a Location header specifying the envelope endpoint" in {
+
+      val serverUrl = "http://production.com:8000"
+
+      val fakeRequest = new FakeRequest[AnyContentAsJson]("POST", "/envelope", FakeHeaders(), body = null) {
+        override lazy val host = serverUrl
+      }
+
+      val id: String = UUID.randomUUID().toString
+      val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
+      envelopeMgr.setReply(id)
+
+      val result: Result = await(EnvelopeController.create()(fakeRequest))
+      result.header.status shouldBe Status.CREATED
+      val location = result.header.headers.get("Location").get
+      location shouldBe s"$serverUrl${routes.EnvelopeController.show(id).url}"
+    }
+  }
 
 }
