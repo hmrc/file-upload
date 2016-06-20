@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload
 
 import java.io.File
+import java.util.concurrent.TimeUnit
 
 import com.ning.http.client.AsyncHttpClientConfig
 import play.api.libs.ws.WSClient
@@ -52,13 +53,13 @@ object TestUpload {
 
 		val future = WS.url(url).withHeaders("Content-Type" -> "application/octet-stream").put(file)
 
-			future.onComplete{
-			case Success(response) => println(response.body)
+		future.onComplete{
+			case Success(response) => println(response.statusText)
 			case Failure(t)   =>
 				t.printStackTrace()
 				println(s"unable to complete upload because of ${t.getMessage}")
 		}
-		Await.ready(future, 1 minute)
+    while(!future.isCompleted) TimeUnit.SECONDS.sleep(1)
 		System.exit(0)
 	}
 

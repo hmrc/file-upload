@@ -34,12 +34,12 @@ object IterateeAdapter{
 class IterateeAdapter(handler: ActorRef) extends Iteratee[ByteStream, Either[Result, String]]{
 	import FileUploader._
 
-	implicit val timeout = Timeout(2 seconds)
+	implicit val timeout = Timeout(1 minute)
 
 	def fold[B](folder: (Step[ByteStream, Either[Result, String]]) => Future[B])(implicit ec: ExecutionContext): Future[B] =
 		folder(Step.Cont{
 			case Input.EOF =>
-				val result: Iteratee[ByteStream, Either[Result, String]] = Await.result(handler ? EOF, 2 seconds) match {
+				val result: Iteratee[ByteStream, Either[Result, String]] = Await.result(handler ? EOF, timeout.duration) match {
 					case Completed => Done(Right("upload successful"), Input.Empty)
 					case Failed(reason) => Done(Left(Results.InternalServerError), Input.Empty)
 				}

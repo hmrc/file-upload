@@ -68,10 +68,8 @@ class FileUploader(envelopeId: String, fileId: String, envelopeRepository: Envel
       status = Completed
       val replyTo = sender
       sink.onComplete{
-        case Failure(NonFatal(e)) =>
-          replyTo ! Failed(e.getMessage)
-        case Success(_) =>
-          replyTo ! status
+        case Failure(NonFatal(e)) => replyTo ! Failed(e.getMessage)
+        case Success(_) => replyTo ! status
       }
 
   }

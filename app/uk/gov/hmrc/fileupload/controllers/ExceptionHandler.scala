@@ -80,5 +80,3 @@ object DefaultExceptionHandler extends ExceptionHandler[Throwable]{
 		Result(ResponseHeader(INTERNAL_SERVER_ERROR), Enumerator( Json.stringify(response).getBytes ))
 	}
 }
-
-
