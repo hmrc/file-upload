@@ -49,7 +49,7 @@ class FileuploadControllerSpec extends UnitSpec with WithFakeApplication  {
 		"respond with 404 if the specified envelope does not exist" in {
 			val envelopeService =  Actors.envelopeService
 			val controller = FileuploadController
-			val msg = new EnvelopeNotFoundException(s"No envelope exists for id: 123")
+			val msg = new EnvelopeNotFoundException("123")
 
 			envelopeService.asInstanceOf[TestActorRef[ActorStub]].underlyingActor.setReply(msg)
 			val fakeRequest = new FakeRequest[String]("PUT", "/envelope",  FakeHeaders(), body =  "what ever")

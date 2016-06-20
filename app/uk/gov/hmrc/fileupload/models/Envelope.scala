@@ -36,7 +36,7 @@ case class Constraints(contentTypes: Seq[String], maxItems: Int, maxSize: String
 	validateSizeFormat( "maxSizePerItem", maxSizePerItem )
 
 	def validateSizeFormat(name: String, value: String) = {
-		val pattern = "[0-9]+(GB|MB|KB)".r
+		val pattern = "[0-9]+(KB|MB|GB|TB|PB)".r
 		if(pattern.findFirstIn(value).isEmpty) throw new ValidationException(s"$name has an invalid size format ($value)")
 	}
 

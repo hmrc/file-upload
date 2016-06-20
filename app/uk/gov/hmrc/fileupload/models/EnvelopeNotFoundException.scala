@@ -16,6 +16,4 @@
 
 package uk.gov.hmrc.fileupload.models
 
-case class EnvelopeNotFoundException(message: String) extends Exception(message) {
-
-}
+case class EnvelopeNotFoundException(id: String) extends Exception(s"Envelope $id not found")
