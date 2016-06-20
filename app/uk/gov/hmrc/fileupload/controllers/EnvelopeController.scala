@@ -75,7 +75,7 @@ object EnvelopeController extends BaseController {
 
 		def deleteEnvelope = (id: String) => envelopeService ? DeleteEnvelope(id)
 		def onEnvelopeDeleted: (Any) => Result = {
-			case true => Ok
+			case true => Accepted
 			case false => throw new EnvelopeNotFoundException(id)
 		}
 
