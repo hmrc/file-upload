@@ -91,15 +91,15 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
   }
 
 	"Delete Envelope" should {
-		"respond with 200 OK status" in {
+		"respond with 202 ACCEPTED status" in {
 			val id: String = UUID.randomUUID().toString
-			val request = FakeRequest("DELETE", s"/envelope/${id}")
+			val request = FakeRequest("DELETE", s"/envelope/$id")
 
 			val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
 			envelopeMgr.setReply(true)
 
 			val futureResult = EnvelopeController.delete(id)(request)
-			status(futureResult) shouldBe Status.OK
+			status(futureResult) shouldBe Status.ACCEPTED
 
 		}
 
