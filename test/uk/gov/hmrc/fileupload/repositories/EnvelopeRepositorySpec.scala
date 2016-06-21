@@ -20,8 +20,9 @@ import java.util.UUID
 
 import org.joda.time.DateTime
 import org.junit
+import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.models.{Constraints, Envelope}
+import uk.gov.hmrc.fileupload.models.{Constraints, Envelope, File}
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
@@ -37,7 +38,7 @@ class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFak
   "repository" should {
     "persist an envelope" in {
       val repository = new EnvelopeRepository(DefaultMongoConnection.db)
-      val envelope = Support.envelope
+			val envelope = Support.envelope.copy(files = Some(Seq(File(href = "ads", id = "myfile", rel = "file"))))
 
       val result = await(repository add envelope)
       result shouldBe true

@@ -32,8 +32,7 @@ import scala.concurrent.Future
 import Envelope._
 import Marshaller._
 import EnvelopeService._
-import play.api.libs.iteratee.Iteratee
-import play.api.libs.ws.WS
+
 
 object EnvelopeController extends BaseController {
 
@@ -61,13 +60,12 @@ object EnvelopeController extends BaseController {
   def show(id: String) = Action.async{
 
 	  def findEnvelopeFor = (id: String) =>  (envelopeService ? GetEnvelope(id)).mapTo[Envelope]
-	  def toJson = (e: Envelope) =>
-      marshaller ? e
+	  def toJson = (e: Envelope) => marshaller ? e
 	  def onEnvelopeFound : (Any) => Result = {case json: JsValue => Ok(json) }
 
     findEnvelopeFor(id)
 	    .flatMap(toJson)
-      .flattenTry
+      .breakOnFailure
 	    .map(onEnvelopeFound)
       .recover{ case e => ExceptionHandler(e)  }
   }
