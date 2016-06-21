@@ -28,7 +28,7 @@ import org.mockito.Mockito._
 import play.api.libs.json.{JsObject, JsResult, Json}
 import reactivemongo.api.commands.DefaultWriteResult
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.models.{DuplicateFileException, Constraints, Envelope}
+import uk.gov.hmrc.fileupload.models.{Constraints, DuplicateFileException, Envelope, File}
 import uk.gov.hmrc.fileupload.repositories.EnvelopeRepository
 
 import scala.concurrent.Future
@@ -128,7 +128,7 @@ class StorageSpec extends ActorSpec with MockitoSugar {
 
 	  "respond with a failure when a file is already in the envelope" in {
 		  within(500 millis){
-			  val envelope = Support.envelope.copy(files = Some(Seq("filestore.txt")))
+			  val envelope = Support.envelope.copy(files = Some(Seq(File(href="test", id = "filestore.txt"))))
 			  when(envelopeRepository.addFile(any(), any())(any())).thenReturn(Future.failed(new DuplicateFileException("")))
 			  storage ! AddFile(envelope._id, fileId = "456" )
 			  expectMsgClass(classOf[DuplicateFileException])
