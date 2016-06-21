@@ -80,5 +80,3 @@ object DefaultExceptionHandler extends ExceptionHandler[Throwable] {
     exceptionHandler(INTERNAL_SERVER_ERROR, message)
   }
 }
-
-

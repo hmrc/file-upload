@@ -38,26 +38,9 @@ package object actors {
 			def breakOnFailure(implicit ec: ExecutionContext): Future[Any] = {
 				f.flatMap{
 					case e: Throwable => Future.failed(e)
-					case other => Future.successful(other)
-				}
-			}
-
-			/**
-				* When using the ask pattern and a Try type is sent back and you want to avoid
-				* doing this:
-				*   f.onComplete{
-				*     case Success(Success(x)) => ...
-				*     case Success(Failure(t)) => ...
-				*   }
-				*   use this function to flatten Future[Try[T]] to Future[T]
-				* @param ec ExecutionContext
-				* @return the result of the inner Try or the original future
-				*/
-			def flattenTry(implicit ec: ExecutionContext): Future[Any] = {
-				f.flatMap{
 					case s @ Success(_) 		=> Future.fromTry(s)
 					case t @ Failure(_)     => Future.fromTry(t)
-					case other          		=> Future.successful(other)
+					case other => Future.successful(other)
 				}
 			}
 		}

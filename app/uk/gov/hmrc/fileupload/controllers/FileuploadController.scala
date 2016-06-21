@@ -19,37 +19,29 @@ package uk.gov.hmrc.fileupload.controllers
 import akka.actor.ActorRef
 import akka.util.Timeout
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.actors.EnvelopeService.{EnvelopeNotFound, EnvelopeUpdated, UpdateEnvelope}
+import uk.gov.hmrc.fileupload.actors.EnvelopeService.UpdateEnvelope
 import uk.gov.hmrc.fileupload.actors.{Actors, FileUploader}
-import uk.gov.hmrc.fileupload.controllers.EnvelopeController._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import akka.pattern._
 import uk.gov.hmrc.fileupload.actors.Implicits.FutureUtil
-import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 
 
 object FileuploadController extends BaseController{
 
 	implicit val system = Actors.actorSystem
-	implicit val executionContext = system.dispatcher
-	implicit val defaultTimeout = Timeout(2 seconds)
+	implicit val ec = system.dispatcher
+	implicit val timeout = Timeout(2 seconds)
 	val envelopeService = Actors.envelopeService
 
 	def upload(envelopeId: String, fileId: String) = Action.async(FileUploader.parseBody(envelopeId, fileId)){ request =>
 		(envelopeService ? UpdateEnvelope(envelopeId, fileId))
 		  .breakOnFailure
 		  .map {
-				case true =>
-					println("upload was successful")
-					Ok
-				case false =>
-					println("upload was unsuccessful")
-					NotFound
+				case true => Ok
+				case false => NotFound
 	    }.recover { case e =>  ExceptionHandler(e) }
   }
 
 }
-
