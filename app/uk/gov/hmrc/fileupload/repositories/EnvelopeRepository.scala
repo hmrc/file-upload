@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.fileupload.repositories
 
+import play.api.Play
 import play.api.libs.iteratee.Iteratee
 import play.modules.reactivemongo.{JSONFileToSave, MongoDbConnection}
 import reactivemongo.api.{DB, DBMetaCommands}
@@ -56,7 +57,7 @@ class EnvelopeRepository(mongo: () => DB with DBMetaCommands)
 	def addFile(envelopeId: String, fileId: String)(implicit ec: ExecutionContext): Future[Boolean] = {
     get(envelopeId).flatMap {
 			case Some(envelope) => {
-        val newFile: Seq[File] = Seq(File(href = s"/file-upload/envelope/$envelopeId/$fileId", id = fileId))
+        val newFile: Seq[File] = Seq(File(href = uk.gov.hmrc.fileupload.controllers.routes.FileuploadController.upload(envelopeId, fileId).url, id = fileId))
 
         val updatedEnvelope = envelope.files match {
           case None => envelope.copy(files = Some(newFile))

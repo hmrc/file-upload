@@ -44,4 +44,5 @@ object FileuploadController extends BaseController{
 	    }.recover { case e =>  ExceptionHandler(e) }
   }
 
+	def get(envelopeId: String, fileId: String) = play.mvc.Results.TODO
 }
