@@ -16,18 +16,20 @@
 
 package uk.gov.hmrc.fileupload.repositories
 
+import play.api.Play
 import play.api.libs.iteratee.Iteratee
 import play.modules.reactivemongo.{JSONFileToSave, MongoDbConnection}
-import reactivemongo.api.{DBMetaCommands, DB}
+import reactivemongo.api.{DB, DBMetaCommands}
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.gridfs.GridFS
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.controllers.BadRequestException
-import uk.gov.hmrc.fileupload.models.{EnvelopeNotFoundException, Envelope}
+import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException, File}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import play.modules.reactivemongo.GridFSController._
 import reactivemongo.json._
+
 import scala.concurrent.{ExecutionContext, Future}
 
 object DefaultMongoConnection extends MongoDbConnection
@@ -53,20 +55,22 @@ class EnvelopeRepository(mongo: () => DB with DBMetaCommands)
 	}
 
 	def addFile(envelopeId: String, fileId: String)(implicit ec: ExecutionContext): Future[Boolean] = {
-		get(envelopeId).flatMap {
+    get(envelopeId).flatMap {
 			case Some(envelope) => {
-				val update = envelope.files match {
-					case None => envelope.copy(files = Some(Seq(fileId)))
-					case Some(seq) => envelope.copy(files = Some(seq ++ Seq(fileId)))
+        val newFile: Seq[File] = Seq(File(href = uk.gov.hmrc.fileupload.controllers.routes.FileuploadController.upload(envelopeId, fileId).url, id = fileId))
+
+        val updatedEnvelope = envelope.files match {
+          case None => envelope.copy(files = Some(newFile))
+					case Some(seq) => envelope.copy(files = Some(seq ++ newFile))
 				}
+
 				delete(envelopeId).flatMap {    // FIXME api provides no update method
-					case true => add(update)
+					case true => add(updatedEnvelope)
 					case false => Future.successful(false)
 				}
 			}
 			case None => Future.failed(new EnvelopeNotFoundException(envelopeId))
 		}
-
 	}
 
 

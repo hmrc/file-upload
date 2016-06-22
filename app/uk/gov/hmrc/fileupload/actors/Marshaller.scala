@@ -36,12 +36,15 @@ class Marshaller extends Actor {
 
   def receive = {
     case Marshall(obj) => sender ! toJson(obj)    // TODO need to update Envelope Service and Controller
+    case e: Envelope => sender ! toJson(e)
     case json UnMarshall toType => sender ! fromJson(json, toType)
   }
 
   def toJson(any: Any): Try[JsValue] = any match {
     case obj if obj.isInstanceOf[Envelope] => Try(Json.toJson[Envelope](obj.asInstanceOf[Envelope]))
   }
+
+  def toJson(envelope: Envelope): Try[JsValue] = Try(Json.toJson[Envelope](envelope.asInstanceOf[Envelope]))
 
   def fromJson(json: JsValue, toType: Class[_]): Try[Envelope] = toType match {
     case aType if aType == classOf[Envelope] => Try(Json.fromJson[Envelope](json).get)

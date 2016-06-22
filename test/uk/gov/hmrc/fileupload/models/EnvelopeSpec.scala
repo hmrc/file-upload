@@ -66,17 +66,17 @@ class EnvelopeSpec extends UnitSpec {
 	    val id: String = UUID.randomUUID().toString
 	    val result: Envelope = Envelope.fromJson(json, id, maxTTL = 2)
 
-      val contraints = Constraints(contentTypes = Seq("application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      val contraints = Constraints(contentTypes = Some(Seq("application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "application/vnd.oasis.opendocument.spreadsheet"),
-        maxItems = 100,
-        maxSize = "12GB",
-        maxSizePerItem = "10MB")
+        "application/vnd.oasis.opendocument.spreadsheet")),
+        maxItems = Some(100),
+        maxSize = Some("12GB"),
+        maxSizePerItem = Some("10MB"))
 
-      val expectedResult = Envelope(id, contraints,
-                                    callbackUrl = "http://absolute.callback.url",
-                                    expiryDate = formatter.parseDateTime(formattedExpiryDate),
-                                    metadata = Map("anything" -> JsString("the caller wants to add to the envelope")), None)
+      val expectedResult = Envelope(id, Some(contraints),
+                                    callbackUrl = Some("http://absolute.callback.url"),
+                                    expiryDate = Some(formatter.parseDateTime(formattedExpiryDate)),
+                                    metadata = Some(Map("anything" -> JsString("the caller wants to add to the envelope"))), None)
 
       result shouldEqual expectedResult
     }
@@ -85,7 +85,7 @@ class EnvelopeSpec extends UnitSpec {
 	"an envelope" should {
 		"not be created when it has an expiry date in the past" in {
 
-			assertTrue(Try(Support.envelope.copy(expiryDate = DateTime.now().minusMinutes(3))).isFailure )
+			assertTrue(Try(Support.envelope.copy(expiryDate = Some(DateTime.now().minusMinutes(3)))).isFailure )
 		}
 	}
 
@@ -94,18 +94,16 @@ class EnvelopeSpec extends UnitSpec {
 
 			import Envelope._
 
-			val now: DateTime = DateTime.now()
-			val maxExpiryDate: DateTime = now.plusDays(2)
+			val maxTTL: Int = 2
+      val maxExpiryDate: DateTime = DateTime.now().plusDays(maxTTL)
 
-			val id = UUID.randomUUID().toString
-
-			val envelope = Envelope.fromJson(Json.toJson(Support.farInTheFutureEnvelope), id, maxTTL = 2)
+			val envelope = Envelope.fromJson(Json.toJson(Support.farInTheFutureEnvelope), UUID.randomUUID().toString, maxTTL)
 
 			assertTrue( isWithinAMinute(maxExpiryDate, envelope.expiryDate) )
 		}
 	}
 
-	def isWithinAMinute(maxExpiryDate: DateTime, exipiryDate: DateTime): Boolean = {
-		abs(exipiryDate.getMillis - maxExpiryDate.getMillis) < 60 * 1000
+	def isWithinAMinute(maxExpiryDate: DateTime, expiryDate: Option[DateTime]): Boolean = {
+    expiryDate.exists(d => abs(d.getMillis - maxExpiryDate.getMillis) < 60 * 1000)
 	}
 }

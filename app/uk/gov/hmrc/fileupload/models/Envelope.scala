@@ -19,34 +19,32 @@ package uk.gov.hmrc.fileupload.models
 import org.joda.time.DateTime
 import play.api.libs.json._
 
-case class Envelope(_id: String, constraints: Constraints, callbackUrl: String, expiryDate: DateTime, metadata: Map[String, JsValue], files: Option[Seq[String]] = None ) {
-	require(!isExpired(), "expiry date cannot be in the past")
+case class Envelope(_id: String, constraints: Option[Constraints] = None, callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None, metadata: Option[Map[String, JsValue]] = None, files: Option[Seq[File]] = None ) {
+	require(!isExpired, "expiry date cannot be in the past")
 
-	def isExpired(): Boolean = expiryDate.isBeforeNow
+	def isExpired: Boolean = expiryDate.exists( _.isBeforeNow )
 
-	def contains(file: String) = files match {
-		case Some(f) => f.contains(file)
-		case None => false
-	}
+	def contains(fileId: String) = files.exists( sequence => sequence.exists(_.id == fileId) )
 }
 
-case class Constraints(contentTypes: Seq[String], maxItems: Int, maxSize: String, maxSizePerItem: String ) {
+case class Constraints(contentTypes: Option[Seq[String]] = None, maxItems: Option[Int] = None, maxSize: Option[String] = None, maxSizePerItem: Option[String] = None ) {
 
-	validateSizeFormat("maxSize",  maxSize )
-	validateSizeFormat( "maxSizePerItem", maxSizePerItem )
+	maxSize.foreach( validateSizeFormat("maxSize",  _ ) )
+  maxSizePerItem.foreach( validateSizeFormat( "maxSizePerItem", _ ) )
 
 	def validateSizeFormat(name: String, value: String) = {
 		val pattern = "[0-9]+(KB|MB|GB|TB|PB)".r
 		if(pattern.findFirstIn(value).isEmpty) throw new ValidationException(s"$name has an invalid size format ($value)")
 	}
 
-
-
 }
+
+case class File(rel: String = "file", href: String, id: String)
 
 object Envelope {
 
 	implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+	implicit val fileReads: Format[File] = Json.format[File]
 	implicit val constraintsReads: Format[Constraints] = Json.format[Constraints]
 	implicit val envelopeReads: Format[Envelope] = Json.format[Envelope]
 
@@ -55,11 +53,8 @@ object Envelope {
 	  val envelope = Json.fromJson[Envelope](rawData).get
 		val maxExpiryDate: DateTime = DateTime.now().plusDays(maxTTL)
 
-		envelope.expiryDate.isAfter(maxExpiryDate) match {
-			case true => envelope.copy(expiryDate = maxExpiryDate)
-			case false => envelope
-		}
-
+    val expiryDate = envelope.expiryDate.map( d => if(d.isBefore(maxExpiryDate)) d else maxExpiryDate )
+    envelope.copy(expiryDate = expiryDate)
   }
 
 }

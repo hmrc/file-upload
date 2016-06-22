@@ -45,8 +45,8 @@ object EnvelopeController extends BaseController {
 
   def create() = Action.async { implicit request =>
 
-	  def fromRequestBody = () => Future(request.body.asJson.getOrElse( throw new Exception))
-	  def createEnvelope = (json: JsValue) => envelopeService ? CreateEnvelope(json)
+    def fromRequestBody = () => Future(if(request.body != null) request.body.asJson else None )
+	  def createEnvelope = (json: Option[JsValue]) => envelopeService ? CreateEnvelope(json)
 	  def envelopeLocation = (id: String) => LOCATION -> s"${request.host}${routes.EnvelopeController.show(id)}"
 	  def onEnvelopeCreated : (Any) => Result = { case id: String => Created.withHeaders(envelopeLocation(id)) }
 
@@ -60,7 +60,7 @@ object EnvelopeController extends BaseController {
   def show(id: String) = Action.async{
 
 	  def findEnvelopeFor = (id: String) =>  (envelopeService ? GetEnvelope(id)).mapTo[Envelope]
-	  def toJson = (e: Envelope) => marshaller ? Marshall(e)
+	  def toJson = (e: Envelope) => marshaller ? e
 	  def onEnvelopeFound : (Any) => Result = {case json: JsValue => Ok(json) }
 
     findEnvelopeFor(id)

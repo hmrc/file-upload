@@ -45,10 +45,7 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
   val url = "http://localhost:9000/file-upload/envelope"
   val repository = new EnvelopeRepository(DefaultMongoConnection.db)
 
-  private val payload = Json.stringify(Json.toJson[Envelope](new Envelope(_id = UUID.randomUUID().toString,
-    constraints = Constraints(contentTypes = Seq("application/vnd.openxmlformats-officedocument.wordprocessingml.document"), maxItems = 100, maxSize = "12GB", maxSizePerItem = "10MB")
-    , callbackUrl = "http://absolute.callback.url", expiryDate = DateTime.now().plusDays(1), metadata = Map("anything" -> JsString("the caller wants to add to the envelope")))
-  )).getBytes
+  private val payload = "{}".getBytes
 
 	def createEnnvelope(file: File) = createEnvelope(Source.fromFile(file).mkString)
 

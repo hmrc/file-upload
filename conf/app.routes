@@ -4,4 +4,5 @@ GET        /envelope/:id                                    uk.gov.hmrc.fileuplo
 POST       /envelope                                        uk.gov.hmrc.fileupload.controllers.EnvelopeController.create()
 DELETE     /envelope/:id                                    uk.gov.hmrc.fileupload.controllers.EnvelopeController.delete(id: String)
 PUT        /envelope/:envelopeId/file/:fileId/content       uk.gov.hmrc.fileupload.controllers.FileuploadController.upload(envelopeId: String, fileId: String)
+GET        /file-upload/envelope/:envelopeId/:fileId        uk.gov.hmrc.fileupload.controllers.FileuploadController.get(envelopeId: String, fileId: String)
 

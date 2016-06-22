@@ -20,12 +20,12 @@ import akka.testkit.TestActorRef
 import org.mockito.Mockito
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.json.{JsString, Json}
-import play.api.mvc.{Results, EssentialAction, Result, RequestHeader}
+import play.api.mvc.{EssentialAction, RequestHeader, Result, Results}
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.actors.{FileUploadTestActors, ActorStub, Actors}
+import uk.gov.hmrc.fileupload.actors.{ActorStub, Actors, FileUploadTestActors}
 import uk.gov.hmrc.fileupload.controllers.BadRequestException
-import uk.gov.hmrc.fileupload.models.Envelope
-import uk.gov.hmrc.play.test.{WithFakeApplication, UnitSpec}
+import uk.gov.hmrc.fileupload.models.{Envelope, File}
+import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.Future
 
@@ -41,7 +41,7 @@ class FileUploadValidationFilterSpec extends UnitSpec with MockitoSugar with Wit
     "return a failure when fileId is already contained in the envelope" in {
 	    val nextFilter: (RequestHeader) => Future[Result] = (requestHeader) => Future.successful(Results.Ok)
 	    val envelopeService: ActorStub = FileUploadTestActors.envelopeService
-			envelopeService.setReply(Support.envelope.copy(files = Some(Seq("uploaded.scala")) ))
+			envelopeService.setReply(Support.envelope.copy(files = Some(Seq(File(href = "test",  id ="uploaded.scala")) )))
 
 	    val requestHeader = mock[RequestHeader]
 

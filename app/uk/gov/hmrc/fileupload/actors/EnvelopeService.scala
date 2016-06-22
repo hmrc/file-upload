@@ -38,7 +38,7 @@ object EnvelopeService {
 
   case class GetEnvelope(id: String)
 
-  case class CreateEnvelope(json: JsValue)
+  case class CreateEnvelope(json: Option[JsValue])
 
   case class DeleteEnvelope(id: String)
 
@@ -87,11 +87,14 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
     }
   }
 
-  def createEnvelopeFrom(data: JsValue, sender: ActorRef): Unit = {
+  def createEnvelopeFrom(data: Option[JsValue], sender: ActorRef): Unit = {
     log.info(s"processing CreateEnvelope")
     (idGenerator ? NextId)
       .mapTo[String]
-      .map(id => data.asInstanceOf[JsObject] ++ Json.obj("_id" -> id))
+      .map(id => {
+        val d = data.getOrElse( Json.toJson( new Envelope("dummyid") )) // TODO we need a factory method to provide an envelope with default values
+        d.asInstanceOf[JsObject] ++ Json.obj("_id" -> id)
+      })
       .flatMap(marshaller ? UnMarshall(_, classOf[Envelope]))   // move this to the controller
 	    .breakOnFailure
       .mapTo[Envelope]
