@@ -59,7 +59,10 @@ object EnvelopeController extends BaseController {
 
   def show(id: String) = Action.async{
 
-	  def findEnvelopeFor = (id: String) =>  (envelopeService ? GetEnvelope(id)).mapTo[Envelope]
+	  def findEnvelopeFor = (id: String) =>  (envelopeService ? GetEnvelope(id))
+			.breakOnFailure
+			.mapTo[Envelope]
+
 	  def toJson = (e: Envelope) => marshaller ? e
 	  def onEnvelopeFound : (Any) => Result = {case json: JsValue => Ok(json) }
 

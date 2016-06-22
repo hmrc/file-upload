@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.fileupload.models
 
+import java.util.UUID
+
 import org.joda.time.DateTime
 import play.api.libs.json._
 
@@ -56,5 +58,9 @@ object Envelope {
     val expiryDate = envelope.expiryDate.map( d => if(d.isBefore(maxExpiryDate)) d else maxExpiryDate )
     envelope.copy(expiryDate = expiryDate)
   }
+
+	def emptyEnvelope(): Envelope = {
+		new Envelope(_id = UUID.randomUUID().toString, constraints = Some(new Constraints(maxItems = Some(1))) )
+	}
 
 }
