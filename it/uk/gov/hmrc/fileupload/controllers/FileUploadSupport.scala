@@ -97,8 +97,17 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
 
 	def getFile(id: String): Future[ByteStream] = {
 		import reactivemongo.json.collection._
+    import play.api.Logger
+    import play.api.libs.json.{JsString, JsValue, Json}
+    import play.modules.reactivemongo.GridFSController.readFileReads
+    import reactivemongo.api.ReadPreference
+    import reactivemongo.api.commands.WriteResult
+    import reactivemongo.json.ImplicitBSONHandlers._
+
 		val gfs: JSONGridFS = GridFS[JSONSerializationPack.type](DefaultMongoConnection.db() , "envelopes")
-		gfs.find[JsValue, JSONReadFile](Json.obj("_id" -> id)).headOption.flatMap{ mayBeReadFile =>
+//		gfs.find[JsValue, JSONReadFile](Json.obj("_id" -> id))
+
+    gfs.files.find(Json.obj("_id" -> id)).cursor[JSONReadFile](readPreference = ReadPreference.primaryPreferred).headOption.flatMap{ mayBeReadFile =>
 			mayBeReadFile.map{ readFile =>
 				val enumerator = gfs.enumerate(readFile)
 				val consumer = Iteratee.consume[ByteStream]()

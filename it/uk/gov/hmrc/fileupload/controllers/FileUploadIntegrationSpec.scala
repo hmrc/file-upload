@@ -49,11 +49,11 @@ class FileUploadIntegrationSpec extends PlaySpecification{
           .withEnvelope
           .flatMap(_.doUpload(data, fileId = id))
       )
-      val filename = await(support.refresh.map(_.mayBeEnvelope.get.files.head.head))
+      val file = await(support.refresh.map(_.mayBeEnvelope.get.files.head.head))
 			val storedPoem = await(support.getFile(id).map(new String(_)))
 
       response.status mustEqual OK
-      filename mustEqual "poem.txt"
+      file.id mustEqual id
 	    storedPoem mustEqual poem
 
     }
