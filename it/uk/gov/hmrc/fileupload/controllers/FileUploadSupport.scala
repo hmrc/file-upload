@@ -3,7 +3,7 @@ package uk.gov.hmrc.fileupload.controllers
 import java.util.UUID
 
 import org.joda.time.DateTime
-import play.api.libs.json.{JsString, Json}
+import play.api.libs.json.{JsValue, JsString, Json}
 import play.api.test.WithServer
 import uk.gov.hmrc.fileupload.models.{Constraints, Envelope}
 import uk.gov.hmrc.fileupload.repositories.{DefaultMongoConnection, EnvelopeRepository}
@@ -28,33 +28,40 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
     , callbackUrl = "http://absolute.callback.url", expiryDate = DateTime.now().plusDays(1), metadata = Map("anything" -> JsString("the caller wants to add to the envelope")))
   )).getBytes
 
-
+	def createEnvelope(data: Array[Byte]): Future[WSResponse] = {
+		WS
+			.url(url)
+			.withHeaders("Content-Type" -> "application/json")
+			.post(data)
+	}
 
   def withEnvelope: Future[FileUploadSupport] = {
-    WS
-      .url(url)
-      .withHeaders("Content-Type" -> "application/json")
-      .post(payload)
+    createEnvelope(payload)
       .flatMap{ resp =>
         val id = resp.header("Location").map{ _.split("/").last }.get
         getEnvelopeFor(id)
+	        .map{ resp =>
+		        val envelope = Json.fromJson[Envelope](resp.json).get
+		        self.mayBeEnvelope = Some(envelope)
+		        self
+	        }
       }
   }
 
-  def getEnvelopeFor(id: String): Future[FileUploadSupport] = {
+  def getEnvelopeFor(id: String): Future[WSResponse] = {
     WS
       .url(s"$url/$id")
       .get()
-      .map{ resp =>
-        val envelope = Json.fromJson[Envelope](resp.json).get
-        self.mayBeEnvelope = Some(envelope)
-        self
-      }
   }
 
   def refresh: Future[FileUploadSupport] = {
     require(mayBeEnvelope.isDefined, "No envelope defined")
     getEnvelopeFor(mayBeEnvelope.get._id)
+	    .map{ resp =>
+		    val envelope = Json.fromJson[Envelope](resp.json).get
+		    self.mayBeEnvelope = Some(envelope)
+		    self
+	    }
   }
 
   def doUpload(data: Array[Byte], filename: String = "test.data"): Future[WSResponse] = {
