@@ -37,8 +37,7 @@ object FileUploader{
   case class Failed(reason: String) extends Status
   case class Chunk(envelopeId: String, fileId: String, bytes: ByteStream)
 
-  def props(envelopeId: String, fileId: String, envelopeRepository: EnvelopeRepository): Props =
-	  Props(classOf[FileUploader], envelopeId, fileId, envelopeRepository)
+  def props(envelopeId: String, fileId: String, envelopeRepository: EnvelopeRepository): Props = Props(classOf[FileUploader], envelopeId, fileId, envelopeRepository)
 
 	def parseBody(envelopeId: String, fileId: String) : BodyParser[String] = BodyParser{ _ =>
 

@@ -21,7 +21,7 @@ import java.util.UUID
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
 import play.api.libs.json.{JsObject, JsValue, Json}
-import uk.gov.hmrc.fileupload.actors.EnvelopeService.{CreateEnvelope, DeleteEnvelope, GetEnvelope, UpdateEnvelope}
+import uk.gov.hmrc.fileupload.actors.EnvelopeService._
 import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
 import uk.gov.hmrc.fileupload.controllers.BadRequestException
 import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException}
@@ -38,7 +38,7 @@ object EnvelopeService {
 
   case class GetEnvelope(id: String)
 
-  case class CreateEnvelope(json: Option[JsValue])
+  case class NewEnvelope(envelope: Envelope)
 
   case class DeleteEnvelope(id: String)
 
@@ -69,7 +69,7 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
 
   def receive = {
     case GetEnvelope(id) => getEnvelopeFor(id, sender)
-    case CreateEnvelope(data) => createEnvelopeFrom(data, sender)
+    case NewEnvelope(envelope: Envelope) => createEnvelopeFrom(envelope, sender)
     case DeleteEnvelope(id) => storage forward Remove(id)
     case UpdateEnvelope(envelopeId, fileId) =>
       println(s"forwarding add file message from $sender to storage")
@@ -89,28 +89,10 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
       }
   }
 
-  def createEnvelopeFrom(data: Option[JsValue], sender: ActorRef): Unit = {
+  def createEnvelopeFrom(envelope: Envelope, sender: ActorRef): Unit = {
     log.info(s"processing CreateEnvelope")
-    (idGenerator ? NextId)
-      .mapTo[String]
-      .map(id => {
-        val d = data.getOrElse(Json.toJson( Envelope.emptyEnvelope() ))
-        d.asInstanceOf[JsObject] ++ Json.obj("_id" -> id)
-      })
-      .flatMap(marshaller ? UnMarshall(_, classOf[Envelope])) // move this to the controller
-      .breakOnFailure
-      .mapTo[Envelope]
-      .map(e => {
-        var newMaxItems: Int = 1
-        e.constraints.foreach(c => c.maxItems.foreach(newMaxItems = _))
-        Storage.Save(e.copy(constraints = e.constraints.map(newConstraint => newConstraint.copy(maxItems = Some(newMaxItems)))))
-      })
-      .onComplete {
-        case Success(msg) => storage.!(msg)(sender)
-        case Failure(e) =>
-          log.error(s"$e during envelope creation")
-          sender ! e
-      }
+
+    storage tell (Save(envelope), sender)
   }
 
   override def postStop() {

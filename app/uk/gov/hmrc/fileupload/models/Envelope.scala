@@ -20,47 +20,62 @@ import java.util.UUID
 
 import org.joda.time.DateTime
 import play.api.libs.json._
+import uk.gov.hmrc.fileupload.controllers.{CreateConstraints, CreateEnvelopeDto}
 
-case class Envelope(_id: String, constraints: Option[Constraints] = None, callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None, metadata: Option[Map[String, JsValue]] = None, files: Option[Seq[File]] = None ) {
-	require(!isExpired, "expiry date cannot be in the past")
+case class Envelope(_id: String, constraints: Option[Constraints] = None, callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None, metadata: Option[Map[String, JsValue]] = None, files: Option[Seq[File]] = None) {
+  require(!isExpired, "expiry date cannot be in the past")
 
-	def isExpired: Boolean = expiryDate.exists( _.isBeforeNow )
+  def isExpired: Boolean = expiryDate.exists(_.isBeforeNow)
 
-	def contains(fileId: String) = files.exists( sequence => sequence.exists(_.id == fileId) )
+  def contains(fileId: String) = files.exists(sequence => sequence.exists(_.id == fileId))
 }
 
-case class Constraints(contentTypes: Option[Seq[String]] = None, maxItems: Option[Int] = None, maxSize: Option[String] = None, maxSizePerItem: Option[String] = None ) {
+case class Constraints(contentTypes: Option[Seq[String]] = None, maxItems: Option[Int] = None, maxSize: Option[String] = None, maxSizePerItem: Option[String] = None) {
 
-	maxSize.foreach( validateSizeFormat("maxSize",  _ ) )
-  maxSizePerItem.foreach( validateSizeFormat( "maxSizePerItem", _ ) )
+  maxSize.foreach(validateSizeFormat("maxSize", _))
+  maxSizePerItem.foreach(validateSizeFormat("maxSizePerItem", _))
 
-	def validateSizeFormat(name: String, value: String) = {
-		val pattern = "[0-9]+(KB|MB|GB|TB|PB)".r
-		if(pattern.findFirstIn(value).isEmpty) throw new ValidationException(s"$name has an invalid size format ($value)")
-	}
+  def validateSizeFormat(name: String, value: String) = {
+    val pattern = "[0-9]+(KB|MB|GB|TB|PB)".r
+    if (pattern.findFirstIn(value).isEmpty) throw new ValidationException(s"$name has an invalid size format ($value)")
+  }
 
 }
 
 case class File(rel: String = "file", href: String, id: String)
 
 object Envelope {
+  implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val fileReads: Format[File] = Json.format[File]
+  implicit val constraintsReads: Format[Constraints] = Json.format[Constraints]
+  implicit val envelopeReads: Format[Envelope] = Json.format[Envelope]
 
-	implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
-	implicit val fileReads: Format[File] = Json.format[File]
-	implicit val constraintsReads: Format[Constraints] = Json.format[Constraints]
-	implicit val envelopeReads: Format[Envelope] = Json.format[Envelope]
+  val MAX_ITEMS_DEFAULT = 1
 
-	def fromJson(json: JsValue, _id: String, maxTTL: Int): Envelope = {
-	  val rawData = json.asInstanceOf[JsObject] ++ Json.obj("_id" -> _id )
-	  val envelope = Json.fromJson[Envelope](rawData).get
-		val maxExpiryDate: DateTime = DateTime.now().plusDays(maxTTL)
+  def fromJson(json: JsValue, _id: String, maxTTL: Int): Envelope = {
+    val rawData = json.asInstanceOf[JsObject] ++ Json.obj("_id" -> _id)
+    val envelope = Json.fromJson[Envelope](rawData).get
+    val maxExpiryDate: DateTime = DateTime.now().plusDays(maxTTL)
 
-    val expiryDate = envelope.expiryDate.map( d => if(d.isBefore(maxExpiryDate)) d else maxExpiryDate )
+    val expiryDate = envelope.expiryDate.map(d => if (d.isBefore(maxExpiryDate)) d else maxExpiryDate)
     envelope.copy(expiryDate = expiryDate)
   }
 
-	def emptyEnvelope(): Envelope = {
-		new Envelope(_id = UUID.randomUUID().toString, constraints = Some(new Constraints(maxItems = Some(1))) )
-	}
+  def emptyEnvelope(): Envelope = {
+    new Envelope(_id = UUID.randomUUID().toString, constraints = Some(emptyConstraints()))
+  }
+
+  def emptyConstraints() = {
+    new Constraints(maxItems = Some(1))
+  }
+
+  def fromCreateEnvelope(dto: CreateEnvelopeDto) = {
+    emptyEnvelope().copy(constraints = dto.constraints.map(fromCreateConstraints), callbackUrl = dto.callbackUrl, expiryDate = dto.expiryDate, metadata = dto.metadata, files = None)
+  }
+
+  private def fromCreateConstraints(dto: CreateConstraints): Constraints = {
+    val maxItems: Int = dto.maxItems.getOrElse[Int]( MAX_ITEMS_DEFAULT )
+    emptyConstraints ().copy(dto.contentTypes, Some(maxItems), dto.maxSize, dto.maxSizePerItem)
+  }
 
 }

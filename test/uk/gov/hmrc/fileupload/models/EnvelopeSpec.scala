@@ -27,8 +27,9 @@ import org.junit.Assert.assertTrue
 import play.api.libs.json.{JsString, Json}
 import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.fileupload.actors.EnvelopeService
-import uk.gov.hmrc.fileupload.actors.EnvelopeService.CreateEnvelope
+import uk.gov.hmrc.fileupload.actors.EnvelopeService.NewEnvelope
 import uk.gov.hmrc.fileupload.actors.Storage.Save
+import uk.gov.hmrc.fileupload.controllers.{CreateConstraints, CreateEnvelopeDto}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.util.Try
@@ -102,6 +103,26 @@ class EnvelopeSpec extends UnitSpec {
 			assertTrue( isWithinAMinute(maxExpiryDate, envelope.expiryDate) )
 		}
 	}
+
+  "an envelope" should {
+    "have maxItems constrain defaulted to 1 when not specified" in {
+      val dto: CreateEnvelopeDto = CreateEnvelopeDto(constraints = Some(CreateConstraints(maxItems = None)))
+
+      val envelope: Envelope = Envelope.fromCreateEnvelope(dto)
+
+      envelope.constraints.get.maxItems should equal( Some(1) )
+    }
+  }
+
+  "an envelope" should {
+    "have maxItems constrain NOT defaulted to 1 when specified" in {
+      val dto: CreateEnvelopeDto = CreateEnvelopeDto(constraints = Some(CreateConstraints(maxItems = Some(2))))
+
+      val envelope: Envelope = Envelope.fromCreateEnvelope(dto)
+
+      envelope.constraints.get.maxItems should equal( Some(2) )
+    }
+  }
 
 	def isWithinAMinute(maxExpiryDate: DateTime, expiryDate: Option[DateTime]): Boolean = {
     expiryDate.exists(d => abs(d.getMillis - maxExpiryDate.getMillis) < 60 * 1000)
