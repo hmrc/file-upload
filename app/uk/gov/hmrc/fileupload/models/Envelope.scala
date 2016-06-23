@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.fileupload.models
 
+import java.util.UUID
+
 import org.joda.time.DateTime
 import play.api.libs.json._
 
@@ -58,3 +60,13 @@ object Envelope {
   }
 
 }
+
+object FileMetadata{
+	implicit val fileMetaDataReads: Format[FileMetadata] = Json.format[FileMetadata]
+}
+
+case class FileMetadata(_id: String = UUID.randomUUID().toString,
+                        filename: Option[String] = None,
+                        contentType: Option[String] = None,
+                        revision: Option[Int] = None,
+                        metadata: Option[JsObject] = None)

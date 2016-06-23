@@ -21,12 +21,17 @@ import play.api.http.Status
 import play.api.mvc._
 import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.fileupload.Support._
-import uk.gov.hmrc.fileupload.actors.EnvelopeService.{EnvelopeNotFound, EnvelopeUpdated}
 import uk.gov.hmrc.fileupload.actors.{Actors, ActorStub}
 import uk.gov.hmrc.fileupload.models.EnvelopeNotFoundException
 import uk.gov.hmrc.play.test.{WithFakeApplication, UnitSpec}
-
 import scala.concurrent.Future
+
+import reactivemongo.json.collection._
+import play.api.libs.json.{JsString, JsValue, Json}
+import play.modules.reactivemongo.GridFSController.readFileReads
+import reactivemongo.api.ReadPreference
+import reactivemongo.api.commands.WriteResult
+import reactivemongo.json.ImplicitBSONHandlers._
 
 
 class FileuploadControllerSpec extends UnitSpec with WithFakeApplication  {
@@ -35,7 +40,7 @@ class FileuploadControllerSpec extends UnitSpec with WithFakeApplication  {
 	"once a file is uploaded the controller" should {
 		"ask the envelope service to add the file in the envelope" in {
 			val envelopeService =  Actors.envelopeService
-			val controller = FileuploadController
+			val controller = FileController
 
 			envelopeService.asInstanceOf[TestActorRef[ActorStub]].underlyingActor.setReply(true)
 			val fakeRequest = new FakeRequest[String]("PUT", "/envelope",  FakeHeaders(), body =  "what ever")
@@ -48,7 +53,7 @@ class FileuploadControllerSpec extends UnitSpec with WithFakeApplication  {
 	"the controller" should {
 		"respond with 404 if the specified envelope does not exist" in {
 			val envelopeService =  Actors.envelopeService
-			val controller = FileuploadController
+			val controller = FileController
 			val msg = new EnvelopeNotFoundException("123")
 
 			envelopeService.asInstanceOf[TestActorRef[ActorStub]].underlyingActor.setReply(msg)

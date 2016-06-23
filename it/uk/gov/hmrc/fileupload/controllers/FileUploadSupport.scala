@@ -27,11 +27,13 @@ import play.api.test.WithServer
 import reactivemongo.api.gridfs.GridFS
 import reactivemongo.json.JSONSerializationPack
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.models.{Constraints, Envelope}
+import uk.gov.hmrc.fileupload.models.{FileMetadata, Constraints, Envelope}
 import uk.gov.hmrc.fileupload.repositories.{DefaultMongoConnection, EnvelopeRepository}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.io.Source
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 /**
   * Created by Josiah on 6/20/2016.
@@ -40,7 +42,7 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
   import Envelope._
 
   implicit val ec = ExecutionContext.global
-
+	implicit val timeout = 5 seconds
   var self = this
   val url = "http://localhost:9000/file-upload/envelope"
   val repository = new EnvelopeRepository(DefaultMongoConnection.db)
@@ -58,8 +60,8 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
 			.post(data)
 	}
 
-  def withEnvelope: Future[FileUploadSupport] = {
-    createEnvelope(payload)
+  def withEnvelope: FileUploadSupport = {
+    await(createEnvelope(payload)
       .flatMap{ resp =>
         val id = resp.header("Location").map{ _.split("/").last }.get
         getEnvelopeFor(id)
@@ -68,7 +70,7 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
 		        self.mayBeEnvelope = Some(envelope)
 		        self
 	        }
-      }
+      })
   }
 
   def getEnvelopeFor(id: String): Future[WSResponse] = {
@@ -77,14 +79,14 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
       .get()
   }
 
-  def refresh: Future[FileUploadSupport] = {
+  def refresh: FileUploadSupport = {
     require(mayBeEnvelope.isDefined, "No envelope defined")
-    getEnvelopeFor(mayBeEnvelope.get._id)
+    await(getEnvelopeFor(mayBeEnvelope.get._id)
 	    .map{ resp =>
 		    val envelope = Json.fromJson[Envelope](resp.json).get
 		    self.mayBeEnvelope = Some(envelope)
 		    self
-	    }
+	    })
   }
 
   def doUpload(data: Array[Byte], fileId: String): Future[WSResponse] = {
@@ -95,27 +97,15 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
       .put(data)
   }
 
-	def getFile(id: String): Future[ByteStream] = {
-		import reactivemongo.json.collection._
-    import play.api.Logger
-    import play.api.libs.json.{JsString, JsValue, Json}
-    import play.modules.reactivemongo.GridFSController.readFileReads
-    import reactivemongo.api.ReadPreference
-    import reactivemongo.api.commands.WriteResult
-    import reactivemongo.json.ImplicitBSONHandlers._
-
-		val gfs: JSONGridFS = GridFS[JSONSerializationPack.type](DefaultMongoConnection.db() , "envelopes")
-//		gfs.find[JsValue, JSONReadFile](Json.obj("_id" -> id))
-
-    gfs.files.find(Json.obj("_id" -> id)).cursor[JSONReadFile](readPreference = ReadPreference.primaryPreferred).headOption.flatMap{ mayBeReadFile =>
-			mayBeReadFile.map{ readFile =>
-				val enumerator = gfs.enumerate(readFile)
-				val consumer = Iteratee.consume[ByteStream]()
-				enumerator |>>> consumer
-			}.get
-		}
-
+	def getFileMetadataFor(envelopeId: String, fileId: String): Future[Option[FileMetadata]] = {
+		WS
+		  .url(s"/envelope/$envelopeId/file/$fileId/metadata ")
+			.get()
+		  .map(resp => Some(Json.fromJson[FileMetadata](resp.json).get))
 	}
 
+	def getFile(id: String): Future[ByteStream] = ???
+
+	def await[T](f: Future[T])(implicit timeout: Duration) = Await.result(f, timeout)
 
 }

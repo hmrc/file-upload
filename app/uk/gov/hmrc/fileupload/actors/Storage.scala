@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.actors
 
 import akka.actor.{ActorLogging, ActorRef, Props, Actor}
-import uk.gov.hmrc.fileupload.models.Envelope
+import uk.gov.hmrc.fileupload.models.{FileMetadata, Envelope}
 import uk.gov.hmrc.fileupload.repositories.EnvelopeRepository
 
 import scala.concurrent.{Await, ExecutionContext}
@@ -28,6 +28,7 @@ object Storage{
 	case class Save(envelope: Envelope)
 	case class Remove(id: String)
 	case class AddFile(envelopeId: String, fileId: String)
+	case class UpdateFile(data: FileMetadata)
 
   def props(envelopeRepository: EnvelopeRepository): Props = Props(classOf[Storage], envelopeRepository)
 
@@ -48,6 +49,7 @@ class Storage(val envelopeRepository: EnvelopeRepository) extends Actor with Act
     case Save(envelope) => save(envelope, sender)
     case Remove(id) => remove(id, sender)
     case AddFile(envelopeId, fileId) => addFile(envelopeId, fileId, sender)
+		case UpdateFile(metadata) => addFile(metadata, sender)
   }
 
   def findEnvelopeById(byId: String, sender: ActorRef): Unit = {
@@ -78,14 +80,16 @@ class Storage(val envelopeRepository: EnvelopeRepository) extends Actor with Act
 	}
 
 	def addFile(envelopeId: String, fileId: String, sender: ActorRef): Unit = {
-		println(s"processing add message from $sender")
 		envelopeRepository.addFile(envelopeId, fileId).onComplete {
-			case Success(result) =>
-				println(s"upload successful replying to  $sender")
-				sender ! result
-			case Failure(e) =>
-				println(s"upload unsuccessful replying to  $sender")
-				sender ! e
+			case Success(result) => sender ! result
+			case Failure(e)      => sender ! e
+		}
+	}
+
+	def addFile(metadata: FileMetadata, sender: ActorRef): Unit = {
+		envelopeRepository.addFile(metadata).onComplete{
+			case Success(result) => sender ! result
+			case Failure(e)      => sender ! e
 		}
 	}
 

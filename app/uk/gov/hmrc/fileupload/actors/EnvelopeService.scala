@@ -21,10 +21,10 @@ import java.util.UUID
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
 import play.api.libs.json.{JsObject, JsValue, Json}
-import uk.gov.hmrc.fileupload.actors.EnvelopeService.{CreateEnvelope, DeleteEnvelope, GetEnvelope, UpdateEnvelope}
+import uk.gov.hmrc.fileupload.actors.EnvelopeService._
 import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
 import uk.gov.hmrc.fileupload.controllers.BadRequestException
-import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException}
+import uk.gov.hmrc.fileupload.models.{FileMetadata, Envelope, EnvelopeNotFoundException}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -37,14 +37,10 @@ import scala.util.{Failure, Success}
 object EnvelopeService {
 
   case class GetEnvelope(id: String)
-
   case class CreateEnvelope(json: Option[JsValue])
-
   case class DeleteEnvelope(id: String)
-
 	case class UpdateEnvelope(envelopeId: String, fileId: String)
-	case object EnvelopeUpdated
-	case object EnvelopeNotFound
+	case class UpdateFileMetaData(data: FileMetadata)
 
   def props(storage: ActorRef, idGenerator: ActorRef, marshaller: ActorRef, maxTTL: Int): Props =
     Props(classOf[EnvelopeService], storage, idGenerator, marshaller, maxTTL)
@@ -64,7 +60,6 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
     super.preStart()
   }
 
-
 	def receive = {
     case GetEnvelope(id)        => getEnvelopeFor(id, sender)
     case CreateEnvelope(data)   => createEnvelopeFrom(data, sender)
@@ -75,6 +70,7 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
 	    // FIXME we have to wait on the storage and then rollback the fileupload
 	    // FIXME on failure
 	    storage forward AddFile(envelopeId, fileId)
+    case UpdateFileMetaData(data) => storage forward UpdateFile(data)
   }
 
   def getEnvelopeFor(id: String, sender: ActorRef): Unit = {

@@ -28,7 +28,7 @@ import scala.language.postfixOps
 import scala.concurrent.duration._
 
 
-object FileuploadController extends BaseController{
+object FileController extends BaseController{
 
 	implicit val system = Actors.actorSystem
 	implicit val ec = system.dispatcher
@@ -45,4 +45,6 @@ object FileuploadController extends BaseController{
   }
 
 	def get(envelopeId: String, fileId: String) = play.mvc.Results.TODO
+
+	def metadata(envelopeId: String, fileId: String) = play.mvc.Results.TODO
 }
