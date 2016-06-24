@@ -119,10 +119,19 @@ class EnvelopeServiceSpec extends ActorSpec{
 		}
 		"add metadata to file when envelope exist" in {
 			within(timeout){
-				storage.underlyingActor.setReply(true)
+				val envelopeId = nextId()
 				val data = FileMetadata(_id = nextId())
-				envelopService ! UpdateFileMetaData(data)
+				storage.underlyingActor.setReply(true)
+				envelopService ! UpdateFileMetaData(envelopeId, data)
 				expectMsg(true)
+			}
+		}
+		"return a file metadata for the requested id" in {
+			within(timeout){
+				val fileMetadata = FileMetadata(_id = nextId())
+				storage.underlyingActor.setReply(Some(FileMetadata))
+				envelopService ! GetFileMetaData(fileMetadata._id)
+				expectMsg(Some(fileMetadata))
 			}
 		}
 	}

@@ -19,11 +19,12 @@ package uk.gov.hmrc.fileupload.controllers
 import java.io.File
 import java.util.UUID
 
+import akka.util.Timeout
 import org.joda.time.DateTime
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.{JsString, JsValue, Json}
 import play.api.libs.ws._
-import play.api.test.WithServer
+import play.api.test.{DefaultAwaitTimeout, FutureAwaits, WithServer}
 import reactivemongo.api.gridfs.GridFS
 import reactivemongo.json.JSONSerializationPack
 import uk.gov.hmrc.fileupload._
@@ -38,20 +39,22 @@ import scala.language.postfixOps
 /**
   * Created by Josiah on 6/20/2016.
   */
-class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends WithServer{
+class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends WithServer with FutureAwaits with DefaultAwaitTimeout{
   import Envelope._
 
   implicit val ec = ExecutionContext.global
-	implicit val timeout = 5 seconds
+	implicit val timeout = Timeout(1 minute)
   var self = this
   val url = "http://localhost:9000/file-upload/envelope"
   val repository = new EnvelopeRepository(DefaultMongoConnection.db)
 
   private val payload = "{}".getBytes
 
-	def createEnnvelope(file: File) = createEnvelope(Source.fromFile(file).mkString)
+	def createEnvelope(file: File): Future[WSResponse] = createEnvelope(Source.fromFile(file).mkString)
 
 	def createEnvelope(data: String): Future[WSResponse] = createEnvelope(data.getBytes())
+
+	def envelope = mayBeEnvelope.get
 
 	def createEnvelope(data: Array[Byte]): Future[WSResponse] = {
 		WS
@@ -60,7 +63,7 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
 			.post(data)
 	}
 
-  def withEnvelope: FileUploadSupport = {
+  lazy val withEnvelope: FileUploadSupport = {
     await(createEnvelope(payload)
       .flatMap{ resp =>
         val id = resp.header("Location").map{ _.split("/").last }.get
@@ -89,23 +92,32 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
 	    })
   }
 
-  def doUpload(data: Array[Byte], fileId: String): Future[WSResponse] = {
+  def doUpload(data: Array[Byte], fileId: String): WSResponse = {
     require(mayBeEnvelope.isDefined, "No envelope defined")
-    WS
-      .url(s"$url/${mayBeEnvelope.get._id}/file/$fileId/content")
+    await(WS
+      .url(s"$url/${envelope._id}/file/$fileId/content")
       .withHeaders("Content-Type" -> "application/octet-stream")
-      .put(data)
+      .put(data))
   }
 
-	def getFileMetadataFor(envelopeId: String, fileId: String): Future[Option[FileMetadata]] = {
-		WS
-		  .url(s"/envelope/$envelopeId/file/$fileId/metadata ")
+	def putFileMetadata(data: String, fileId: String): WSResponse = putFileMetadata(data.getBytes, fileId)
+
+	def putFileMetadata(data: Array[Byte], fileId: String): WSResponse = {
+		require(mayBeEnvelope.isDefined, "No envelope defined")
+		await(WS
+			.url(s"$url/${envelope._id}/file/$fileId/metadata" )
+			.withHeaders("Content-Type" -> "application/json")
+			.put(data))
+	}
+
+
+	def getFileMetadataFor(fileId: String, envelopeId: String = envelope._id): FileMetadata = {
+		await(WS
+		  .url(s"$url/$envelopeId/file/$fileId/metadata")
 			.get()
-		  .map(resp => Some(Json.fromJson[FileMetadata](resp.json).get))
+		  .map(resp => Json.fromJson[FileMetadata](resp.json).get))
 	}
 
 	def getFile(id: String): Future[ByteStream] = ???
-
-	def await[T](f: Future[T])(implicit timeout: Duration) = Await.result(f, timeout)
 
 }

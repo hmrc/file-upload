@@ -140,6 +140,7 @@ class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFak
 		  await(repository addFile updatedMetadata)
 		  metadata = await(repository.getFileMetadata(id)).getOrElse(throw new Exception("should have metadata"))
 
+		  println(Json.stringify(Json.toJson[FileMetadata](metadata)))
 		  metadata shouldBe updatedMetadata
 	  }
 

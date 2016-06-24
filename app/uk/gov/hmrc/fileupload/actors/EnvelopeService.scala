@@ -40,7 +40,8 @@ object EnvelopeService {
   case class CreateEnvelope(json: Option[JsValue])
   case class DeleteEnvelope(id: String)
 	case class UpdateEnvelope(envelopeId: String, fileId: String)
-	case class UpdateFileMetaData(data: FileMetadata)
+	case class UpdateFileMetaData(envelopeId: String, data: FileMetadata)
+	case class GetFileMetaData(id: String)
 
   def props(storage: ActorRef, idGenerator: ActorRef, marshaller: ActorRef, maxTTL: Int): Props =
     Props(classOf[EnvelopeService], storage, idGenerator, marshaller, maxTTL)
@@ -70,7 +71,10 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
 	    // FIXME we have to wait on the storage and then rollback the fileupload
 	    // FIXME on failure
 	    storage forward AddFile(envelopeId, fileId)
-    case UpdateFileMetaData(data) => storage forward UpdateFile(data)
+    case UpdateFileMetaData(envelopeId, data) =>
+	    // TODO need to update the envelope as well
+	    storage forward UpdateFile(data)
+			case it @ GetFileMetaData(_) => storage forward it
   }
 
   def getEnvelopeFor(id: String, sender: ActorRef): Unit = {

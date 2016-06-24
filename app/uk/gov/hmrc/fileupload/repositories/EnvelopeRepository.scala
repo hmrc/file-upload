@@ -62,7 +62,7 @@ class EnvelopeRepository(mongo: () => DB with DBMetaCommands)
 	def addFile(envelopeId: String, fileId: String)(implicit ec: ExecutionContext): Future[Boolean] = {
     get(envelopeId).flatMap {
 			case Some(envelope) => {
-        val newFile: Seq[File] = Seq(File(href = uk.gov.hmrc.fileupload.controllers.routes.FileuploadController.upload(envelopeId, fileId).url, id = fileId))
+        val newFile: Seq[File] = Seq(File(href = uk.gov.hmrc.fileupload.controllers.routes.FileController.upload(envelopeId, fileId).url, id = fileId))
 
         val updatedEnvelope = envelope.files match {
           case None => envelope.copy(files = Some(newFile))
