@@ -66,17 +66,11 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
     super.preStart()
   }
 
-
   def receive = {
     case GetEnvelope(id) => getEnvelopeFor(id, sender)
     case NewEnvelope(envelope: Envelope) => createEnvelopeFrom(envelope, sender)
-    case DeleteEnvelope(id) => storage forward Remove(id)
-    case UpdateEnvelope(envelopeId, fileId) =>
-      println(s"forwarding add file message from $sender to storage")
-      // FIXME we can't just forward this request to the storage
-      // FIXME we have to wait on the storage and then rollback the fileupload
-      // FIXME on failure
-      storage forward AddFile(envelopeId, fileId)
+    case DeleteEnvelope(id) => deleteEnvelope(id, sender)
+    case UpdateEnvelope(envelopeId, fileId) => updateEnvelope(envelopeId, fileId, sender)
   }
 
   def getEnvelopeFor(id: String, sender: ActorRef): Unit = {
@@ -91,8 +85,44 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
 
   def createEnvelopeFrom(envelope: Envelope, sender: ActorRef): Unit = {
     log.info(s"processing CreateEnvelope")
+    storage ask Save(envelope)
+  }
 
-    storage tell (Save(envelope), sender)
+  def deleteEnvelope(id: String, sender: ActorRef): Unit = {
+    storage ask FindById(id) onSuccess {
+      case Some(envelope: Envelope) if envelope.isSealed() =>
+        log.info(s"envelope ${envelope._id} is sealed. Cannot delete")
+        sender ! new EnvelopeSealedException(envelope)
+      case Some(envelope: Envelope) if !envelope.isSealed() =>
+        log.info(s"deleting envelope ${envelope._id}")
+        storage ask Remove(id) onComplete {
+          // TODO response?
+          case response =>
+            log.info(s"sending response $response")
+            sender ! response
+        }
+      case Failure(t) => sender ! t
+    }
+
+  }
+
+  def updateEnvelope(id: String, fileId: String, sender: ActorRef): Unit = {
+    storage ask FindById(id) onSuccess {
+      case Some(envelope: Envelope) if envelope.isSealed() =>
+        log.info(s"envelope ${envelope._id} is sealed. Cannot delete")
+        sender ! new EnvelopeSealedException(envelope)
+      case Some(envelope: Envelope) if !envelope.isSealed() =>
+        log.info(s"forwarding add file message from $sender to storage")
+        // FIXME we can't just forward this request to the storage
+        // FIXME we have to wait on the storage and then rollback the fileupload
+        // FIXME on failure
+        storage ask AddFile(id, fileId) onComplete {
+          case response =>
+            log.info(s"sending response $response")
+            sender ! response
+        }
+      case Failure(t) => sender ! t
+    }
   }
 
   override def postStop() {

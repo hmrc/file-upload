@@ -68,26 +68,31 @@ class Storage(val envelopeRepository: EnvelopeRepository) extends Actor with Act
 					log.info("envelope saved")
 				}
 				case Failure(e) =>
-					println(s"storage is down ${e.getMessage}")
+          log.error(s"storage is down ${e.getMessage}", e)
 					sender ! e
 			}
 	}
 
 	def remove(id: String, sender: ActorRef): Unit = {
 		envelopeRepository.delete(id).onComplete{
-			case Success(result) => sender ! result
-			case Failure(e) => sender ! e
+			case Success(result) =>
+        log.info(s"envelope $id deleted")
+        sender ! result
+      case Failure(e) =>
+        log.info(s"envelope $id deletion failed")
+        e.printStackTrace()
+        sender ! e
 		}
 	}
 
 	def addFile(envelopeId: String, fileId: String, sender: ActorRef): Unit = {
-		println(s"processing add message from $sender")
+		log.info(s"processing add message from $sender")
 		envelopeRepository.addFile(envelopeId, fileId).onComplete {
 			case Success(result) =>
-				println(s"upload successful replying to  $sender")
+        log.info(s"upload successful replying to  $sender")
 				sender ! result
 			case Failure(e) =>
-				println(s"upload unsuccessful replying to  $sender")
+        log.info(s"upload unsuccessful replying to  $sender")
 				sender ! e
 		}
 	}

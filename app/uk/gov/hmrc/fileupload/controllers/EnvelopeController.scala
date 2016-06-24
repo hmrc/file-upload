@@ -20,7 +20,7 @@ package uk.gov.hmrc.fileupload.controllers
 import akka.util.Timeout
 import play.api.libs.json._
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.actors.{Actors, EnvelopeService, Marshaller}
+import uk.gov.hmrc.fileupload.actors.{Actors, EnvelopeSealedException, EnvelopeService, Marshaller}
 import uk.gov.hmrc.fileupload.actors.Implicits.FutureUtil
 import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException}
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -32,6 +32,8 @@ import scala.concurrent.Future
 import Envelope._
 import Marshaller._
 import EnvelopeService._
+
+import scala.util.Success
 
 
 object EnvelopeController extends BaseController {
@@ -86,8 +88,9 @@ object EnvelopeController extends BaseController {
 
     def deleteEnvelope = (id: String) => envelopeService ? DeleteEnvelope(id)
     def onEnvelopeDeleted: (Any) => Result = {
-      case true => Accepted
-      case false => throw new EnvelopeNotFoundException(id)
+      case Success(true) => Accepted
+      case Success(false) => throw new EnvelopeNotFoundException(id)
+      case e: EnvelopeSealedException => throw e
     }
 
     deleteEnvelope(id)

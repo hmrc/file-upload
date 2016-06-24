@@ -120,9 +120,9 @@ class ActorStub extends Actor{
 
 	var name: Option[String] = None
 
-	def setReceive(me: Receive) = context.become(me)
+	def setReceive(me: (ActorRef) =>  Receive ) = context.become(me(sender))
 
-	def setReply(reply: Any)  = setReceive({ case _ => sender ! reply})
+	def setReply(reply: Any)  = setReceive((sender) => { case _ => sender ! reply})
 
 	override def receive = {
 		case _ => throw new RuntimeException(s"No receive set for ${name.getOrElse("UNNAMED")}")

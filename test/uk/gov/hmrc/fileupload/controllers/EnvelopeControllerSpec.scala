@@ -17,19 +17,20 @@
 package uk.gov.hmrc.fileupload.controllers
 
 
-import java.util.UUID
+import java.util.{NoSuchElementException, UUID}
 
 import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.mvc.{AnyContentAsJson, Result}
 import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.fileupload.Support
+import uk.gov.hmrc.fileupload.actors.EnvelopeService.NewEnvelope
 import uk.gov.hmrc.fileupload.actors.{ActorStub, FileUploadTestActors}
 import uk.gov.hmrc.fileupload.models.Envelope
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.{Await, ExecutionContext}
-import scala.util.{Success, Try}
+import scala.util.{Failure, Success, Try}
 
 class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 
@@ -158,5 +159,19 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
       location shouldBe s"$serverUrl${routes.EnvelopeController.show(id).url}"
     }
   }
+
+//	"respond with an exception when creation fails" in {
+//		within(timeout) {
+//			val wrongData = Json.parse( """{"wrong": "json"}""" )
+//			val id: String = UUID.randomUUID().toString
+//			IdGenerator.underlyingActor.setReply(id)
+//			storage.underlyingActor.setReply(id)
+//			marshaller.underlyingActor.setReply(Failure(new NoSuchElementException("JsError.get")))
+//
+//			envelopService ! NewEnvelope(Some(wrongData))
+//
+//			expectMsgClass(classOf[NoSuchElementException])
+//		}
+//	}
 
 }

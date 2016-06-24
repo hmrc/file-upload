@@ -22,7 +22,33 @@ import org.joda.time.DateTime
 import play.api.libs.json._
 import uk.gov.hmrc.fileupload.controllers.{CreateConstraints, CreateEnvelopeDto}
 
-case class Envelope(_id: String, constraints: Option[Constraints] = None, callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None, metadata: Option[Map[String, JsValue]] = None, files: Option[Seq[File]] = None) {
+sealed trait Status
+case object Open extends Status
+case object Sealed extends Status
+
+object StatusWrites extends Writes[Status] {
+  def writes(c: Status) = c match {
+    case Sealed => Json.toJson("SEALED")
+    case Open => Json.toJson("OPEN")
+  }
+}
+
+object StatusReads extends Reads[Status] {
+  def reads(value: JsValue) = Json.stringify(value) match {
+    case "SEALED" => JsSuccess( Sealed )
+    case "OPEN" => JsSuccess( Open )
+  }
+}
+
+case class Envelope(
+                     _id: String,
+                     constraints: Option[Constraints] = None,
+                     callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None,
+                     metadata: Option[Map[String, JsValue]] = None, files: Option[Seq[File]] = None,
+                     status: Status = Open )
+{
+  def isSealed(): Boolean = this.status == Sealed
+
   require(!isExpired, "expiry date cannot be in the past")
 
   def isExpired: Boolean = expiryDate.exists(_.isBeforeNow)
@@ -47,6 +73,8 @@ case class File(rel: String = "file", href: String, id: String)
 object Envelope {
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val fileReads: Format[File] = Json.format[File]
+  implicit val statusReads: Reads[Status] = StatusReads
+  implicit val statusWrites: Writes[Status] = StatusWrites
   implicit val constraintsReads: Format[Constraints] = Json.format[Constraints]
   implicit val envelopeReads: Format[Envelope] = Json.format[Envelope]
 

@@ -21,6 +21,7 @@ import play.api.http.Status._
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{ResponseHeader, Result}
+import uk.gov.hmrc.fileupload.actors.EnvelopeSealedException
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler.exceptionHandler
 import uk.gov.hmrc.fileupload.models.{EnvelopeNotFoundException, ValidationException}
 
@@ -31,6 +32,7 @@ object ExceptionHandler {
     case e: NoSuchElementException => NoSuchElementHandler(e)
     case e: BadRequestException => BadRequestHandler(e)
     case e: EnvelopeNotFoundException => EnvelopeNotFoundHandler(e)
+    case e: EnvelopeSealedException => EnvelopeSealedHandler(e)
     case e: Throwable => DefaultExceptionHandler(e)
   }
 
@@ -70,6 +72,12 @@ object BadRequestHandler extends ExceptionHandler[BadRequestException] {
 object EnvelopeNotFoundHandler extends ExceptionHandler[EnvelopeNotFoundException] {
   override def apply(exception: EnvelopeNotFoundException): Result = {
     exceptionHandler(NOT_FOUND, exception.getMessage)
+  }
+}
+
+object EnvelopeSealedHandler extends ExceptionHandler[EnvelopeSealedException] {
+  override def apply(exception: EnvelopeSealedException): Result = {
+    exceptionHandler(BAD_REQUEST, exception.getMessage)
   }
 }
 
