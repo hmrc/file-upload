@@ -7,4 +7,5 @@ PUT        /envelope/:envelopeId/file/:fileId/content       uk.gov.hmrc.fileuplo
 GET        /file-upload/envelope/:envelopeId/:fileId        uk.gov.hmrc.fileupload.controllers.FileController.get(envelopeId: String, fileId: String)
 PUT        /envelope/:envelopeId/file/:fileId/metadata      uk.gov.hmrc.fileupload.controllers.FileController.metadata(envelopeId: String, fileId: String)
 GET        /envelope/:envelopeId/file/:fileId/metadata      uk.gov.hmrc.fileupload.controllers.FileController.get(envelopeId: String, fileId: String)
+GET        /heart/beat                                      uk.gov.hmrc.fileupload.controllers.Heart.beat
 

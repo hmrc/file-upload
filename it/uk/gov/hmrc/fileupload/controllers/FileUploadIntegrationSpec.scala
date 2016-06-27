@@ -23,7 +23,7 @@ import play.api.libs.ws._
 import play.api.test.PlaySpecification
 import uk.gov.hmrc.fileupload.models.FileMetadata
 
-class FileUploadIntegrationSpec extends PlaySpecification{
+class FileUploadIntegrationSpec extends PlaySpecification with Server{
 
 	val nextId = () => UUID.randomUUID().toString
 
@@ -41,10 +41,10 @@ class FileUploadIntegrationSpec extends PlaySpecification{
                  """.stripMargin
 
   val data = poem.getBytes
-  val support = new FileUploadSupport
 
   "Application" should{
     "be able to process an upload request" in  {
+	    println(s"starting app: ${this.getClass.getProtectionDomain.getCodeSource.getLocation}")
 			val id = nextId()
       val response = support.withEnvelope.doUpload(data, fileId = id)
 	    val Some(Seq(file, _*)) = support.refresh.envelope.files

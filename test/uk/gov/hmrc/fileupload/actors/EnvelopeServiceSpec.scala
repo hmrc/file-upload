@@ -129,7 +129,7 @@ class EnvelopeServiceSpec extends ActorSpec{
 		"return a file metadata for the requested id" in {
 			within(timeout){
 				val fileMetadata = FileMetadata(_id = nextId())
-				storage.underlyingActor.setReply(Some(FileMetadata))
+				storage.underlyingActor.setReply(Some(fileMetadata))
 				envelopService ! GetFileMetaData(fileMetadata._id)
 				expectMsg(Some(fileMetadata))
 			}

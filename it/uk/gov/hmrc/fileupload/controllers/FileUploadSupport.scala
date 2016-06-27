@@ -21,6 +21,7 @@ import java.util.UUID
 
 import akka.util.Timeout
 import org.joda.time.DateTime
+import play.api.http.Status
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.{JsString, JsValue, Json}
 import play.api.libs.ws._
@@ -35,17 +36,19 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.io.Source
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.util.control.NonFatal
 
 /**
   * Created by Josiah on 6/20/2016.
   */
-class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends WithServer with FutureAwaits with DefaultAwaitTimeout{
+class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends WithServer
+	with FutureAwaits with DefaultAwaitTimeout with Status{
   import Envelope._
 
   implicit val ec = ExecutionContext.global
 	implicit val timeout = Timeout(1 minute)
   var self = this
-  val url = "http://localhost:9000/file-upload/envelope"
+  val url = "http://localhost:9000/file-upload"
   val repository = new EnvelopeRepository(DefaultMongoConnection.db)
 
   private val payload = "{}".getBytes
@@ -58,9 +61,19 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
 
 	def createEnvelope(data: Array[Byte]): Future[WSResponse] = {
 		WS
-			.url(url)
+			.url(s"$url/envelope")
 			.withHeaders("Content-Type" -> "application/json")
 			.post(data)
+	}
+
+	def appIsAlive: Boolean = {
+		await(WS
+			.url(s"$url/heart/beat")
+			.get().map{
+				case resp if resp.status == OK => true
+				case _ => false
+			}.recover{ case NonFatal(_) => false }
+		)
 	}
 
   lazy val withEnvelope: FileUploadSupport = {
@@ -78,7 +91,7 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
 
   def getEnvelopeFor(id: String): Future[WSResponse] = {
     WS
-      .url(s"$url/$id")
+      .url(s"$url/envelope/$id")
       .get()
   }
 
@@ -95,7 +108,7 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
   def doUpload(data: Array[Byte], fileId: String): WSResponse = {
     require(mayBeEnvelope.isDefined, "No envelope defined")
     await(WS
-      .url(s"$url/${envelope._id}/file/$fileId/content")
+      .url(s"$url/envelope/${envelope._id}/file/$fileId/content")
       .withHeaders("Content-Type" -> "application/octet-stream")
       .put(data))
   }
@@ -105,7 +118,7 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
 	def putFileMetadata(data: Array[Byte], fileId: String): WSResponse = {
 		require(mayBeEnvelope.isDefined, "No envelope defined")
 		await(WS
-			.url(s"$url/${envelope._id}/file/$fileId/metadata" )
+			.url(s"$url/envelope/${envelope._id}/file/$fileId/metadata" )
 			.withHeaders("Content-Type" -> "application/json")
 			.put(data))
 	}
@@ -113,7 +126,7 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
 
 	def getFileMetadataFor(fileId: String, envelopeId: String = envelope._id): FileMetadata = {
 		await(WS
-		  .url(s"$url/$envelopeId/file/$fileId/metadata")
+		  .url(s"$url/envelope/$envelopeId/file/$fileId/metadata")
 			.get()
 		  .map(resp => Json.fromJson[FileMetadata](resp.json).get))
 	}
