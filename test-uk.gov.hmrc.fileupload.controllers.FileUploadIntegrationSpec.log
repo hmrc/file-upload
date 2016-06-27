@@ -2,7 +2,7 @@
 [0m[[0minfo[0m] [0mLoading project definition from /Users/jay/projects/hmrc/file-upload/project[0m
 [0m[[0minfo[0m] [0mSbtAutoBuildPlugin adding 33 build settings[0m
 [0m[[0minfo[0m] [0mThe config section 'remote' with subsection 'origin' had a url of 'git@github.com:hmrc/file-upload.git'[0m
-[0m[[0minfo[0m] [0msbt git versioned as 0.2.0-30-g8976bc2[0m
+[0m[[0minfo[0m] [0msbt git versioned as 0.2.0-31-g2cfcc72[0m
 [0m[[0minfo[0m] [0mSet current project to file-upload (in build file:/Users/jay/projects/hmrc/file-upload/)[0m
 
 [35m--- (Running the application, auto-reloading is enabled) ---[0m
@@ -11,20 +11,19 @@
 
 [32m(Server started, use Ctrl+D to stop and go back to the console...)[0m
 
-[0m[[0minfo[0m] [0mCompiling 1 Scala source to /Users/jay/projects/hmrc/file-upload/target/scala-2.11/classes...[0m
-2016-06-27 14:52:13,895 level=[INFO] logger=[application] thread=[play-internal-execution-context-1] rid=[] user=[] message=[ReactiveMongoPlugin starting...] 
-starting app: file:/Users/jay/projects/hmrc/file-upload/target/scala-2.11/classes/
-2016-06-27 14:52:13,918 level=[INFO] logger=[application] thread=[play-internal-execution-context-1] rid=[] user=[] message=[Starting microservice : file-upload : in mode : Dev] 
-2016-06-27 14:52:13,919 level=[INFO] logger=[play] thread=[play-internal-execution-context-1] rid=[] user=[] message=[Application started (Dev)] 
-[DEBUG] [06/27/2016 14:52:14.224] [New I/O worker #1] [EventStream(akka://file-upload-actor-system)] logger log1-Logging$DefaultLogger started
-[DEBUG] [06/27/2016 14:52:14.224] [New I/O worker #1] [EventStream(akka://file-upload-actor-system)] Default Loggers started
-[INFO] [06/27/2016 14:52:14.228] [file-upload-actor-system-akka.actor.default-dispatcher-2] [akka://file-upload-actor-system/user/storage] Envelope storage online
-[INFO] [06/27/2016 14:52:14.230] [file-upload-actor-system-akka.actor.default-dispatcher-3] [akka://file-upload-actor-system/user/envelope-service] Envelope manager online
-[INFO] [06/27/2016 14:52:14.291] [file-upload-actor-system-akka.actor.default-dispatcher-3] [akka://file-upload-actor-system/user/envelope-service] processing CreateEnvelope
+[0m[[0minfo[0m] [0mCompiling 2 Scala sources to /Users/jay/projects/hmrc/file-upload/target/scala-2.11/classes...[0m
+2016-06-27 15:02:53,342 level=[INFO] logger=[application] thread=[play-internal-execution-context-1] rid=[] user=[] message=[ReactiveMongoPlugin starting...] 
+2016-06-27 15:02:53,373 level=[INFO] logger=[application] thread=[play-internal-execution-context-1] rid=[] user=[] message=[Starting microservice : file-upload : in mode : Dev] 
+2016-06-27 15:02:53,375 level=[INFO] logger=[play] thread=[play-internal-execution-context-1] rid=[] user=[] message=[Application started (Dev)] 
+[DEBUG] [06/27/2016 15:02:53.675] [New I/O worker #1] [EventStream(akka://file-upload-actor-system)] logger log1-Logging$DefaultLogger started
+[DEBUG] [06/27/2016 15:02:53.675] [New I/O worker #1] [EventStream(akka://file-upload-actor-system)] Default Loggers started
+[INFO] [06/27/2016 15:02:53.683] [file-upload-actor-system-akka.actor.default-dispatcher-6] [akka://file-upload-actor-system/user/storage] Envelope storage online
+[INFO] [06/27/2016 15:02:53.686] [file-upload-actor-system-akka.actor.default-dispatcher-5] [akka://file-upload-actor-system/user/envelope-service] Envelope manager online
+[INFO] [06/27/2016 15:02:53.747] [file-upload-actor-system-akka.actor.default-dispatcher-3] [akka://file-upload-actor-system/user/envelope-service] processing CreateEnvelope
 ERROR StatusLogger No log4j2 configuration file found. Using default configuration: logging only errors to the console.
-[INFO] [06/27/2016 14:52:15.319] [file-upload-actor-system-akka.actor.default-dispatcher-2] [akka://file-upload-actor-system/user/$a] processing upload request for b3a3f85d-f954-4fb8-9030-55380e41fc7b
+[INFO] [06/27/2016 15:02:54.809] [file-upload-actor-system-akka.actor.default-dispatcher-6] [akka://file-upload-actor-system/user/$a] processing upload request for 27a0817e-f821-473b-81a7-652fb328f248
 forwarding add file message from Actor[akka://file-upload-actor-system/temp/$a] to storage
-[INFO] [06/27/2016 14:52:15.332] [file-upload-actor-system-akka.actor.default-dispatcher-2] [akka://file-upload-actor-system/user/$a] file upload request for b3a3f85d-f954-4fb8-9030-55380e41fc7b complete
-2016-06-27 14:52:15,400 level=[INFO] logger=[application] thread=[pool-6-thread-2] rid=[] user=[] message=[ReactiveMongoPlugin stops, closing connections...] 
+[INFO] [06/27/2016 15:02:54.818] [file-upload-actor-system-akka.actor.default-dispatcher-6] [akka://file-upload-actor-system/user/$a] file upload request for 27a0817e-f821-473b-81a7-652fb328f248 complete
+2016-06-27 15:02:54,888 level=[INFO] logger=[application] thread=[pool-6-thread-1] rid=[] user=[] message=[ReactiveMongoPlugin stops, closing connections...] 
 
-[0m[[32msuccess[0m] [0mTotal time: 6 s, completed 27-Jun-2016 14:52:15[0m
+[0m[[32msuccess[0m] [0mTotal time: 7 s, completed 27-Jun-2016 15:02:54[0m

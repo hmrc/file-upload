@@ -79,8 +79,4 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
 	override def microserviceFilters: Seq[EssentialFilter] = Seq() //defaultMicroserviceFilters   ++ Seq(FileUploadValidationFilter)
 
-	override def onStart(app: Application): Unit = {
-		println(s"starting app: ${this.getClass.getProtectionDomain.getCodeSource.getLocation}")
-		super.onStart(app)
-	}
 }

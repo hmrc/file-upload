@@ -30,12 +30,10 @@ trait Server {
 		Step(start) ^ fragments ^ Step(stop)
 
 	def start = {
-		println("Starting server")
 		process = waitForStartup
 	}
 
 	def stop = {
-		println("stopping server")
 		process foreach{
 			p => p.destroy()
 			p.waitFor()
