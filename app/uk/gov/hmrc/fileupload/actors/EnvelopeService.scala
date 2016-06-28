@@ -89,9 +89,6 @@ class EnvelopeService(storage: ActorRef, marshaller: ActorRef, maxTTL: Int) exte
   }
 
   def deleteEnvelope(id: String, sender: ActorRef): Unit = {
-
-    log.info(s"envelope ${id} !!!!!!is sealed. Cannot delete")
-
     storage ask FindById(id) onSuccess {
       case Some(envelope: Envelope) if envelope.isSealed() =>
         log.info(s"envelope ${envelope._id} is sealed. Cannot delete")
