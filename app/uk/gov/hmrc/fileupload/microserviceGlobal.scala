@@ -77,6 +77,6 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     Future(ExceptionHandler(ex))(ExecutionContext.global)
   }
 
-	override def microserviceFilters: Seq[EssentialFilter] = Seq() //defaultMicroserviceFilters   ++ Seq(FileUploadValidationFilter)
+	override def microserviceFilters: Seq[EssentialFilter] = defaultMicroserviceFilters  // ++ Seq(FileUploadValidationFilter)
 
 }

@@ -44,7 +44,6 @@ class FileUploadIntegrationSpec extends PlaySpecification with Server{
 
   "Application" should{
     "be able to process an upload request" in  {
-	    println(s"starting app: ${this.getClass.getProtectionDomain.getCodeSource.getLocation}")
 			val id = nextId()
       val response = support.withEnvelope.doUpload(data, fileId = id)
 	    val Some(Seq(file, _*)) = support.refresh.envelope.files
