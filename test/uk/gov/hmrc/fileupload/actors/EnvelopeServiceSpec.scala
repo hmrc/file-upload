@@ -27,10 +27,9 @@ import org.junit.Assert
 import org.junit.Assert.assertTrue
 import play.api.libs.json.{JsObject, JsValue, Json}
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.actors.Storage.Save
-import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
+import uk.gov.hmrc.fileupload.actors.Storage.{AddFile, FindById, Remove, Save}
 import uk.gov.hmrc.fileupload.controllers.BadRequestException
-import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException, ValidationException}
+import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException, Sealed, ValidationException}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -47,9 +46,8 @@ class EnvelopeServiceSpec extends ActorSpec {
   val MAX_TIME_TO_LIVE = 2
 
   val storage = TestActorRef[ActorStub]
-  val IdGenerator = TestActorRef[ActorStub]
   val marshaller = TestActorRef[ActorStub]
-  val envelopService = system.actorOf(EnvelopeService.props(storage, IdGenerator, marshaller, MAX_TIME_TO_LIVE))
+  val envelopService = system.actorOf(EnvelopeService.props(storage, marshaller, MAX_TIME_TO_LIVE))
   implicit val ec = system.dispatcher
 
 
@@ -79,34 +77,62 @@ class EnvelopeServiceSpec extends ActorSpec {
   }
 
   "An EnvelopeService" should {
-    "respond with id  of created envelope when it receives a CreateEnvelope message" in {
+    "respond with true when it receives a CreateEnvelope message" in {
       within(timeout) {
         val envelope = Support.envelope
-        val id = UUID.randomUUID().toString
-
-        IdGenerator.underlyingActor.setReply(id)
         storage.underlyingActor.setReply(true)
 
         envelopService ! NewEnvelope(envelope)
 
-        expectMsg(id)
+        expectMsg(true)
       }
     }
 
+
     "respond with Success after deleting an envelope" in {
       within(timeout) {
-        val id = "5752051b69ff59a8732f6474"
-        storage.underlyingActor.setReply(true)
-        envelopService ! DeleteEnvelope(id)
-        expectMsg(true)
+        storage.underlyingActor.setReceive((sender) => {
+          case FindById(id) => sender ! Some(Support.envelope)
+          case Remove(id) => sender ! true
+        })
+        envelopService ! DeleteEnvelope(Support.envelope._id)
+        expectMsg(Success(true))
       }
     }
 
     "update an envelope to add a new file" in {
       within(timeout) {
-        storage.underlyingActor.setReply(true)
+        storage.underlyingActor.setReceive((sender) => {
+          case FindById(id) => sender ! Some(Support.envelope)
+          case AddFile(envelopeId, fileId) => sender ! true
+        })
         envelopService ! UpdateEnvelope(envelopeId = "123", fileId = "456")
-        expectMsg(true)
+        expectMsg(Success(true))
+      }
+    }
+
+    "respond with exception after trying to delete a sealed envelope" in {
+      within(timeout) {
+        val envelope: Envelope = Support.envelope.copy(status = Sealed)
+
+        storage.underlyingActor.setReceive((sender) => {
+          case FindById(id) => sender ! Some(envelope)
+        })
+        envelopService ! DeleteEnvelope(envelope._id)
+        expectMsg(new EnvelopeSealedException(envelope))
+      }
+    }
+
+    "respond with an exception after trying to add a new file to a sealed envelope" in {
+      within(timeout) {
+        val envelope: Envelope = Support.envelope.copy(status = Sealed)
+
+        storage.underlyingActor.setReceive((sender) => {
+          case FindById(id) => sender ! Some(envelope)
+          case AddFile(envelopeId, fileId) => sender ! true
+        })
+        envelopService ! UpdateEnvelope(envelopeId = "123", fileId = "456")
+        expectMsg(new EnvelopeSealedException(envelope))
       }
     }
   }

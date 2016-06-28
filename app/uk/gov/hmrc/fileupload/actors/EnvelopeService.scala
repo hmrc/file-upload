@@ -22,7 +22,6 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
 import play.api.libs.json.{JsObject, JsValue, Json}
 import uk.gov.hmrc.fileupload.actors.EnvelopeService._
-import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
 import uk.gov.hmrc.fileupload.controllers.BadRequestException
 import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException}
 
@@ -48,11 +47,11 @@ object EnvelopeService {
 
   case object EnvelopeNotFound
 
-  def props(storage: ActorRef, idGenerator: ActorRef, marshaller: ActorRef, maxTTL: Int): Props =
-    Props(classOf[EnvelopeService], storage, idGenerator, marshaller, maxTTL)
+  def props(storage: ActorRef, marshaller: ActorRef, maxTTL: Int): Props =
+    Props(classOf[EnvelopeService], storage, marshaller, maxTTL)
 }
 
-class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: ActorRef, maxTTL: Int) extends Actor with ActorLogging {
+class EnvelopeService(storage: ActorRef, marshaller: ActorRef, maxTTL: Int) extends Actor with ActorLogging {
 
   import Storage._
   import Marshaller._
@@ -89,6 +88,9 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
   }
 
   def deleteEnvelope(id: String, sender: ActorRef): Unit = {
+
+    log.info(s"envelope ${id} !!!!!!is sealed. Cannot delete")
+
     storage ask FindById(id) onSuccess {
       case Some(envelope: Envelope) if envelope.isSealed() =>
         log.info(s"envelope ${envelope._id} is sealed. Cannot delete")

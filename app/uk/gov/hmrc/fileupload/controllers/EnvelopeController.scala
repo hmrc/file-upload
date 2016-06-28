@@ -22,7 +22,7 @@ import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.actors.{Actors, EnvelopeSealedException, EnvelopeService, Marshaller}
 import uk.gov.hmrc.fileupload.actors.Implicits.FutureUtil
-import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException}
+import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeFactory, EnvelopeNotFoundException}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import akka.pattern._
 
@@ -45,24 +45,21 @@ object EnvelopeController extends BaseController {
   val envelopeService = Actors.envelopeService
   val marshaller = Actors.marshaller
 
-  def create() = Action.async { implicit request =>
+  def create(envelopeFactory: EnvelopeFactory = new EnvelopeFactory()) = Action.async { implicit request =>
 
     def envelopeLocation = (id: String) => LOCATION -> s"${request.host}${routes.EnvelopeController.show(id)}"
-    def onEnvelopeCreated: (Any) => Result = {
-      case id: String => Created.withHeaders(envelopeLocation(id))
-    }
 
     implicit val createConstraintsReads: Format[CreateConstraints] = Json.format[CreateConstraints]
     implicit val createEnvelopeReads: Format[CreateEnvelopeDto] = Json.format[CreateEnvelopeDto]
 
     val envelope: Envelope = request.body.asJson.map(Json.fromJson[CreateEnvelopeDto](_)) match {
-      case Some(result) => Envelope.fromCreateEnvelope(result.get)
-      case None => Envelope.emptyEnvelope()
+      case Some(result) => envelopeFactory.fromCreateEnvelope(result.get)
+      case None => envelopeFactory.emptyEnvelope()
     }
 
     (envelopeService ? NewEnvelope(envelope))
       .breakOnFailure
-      .map(onEnvelopeCreated)
+      .map { case true => Created.withHeaders(envelopeLocation(envelope._id)) }
       .recover { case e => ExceptionHandler(e) }
   }
 

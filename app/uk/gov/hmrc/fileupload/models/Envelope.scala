@@ -89,8 +89,8 @@ object Envelope {
     envelope.copy(expiryDate = expiryDate)
   }
 
-  def emptyEnvelope(): Envelope = {
-    new Envelope(_id = UUID.randomUUID().toString, constraints = Some(emptyConstraints()))
+  def emptyEnvelope(id : String = UUID.randomUUID().toString): Envelope = {
+    new Envelope(id, constraints = Some(emptyConstraints()))
   }
 
   def emptyConstraints() = {

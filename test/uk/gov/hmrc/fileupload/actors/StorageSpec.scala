@@ -64,18 +64,13 @@ class StorageSpec extends ActorSpec with MockitoSugar {
       expectMsg(None)
     }
 
-	  "respond with a Id when it receives a create envelope message" in {
+	  "respond with true when it receives a create envelope message" in {
 		  within(500 millis) {
-
-			  val id = UUID.randomUUID().toString
-			  val rawData = Support.envelopeBody.asInstanceOf[JsObject] ++ Json.obj("_id" -> id)
-			  val envelope = Json.fromJson[Envelope](rawData).get
-
 			  when(envelopeRepository.add(any())(any())).thenReturn(Future.successful(true))
 
-			  storage ! Save(envelope)
+			  storage ! Save(Support.envelope)
 
-			  expectMsg(id)
+			  expectMsg(true)
 		  }
 	  }
 

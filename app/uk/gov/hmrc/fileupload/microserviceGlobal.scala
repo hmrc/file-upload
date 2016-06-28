@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload
 
 import com.typesafe.config.Config
-import play.api.mvc.{EssentialFilter, Result, RequestHeader}
+import play.api.mvc.{EssentialFilter, RequestHeader, Result}
 import play.api.{Application, Configuration, Play}
 import uk.gov.hmrc.fileupload.controllers.{BadRequestException, ExceptionHandler}
 import uk.gov.hmrc.fileupload.filters.FileUploadValidationFilter
@@ -28,6 +28,7 @@ import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import net.ceedubs.ficus.Ficus._
+import uk.gov.hmrc.fileupload.models.EnvelopeFactory
 
 import scala.concurrent.{ExecutionContext, Future}
 

@@ -19,6 +19,9 @@ package uk.gov.hmrc.fileupload.controllers
 
 import java.util.{NoSuchElementException, UUID}
 
+import org.hamcrest.CoreMatchers
+import org.mockito.{Matchers, Mockito}
+import org.scalatest.mock.MockitoSugar
 import play.api.http.Status
 import play.api.libs.json.{JsString, Json}
 import play.api.mvc.{AnyContentAsJson, Result}
@@ -26,13 +29,13 @@ import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.fileupload.actors.EnvelopeService.NewEnvelope
 import uk.gov.hmrc.fileupload.actors.{ActorStub, FileUploadTestActors}
-import uk.gov.hmrc.fileupload.models.Envelope
+import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeFactory}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.{Await, ExecutionContext}
 import scala.util.{Failure, Success, Try}
 
-class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
+class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication with MockitoSugar {
 
   import uk.gov.hmrc.fileupload.Support._
 
@@ -54,16 +57,15 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 		    override lazy val host = serverUrl
 	    }
 
-			val id: String = UUID.randomUUID().toString
 	    val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
-			envelopeMgr.setReply(id)
+			envelopeMgr.setReply(true)
+			val envelopeFactory: EnvelopeFactory = mock[EnvelopeFactory]
+			Mockito.when(envelopeFactory.fromCreateEnvelope(Matchers.any())).thenReturn(Envelope.emptyEnvelope(id = "myid"))
 
-      val result: Result = await( EnvelopeController.create()(fakeRequest) )
+      val result: Result = await( EnvelopeController.create(envelopeFactory)(fakeRequest) )
 			result.header.status shouldBe Status.CREATED
 	    val location = result.header.headers.get("Location").get
-	    location shouldBe s"$serverUrl${routes.EnvelopeController.show(id).url}"
-
-
+	    location shouldBe s"$serverUrl${routes.EnvelopeController.show("myid").url}"
     }
 
   }
@@ -98,7 +100,7 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 			val request = FakeRequest("DELETE", s"/envelope/$id")
 
 			val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
-			envelopeMgr.setReply(true)
+			envelopeMgr.setReply(Success(true))
 
 			val futureResult = EnvelopeController.delete(id)(request)
 			status(futureResult) shouldBe Status.ACCEPTED
@@ -110,7 +112,7 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 			val request = FakeRequest("DELETE", s"/envelope/$id")
 
 			val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
-			envelopeMgr.setReply(false)
+			envelopeMgr.setReply(Success(false))
 
 			val futureResult = EnvelopeController.delete(id)(request)
 			val result = Await.result(futureResult, defaultTimeout)
@@ -149,14 +151,16 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
         override lazy val host = serverUrl
       }
 
-      val id: String = UUID.randomUUID().toString
       val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
-      envelopeMgr.setReply(id)
+      envelopeMgr.setReply(true)
 
-      val result: Result = await(EnvelopeController.create()(fakeRequest))
+      val envelopeFactory: EnvelopeFactory = mock[EnvelopeFactory]
+      Mockito.when(envelopeFactory.fromCreateEnvelope(Matchers.any())).thenReturn(Envelope.emptyEnvelope(id = "myid"))
+
+      val result: Result = await(EnvelopeController.create(envelopeFactory)(fakeRequest))
       result.header.status shouldBe Status.CREATED
       val location = result.header.headers.get("Location").get
-      location shouldBe s"$serverUrl${routes.EnvelopeController.show(id).url}"
+      location shouldBe s"$serverUrl${routes.EnvelopeController.show("myid").url}"
     }
   }
 
