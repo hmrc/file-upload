@@ -28,7 +28,7 @@ import uk.gov.hmrc.fileupload.controllers.BadRequestException
 import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException, Sealed, ValidationException}
 
 import scala.concurrent.duration._
-import scala.util.{Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by Josiah on 6/3/2016.
@@ -95,16 +95,6 @@ class EnvelopeServiceSpec extends ActorSpec {
       }
     }
 
-    "update an envelope to add a new file" in {
-      within(timeout) {
-        storage.underlyingActor.setReceive((sender) => {
-          case FindById(id) => sender ! Some(Support.envelope)
-          case AddFile(envelopeId, fileId) => sender ! true
-        })
-        envelopService ! UpdateEnvelope(envelopeId = "123", fileId = "456")
-        expectMsg(Success(true))
-      }
-    }
 
     "respond with exception after trying to delete a sealed envelope" in {
       within(timeout) {
@@ -131,14 +121,17 @@ class EnvelopeServiceSpec extends ActorSpec {
       }
     }
 
-
     "update an envelope to add a new file" in {
-      within(timeout){
-        storage.underlyingActor.setReply(true)
+      within(timeout) {
+        storage.underlyingActor.setReceive((sender) => {
+          case FindById(id) => sender ! Some(Support.envelope)
+          case AddFile(envelopeId, fileId) => sender ! true
+        })
         envelopService ! UpdateEnvelope(envelopeId = "123", fileId = "456")
-        expectMsg(true)
+        expectMsg(Success(true))
       }
     }
+
     "add metadata to file when envelope exist" in {
       within(timeout){
         val envelopeId = nextId()
@@ -158,7 +151,6 @@ class EnvelopeServiceSpec extends ActorSpec {
     }
   }
 
-}
 
 	import scala.language.implicitConversions
 	implicit def timeoutToDuration(timeout: Timeout): FiniteDuration = timeout.duration
