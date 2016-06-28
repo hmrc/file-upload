@@ -17,10 +17,10 @@
 package uk.gov.hmrc.fileupload.actors
 
 import akka.actor.{ActorLogging, ActorRef, Props, Actor}
-import uk.gov.hmrc.fileupload.models.Envelope
+import uk.gov.hmrc.fileupload.models.{FileMetadata, Envelope}
 import uk.gov.hmrc.fileupload.repositories.EnvelopeRepository
 
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.{Future, Await, ExecutionContext}
 import scala.util.{Try, Failure, Success}
 
 object Storage{
@@ -28,6 +28,7 @@ object Storage{
 	case class Save(envelope: Envelope)
 	case class Remove(id: String)
 	case class AddFile(envelopeId: String, fileId: String)
+	case class UpdateFile(data: FileMetadata)
 
   def props(envelopeRepository: EnvelopeRepository): Props = Props(classOf[Storage], envelopeRepository)
 
@@ -35,6 +36,7 @@ object Storage{
 
 class Storage(val envelopeRepository: EnvelopeRepository) extends Actor with ActorLogging{
   import Storage._
+	import EnvelopeService._
 
   implicit val ex: ExecutionContext = context.dispatcher
 
@@ -48,16 +50,10 @@ class Storage(val envelopeRepository: EnvelopeRepository) extends Actor with Act
     case Save(envelope) => save(envelope, sender)
     case Remove(id) => remove(id, sender)
     case AddFile(envelopeId, fileId) => addFile(envelopeId, fileId, sender)
+		case UpdateFile(metadata) => addFile(metadata, sender)
+    case GetFileMetaData(id) => getFileMetadata(id, sender)
   }
 
-  def findEnvelopeById(byId: String, sender: ActorRef): Unit = {
-    envelopeRepository
-	    .get(byId)
-	    .onComplete{
-	      case Success(result) => sender ! result
-	      case Failure(t)      => sender ! t
-      }
-  }
 
 	def save(envelope: Envelope, sender: ActorRef): Unit = {
 		envelopeRepository
@@ -70,25 +66,20 @@ class Storage(val envelopeRepository: EnvelopeRepository) extends Actor with Act
 			}
 	}
 
-	def remove(id: String, sender: ActorRef): Unit = {
-		envelopeRepository.delete(id).onComplete{
-			case Success(result) => sender ! result
-			case Failure(e) => sender ! e
-		}
-	}
+	def findEnvelopeById(byId: String, sender: ActorRef) = replyTo(sender, envelopeRepository.get(byId))
 
-	def addFile(envelopeId: String, fileId: String, sender: ActorRef): Unit = {
-		println(s"processing add message from $sender")
-		envelopeRepository.addFile(envelopeId, fileId).onComplete {
-			case Success(result) =>
-				println(s"upload successful replying to  $sender")
-				sender ! result
-			case Failure(e) =>
-				println(s"upload unsuccessful replying to  $sender")
-				sender ! e
-		}
-	}
+	def remove(id: String, sender: ActorRef) = replyTo(sender, envelopeRepository.delete(id))
 
+	def addFile(envelopeId: String, fileId: String, sender: ActorRef) = replyTo(sender, envelopeRepository.addFile(envelopeId, fileId))
+
+	def addFile(metadata: FileMetadata, sender: ActorRef) = replyTo(sender, envelopeRepository.addFile(metadata))
+
+	def getFileMetadata(id: String, sender: ActorRef) = replyTo(sender, envelopeRepository.getFileMetadata(id))
+
+	def replyTo[T](sender: ActorRef, future: Future[T]) = future.onComplete{
+		case Success(result) => sender ! result
+		case Failure(e)      => sender ! e
+	}
 
 	override def postStop(): Unit = {
 	  log.info("Envelope storage is going offline")

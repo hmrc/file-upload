@@ -21,10 +21,10 @@ import java.util.UUID
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
 import play.api.libs.json.{JsObject, JsValue, Json}
-import uk.gov.hmrc.fileupload.actors.EnvelopeService.{CreateEnvelope, DeleteEnvelope, GetEnvelope, UpdateEnvelope}
+import uk.gov.hmrc.fileupload.actors.EnvelopeService._
 import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
 import uk.gov.hmrc.fileupload.controllers.BadRequestException
-import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException}
+import uk.gov.hmrc.fileupload.models.{FileMetadata, Envelope, EnvelopeNotFoundException}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -37,16 +37,11 @@ import scala.util.{Failure, Success}
 object EnvelopeService {
 
   case class GetEnvelope(id: String)
-
   case class CreateEnvelope(json: Option[JsValue])
-
   case class DeleteEnvelope(id: String)
-
-  case class UpdateEnvelope(envelopeId: String, fileId: String)
-
-  case object EnvelopeUpdated
-
-  case object EnvelopeNotFound
+	case class UpdateEnvelope(envelopeId: String, fileId: String)
+	case class UpdateFileMetaData(envelopeId: String, data: FileMetadata)
+	case class GetFileMetaData(id: String)
 
   def props(storage: ActorRef, idGenerator: ActorRef, marshaller: ActorRef, maxTTL: Int): Props =
     Props(classOf[EnvelopeService], storage, idGenerator, marshaller, maxTTL)
@@ -56,7 +51,7 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
 
   import Storage._
   import Marshaller._
-  import uk.gov.hmrc.fileupload.actors.Implicits.FutureUtil
+	import uk.gov.hmrc.fileupload.actors.Implicits.FutureUtil
 
   implicit val ex: ExecutionContext = context.dispatcher
   implicit val timeout = Timeout(2 seconds)
@@ -66,27 +61,30 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
     super.preStart()
   }
 
-
-  def receive = {
-    case GetEnvelope(id) => getEnvelopeFor(id, sender)
-    case CreateEnvelope(data) => createEnvelopeFrom(data, sender)
-    case DeleteEnvelope(id) => storage forward Remove(id)
+	def receive = {
+    case GetEnvelope(id)        => getEnvelopeFor(id, sender)
+    case CreateEnvelope(data)   => createEnvelopeFrom(data, sender)
+    case DeleteEnvelope(id)     => storage forward Remove(id)
     case UpdateEnvelope(envelopeId, fileId) =>
-      println(s"forwarding add file message from $sender to storage")
-      // FIXME we can't just forward this request to the storage
-      // FIXME we have to wait on the storage and then rollback the fileupload
-      // FIXME on failure
-      storage forward AddFile(envelopeId, fileId)
+	    println(s"forwarding add file message from $sender to storage")
+	    // FIXME we can't just forward this request to the storage
+	    // FIXME we have to wait on the storage and then rollback the fileupload
+	    // FIXME on failure
+	    storage forward AddFile(envelopeId, fileId)
+    case UpdateFileMetaData(envelopeId, data) =>
+	    // TODO need to update the envelope as well
+	    storage forward UpdateFile(data)
+			case it @ GetFileMetaData(_) => storage forward it
   }
 
   def getEnvelopeFor(id: String, sender: ActorRef): Unit = {
     (storage ? FindById(id))
-      .breakOnFailure
-      .onComplete {
-        case Success(None) => sender ! new EnvelopeNotFoundException(id)
-        case Success(Some(envelope)) => sender ! envelope
-        case Failure(t) => sender ! t
-      }
+	    .breakOnFailure
+	    .onComplete {
+	      case Success(None)              => sender ! new EnvelopeNotFoundException(id)
+	      case Success(Some(envelope))    => sender ! envelope
+	      case Failure(t)                 => sender ! t
+    }
   }
 
   def createEnvelopeFrom(data: Option[JsValue], sender: ActorRef): Unit = {
@@ -94,26 +92,22 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
     (idGenerator ? NextId)
       .mapTo[String]
       .map(id => {
-        val d = data.getOrElse(Json.toJson( Envelope.emptyEnvelope() ))
+        val d = data.getOrElse( Json.toJson( new Envelope("dummyid") )) // TODO we need a factory method to provide an envelope with default values
         d.asInstanceOf[JsObject] ++ Json.obj("_id" -> id)
       })
-      .flatMap(marshaller ? UnMarshall(_, classOf[Envelope])) // move this to the controller
-      .breakOnFailure
+      .flatMap(marshaller ? UnMarshall(_, classOf[Envelope]))   // move this to the controller
+	    .breakOnFailure
       .mapTo[Envelope]
-      .map(e => {
-        var newMaxItems: Int = 1
-        e.constraints.foreach(c => c.maxItems.foreach(newMaxItems = _))
-        Storage.Save(e.copy(constraints = e.constraints.map(newConstraint => newConstraint.copy(maxItems = Some(newMaxItems)))))
-      })
+      .map(Storage.Save)
       .onComplete {
         case Success(msg) => storage.!(msg)(sender)
-        case Failure(e) =>
+        case Failure(e)   =>
           log.error(s"$e during envelope creation")
           sender ! e
       }
   }
 
-  override def postStop() {
+	override def postStop() {
     log.info("Envelope storage is going offline")
     super.postStop()
   }

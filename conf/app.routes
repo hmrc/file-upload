@@ -3,6 +3,9 @@
 GET        /envelope/:id                                    uk.gov.hmrc.fileupload.controllers.EnvelopeController.show(id: String)
 POST       /envelope                                        uk.gov.hmrc.fileupload.controllers.EnvelopeController.create()
 DELETE     /envelope/:id                                    uk.gov.hmrc.fileupload.controllers.EnvelopeController.delete(id: String)
-PUT        /envelope/:envelopeId/file/:fileId/content       uk.gov.hmrc.fileupload.controllers.FileuploadController.upload(envelopeId: String, fileId: String)
-GET        /file-upload/envelope/:envelopeId/:fileId        uk.gov.hmrc.fileupload.controllers.FileuploadController.get(envelopeId: String, fileId: String)
+PUT        /envelope/:envelopeId/file/:fileId/content       uk.gov.hmrc.fileupload.controllers.FileController.upload(envelopeId: String, fileId: String)
+GET        /file-upload/envelope/:envelopeId/:fileId        uk.gov.hmrc.fileupload.controllers.FileController.get(envelopeId: String, fileId: String)
+PUT        /envelope/:envelopeId/file/:fileId/metadata      uk.gov.hmrc.fileupload.controllers.FileController.metadata(envelopeId: String, fileId: String)
+GET        /envelope/:envelopeId/file/:fileId/metadata      uk.gov.hmrc.fileupload.controllers.FileController.get(envelopeId: String, fileId: String)
+GET        /heart/beat                                      uk.gov.hmrc.fileupload.controllers.Heart.beat
 

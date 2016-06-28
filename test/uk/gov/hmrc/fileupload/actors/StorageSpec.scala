@@ -28,7 +28,7 @@ import org.mockito.Mockito._
 import play.api.libs.json.{JsObject, JsResult, Json}
 import reactivemongo.api.commands.DefaultWriteResult
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.models.{Constraints, DuplicateFileException, Envelope, File}
+import uk.gov.hmrc.fileupload.models._
 import uk.gov.hmrc.fileupload.repositories.EnvelopeRepository
 
 import scala.concurrent.Future
@@ -132,6 +132,25 @@ class StorageSpec extends ActorSpec with MockitoSugar {
 			  when(envelopeRepository.addFile(any(), any())(any())).thenReturn(Future.failed(new DuplicateFileException("")))
 			  storage ! AddFile(envelope._id, fileId = "456" )
 			  expectMsgClass(classOf[DuplicateFileException])
+		  }
+	  }
+	  "respond with a success true after adding file metadata to an envelope" in {
+		  within(500 millis) {
+
+			  when(envelopeRepository.addFile(any())(any())).thenReturn(Future.successful(true))
+			  storage ! UpdateFile(new FileMetadata())
+
+			  expectMsg(true)
+		  }
+	  }
+
+	  "respond with a false after an unsuccessful add of a  file metadata to an envelope" in {
+		  within(500 millis) {
+
+			  when(envelopeRepository.addFile(any())(any())).thenReturn(Future.successful(false))
+			  storage ! UpdateFile(new FileMetadata())
+
+			  expectMsg(false)
 		  }
 	  }
 

@@ -64,3 +64,13 @@ object Envelope {
 	}
 
 }
+
+object FileMetadata{
+	implicit val fileMetaDataReads: Format[FileMetadata] = Json.format[FileMetadata]
+}
+
+case class FileMetadata(_id: String = UUID.randomUUID().toString,
+                        filename: Option[String] = None,
+                        contentType: Option[String] = None,
+                        revision: Option[Int] = None,
+                        metadata: Option[JsObject] = None)

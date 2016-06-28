@@ -16,33 +16,25 @@
 
 package uk.gov.hmrc.fileupload.actors
 
-import java.lang.Math.abs
 import java.util.{NoSuchElementException, UUID}
 
-import akka.actor.{Actor, ActorRef, ActorSystem, Inbox}
-import akka.testkit.{TestActorRef, TestActors}
+import akka.testkit.TestActorRef
 import akka.util.Timeout
-import org.joda.time.DateTime
-import org.junit.Assert
-import org.junit.Assert.assertTrue
-import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.actors.Storage.Save
-import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
-import uk.gov.hmrc.fileupload.controllers.BadRequestException
-import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException, ValidationException}
+import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException, FileMetadata}
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Try}
 
 /**
   * Created by Josiah on 6/3/2016.
   */
 class EnvelopeServiceSpec extends ActorSpec{
 
-  import scala.language.postfixOps
   import EnvelopeService._
+
+  import scala.language.postfixOps
   val MAX_TIME_TO_LIVE = 2
 
 	val storage = TestActorRef[ActorStub]
@@ -125,7 +117,25 @@ class EnvelopeServiceSpec extends ActorSpec{
 				expectMsg(true)
 			}
 		}
+		"add metadata to file when envelope exist" in {
+			within(timeout){
+				val envelopeId = nextId()
+				val data = FileMetadata(_id = nextId())
+				storage.underlyingActor.setReply(true)
+				envelopService ! UpdateFileMetaData(envelopeId, data)
+				expectMsg(true)
+			}
+		}
+		"return a file metadata for the requested id" in {
+			within(timeout){
+				val fileMetadata = FileMetadata(_id = nextId())
+				storage.underlyingActor.setReply(Some(fileMetadata))
+				envelopService ! GetFileMetaData(fileMetadata._id)
+				expectMsg(Some(fileMetadata))
+			}
+		}
 	}
+
 
 	import scala.language.implicitConversions
 	implicit def timeoutToDuration(timeout: Timeout): FiniteDuration = timeout.duration
