@@ -1,13 +1,31 @@
+/*
+ * Copyright 2016 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package uk.gov.hmrc.fileupload.controllers
 
+import java.util.UUID
 
-import org.specs2.execute.PendingUntilFixed.PendingUntilFixed
-import play.api.test.PlaySpecification
+import play.api.libs.json.Json
 import play.api.libs.ws._
-import play.api.test._
+import play.api.test.PlaySpecification
+import uk.gov.hmrc.fileupload.models.FileMetadata
 
+class FileUploadIntegrationSpec extends PlaySpecification with Server{
 
-class FileUploadIntegrationSpec extends PlaySpecification {
+	val nextId = () => UUID.randomUUID().toString
 
   val poem =     """
                    |Do strangers make you human
@@ -23,22 +41,53 @@ class FileUploadIntegrationSpec extends PlaySpecification {
                  """.stripMargin
 
   val data = poem.getBytes
-  val support = new FileUploadSupport
-/*
-  "Application" should {
-    "be able to process an upload request" in  {
 
-      val response: WSResponse = await(
-        support
-          .withEnvelope
-          .flatMap(_.doUpload(data, filename = "poem.txt"))
-      )
-      val filename = await(support.refresh.map(_.mayBeEnvelope.get.files.head.head))
+  "Application" should{
+    "be able to process an upload request" in  {
+			val id = nextId()
+      val response = support.withEnvelope.doUpload(data, fileId = id)
+	    val Some(Seq(file, _*)) = support.refresh.envelope.files
 
       response.status mustEqual OK
-      filename mustEqual "poem.txt"
-      // TODO check file contents are the same
+      file.id mustEqual id
+	    // storedPoem mustEqual poem
     }
+	  "be able to create file metadata" in {
+		  val id = nextId()
+
+		  val json =
+			  s"""
+				   |{
+				   |   "_id":"$id",
+				   |   "filename":"test.pdf",
+				   |   "contentType":"application/pdf",
+				   |   "revision":1,
+				   |   "metadata":{
+				   |      "id":"1234567890",
+				   |      "origin":{
+				   |         "nino":"AB123456Z",
+				   |         "token":"48729348729348732894",
+				   |         "session":"cd30f8ec-d866-4ae0-82a0-1bc720f1cb09",
+				   |         "agent":"292929292",
+				   |         "trustedHelper":"8984293480239480",
+				   |         "ipAddress":"1.2.3.4"
+				   |      },
+				   |      "sender":{
+				   |         "service":"some-service-identifier/v1.2.33"
+				   |      }
+				   |   }
+				   |}
+		 """.stripMargin
+
+		  val response = support.withEnvelope.putFileMetadata(json, id)
+		  val expectedMetadata = Json.fromJson[FileMetadata](Json.parse(json)).get
+		  val actualMetadata = support.withEnvelope.getFileMetadataFor(id)
+
+		  response.status mustEqual OK
+		  expectedMetadata mustEqual actualMetadata
+	  }
   }
-*/
+
+
+
 }

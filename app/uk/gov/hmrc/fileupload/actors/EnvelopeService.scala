@@ -23,7 +23,7 @@ import akka.util.Timeout
 import play.api.libs.json.{JsObject, JsValue, Json}
 import uk.gov.hmrc.fileupload.actors.EnvelopeService._
 import uk.gov.hmrc.fileupload.controllers.BadRequestException
-import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException}
+import uk.gov.hmrc.fileupload.models.{FileMetadata, Envelope, EnvelopeNotFoundException}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -40,12 +40,9 @@ object EnvelopeService {
   case class NewEnvelope(envelope: Envelope)
 
   case class DeleteEnvelope(id: String)
-
-  case class UpdateEnvelope(envelopeId: String, fileId: String)
-
-  case object EnvelopeUpdated
-
-  case object EnvelopeNotFound
+	case class UpdateEnvelope(envelopeId: String, fileId: String)
+	case class UpdateFileMetaData(envelopeId: String, data: FileMetadata)
+	case class GetFileMetaData(id: String)
 
   def props(storage: ActorRef, marshaller: ActorRef, maxTTL: Int): Props =
     Props(classOf[EnvelopeService], storage, marshaller, maxTTL)
@@ -55,7 +52,7 @@ class EnvelopeService(storage: ActorRef, marshaller: ActorRef, maxTTL: Int) exte
 
   import Storage._
   import Marshaller._
-  import uk.gov.hmrc.fileupload.actors.Implicits.FutureUtil
+	import uk.gov.hmrc.fileupload.actors.Implicits.FutureUtil
 
   implicit val ex: ExecutionContext = context.dispatcher
   implicit val timeout = Timeout(2 seconds)
@@ -70,16 +67,20 @@ class EnvelopeService(storage: ActorRef, marshaller: ActorRef, maxTTL: Int) exte
     case NewEnvelope(envelope: Envelope) => createEnvelopeFrom(envelope, sender)
     case DeleteEnvelope(id) => deleteEnvelope(id, sender)
     case UpdateEnvelope(envelopeId, fileId) => updateEnvelope(envelopeId, fileId, sender)
+    case UpdateFileMetaData(envelopeId, data) =>
+      // TODO need to update the envelope as well
+      storage forward UpdateFile(data)
+    case it @ GetFileMetaData(_) => storage forward it
   }
 
   def getEnvelopeFor(id: String, sender: ActorRef): Unit = {
     (storage ? FindById(id))
-      .breakOnFailure
-      .onComplete {
-        case Success(None) => sender ! new EnvelopeNotFoundException(id)
-        case Success(Some(envelope)) => sender ! envelope
-        case Failure(t) => sender ! t
-      }
+	    .breakOnFailure
+	    .onComplete {
+	      case Success(None)              => sender ! new EnvelopeNotFoundException(id)
+	      case Success(Some(envelope))    => sender ! envelope
+	      case Failure(t)                 => sender ! t
+    }
   }
 
   def createEnvelopeFrom(envelope: Envelope, sender: ActorRef): Unit = {
@@ -127,7 +128,7 @@ class EnvelopeService(storage: ActorRef, marshaller: ActorRef, maxTTL: Int) exte
     }
   }
 
-  override def postStop() {
+	override def postStop() {
     log.info("Envelope storage is going offline")
     super.postStop()
   }
