@@ -34,7 +34,7 @@ object StatusWrites extends Writes[Status] {
 }
 
 object StatusReads extends Reads[Status] {
-  def reads(value: JsValue) = Json.stringify(value) match {
+  def reads(value: JsValue) = value.as[String] match {
     case "SEALED" => JsSuccess( Sealed )
     case "OPEN" => JsSuccess( Open )
   }

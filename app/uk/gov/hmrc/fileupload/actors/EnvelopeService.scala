@@ -85,7 +85,7 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
 
   def createEnvelopeFrom(envelope: Envelope, sender: ActorRef): Unit = {
     log.info(s"processing CreateEnvelope")
-    storage ask Save(envelope)
+    storage forward Save(envelope)
   }
 
   def deleteEnvelope(id: String, sender: ActorRef): Unit = {

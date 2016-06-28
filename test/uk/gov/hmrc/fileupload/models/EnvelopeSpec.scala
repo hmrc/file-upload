@@ -60,7 +60,9 @@ class EnvelopeSpec extends UnitSpec {
           |  "expiryDate": "$formattedExpiryDate",
           |  "metadata": {
           |    "anything": "the caller wants to add to the envelope"
-          |  }
+          |  },
+          |  "status": "OPEN"
+          |
           |}
         """.stripMargin)
 

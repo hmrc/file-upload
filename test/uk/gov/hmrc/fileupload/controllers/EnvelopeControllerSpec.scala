@@ -20,7 +20,7 @@ package uk.gov.hmrc.fileupload.controllers
 import java.util.{NoSuchElementException, UUID}
 
 import play.api.http.Status
-import play.api.libs.json.Json
+import play.api.libs.json.{JsString, Json}
 import play.api.mvc.{AnyContentAsJson, Result}
 import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.fileupload.Support
@@ -145,7 +145,7 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication {
 
       val serverUrl = "http://production.com:8000"
 
-      val fakeRequest = new FakeRequest[AnyContentAsJson]("POST", "/envelope", FakeHeaders(), body = null) {
+      val fakeRequest = new FakeRequest[AnyContentAsJson]("POST", "/envelope", FakeHeaders(), body = AnyContentAsJson(JsString(""))) {
         override lazy val host = serverUrl
       }
 
