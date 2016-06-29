@@ -18,11 +18,11 @@ package uk.gov.hmrc.fileupload.controllers
 
 
 import akka.util.Timeout
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json._
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.actors.{Actors, EnvelopeService, Marshaller}
+import uk.gov.hmrc.fileupload.actors.{Actors, EnvelopeSealedException, EnvelopeService, Marshaller}
 import uk.gov.hmrc.fileupload.actors.Implicits.FutureUtil
-import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException}
+import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeFactory, EnvelopeNotFoundException}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import akka.pattern._
 
@@ -33,6 +33,8 @@ import Envelope._
 import Marshaller._
 import EnvelopeService._
 
+import scala.util.Success
+
 
 object EnvelopeController extends BaseController {
 
@@ -41,50 +43,56 @@ object EnvelopeController extends BaseController {
   implicit val defaultTimeout = Timeout(2 seconds)
 
   val envelopeService = Actors.envelopeService
-	val marshaller = Actors.marshaller
+  val marshaller = Actors.marshaller
 
-  def create() = Action.async { implicit request =>
+  def create(envelopeFactory: EnvelopeFactory = new EnvelopeFactory()) = Action.async { implicit request =>
 
-    def fromRequestBody = () => Future(if(request.body != null) request.body.asJson else None )
-	  def createEnvelope = (json: Option[JsValue]) => envelopeService ? CreateEnvelope(json)
-	  def envelopeLocation = (id: String) => LOCATION -> s"${request.host}${routes.EnvelopeController.show(id)}"
-	  def onEnvelopeCreated : (Any) => Result = { case id: String => Created.withHeaders(envelopeLocation(id)) }
+    def envelopeLocation = (id: String) => LOCATION -> s"${request.host}${routes.EnvelopeController.show(id)}"
 
-	  fromRequestBody()
-		  .flatMap(createEnvelope)
+    import Formatters._
+
+    val envelope: Envelope = request.body.asJson.map(Json.fromJson[CreateEnvelope](_)) match {
+      case Some(result) => envelopeFactory.fromCreateEnvelope(result.get)
+      case None => envelopeFactory.emptyEnvelope()
+    }
+
+    (envelopeService ? NewEnvelope(envelope))
       .breakOnFailure
-		  .map(onEnvelopeCreated)
-		 .recover{ case e => ExceptionHandler(e) }
+      .map { case true => Created.withHeaders(envelopeLocation(envelope._id)) }
+      .recover { case e => ExceptionHandler(e) }
   }
 
-  def show(id: String) = Action.async{
+  def show(id: String) = Action.async {
 
-	  def findEnvelopeFor = (id: String) =>  (envelopeService ? GetEnvelope(id))
-			.breakOnFailure
-			.mapTo[Envelope]
+    def findEnvelopeFor = (id: String) => (envelopeService ? GetEnvelope(id))
+      .breakOnFailure
+      .mapTo[Envelope]
 
-	  def toJson = (e: Envelope) => marshaller ? e
-	  def onEnvelopeFound : (Any) => Result = {case json: JsValue => Ok(json) }
+    def toJson = (e: Envelope) => marshaller ? e
+    def onEnvelopeFound: (Any) => Result = {
+      case json: JsValue => Ok(json)
+    }
 
     findEnvelopeFor(id)
-	    .flatMap(toJson)
+      .flatMap(toJson)
       .breakOnFailure
-	    .map(onEnvelopeFound)
-      .recover{ case e => ExceptionHandler(e)  }
+      .map(onEnvelopeFound)
+      .recover { case e => ExceptionHandler(e) }
   }
 
-	def delete(id: String) = Action.async {
+  def delete(id: String) = Action.async {
 
-		def deleteEnvelope = (id: String) => envelopeService ? DeleteEnvelope(id)
-		def onEnvelopeDeleted: (Any) => Result = {
-			case true => Accepted
-			case false => throw new EnvelopeNotFoundException(id)
-		}
+    def deleteEnvelope = (id: String) => envelopeService ? DeleteEnvelope(id)
+    def onEnvelopeDeleted: (Any) => Result = {
+      case Success(true) => Accepted
+      case Success(false) => throw new EnvelopeNotFoundException(id)
+      case e: EnvelopeSealedException => throw e
+    }
 
-		deleteEnvelope(id)
-		  .map(onEnvelopeDeleted)
-		  .recover { case e =>  ExceptionHandler(e) }
-	}
+    deleteEnvelope(id)
+      .map(onEnvelopeDeleted)
+      .recover { case e => ExceptionHandler(e) }
+  }
 
 
 }

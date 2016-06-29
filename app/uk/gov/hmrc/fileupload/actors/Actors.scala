@@ -32,8 +32,6 @@ trait Actors{
 
 	def storage: ActorRef
 
-	def idGenerator: ActorRef
-
 	def marshaller: ActorRef
 
 	def fileUploader(envelopeId: String, fileId: String): ActorRef
@@ -48,11 +46,9 @@ object FileUploadActors extends Actors{
 
 	override lazy val storage: ActorRef = actorSystem.actorOf(Storage.props(envelopeRepository), "storage")
 
-	override lazy val idGenerator: ActorRef = actorSystem.actorOf(IdGenerator.props, "id-generator")
-
 	override lazy val marshaller: ActorRef = actorSystem.actorOf(Marshaller.props, "marshaller")
 
-	override lazy val envelopeService: ActorRef = actorSystem.actorOf(EnvelopeService.props(storage, idGenerator, marshaller, Actors.maxTTL), "envelope-service")
+	override lazy val envelopeService: ActorRef = actorSystem.actorOf(EnvelopeService.props(storage, marshaller, Actors.maxTTL), "envelope-service")
 
 	override def fileUploader(envelopeId: String, fileId: String): ActorRef = actorSystem.actorOf(FileUploader.props(envelopeId, fileId, FileUploadActors.envelopeRepository))
 }
@@ -72,12 +68,6 @@ object FileUploadTestActors extends Actors{
 	override val storage: ActorRef = {
 		val actor = TestActorRef[ActorStub]
 		actor.underlyingActor.name = Some("storage")
-		actor
-	}
-
-	override val idGenerator: ActorRef = {
-		val actor = TestActorRef[ActorStub]
-		actor.underlyingActor.name = Some("idGenerator")
 		actor
 	}
 
@@ -107,8 +97,6 @@ object Actors extends Actors{
 	override val envelopeService: ActorRef = if(mode == Mode.Test) FileUploadTestActors.envelopeService else FileUploadActors.envelopeService
 
 	override val storage: ActorRef = if(mode == Mode.Test) FileUploadTestActors.storage else FileUploadActors.storage
-
-	override val idGenerator: ActorRef = if(mode == Mode.Test) FileUploadTestActors.idGenerator else FileUploadActors.idGenerator
 
 	override val marshaller: ActorRef = if(mode == Mode.Test) FileUploadTestActors.marshaller else FileUploadActors.marshaller
 

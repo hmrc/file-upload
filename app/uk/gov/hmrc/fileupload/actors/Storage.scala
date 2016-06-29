@@ -59,9 +59,12 @@ class Storage(val envelopeRepository: EnvelopeRepository) extends Actor with Act
 		envelopeRepository
 			.add(envelope)
 			.onComplete {
-				case Success(result) => sender ! envelope._id
+				case Success(result) => {
+					sender ! result
+					log.info("envelope saved")
+				}
 				case Failure(e) =>
-					println(s"storage is down ${e.getMessage}")
+          log.error(s"storage is down ${e.getMessage}", e)
 					sender ! e
 			}
 	}
