@@ -19,8 +19,11 @@ package uk.gov.hmrc.fileupload.controllers
 import org.joda.time.DateTime
 import play.api.libs.json.{Format, JsValue, Json}
 
-case class CreateEnvelope(constraints: Option[CreateConstraints] = None, callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None, metadata: Option[Map[String, JsValue]] = None) {
-
-}
+case class CreateEnvelope(constraints: Option[CreateConstraints] = None, callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None, metadata: Option[Map[String, JsValue]] = None)
 
 case class CreateConstraints(contentTypes: Option[Seq[String]] = None, maxItems: Option[Int] = None, maxSize: Option[String] = None, maxSizePerItem: Option[String] = None )
+
+object Formatters {
+  implicit val createConstraintsReads: Format[CreateConstraints] = Json.format[CreateConstraints]
+  implicit val createEnvelopeReads: Format[CreateEnvelope] = Json.format[CreateEnvelope]
+}
