@@ -20,7 +20,7 @@ import java.util.UUID
 
 import org.joda.time.DateTime
 import play.api.libs.json._
-import uk.gov.hmrc.fileupload.controllers.{CreateConstraints, CreateEnvelopeDto}
+import uk.gov.hmrc.fileupload.controllers.{CreateConstraints, CreateEnvelope}
 
 sealed trait Status
 case object Open extends Status
@@ -97,7 +97,7 @@ object Envelope {
     new Constraints(maxItems = Some(1))
   }
 
-  def fromCreateEnvelope(dto: CreateEnvelopeDto) = {
+  def fromCreateEnvelope(dto: CreateEnvelope) = {
     emptyEnvelope().copy(constraints = dto.constraints.map(fromCreateConstraints), callbackUrl = dto.callbackUrl, expiryDate = dto.expiryDate, metadata = dto.metadata, files = None)
   }
 

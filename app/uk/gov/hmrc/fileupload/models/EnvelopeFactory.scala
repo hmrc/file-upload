@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.models
 
 import java.util.UUID
 
-import uk.gov.hmrc.fileupload.controllers.CreateEnvelopeDto
+import uk.gov.hmrc.fileupload.controllers.CreateEnvelope
 
 class EnvelopeFactory {
 
@@ -26,7 +26,7 @@ class EnvelopeFactory {
     Envelope.emptyEnvelope()
   }
 
-  def fromCreateEnvelope(dto: CreateEnvelopeDto) = {
+  def fromCreateEnvelope(dto: CreateEnvelope) = {
     Envelope.fromCreateEnvelope(dto)
   }
 

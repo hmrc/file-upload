@@ -50,9 +50,9 @@ object EnvelopeController extends BaseController {
     def envelopeLocation = (id: String) => LOCATION -> s"${request.host}${routes.EnvelopeController.show(id)}"
 
     implicit val createConstraintsReads: Format[CreateConstraints] = Json.format[CreateConstraints]
-    implicit val createEnvelopeReads: Format[CreateEnvelopeDto] = Json.format[CreateEnvelopeDto]
+    implicit val createEnvelopeReads: Format[CreateEnvelope] = Json.format[CreateEnvelope]
 
-    val envelope: Envelope = request.body.asJson.map(Json.fromJson[CreateEnvelopeDto](_)) match {
+    val envelope: Envelope = request.body.asJson.map(Json.fromJson[CreateEnvelope](_)) match {
       case Some(result) => envelopeFactory.fromCreateEnvelope(result.get)
       case None => envelopeFactory.emptyEnvelope()
     }

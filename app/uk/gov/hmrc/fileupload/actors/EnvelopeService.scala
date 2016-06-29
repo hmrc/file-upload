@@ -93,10 +93,9 @@ class EnvelopeService(storage: ActorRef, marshaller: ActorRef, maxTTL: Int) exte
       case Some(envelope: Envelope) if envelope.isSealed() =>
         log.info(s"envelope ${envelope._id} is sealed. Cannot delete")
         sender ! new EnvelopeSealedException(envelope)
-      case Some(envelope: Envelope) if !envelope.isSealed() =>
+      case Some(envelope: Envelope) =>
         log.info(s"deleting envelope ${envelope._id}")
         storage ask Remove(id) onComplete {
-          // TODO response?
           case response =>
             log.info(s"sending response $response")
             sender ! response

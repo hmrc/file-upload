@@ -29,7 +29,7 @@ import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.fileupload.actors.EnvelopeService
 import uk.gov.hmrc.fileupload.actors.EnvelopeService.NewEnvelope
 import uk.gov.hmrc.fileupload.actors.Storage.Save
-import uk.gov.hmrc.fileupload.controllers.{CreateConstraints, CreateEnvelopeDto}
+import uk.gov.hmrc.fileupload.controllers.{CreateConstraints, CreateEnvelope}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.util.Try
@@ -108,7 +108,7 @@ class EnvelopeSpec extends UnitSpec {
 
   "an envelope" should {
     "have maxItems constrain defaulted to 1 when not specified" in {
-      val dto: CreateEnvelopeDto = CreateEnvelopeDto(constraints = Some(CreateConstraints(maxItems = None)))
+      val dto: CreateEnvelope = CreateEnvelope(constraints = Some(CreateConstraints(maxItems = None)))
 
       val envelope: Envelope = Envelope.fromCreateEnvelope(dto)
 
@@ -118,7 +118,7 @@ class EnvelopeSpec extends UnitSpec {
 
   "an envelope" should {
     "have maxItems constrain NOT defaulted to 1 when specified" in {
-      val dto: CreateEnvelopeDto = CreateEnvelopeDto(constraints = Some(CreateConstraints(maxItems = Some(2))))
+      val dto: CreateEnvelope = CreateEnvelope(constraints = Some(CreateConstraints(maxItems = Some(2))))
 
       val envelope: Envelope = Envelope.fromCreateEnvelope(dto)
 
