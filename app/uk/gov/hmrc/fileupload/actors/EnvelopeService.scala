@@ -36,17 +36,11 @@ import scala.util.{Failure, Success}
 object EnvelopeService {
 
   case class GetEnvelope(id: String)
-
   case class NewEnvelope(envelope: Envelope)
-
   case class DeleteEnvelope(id: String)
-
   case class SealEnvelope(id: String)
-
   case class UpdateEnvelope(envelopeId: String, fileId: String)
-
   case class UpdateFileMetaData(envelopeId: String, data: FileMetadata)
-
   case class GetFileMetaData(id: String)
 
   def props(storage: ActorRef, marshaller: ActorRef, maxTTL: Int): Props =
