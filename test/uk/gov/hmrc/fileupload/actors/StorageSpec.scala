@@ -66,7 +66,7 @@ class StorageSpec extends ActorSpec with MockitoSugar {
 
 	  "respond with true when it receives a create envelope message" in {
 		  within(500 millis) {
-			  when(envelopeRepository.add(any())(any())).thenReturn(Future.successful(true))
+			  when(envelopeRepository.update(any())(any())).thenReturn(Future.successful(true))
 
 			  storage ! Save(Support.envelope)
 
