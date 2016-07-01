@@ -20,7 +20,7 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, DefaultTimeout, TestKit}
-import com.typesafe.config.{ConfigFactory, Config}
+import com.typesafe.config.ConfigFactory
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 /**

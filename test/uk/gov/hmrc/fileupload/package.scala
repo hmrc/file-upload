@@ -18,20 +18,16 @@ package uk.gov.hmrc
 
 import java.util.UUID
 
-import _root_.play.api.libs.iteratee.{Enumeratee, Enumerator, Iteratee}
+import _root_.play.api.libs.iteratee.{Enumerator, Iteratee}
 import _root_.play.api.libs.json.{JsString, JsValue, Json}
-import akka.actor.{Actor, ActorRef, ActorSystem}
-import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
+import akka.actor.{Actor, ActorRef}
+import akka.testkit.TestActorRef
 import org.joda.time.DateTime
-import org.openqa.selenium.By.ById
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import reactivemongo.api.DBMetaCommands
-import reactivemongo.api.collections.bson.BSONCollectionProducer
-import reactivemongo.api.collections.{GenericCollection, GenericCollectionProducer}
-import reactivemongo.api.commands.{DefaultWriteResult, WriteResult}
+import reactivemongo.api.commands.DefaultWriteResult
 import reactivemongo.api.gridfs.{GridFS, ReadFile}
 import reactivemongo.json.JSONSerializationPack
-import uk.gov.hmrc.fileupload.models.{Constraints, Open, Status}
+import uk.gov.hmrc.fileupload.models.{Constraints, Open}
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -75,12 +71,10 @@ package object fileupload {
 	  def envelope = new Envelope(_id = UUID.randomUUID().toString, constraints = Some(constraints), callbackUrl = Some("http://absolute.callback.url"),
 			expiryDate = Some(DateTime.now().plusDays(1)), metadata = Some(Map("anything" -> JsString("the caller wants to add to the envelope"))), status = Open)
 
-
 	  val envelopeBody = Json.toJson[Envelope](envelope)
 
 	  def expiredEnvelope = envelope.copy(expiryDate = Some(DateTime.now().minusMinutes(3)))
 	  def farInTheFutureEnvelope = envelope.copy(expiryDate = Some(DateTime.now().plusDays(3)))
-
 
 	  object Implicits{
 		  implicit def underLyingActor[T <: Actor](actorRef: ActorRef): T = actorRef.asInstanceOf[TestActorRef[T]].underlyingActor
@@ -99,7 +93,6 @@ package object fileupload {
 	  }
 
 	  class EnvelopRepositoryStub(var  data: Map[String, Envelope] = Map(), val iteratee: Iteratee[ByteStream, Future[JSONReadFile]]) extends EnvelopeRepository(() => new DBStub){
-		  import EnvelopRepositoryStub._
 
 		  override def add(envelope: Envelope)(implicit ex: ExecutionContext): Future[Boolean] = {
 			  data = data ++ Map(envelope._id -> envelope)
@@ -110,8 +103,5 @@ package object fileupload {
 
 		  override def iterateeForUpload(file: String)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = iteratee
 	  }
-
-
-
   }
 }

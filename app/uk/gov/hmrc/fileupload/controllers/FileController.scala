@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import akka.actor.ActorRef
 import akka.util.Timeout
 import play.api.libs.json.Json
 import play.api.mvc._
@@ -26,10 +25,8 @@ import uk.gov.hmrc.fileupload.models.FileMetadata
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import akka.pattern._
 import uk.gov.hmrc.fileupload.actors.Implicits.FutureUtil
-import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.concurrent.duration._
-
 
 object FileController extends BaseController{
 

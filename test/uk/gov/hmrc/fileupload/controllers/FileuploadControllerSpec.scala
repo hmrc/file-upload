@@ -20,22 +20,11 @@ import akka.testkit.TestActorRef
 import play.api.http.Status
 import play.api.mvc._
 import play.api.test.{FakeHeaders, FakeRequest}
-import uk.gov.hmrc.fileupload.Support._
 import uk.gov.hmrc.fileupload.actors.{Actors, ActorStub}
 import uk.gov.hmrc.fileupload.models.EnvelopeNotFoundException
 import uk.gov.hmrc.play.test.{WithFakeApplication, UnitSpec}
-import scala.concurrent.Future
-
-import reactivemongo.json.collection._
-import play.api.libs.json.{JsString, JsValue, Json}
-import play.modules.reactivemongo.GridFSController.readFileReads
-import reactivemongo.api.ReadPreference
-import reactivemongo.api.commands.WriteResult
-import reactivemongo.json.ImplicitBSONHandlers._
-
 
 class FileuploadControllerSpec extends UnitSpec with WithFakeApplication  {
-
 
 	"once a file is uploaded the controller" should {
 		"ask the envelope service to add the file in the envelope" in {
@@ -61,7 +50,6 @@ class FileuploadControllerSpec extends UnitSpec with WithFakeApplication  {
 
 			val result: Result = await( controller.upload(envelopeId = "123", fileId = "456")(fakeRequest) )
 			result.header.status shouldBe Status.NOT_FOUND
-
 		}
 	}
 }

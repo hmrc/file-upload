@@ -89,17 +89,17 @@ object Envelope {
     envelope.copy(expiryDate = expiryDate)
   }
 
-  def emptyEnvelope(id : String = UUID.randomUUID().toString): Envelope = {
+  def from(createEnvelope: Option[CreateEnvelope]): Envelope =
+    createEnvelope.map(fromCreateEnvelope).getOrElse(emptyEnvelope())
+
+  def emptyEnvelope(id : String = UUID.randomUUID().toString): Envelope =
     new Envelope(id, constraints = Some(emptyConstraints()))
-  }
 
-  def emptyConstraints() = {
+  def emptyConstraints() =
     new Constraints(maxItems = Some(1))
-  }
 
-  def fromCreateEnvelope(dto: CreateEnvelope) = {
+  def fromCreateEnvelope(dto: CreateEnvelope) =
     emptyEnvelope().copy(constraints = dto.constraints.map(fromCreateConstraints), callbackUrl = dto.callbackUrl, expiryDate = dto.expiryDate, metadata = dto.metadata, files = None)
-  }
 
   private def fromCreateConstraints(dto: CreateConstraints): Constraints = {
     val maxItems: Int = dto.maxItems.getOrElse[Int]( MAX_ITEMS_DEFAULT )

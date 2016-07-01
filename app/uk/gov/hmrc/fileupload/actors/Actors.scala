@@ -21,10 +21,7 @@ import akka.testkit.TestActorRef
 import play.api.Mode
 import uk.gov.hmrc.fileupload.repositories.{DefaultMongoConnection, EnvelopeRepository}
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Success
-
-trait Actors{
+trait Actors {
 
 	def actorSystem: ActorSystem
 
@@ -32,13 +29,10 @@ trait Actors{
 
 	def storage: ActorRef
 
-	def marshaller: ActorRef
-
 	def fileUploader(envelopeId: String, fileId: String): ActorRef
-
 }
 
-object FileUploadActors extends Actors{
+object FileUploadActors extends Actors {
 
 	val envelopeRepository = EnvelopeRepository(DefaultMongoConnection.db)
 
@@ -46,14 +40,12 @@ object FileUploadActors extends Actors{
 
 	override lazy val storage: ActorRef = actorSystem.actorOf(Storage.props(envelopeRepository), "storage")
 
-	override lazy val marshaller: ActorRef = actorSystem.actorOf(Marshaller.props, "marshaller")
-
-	override lazy val envelopeService: ActorRef = actorSystem.actorOf(EnvelopeService.props(storage, marshaller, Actors.maxTTL), "envelope-service")
+	override lazy val envelopeService: ActorRef = actorSystem.actorOf(EnvelopeService.props(storage, Actors.maxTTL), "envelope-service")
 
 	override def fileUploader(envelopeId: String, fileId: String): ActorRef = actorSystem.actorOf(FileUploader.props(envelopeId, fileId, FileUploadActors.envelopeRepository))
 }
 
-object FileUploadTestActors extends Actors{
+object FileUploadTestActors extends Actors {
 
 	import scala.language.implicitConversions
 
@@ -68,12 +60,6 @@ object FileUploadTestActors extends Actors{
 	override val storage: ActorRef = {
 		val actor = TestActorRef[ActorStub]
 		actor.underlyingActor.name = Some("storage")
-		actor
-	}
-
-	override val marshaller: ActorRef = {
-		val actor = TestActorRef[ActorStub]
-		actor.underlyingActor.name = Some("marshaller")
 		actor
 	}
 
@@ -97,8 +83,6 @@ object Actors extends Actors{
 	override val envelopeService: ActorRef = if(mode == Mode.Test) FileUploadTestActors.envelopeService else FileUploadActors.envelopeService
 
 	override val storage: ActorRef = if(mode == Mode.Test) FileUploadTestActors.storage else FileUploadActors.storage
-
-	override val marshaller: ActorRef = if(mode == Mode.Test) FileUploadTestActors.marshaller else FileUploadActors.marshaller
 
 	override def fileUploader(envelopeId: String, fileId: String): ActorRef =
 		if(mode == Mode.Test) FileUploadTestActors.fileUploader else FileUploadActors.fileUploader(envelopeId, fileId)

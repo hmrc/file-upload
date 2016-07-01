@@ -16,11 +16,8 @@
 
 package uk.gov.hmrc.fileupload.actors
 
-import java.util.UUID
-
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
-import play.api.libs.json.{JsObject, JsValue, Json}
 import uk.gov.hmrc.fileupload.actors.EnvelopeService._
 import uk.gov.hmrc.fileupload.controllers.BadRequestException
 import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException, FileMetadata, Sealed}
@@ -28,7 +25,6 @@ import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException, FileM
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import akka.pattern._
-import uk.gov.hmrc.fileupload.actors.Marshaller.UnMarshall
 
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
@@ -43,15 +39,14 @@ object EnvelopeService {
   case class UpdateFileMetaData(envelopeId: String, data: FileMetadata)
   case class GetFileMetaData(id: String)
 
-  def props(storage: ActorRef, marshaller: ActorRef, maxTTL: Int): Props =
-    Props(classOf[EnvelopeService], storage, marshaller, maxTTL)
+  def props(storage: ActorRef, maxTTL: Int): Props =
+    Props(classOf[EnvelopeService], storage, maxTTL)
 }
 
-class EnvelopeService(storage: ActorRef, marshaller: ActorRef, maxTTL: Int) extends Actor with ActorLogging {
+class EnvelopeService(storage: ActorRef, maxTTL: Int) extends Actor with ActorLogging {
 
   import Storage._
-  import Marshaller._
-  import uk.gov.hmrc.fileupload.actors.Implicits.FutureUtil
+	import uk.gov.hmrc.fileupload.actors.Implicits.FutureUtil
 
   implicit val ex: ExecutionContext = context.dispatcher
   implicit val timeout = Timeout(2 seconds)
@@ -70,7 +65,7 @@ class EnvelopeService(storage: ActorRef, marshaller: ActorRef, maxTTL: Int) exte
     case UpdateFileMetaData(envelopeId, data) =>
       // TODO need to update the envelope as well
       storage forward UpdateFile(data)
-    case it@GetFileMetaData(_) => storage forward it
+    case it @ GetFileMetaData(_) => storage forward it
   }
 
   def getEnvelopeFor(id: String, sender: ActorRef): Unit = {

@@ -38,8 +38,7 @@ class EnvelopeServiceSpec extends ActorSpec {
   val MAX_TIME_TO_LIVE = 2
 
   val storage = TestActorRef[ActorStub]
-  val marshaller = TestActorRef[ActorStub]
-  val envelopService = system.actorOf(EnvelopeService.props(storage, marshaller, MAX_TIME_TO_LIVE))
+  val envelopService = system.actorOf(EnvelopeService.props(storage, MAX_TIME_TO_LIVE))
   implicit val ec = system.dispatcher
 
 

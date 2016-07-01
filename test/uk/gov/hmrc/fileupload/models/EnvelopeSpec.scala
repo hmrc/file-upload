@@ -19,27 +19,20 @@ package uk.gov.hmrc.fileupload.models
 import java.lang.Math._
 import java.util.UUID
 
-import akka.actor.{ActorRef, Inbox}
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import org.junit.Assert
 import org.junit.Assert.assertTrue
 import play.api.libs.json.{JsString, Json}
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.actors.EnvelopeService
-import uk.gov.hmrc.fileupload.actors.EnvelopeService.NewEnvelope
-import uk.gov.hmrc.fileupload.actors.Storage.Save
 import uk.gov.hmrc.fileupload.controllers.{CreateConstraints, CreateEnvelope}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.util.Try
 
-
 class EnvelopeSpec extends UnitSpec {
 
   val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
   val today = new DateTime().plusMinutes(10)
-
 
   "a json value" should {
     "be parsed to an envelope object" in {

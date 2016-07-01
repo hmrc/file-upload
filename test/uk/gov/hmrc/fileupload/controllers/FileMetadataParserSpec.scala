@@ -21,7 +21,6 @@ import java.util.UUID
 import play.api.http.Status
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.Json
-import play.api.mvc.Result
 import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.fileupload.ByteStream
 import uk.gov.hmrc.fileupload.models.FileMetadata
@@ -70,6 +69,7 @@ class FileMetadataParserSpec extends UnitSpec {
 
 			parsedFileMatadata shouldBe fileMetadata
 		}
+
 		"return a result with status 400 when give bad json data" in {
 			val consumer = Enumerator[ByteStream]("{}".getBytes)
 			val request = FakeRequest[String]("POST", "/envelope",  FakeHeaders(), body =  "")
@@ -77,8 +77,6 @@ class FileMetadataParserSpec extends UnitSpec {
 			val result = either.left.get
 
 			result.header.status shouldBe Status.BAD_REQUEST
-
 		}
 	}
-
 }

@@ -19,7 +19,6 @@ package uk.gov.hmrc.fileupload.controllers
 import java.util.UUID
 
 import play.api.libs.json.Json
-import play.api.libs.ws._
 import play.api.test.PlaySpecification
 import uk.gov.hmrc.fileupload.models.FileMetadata
 
@@ -87,7 +86,4 @@ class FileUploadIntegrationSpec extends PlaySpecification with Server{
 		  expectedMetadata mustEqual actualMetadata
 	  }
   }
-
-
-
 }

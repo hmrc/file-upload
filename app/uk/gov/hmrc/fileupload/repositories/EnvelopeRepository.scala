@@ -16,33 +16,29 @@
 
 package uk.gov.hmrc.fileupload.repositories
 
-import java.util.UUID
-
-import play.api.Play
 import play.api.libs.iteratee.Iteratee
-import play.api.libs.json.{JsValue, JsObject, Json}
+import play.api.libs.json.Json
 import play.modules.reactivemongo.{JSONFileToSave, MongoDbConnection}
 import reactivemongo.api.{ReadPreference, DB, DBMetaCommands}
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.gridfs.GridFS
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.controllers.BadRequestException
 import uk.gov.hmrc.fileupload.models._
 import uk.gov.hmrc.mongo.ReactiveRepository
 import play.modules.reactivemongo.GridFSController._
 import reactivemongo.json._
 
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
 
 object DefaultMongoConnection extends MongoDbConnection
 
-object EnvelopeRepository  {
+object EnvelopeRepository {
 	def apply(mongo: () => DB with DBMetaCommands): EnvelopeRepository = new EnvelopeRepository(mongo)
 }
 
 class EnvelopeRepository(mongo: () => DB with DBMetaCommands)
-  extends ReactiveRepository[Envelope, BSONObjectID](collectionName = "envelopes", mongo, domainFormat = Envelope.envelopeReads ){
+  extends ReactiveRepository[Envelope, BSONObjectID](collectionName = "envelopes", mongo, domainFormat = Envelope.envelopeReads ) {
 
 	import reactivemongo.json.collection._
 	lazy val gfs: JSONGridFS = GridFS[JSONSerializationPack.type](mongo(), "envelopes")

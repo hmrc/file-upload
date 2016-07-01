@@ -16,90 +16,62 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-
-import akka.util.Timeout
+import cats.data.Xor
 import play.api.libs.json._
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.actors.{Actors, EnvelopeSealedException, EnvelopeService, Marshaller}
-import uk.gov.hmrc.fileupload.actors.Implicits.FutureUtil
-import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeFactory, EnvelopeNotFoundException}
+import uk.gov.hmrc.fileupload.envelope.EnvelopeService._
+import uk.gov.hmrc.fileupload.models.Envelope
 import uk.gov.hmrc.play.microservice.controller.BaseController
-import akka.pattern._
 
-import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
-import scala.concurrent.Future
-import Envelope._
-import Marshaller._
-import EnvelopeService._
 
-import scala.util.Success
+class EnvelopeController(createEnvelope: Envelope => Future[Xor[CreateError, Envelope]],
+                         toEnvelope: Option[CreateEnvelope] => Envelope,
+                         findEnvelope: String => Future[Xor[FindError, Envelope]],
+                         deleteEnvelope: String => Future[Xor[DeleteError, Envelope]],
+                         sealEnvelope: String => Future[Xor[SealError, Envelope]])
+                         (implicit executionContext: ExecutionContext) extends BaseController {
 
-
-object EnvelopeController extends BaseController {
-
-  implicit val system = Actors.actorSystem
-  implicit val executionContext = system.dispatcher
-  implicit val defaultTimeout = Timeout(2 seconds)
-
-  val envelopeService = Actors.envelopeService
-  val marshaller = Actors.marshaller
-
-  def create(envelopeFactory: EnvelopeFactory = new EnvelopeFactory()) = Action.async { implicit request =>
-
+  def create() = Action.async { implicit request =>
     def envelopeLocation = (id: String) => LOCATION -> s"${request.host}${routes.EnvelopeController.show(id)}"
 
     import Formatters._
+    val envelope = toEnvelope(request.body.asJson.map(Json.fromJson[CreateEnvelope](_).get))
 
-    val envelope: Envelope = request.body.asJson.map(Json.fromJson[CreateEnvelope](_)) match {
-      case Some(result) => envelopeFactory.fromCreateEnvelope(result.get)
-      case None => envelopeFactory.emptyEnvelope()
-    }
-
-    (envelopeService ? NewEnvelope(envelope))
-      .breakOnFailure
-      .map { case true => Created.withHeaders(envelopeLocation(envelope._id)) }
-      .recover { case e => ExceptionHandler(e) }
+    createEnvelope(envelope).map {
+      case Xor.Left(CreateNotSuccessfulError(e)) => ExceptionHandler.exceptionHandler(BAD_REQUEST, "Envelope not stored")
+      case Xor.Left(CreateServiceError(e, m)) => ExceptionHandler.exceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Xor.Right(e) => Created.withHeaders(envelopeLocation(e._id))
+    }.recover { case e => ExceptionHandler(e) }
   }
 
   def show(id: String) = Action.async {
-
-    def findEnvelopeFor = (id: String) => (envelopeService ? GetEnvelope(id))
-      .breakOnFailure
-      .mapTo[Envelope]
-
-    def toJson = (e: Envelope) => marshaller ? e
-    def onEnvelopeFound: (Any) => Result = {
-      case json: JsValue => Ok(json)
-    }
-
-    findEnvelopeFor(id)
-      .flatMap(toJson)
-      .breakOnFailure
-      .map(onEnvelopeFound)
-      .recover { case e => ExceptionHandler(e) }
+    findEnvelope(id).map {
+      case Xor.Left(FindEnvelopeNotFoundError(e)) => ExceptionHandler.exceptionHandler(NOT_FOUND, s"Envelope $id not found")
+      case Xor.Left(FindServiceError(e, m)) => ExceptionHandler.exceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Xor.Right(e) => Ok(Json.toJson(e))
+    }.recover { case e => ExceptionHandler(e) }
   }
 
   def delete(id: String) = Action.async {
-
-    def deleteEnvelope = (id: String) => envelopeService ? DeleteEnvelope(id)
-    def onEnvelopeDeleted: (Any) => Result = {
-      case Success(true) => Accepted
-      case Success(false) => throw new EnvelopeNotFoundException(id)
-      case e: EnvelopeSealedException => throw e
-    }
-
-    deleteEnvelope(id)
-      .map(onEnvelopeDeleted)
-      .recover { case e => ExceptionHandler(e) }
+    deleteEnvelope(id).map {
+      case Xor.Left(DeleteEnvelopeNotFoundError(e)) => ExceptionHandler.exceptionHandler(NOT_FOUND, s"Envelope $id not found")
+      case Xor.Left(DeleteEnvelopeSealedError(e)) => ExceptionHandler.exceptionHandler(BAD_REQUEST, s"Envelope ${e._id} sealed")
+      case Xor.Left(DeleteEnvelopeNotSuccessfulError(e)) => ExceptionHandler.exceptionHandler(BAD_REQUEST, "Envelope not deleted")
+      case Xor.Left(DeleteServiceError(i, m)) => ExceptionHandler.exceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Xor.Right(e) => Accepted
+    }.recover { case e => ExceptionHandler(e) }
   }
 
   def seal(id: String) =  Action.async {
-    (envelopeService ask SealEnvelope(id)) map {
-      case Success(true) => Ok
-      case Success(false) => throw new EnvelopeNotFoundException(id)
-      case e: EnvelopeSealedException => throw e
-    } recover { case e => ExceptionHandler(e) }
+    sealEnvelope(id).map {
+      case Xor.Left(SealEnvelopeNotFoundError(e)) => ExceptionHandler.exceptionHandler(NOT_FOUND, s"Envelope $id not found")
+      case Xor.Left(SealEnvelopeAlreadySealedError(e)) => ExceptionHandler.exceptionHandler(BAD_REQUEST, s"Envelope ${e._id} already sealed")
+      case Xor.Left(SealEnvelopNotSuccessfulError(e)) => ExceptionHandler.exceptionHandler(BAD_REQUEST, "Envelope not Seald")
+      case Xor.Left(SealServiceError(i, m)) => ExceptionHandler.exceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Xor.Right(e) => Ok
+    }.recover { case e => ExceptionHandler(e) }
   }
 
 

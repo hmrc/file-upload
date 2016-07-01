@@ -20,8 +20,8 @@ import akka.actor.{ActorLogging, ActorRef, Props, Actor}
 import uk.gov.hmrc.fileupload.models.{FileMetadata, Envelope}
 import uk.gov.hmrc.fileupload.repositories.EnvelopeRepository
 
-import scala.concurrent.{Future, Await, ExecutionContext}
-import scala.util.{Try, Failure, Success}
+import scala.concurrent.{Future, ExecutionContext}
+import scala.util.{Failure, Success}
 
 object Storage{
   case class FindById(id: String)

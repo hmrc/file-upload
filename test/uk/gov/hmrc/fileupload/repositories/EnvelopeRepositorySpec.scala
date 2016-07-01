@@ -18,24 +18,19 @@ package uk.gov.hmrc.fileupload.repositories
 
 import java.util.UUID
 
-import org.joda.time.DateTime
 import org.junit
 import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.iteratee.Enumerator
-import play.api.libs.json.{JsString, JsObject, Format, Json}
-import play.modules.reactivemongo.JSONFileToSave
+import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.models._
-import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
+import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
-import scala.concurrent.{Future, Await}
+import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Failure, Success}
 
 class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplication with ScalaFutures  {
-
-  import Support._
 
 	def createMetadata(id: String) = FileMetadata(
 		_id = id,
@@ -69,7 +64,6 @@ class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFak
 
       val result = await(repository add envelope)
       result shouldBe true
-
     }
 
     "retrieve a persisted envelope" in {
@@ -81,7 +75,6 @@ class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFak
       val result: Option[Envelope] = await(repository get id)
 
       result shouldBe Some(envelope)
-
     }
 
 	  "remove a persisted envelope" in {
@@ -143,8 +136,5 @@ class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFak
 		  println(Json.stringify(Json.toJson[FileMetadata](metadata)))
 		  metadata shouldBe updatedMetadata
 	  }
-
   }
-
-
 }

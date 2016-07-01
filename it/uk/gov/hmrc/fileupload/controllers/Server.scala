@@ -54,5 +54,4 @@ trait Server {
 				while(!support.appIsAlive){ Thread.sleep(500)}
 				proc
 			}, 1 minute)
-
 }

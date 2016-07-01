@@ -19,8 +19,7 @@ package uk.gov.hmrc.fileupload
 import com.typesafe.config.Config
 import play.api.mvc.{EssentialFilter, RequestHeader, Result}
 import play.api.{Application, Configuration, Play}
-import uk.gov.hmrc.fileupload.controllers.{BadRequestException, ExceptionHandler}
-import uk.gov.hmrc.fileupload.filters.FileUploadValidationFilter
+import uk.gov.hmrc.fileupload.controllers.{BadRequestException, EnvelopeController, ExceptionHandler}
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
@@ -28,10 +27,11 @@ import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import net.ceedubs.ficus.Ficus._
-import uk.gov.hmrc.fileupload.models.EnvelopeFactory
+import uk.gov.hmrc.fileupload.actors.FileUploadActors
+import uk.gov.hmrc.fileupload.envelope.EnvelopeService
+import uk.gov.hmrc.fileupload.models.Envelope
 
 import scala.concurrent.{ExecutionContext, Future}
-
 
 object ControllerConfiguration extends ControllerConfig {
   lazy val controllerConfigs = Play.current.configuration.underlying.as[Config]("controllers")
@@ -58,8 +58,6 @@ object MicroserviceAuthFilter extends AuthorisationFilter {
 
 object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
-
-
   override val auditConnector = MicroserviceAuditConnector
 
   override def microserviceMetricsConfig(implicit app: Application): Option[Configuration] = app.configuration.getConfig(s"microservice.metrics")
@@ -69,6 +67,32 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   override val microserviceAuditFilter = MicroserviceAuditFilter
 
   override val authFilter = None
+
+  val envelopeController = {
+    import play.api.libs.concurrent.Execution.Implicits._
+    val add = FileUploadActors.envelopeRepository.add _
+    val create = EnvelopeService.create(add) _
+    val toEnvelope = Envelope.from _
+
+    val get = FileUploadActors.envelopeRepository.get _
+    val find = EnvelopeService.find(get) _
+
+    val del = FileUploadActors.envelopeRepository.delete _
+    val delete = EnvelopeService.delete(del, find) _
+
+    val update = FileUploadActors.envelopeRepository.update _
+    val seal = EnvelopeService.seal(update, find) _
+
+    new EnvelopeController(createEnvelope = create, toEnvelope = toEnvelope, findEnvelope = find, deleteEnvelope = delete, sealEnvelope = seal)
+  }
+
+  override def getControllerInstance[A](controllerClass: Class[A]): A = {
+    if (controllerClass == classOf[EnvelopeController]) {
+      envelopeController.asInstanceOf[A]
+    } else {
+      super.getControllerInstance(controllerClass)
+    }
+  }
 
 	override def onBadRequest(request: RequestHeader, error: String): Future[Result] = {
 		Future(ExceptionHandler(new BadRequestException(error)))(ExecutionContext.global)

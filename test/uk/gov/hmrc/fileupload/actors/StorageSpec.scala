@@ -18,22 +18,15 @@ package uk.gov.hmrc.fileupload.actors
 
 import java.util.UUID
 
-import akka.testkit.TestActors
-import com.fasterxml.jackson.annotation.ObjectIdGenerators.UUIDGenerator
-import org.joda.time.DateTime
-import org.mockito.Matchers
 import org.mockito.Matchers.any
 import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
-import play.api.libs.json.{JsObject, JsResult, Json}
-import reactivemongo.api.commands.DefaultWriteResult
 import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.fileupload.models._
 import uk.gov.hmrc.fileupload.repositories.EnvelopeRepository
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.Try
 
 /**
   * Created by Josiah on 6/4/2016.
@@ -148,8 +141,5 @@ class StorageSpec extends ActorSpec with MockitoSugar {
 			  expectMsg(false)
 		  }
 	  }
-
   }
-
-
 }

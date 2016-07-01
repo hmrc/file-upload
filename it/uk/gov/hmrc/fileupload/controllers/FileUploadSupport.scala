@@ -17,22 +17,17 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import java.io.File
-import java.util.UUID
 
 import akka.util.Timeout
-import org.joda.time.DateTime
 import play.api.http.Status
-import play.api.libs.iteratee.Iteratee
-import play.api.libs.json.{JsString, JsValue, Json}
+import play.api.libs.json.Json
 import play.api.libs.ws._
 import play.api.test.{DefaultAwaitTimeout, FutureAwaits, WithServer}
-import reactivemongo.api.gridfs.GridFS
-import reactivemongo.json.JSONSerializationPack
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.models.{FileMetadata, Constraints, Envelope}
+import uk.gov.hmrc.fileupload.models.{FileMetadata, Envelope}
 import uk.gov.hmrc.fileupload.repositories.{DefaultMongoConnection, EnvelopeRepository}
 
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.io.Source
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -42,7 +37,7 @@ import scala.util.control.NonFatal
   * Created by Josiah on 6/20/2016.
   */
 class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends WithServer
-	with FutureAwaits with DefaultAwaitTimeout with Status{
+	with FutureAwaits with DefaultAwaitTimeout with Status {
   import Envelope._
 
   implicit val ec = ExecutionContext.global

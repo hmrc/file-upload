@@ -28,7 +28,6 @@ import scala.language.postfixOps
 import scala.util.{Success, Failure}
 import scala.util.control.NonFatal
 
-
 object FileUploader{
   trait Status
   case object EOF
