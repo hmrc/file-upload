@@ -94,5 +94,14 @@ object EnvelopeController extends BaseController {
       .recover { case e => ExceptionHandler(e) }
   }
 
+  def seal(id: String) =  Action.async {
+    (envelopeService ask SealEnvelope(id)) map {
+      case Success(true) => Ok
+      case Success(false) => throw new EnvelopeNotFoundException(id)
+      case e: EnvelopeSealedException => throw e
+    } recover { case e => ExceptionHandler(e) }
+  }
+
+
 
 }

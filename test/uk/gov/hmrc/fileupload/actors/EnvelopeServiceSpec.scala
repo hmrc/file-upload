@@ -16,19 +16,16 @@
 
 package uk.gov.hmrc.fileupload.actors
 
-import java.util.{NoSuchElementException, UUID}
+import java.util.UUID
 
 import akka.testkit.TestActorRef
 import akka.util.Timeout
-import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException, FileMetadata}
 import uk.gov.hmrc.fileupload.actors.Storage.{AddFile, FindById, Remove, Save}
-import uk.gov.hmrc.fileupload.controllers.BadRequestException
-import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException, Sealed, ValidationException}
+import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException, FileMetadata, Sealed}
 
 import scala.concurrent.duration._
-import scala.util.{Failure, Success, Try}
+import scala.util.Success
 
 /**
   * Created by Josiah on 6/3/2016.
@@ -114,7 +111,6 @@ class EnvelopeServiceSpec extends ActorSpec {
 
         storage.underlyingActor.setReceive((sender) => {
           case FindById(id) => sender ! Some(envelope)
-          case AddFile(envelopeId, fileId) => sender ! true
         })
         envelopService ! UpdateEnvelope(envelopeId = "123", fileId = "456")
         expectMsg(new EnvelopeSealedException(envelope))
@@ -149,8 +145,74 @@ class EnvelopeServiceSpec extends ActorSpec {
         expectMsg(Some(fileMetadata))
       }
     }
+
+    "seal an envelope" in {
+      within(timeout) {
+        val envelope: Envelope = Support.envelope
+
+        storage.underlyingActor.setReceive((sender) => {
+          case FindById(id) => sender ! Some(envelope)
+          case Save(_) => sender ! true
+        })
+        envelopService ! SealEnvelope( envelope._id )
+        expectMsg( Success(true) )
+      }
+    }
+
+    "not seal an envelope already sealed" in {
+      within(timeout) {
+        val envelope: Envelope = Support.envelope.copy(status = Sealed)
+
+        storage.underlyingActor.setReceive((sender) => {
+          case FindById(id) => sender ! Some(envelope)
+        })
+        envelopService ! SealEnvelope( envelope._id )
+        expectMsg(new EnvelopeSealedException(envelope))
+      }
+    }
   }
 
+  "seal evelope" should {
+    "return false when no envelope is found" in {
+      within(timeout) {
+        val envelope: Envelope = Support.envelope
+
+        storage.underlyingActor.setReceive((sender) => {
+          case FindById(id) => sender ! None
+        })
+        envelopService ! SealEnvelope( envelope._id )
+        expectMsg( Success(false) )
+      }
+    }
+  }
+
+  "update evelope" should {
+    "return false when no envelope is found" in {
+      within(timeout) {
+        val envelope: Envelope = Support.envelope
+
+        storage.underlyingActor.setReceive((sender) => {
+          case FindById(id) => sender ! None
+        })
+        envelopService ! UpdateEnvelope( envelope._id, "myfileid" )
+        expectMsg( Success(false) )
+      }
+    }
+  }
+
+  "delete evelope" should {
+    "return false when no envelope is found" in {
+      within(timeout) {
+        val envelope: Envelope = Support.envelope
+
+        storage.underlyingActor.setReceive((sender) => {
+          case FindById(id) => sender ! None
+        })
+        envelopService ! DeleteEnvelope( envelope._id )
+        expectMsg( Success(false) )
+      }
+    }
+  }
 
 	import scala.language.implicitConversions
 	implicit def timeoutToDuration(timeout: Timeout): FiniteDuration = timeout.duration

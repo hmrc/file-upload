@@ -17,9 +17,8 @@
 package uk.gov.hmrc.fileupload.controllers
 
 
-import java.util.{NoSuchElementException, UUID}
+import java.util.UUID
 
-import org.hamcrest.CoreMatchers
 import org.mockito.{Matchers, Mockito}
 import org.scalatest.mock.MockitoSugar
 import play.api.http.Status
@@ -27,46 +26,44 @@ import play.api.libs.json.{JsString, Json}
 import play.api.mvc.{AnyContentAsJson, Result}
 import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.actors.EnvelopeService.NewEnvelope
 import uk.gov.hmrc.fileupload.actors.{ActorStub, FileUploadTestActors}
 import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeFactory}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.{Await, ExecutionContext}
-import scala.util.{Failure, Success, Try}
+import scala.util.{Success, Try}
 
 class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication with MockitoSugar {
 
+  import Envelope._
+  import Support.Implicits._
   import uk.gov.hmrc.fileupload.Support._
 
   import scala.concurrent.duration._
-  import FileUploadTestActors._
   import scala.language.postfixOps
-  import Envelope._
-	import Support.Implicits._
 
   implicit val ec = ExecutionContext.global
   override implicit val defaultTimeout = 500 milliseconds
 
   "create envelope with a request" should {
-    "return response with OK status and a Location header specifying the envelope endpoint" in {
+		"return response with OK status and a Location header specifying the envelope endpoint" in {
 
-	    val serverUrl = "http://production.com:8000"
+			val serverUrl = "http://production.com:8000"
 
-	    val fakeRequest = new FakeRequest[AnyContentAsJson]("POST", "/envelope",  FakeHeaders(), body =  AnyContentAsJson(envelopeBody)){
-		    override lazy val host = serverUrl
-	    }
+			val fakeRequest = new FakeRequest[AnyContentAsJson]("POST", "/envelope",  FakeHeaders(), body =  AnyContentAsJson(envelopeBody)){
+				override lazy val host = serverUrl
+			}
 
-	    val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
-			envelopeMgr.setReply(true)
+			val envelopeService: ActorStub = FileUploadTestActors.envelopeService
+			envelopeService.setReply(true)
 			val envelopeFactory: EnvelopeFactory = mock[EnvelopeFactory]
 			Mockito.when(envelopeFactory.fromCreateEnvelope(Matchers.any())).thenReturn(Envelope.emptyEnvelope(id = "myid"))
 
-      val result: Result = await( EnvelopeController.create(envelopeFactory)(fakeRequest) )
+			val result: Result = await( EnvelopeController.create(envelopeFactory)(fakeRequest) )
 			result.header.status shouldBe Status.CREATED
-	    val location = result.header.headers.get("Location").get
-	    location shouldBe s"$serverUrl${routes.EnvelopeController.show("myid").url}"
-    }
+			val location = result.header.headers.get("Location").get
+			location shouldBe s"$serverUrl${routes.EnvelopeController.show("myid").url}"
+		}
 
   }
 
@@ -164,18 +161,19 @@ class EnvelopeControllerSpec  extends UnitSpec with WithFakeApplication with Moc
     }
   }
 
-//	"respond with an exception when creation fails" in {
-//		within(timeout) {
-//			val wrongData = Json.parse( """{"wrong": "json"}""" )
-//			val id: String = UUID.randomUUID().toString
-//			IdGenerator.underlyingActor.setReply(id)
-//			storage.underlyingActor.setReply(id)
-//			marshaller.underlyingActor.setReply(Failure(new NoSuchElementException("JsError.get")))
-//
-//			envelopService ! NewEnvelope(Some(wrongData))
-//
-//			expectMsgClass(classOf[NoSuchElementException])
-//		}
-//	}
+	"seal envelope" should {
+		"close the envelope to any change" in {
+      val serverUrl = "http://production.com:8000"
+
+      val id = "myid"
+      val fakeRequest = new FakeRequest[AnyContentAsJson]("POST", s"/envelope/$id", FakeHeaders(), body = AnyContentAsJson(JsString("""{"sealed": true}""")))
+
+      val envelopeMgr: ActorStub = FileUploadTestActors.envelopeService
+      envelopeMgr.setReply(Success(true))
+
+      val result: Result = await(EnvelopeController.seal(id)(fakeRequest))
+      result.header.status shouldBe Status.OK
+		}
+	}
 
 }
