@@ -47,6 +47,9 @@ class EnvelopeRepository(mongo: () => DB with DBMetaCommands)
 	import reactivemongo.json.collection._
 	lazy val gfs: JSONGridFS = GridFS[JSONSerializationPack.type](mongo(), "envelopes")
 
+	def update(envelope: Envelope)(implicit ex: ExecutionContext): Future[Boolean] =
+    delete(envelope._id).flatMap( _ => add(envelope) )
+
 	def add(envelope: Envelope)(implicit ex: ExecutionContext): Future[Boolean] ={
     insert(envelope) map toBoolean
   }

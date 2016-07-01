@@ -56,11 +56,7 @@ class Storage(val envelopeRepository: EnvelopeRepository) extends Actor with Act
 
 
 	def save(envelope: Envelope, sender: ActorRef): Unit = {
-		envelopeRepository.delete(envelope._id)
-
-		envelopeRepository
-			.add(envelope)
-			.onComplete {
+		envelopeRepository.update(envelope).onComplete {
 				case Success(result) => {
 					sender ! result
 					log.info("envelope saved")
