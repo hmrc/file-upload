@@ -29,6 +29,7 @@ private object AppDependencies {
   private val playReactivemongoVersion = "4.8.0"
   private val simpleReactivemongoVersion = "4.8.0"
   private val akkaVersion = "2.4.6"
+  private val catsVersion = "0.6.0"
 
   val compile = Seq(
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
@@ -43,7 +44,8 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "play-json-logger" % playJsonLoggerVersion,
     "uk.gov.hmrc" %% "domain" % domainVersion,
     "com.typesafe.akka" % "akka-actor_2.11" % akkaVersion,
-    "com.typesafe.akka" % "akka-testkit_2.11" % akkaVersion
+    "com.typesafe.akka" % "akka-testkit_2.11" % akkaVersion,
+    "org.typelevel" %% "cats" % catsVersion
 
   )
 

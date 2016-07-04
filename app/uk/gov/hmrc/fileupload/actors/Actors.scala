@@ -21,10 +21,7 @@ import akka.testkit.TestActorRef
 import play.api.Mode
 import uk.gov.hmrc.fileupload.repositories.{DefaultMongoConnection, EnvelopeRepository}
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Success
-
-trait Actors{
+trait Actors {
 
 	def actorSystem: ActorSystem
 
@@ -32,15 +29,10 @@ trait Actors{
 
 	def storage: ActorRef
 
-	def idGenerator: ActorRef
-
-	def marshaller: ActorRef
-
 	def fileUploader(envelopeId: String, fileId: String): ActorRef
-
 }
 
-object FileUploadActors extends Actors{
+object FileUploadActors extends Actors {
 
 	val envelopeRepository = EnvelopeRepository(DefaultMongoConnection.db)
 
@@ -48,16 +40,12 @@ object FileUploadActors extends Actors{
 
 	override lazy val storage: ActorRef = actorSystem.actorOf(Storage.props(envelopeRepository), "storage")
 
-	override lazy val idGenerator: ActorRef = actorSystem.actorOf(IdGenerator.props, "id-generator")
-
-	override lazy val marshaller: ActorRef = actorSystem.actorOf(Marshaller.props, "marshaller")
-
-	override lazy val envelopeService: ActorRef = actorSystem.actorOf(EnvelopeService.props(storage, idGenerator, marshaller, Actors.maxTTL), "envelope-service")
+	override lazy val envelopeService: ActorRef = actorSystem.actorOf(EnvelopeService.props(storage, Actors.maxTTL), "envelope-service")
 
 	override def fileUploader(envelopeId: String, fileId: String): ActorRef = actorSystem.actorOf(FileUploader.props(envelopeId, fileId, FileUploadActors.envelopeRepository))
 }
 
-object FileUploadTestActors extends Actors{
+object FileUploadTestActors extends Actors {
 
 	import scala.language.implicitConversions
 
@@ -72,18 +60,6 @@ object FileUploadTestActors extends Actors{
 	override val storage: ActorRef = {
 		val actor = TestActorRef[ActorStub]
 		actor.underlyingActor.name = Some("storage")
-		actor
-	}
-
-	override val idGenerator: ActorRef = {
-		val actor = TestActorRef[ActorStub]
-		actor.underlyingActor.name = Some("idGenerator")
-		actor
-	}
-
-	override val marshaller: ActorRef = {
-		val actor = TestActorRef[ActorStub]
-		actor.underlyingActor.name = Some("marshaller")
 		actor
 	}
 
@@ -108,10 +84,6 @@ object Actors extends Actors{
 
 	override val storage: ActorRef = if(mode == Mode.Test) FileUploadTestActors.storage else FileUploadActors.storage
 
-	override val idGenerator: ActorRef = if(mode == Mode.Test) FileUploadTestActors.idGenerator else FileUploadActors.idGenerator
-
-	override val marshaller: ActorRef = if(mode == Mode.Test) FileUploadTestActors.marshaller else FileUploadActors.marshaller
-
 	override def fileUploader(envelopeId: String, fileId: String): ActorRef =
 		if(mode == Mode.Test) FileUploadTestActors.fileUploader else FileUploadActors.fileUploader(envelopeId, fileId)
 }
@@ -120,9 +92,9 @@ class ActorStub extends Actor{
 
 	var name: Option[String] = None
 
-	def setReceive(me: Receive) = context.become(me)
+	def setReceive(me: ( => ActorRef) =>  Receive ) = context.become(me(sender))
 
-	def setReply(reply: Any)  = setReceive({ case _ => sender ! reply})
+	def setReply(reply: Any)  = setReceive((sender) => { case _ => sender ! reply})
 
 	override def receive = {
 		case _ => throw new RuntimeException(s"No receive set for ${name.getOrElse("UNNAMED")}")

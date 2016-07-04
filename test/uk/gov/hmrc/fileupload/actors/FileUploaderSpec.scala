@@ -16,34 +16,25 @@
 
 package uk.gov.hmrc.fileupload.actors
 
-import java.util.UUID
-
-import akka.util.Timeout
 import play.api.libs.json.JsValue
-import play.modules.reactivemongo.JSONFileToSave
 import reactivemongo.api.gridfs.ReadFile
 import reactivemongo.json.JSONSerializationPack
 import uk.gov.hmrc.fileupload.Support.EnvelopRepositoryStub
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.repositories.EnvelopeRepository
 
-import scala.concurrent.{ExecutionContext, Await, Future}
+import scala.concurrent.{Await, Future}
 
-import org.mockito.{Matchers, Mockito, ArgumentCaptor}
 import org.scalatest.mock.MockitoSugar
 import play.api.libs.iteratee.Iteratee
 import akka.pattern._
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-
 class FileUploaderSpec extends ActorSpec with MockitoSugar {
-
-
 
 	"File uploader" should {
 		"check if the envelope where to put the file exists" in {
-
 		}
 	}
 
@@ -63,13 +54,11 @@ class FileUploaderSpec extends ActorSpec with MockitoSugar {
 
 			type expectedType = Iteratee[ByteStream, Future[JSONReadFile]]
 
-
 			source.foreach(fileUploader ! _)
 
 			val result = Await.result((fileUploader ? FileUploader.EOF).mapTo[FileUploader.Status], 500 millis)
 			result shouldBe FileUploader.Completed
 			buffer shouldBe "this is a stream to give in input"
-
 		}
 	}
 }

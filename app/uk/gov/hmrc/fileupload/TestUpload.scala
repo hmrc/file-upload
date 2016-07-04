@@ -25,8 +25,7 @@ import play.api.libs.ws.ning._
 import play.api.libs.ws._
 
 import scala.language.postfixOps
-import scala.concurrent.{Await, ExecutionContext}
-import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
 /**
@@ -34,7 +33,7 @@ import scala.util.{Failure, Success}
 	*/
 object TestUpload {
 
-	def main(args: Array[String]): Unit ={
+	def main(args: Array[String]): Unit = {
 		if(args.length < 2){
 			println("Usage: TestUpload envelopeId filename")
 			System.exit(1)

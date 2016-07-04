@@ -16,19 +16,6 @@
 
 package uk.gov.hmrc.fileupload.actors
 
-import java.util.UUID
+import uk.gov.hmrc.fileupload.models.Envelope
 
-import akka.actor.{Actor, Props}
-import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
-
-object IdGenerator {
-	case object NextId
-	def props: Props = Props[IdGenerator]
-}
-
-class IdGenerator extends Actor {
-
-	def receive = {
-		case NextId => sender() ! UUID.randomUUID().toString
-	}
-}
+case class EnvelopeSealedException(envelope: Envelope) extends Exception(s"The envelope ${envelope._id} is sealed")

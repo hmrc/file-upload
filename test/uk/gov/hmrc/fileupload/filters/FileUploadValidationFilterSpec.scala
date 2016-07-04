@@ -16,15 +16,13 @@
 
 package uk.gov.hmrc.fileupload.filters
 
-import akka.testkit.TestActorRef
 import org.mockito.Mockito
 import org.scalatest.mock.MockitoSugar
-import play.api.libs.json.{JsString, Json}
-import play.api.mvc.{EssentialAction, RequestHeader, Result, Results}
+import play.api.mvc.{RequestHeader, Result, Results}
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.actors.{ActorStub, Actors, FileUploadTestActors}
+import uk.gov.hmrc.fileupload.actors.{ActorStub, FileUploadTestActors}
 import uk.gov.hmrc.fileupload.controllers.BadRequestException
-import uk.gov.hmrc.fileupload.models.{Envelope, File}
+import uk.gov.hmrc.fileupload.models.File
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.Future
@@ -77,5 +75,4 @@ class FileUploadValidationFilterSpec extends UnitSpec with MockitoSugar with Wit
 		  await( FileUploadValidationFilter(nextFilter)(requestHeader) ) shouldBe Results.NotFound
 	  }
   }
-
 }
