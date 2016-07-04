@@ -22,7 +22,6 @@ import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{ResponseHeader, Result}
 import uk.gov.hmrc.fileupload.actors.EnvelopeSealedException
-import uk.gov.hmrc.fileupload.controllers.ExceptionHandler.exceptionHandler
 import uk.gov.hmrc.fileupload.models.{EnvelopeNotFoundException, ValidationException}
 
 object ExceptionHandler {
@@ -36,7 +35,7 @@ object ExceptionHandler {
     case e: Throwable => DefaultExceptionHandler(e)
   }
 
-  def exceptionHandler[T <: Throwable](responseHeader: Int, responseMessage: String): Result = {
+  def apply(responseHeader: Int, responseMessage: String): Result = {
     val response: JsObject = JsObject(Seq("error" -> Json.obj("msg" -> responseMessage)))
     Result(ResponseHeader(responseHeader), Enumerator(Json.stringify(response).getBytes))
   }
@@ -50,7 +49,7 @@ sealed trait ExceptionHandler[T <: Throwable] {
 object IllegalArgumentHandler extends ExceptionHandler[IllegalArgumentException] {
 
   def apply(exception: IllegalArgumentException): Result = {
-    exceptionHandler(BAD_REQUEST, exception.getMessage)
+	  ExceptionHandler(BAD_REQUEST, exception.getMessage)
   }
 }
 
@@ -59,25 +58,25 @@ object NoSuchElementHandler extends ExceptionHandler[NoSuchElementException] {
   def apply(exception: NoSuchElementException): Result = {
     val message = "Invalid json format"
     Logger.error(message, exception)
-    exceptionHandler(BAD_REQUEST, message)
+	  ExceptionHandler(BAD_REQUEST, message)
   }
 }
 
 object BadRequestHandler extends ExceptionHandler[BadRequestException] {
   override def apply(exception: BadRequestException): Result = {
-    exceptionHandler(BAD_REQUEST, exception.getMessage)
+	  ExceptionHandler(BAD_REQUEST, exception.getMessage)
   }
 }
 
 object EnvelopeNotFoundHandler extends ExceptionHandler[EnvelopeNotFoundException] {
   override def apply(exception: EnvelopeNotFoundException): Result = {
-    exceptionHandler(NOT_FOUND, exception.getMessage)
+	  ExceptionHandler(NOT_FOUND, exception.getMessage)
   }
 }
 
 object EnvelopeSealedHandler extends ExceptionHandler[EnvelopeSealedException] {
   override def apply(exception: EnvelopeSealedException): Result = {
-    exceptionHandler(BAD_REQUEST, exception.getMessage)
+	  ExceptionHandler(BAD_REQUEST, exception.getMessage)
   }
 }
 
@@ -85,6 +84,6 @@ object DefaultExceptionHandler extends ExceptionHandler[Throwable] {
   override def apply(exception: Throwable): Result = {
     val message = "Internal Server Error"
     Logger.error(message, exception)
-    exceptionHandler(INTERNAL_SERVER_ERROR, message)
+	  ExceptionHandler(INTERNAL_SERVER_ERROR, message)
   }
 }

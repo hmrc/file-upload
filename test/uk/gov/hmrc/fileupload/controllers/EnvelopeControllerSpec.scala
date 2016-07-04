@@ -26,7 +26,7 @@ import play.api.libs.json.{JsString, Json}
 import play.api.mvc.{AnyContentAsJson, Result}
 import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.envelope.EnvelopeService._
+import uk.gov.hmrc.fileupload.envelope.EnvelopeFacade._
 import uk.gov.hmrc.fileupload.models.Envelope
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
@@ -117,7 +117,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Mock
 			val id: String = UUID.randomUUID().toString
 			val request = FakeRequest("DELETE", s"/envelope/$id")
 
-      val controller = newController(deleteEnvelope = _ => Xor.left(DeleteEnvelopeNotFoundError(id)))
+      val controller = newController(deleteEnvelope = _ => Xor.left(DeleteEnvelopeNotFoundError(s"Envelope $id not found")))
 			val result = controller.delete(id)(request).futureValue
 
 			val actualRespone = Json.parse(consume(result.body))

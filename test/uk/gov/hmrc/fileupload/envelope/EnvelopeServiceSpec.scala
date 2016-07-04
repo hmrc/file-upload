@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.envelope
 
 import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
-import uk.gov.hmrc.fileupload.envelope.EnvelopeService._
+import uk.gov.hmrc.fileupload.envelope.EnvelopeFacade._
 import uk.gov.hmrc.fileupload.models.{Envelope, Sealed}
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -31,7 +31,7 @@ class EnvelopeServiceSpec extends UnitSpec with ScalaFutures {
   "create" should {
     "be successful" in {
       val envelope = Envelope.emptyEnvelope()
-      val create = EnvelopeService.create(_ => Future.successful(true)) _
+      val create = EnvelopeFacade.create(_ => Future.successful(true)) _
 
       val result = create(envelope).futureValue
 
@@ -40,7 +40,7 @@ class EnvelopeServiceSpec extends UnitSpec with ScalaFutures {
 
     "be not successful" in {
       val envelope = Envelope.emptyEnvelope()
-      val create = EnvelopeService.create(_ => Future.successful(false)) _
+      val create = EnvelopeFacade.create(_ => Future.successful(false)) _
 
       val result = create(envelope).futureValue
 
@@ -49,7 +49,7 @@ class EnvelopeServiceSpec extends UnitSpec with ScalaFutures {
 
     "be a create service error" in {
       val envelope = Envelope.emptyEnvelope()
-      val create = EnvelopeService.create(_ => Future.failed(new Exception("not good"))) _
+      val create = EnvelopeFacade.create(_ => Future.failed(new Exception("not good"))) _
 
       val result = create(envelope).futureValue
 
@@ -60,7 +60,7 @@ class EnvelopeServiceSpec extends UnitSpec with ScalaFutures {
   "find" should {
     "be successful" in {
       val envelope = Envelope.emptyEnvelope()
-      val find = EnvelopeService.find(_ => Future.successful(Some(envelope))) _
+      val find = EnvelopeFacade.find(_ => Future.successful(Some(envelope))) _
 
       val result = find(envelope._id).futureValue
 
@@ -69,7 +69,7 @@ class EnvelopeServiceSpec extends UnitSpec with ScalaFutures {
 
     "be not found" in {
       val envelope = Envelope.emptyEnvelope()
-      val find = EnvelopeService.find(_ => Future.successful(None)) _
+      val find = EnvelopeFacade.find(_ => Future.successful(None)) _
 
       val result = find(envelope._id).futureValue
 
@@ -78,7 +78,7 @@ class EnvelopeServiceSpec extends UnitSpec with ScalaFutures {
 
     "be a find service error" in {
       val envelope = Envelope.emptyEnvelope()
-      val find = EnvelopeService.find(_ => Future.failed(new Exception("not good"))) _
+      val find = EnvelopeFacade.find(_ => Future.failed(new Exception("not good"))) _
 
       val result = find(envelope._id).futureValue
 
@@ -89,7 +89,7 @@ class EnvelopeServiceSpec extends UnitSpec with ScalaFutures {
   "delete" should {
     "be successful" in {
       val envelope = Envelope.emptyEnvelope()
-      val delete = EnvelopeService.delete(_ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
+      val delete = EnvelopeFacade.delete(_ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
 
       val result = delete(envelope._id).futureValue
 
@@ -98,63 +98,63 @@ class EnvelopeServiceSpec extends UnitSpec with ScalaFutures {
 
     "be a sealed error" in {
       val envelope = Envelope.emptyEnvelope().copy(status = Sealed)
-      val delete = EnvelopeService.delete(_ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
+      val delete = EnvelopeFacade.delete(_ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
 
       val result = delete(envelope._id).futureValue
 
-      result shouldBe Xor.left(DeleteEnvelopeSealedError(envelope))
+      result shouldBe Xor.left(DeleteEnvelopeSealedError(s"Envelope ${envelope._id} sealed"))
     }
 
     "be not successful" in {
       val envelope = Envelope.emptyEnvelope()
-      val delete = EnvelopeService.delete(_ => Future.successful(false), _ => Future.successful(Xor.right(envelope))) _
+      val delete = EnvelopeFacade.delete(_ => Future.successful(false), _ => Future.successful(Xor.right(envelope))) _
 
       val result = delete(envelope._id).futureValue
 
-      result shouldBe Xor.left(DeleteEnvelopeNotSuccessfulError(envelope))
+      result shouldBe Xor.left(DeleteEnvelopeNotSuccessfulError("Envelope not deleted"))
     }
 
     "be delete service error on delete" in {
       val envelope = Envelope.emptyEnvelope()
-      val delete = EnvelopeService.delete(_ => Future.failed(new Exception("not good")), _ => Future.successful(Xor.right(envelope))) _
+      val delete = EnvelopeFacade.delete(_ => Future.failed(new Exception("not good")), _ => Future.successful(Xor.right(envelope))) _
 
       val result = delete(envelope._id).futureValue
 
-      result shouldBe Xor.left(DeleteServiceError(envelope._id, "not good"))
+      result shouldBe Xor.left(DeleteServiceError("not good"))
     }
 
     "be not found" in {
       val envelope = Envelope.emptyEnvelope()
-      val delete = EnvelopeService.delete(_ => Future.successful(true), _ => Future.successful(Xor.left(FindEnvelopeNotFoundError(envelope._id)))) _
+      val delete = EnvelopeFacade.delete(_ => Future.successful(true), _ => Future.successful(Xor.left(FindEnvelopeNotFoundError(envelope._id)))) _
 
       val result = delete(envelope._id).futureValue
 
-      result shouldBe Xor.left(DeleteEnvelopeNotFoundError(envelope._id))
+      result shouldBe Xor.left(DeleteEnvelopeNotFoundError(s"Envelope ${envelope._id} not found"))
     }
 
     "be delete service error on find service error" in {
       val envelope = Envelope.emptyEnvelope()
-      val delete = EnvelopeService.delete(_ => Future.successful(true), _ => Future.successful(Xor.left(FindServiceError(envelope._id, "not good")))) _
+      val delete = EnvelopeFacade.delete(_ => Future.successful(true), _ => Future.successful(Xor.left(FindServiceError(envelope._id, "not good")))) _
 
       val result = delete(envelope._id).futureValue
 
-      result shouldBe Xor.left(DeleteServiceError(envelope._id, "not good"))
+      result shouldBe Xor.left(DeleteServiceError("not good"))
     }
 
     "be delete service error on find" in {
       val envelope = Envelope.emptyEnvelope()
-      val delete = EnvelopeService.delete(_ => Future.failed(new Exception("not good")), _ => Future.failed(new Exception("not good on find"))) _
+      val delete = EnvelopeFacade.delete(_ => Future.failed(new Exception("not good")), _ => Future.failed(new Exception("not good on find"))) _
 
       val result = delete(envelope._id).futureValue
 
-      result shouldBe Xor.left(DeleteServiceError(envelope._id, "not good on find"))
+      result shouldBe Xor.left(DeleteServiceError( "not good on find"))
     }
   }
 
   "seal" should {
     "be successful" in {
       val envelope = Envelope.emptyEnvelope()
-      val seal = EnvelopeService.seal(_ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
+      val seal = EnvelopeFacade.seal(_ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
 
       val result = seal(envelope._id).futureValue
 
@@ -163,7 +163,7 @@ class EnvelopeServiceSpec extends UnitSpec with ScalaFutures {
 
     "be a sealed error" in {
       val envelope = Envelope.emptyEnvelope().copy(status = Sealed)
-      val seal = EnvelopeService.seal(_ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
+      val seal = EnvelopeFacade.seal(_ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
 
       val result = seal(envelope._id).futureValue
 
@@ -172,7 +172,7 @@ class EnvelopeServiceSpec extends UnitSpec with ScalaFutures {
 
     "be not successful" in {
       val envelope = Envelope.emptyEnvelope()
-      val seal = EnvelopeService.seal(_ => Future.successful(false), _ => Future.successful(Xor.right(envelope))) _
+      val seal = EnvelopeFacade.seal(_ => Future.successful(false), _ => Future.successful(Xor.right(envelope))) _
 
       val result = seal(envelope._id).futureValue
 
@@ -181,7 +181,7 @@ class EnvelopeServiceSpec extends UnitSpec with ScalaFutures {
 
     "be seal service error on delete" in {
       val envelope = Envelope.emptyEnvelope()
-      val seal = EnvelopeService.seal(_ => Future.failed(new Exception("not good")), _ => Future.successful(Xor.right(envelope))) _
+      val seal = EnvelopeFacade.seal(_ => Future.failed(new Exception("not good")), _ => Future.successful(Xor.right(envelope))) _
 
       val result = seal(envelope._id).futureValue
 
@@ -190,7 +190,7 @@ class EnvelopeServiceSpec extends UnitSpec with ScalaFutures {
 
     "be not found" in {
       val envelope = Envelope.emptyEnvelope()
-      val seal = EnvelopeService.seal(_ => Future.successful(true), _ => Future.successful(Xor.left(FindEnvelopeNotFoundError(envelope._id)))) _
+      val seal = EnvelopeFacade.seal(_ => Future.successful(true), _ => Future.successful(Xor.left(FindEnvelopeNotFoundError(envelope._id)))) _
 
       val result = seal(envelope._id).futureValue
 
@@ -199,7 +199,7 @@ class EnvelopeServiceSpec extends UnitSpec with ScalaFutures {
 
     "be seal service error on find service error" in {
       val envelope = Envelope.emptyEnvelope()
-      val seal = EnvelopeService.seal(_ => Future.successful(true), _ => Future.successful(Xor.left(FindServiceError(envelope._id, "not good")))) _
+      val seal = EnvelopeFacade.seal(_ => Future.successful(true), _ => Future.successful(Xor.left(FindServiceError(envelope._id, "not good")))) _
 
       val result = seal(envelope._id).futureValue
 
@@ -208,7 +208,7 @@ class EnvelopeServiceSpec extends UnitSpec with ScalaFutures {
 
     "be seal service error on find" in {
       val envelope = Envelope.emptyEnvelope()
-      val seal = EnvelopeService.seal(_ => Future.failed(new Exception("not good")), _ => Future.failed(new Exception("not good on find"))) _
+      val seal = EnvelopeFacade.seal(_ => Future.failed(new Exception("not good")), _ => Future.failed(new Exception("not good on find"))) _
 
       val result = seal(envelope._id).futureValue
 

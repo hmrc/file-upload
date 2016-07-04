@@ -28,7 +28,7 @@ import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import net.ceedubs.ficus.Ficus._
 import uk.gov.hmrc.fileupload.actors.FileUploadActors
-import uk.gov.hmrc.fileupload.envelope.EnvelopeService
+import uk.gov.hmrc.fileupload.envelope.EnvelopeFacade
 import uk.gov.hmrc.fileupload.models.Envelope
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -71,17 +71,17 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   val envelopeController = {
     import play.api.libs.concurrent.Execution.Implicits._
     val add = FileUploadActors.envelopeRepository.add _
-    val create = EnvelopeService.create(add) _
+    val create = EnvelopeFacade.create(add) _
     val toEnvelope = Envelope.from _
 
     val get = FileUploadActors.envelopeRepository.get _
-    val find = EnvelopeService.find(get) _
+    val find = EnvelopeFacade.find(get) _
 
     val del = FileUploadActors.envelopeRepository.delete _
-    val delete = EnvelopeService.delete(del, find) _
+    val delete = EnvelopeFacade.delete(del, find) _
 
     val update = FileUploadActors.envelopeRepository.update _
-    val seal = EnvelopeService.seal(update, find) _
+    val seal = EnvelopeFacade.seal(update, find) _
 
     new EnvelopeController(createEnvelope = create, toEnvelope = toEnvelope, findEnvelope = find, deleteEnvelope = delete, sealEnvelope = seal)
   }
