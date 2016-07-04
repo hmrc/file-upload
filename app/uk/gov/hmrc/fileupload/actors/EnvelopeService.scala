@@ -16,20 +16,15 @@
 
 package uk.gov.hmrc.fileupload.actors
 
-import java.util.UUID
-
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
-import play.api.libs.json.{JsObject, JsValue, Json}
-import uk.gov.hmrc.fileupload.actors.EnvelopeService.{CreateEnvelope, DeleteEnvelope, GetEnvelope, UpdateEnvelope}
-import uk.gov.hmrc.fileupload.actors.IdGenerator.NextId
+import uk.gov.hmrc.fileupload.actors.EnvelopeService._
 import uk.gov.hmrc.fileupload.controllers.BadRequestException
-import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException}
+import uk.gov.hmrc.fileupload.models.{Envelope, EnvelopeNotFoundException, FileMetadata, Sealed}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import akka.pattern._
-import uk.gov.hmrc.fileupload.actors.Marshaller.UnMarshall
 
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
@@ -37,26 +32,21 @@ import scala.util.{Failure, Success}
 object EnvelopeService {
 
   case class GetEnvelope(id: String)
-
-  case class CreateEnvelope(json: Option[JsValue])
-
+  case class NewEnvelope(envelope: Envelope)
   case class DeleteEnvelope(id: String)
-
+  case class SealEnvelope(id: String)
   case class UpdateEnvelope(envelopeId: String, fileId: String)
+  case class UpdateFileMetaData(envelopeId: String, data: FileMetadata)
+  case class GetFileMetaData(id: String)
 
-  case object EnvelopeUpdated
-
-  case object EnvelopeNotFound
-
-  def props(storage: ActorRef, idGenerator: ActorRef, marshaller: ActorRef, maxTTL: Int): Props =
-    Props(classOf[EnvelopeService], storage, idGenerator, marshaller, maxTTL)
+  def props(storage: ActorRef, maxTTL: Int): Props =
+    Props(classOf[EnvelopeService], storage, maxTTL)
 }
 
-class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: ActorRef, maxTTL: Int) extends Actor with ActorLogging {
+class EnvelopeService(storage: ActorRef, maxTTL: Int) extends Actor with ActorLogging {
 
   import Storage._
-  import Marshaller._
-  import uk.gov.hmrc.fileupload.actors.Implicits.FutureUtil
+	import uk.gov.hmrc.fileupload.actors.Implicits.FutureUtil
 
   implicit val ex: ExecutionContext = context.dispatcher
   implicit val timeout = Timeout(2 seconds)
@@ -66,17 +56,16 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
     super.preStart()
   }
 
-
   def receive = {
     case GetEnvelope(id) => getEnvelopeFor(id, sender)
-    case CreateEnvelope(data) => createEnvelopeFrom(data, sender)
-    case DeleteEnvelope(id) => storage forward Remove(id)
-    case UpdateEnvelope(envelopeId, fileId) =>
-      println(s"forwarding add file message from $sender to storage")
-      // FIXME we can't just forward this request to the storage
-      // FIXME we have to wait on the storage and then rollback the fileupload
-      // FIXME on failure
-      storage forward AddFile(envelopeId, fileId)
+    case NewEnvelope(envelope: Envelope) => createEnvelopeFrom(envelope, sender)
+    case DeleteEnvelope(id) => deleteEnvelope(id, sender)
+    case UpdateEnvelope(envelopeId, fileId) => updateEnvelope(envelopeId, fileId, sender)
+    case SealEnvelope(envelopeId) => sealEnvelope(envelopeId, sender)
+    case UpdateFileMetaData(envelopeId, data) =>
+      // TODO need to update the envelope as well
+      storage forward UpdateFile(data)
+    case it @ GetFileMetaData(_) => storage forward it
   }
 
   def getEnvelopeFor(id: String, sender: ActorRef): Unit = {
@@ -89,29 +78,72 @@ class EnvelopeService(storage: ActorRef, idGenerator: ActorRef, marshaller: Acto
       }
   }
 
-  def createEnvelopeFrom(data: Option[JsValue], sender: ActorRef): Unit = {
+  def createEnvelopeFrom(envelope: Envelope, sender: ActorRef): Unit = {
     log.info(s"processing CreateEnvelope")
-    (idGenerator ? NextId)
-      .mapTo[String]
-      .map(id => {
-        val d = data.getOrElse(Json.toJson( Envelope.emptyEnvelope() ))
-        d.asInstanceOf[JsObject] ++ Json.obj("_id" -> id)
-      })
-      .flatMap(marshaller ? UnMarshall(_, classOf[Envelope])) // move this to the controller
-      .breakOnFailure
-      .mapTo[Envelope]
-      .map(e => {
-        var newMaxItems: Int = 1
-        e.constraints.foreach(c => c.maxItems.foreach(newMaxItems = _))
-        Storage.Save(e.copy(constraints = e.constraints.map(newConstraint => newConstraint.copy(maxItems = Some(newMaxItems)))))
-      })
-      .onComplete {
-        case Success(msg) => storage.!(msg)(sender)
-        case Failure(e) =>
-          log.error(s"$e during envelope creation")
-          sender ! e
-      }
+    storage forward Save(envelope)
   }
+
+  def deleteEnvelope(id: String, sender: ActorRef): Unit = {
+    storage ask FindById(id) onSuccess {
+      case Some(envelope: Envelope) if envelope.isSealed() =>
+        log.info(s"envelope ${envelope._id} is sealed. Cannot delete.")
+        sender ! new EnvelopeSealedException(envelope)
+      case Some(envelope: Envelope) =>
+        log.info(s"deleting envelope ${envelope._id}")
+        storage ask Remove(id) onComplete {
+          case response =>
+            log.info(s"sending response $response")
+            sender ! response
+        }
+      case None =>
+        log.info(s"envelope $id not found")
+        sender ! Success(false)
+      case Failure(t) => sender ! t
+    }
+
+  }
+
+  def updateEnvelope(id: String, fileId: String, sender: ActorRef): Unit = {
+    storage ask FindById(id) onSuccess {
+      case Some(envelope: Envelope) if envelope.isSealed() =>
+        log.info(s"envelope ${envelope._id} is sealed. Cannot update.")
+        sender ! new EnvelopeSealedException(envelope)
+      case Some(envelope: Envelope) =>
+        log.info(s"forwarding add file message from $sender to storage")
+        // FIXME we can't just forward this request to the storage
+        // FIXME we have to wait on the storage and then rollback the fileupload
+        // FIXME on failure
+        storage ask AddFile(id, fileId) onComplete {
+          case response =>
+            log.info(s"sending response $response")
+            sender ! response
+        }
+      case None =>
+        log.info(s"envelope $id not found")
+        sender ! Success(false)
+      case Failure(t) => sender ! t
+    }
+  }
+
+  def sealEnvelope(id: String, sender: ActorRef): Unit = {
+    storage ask FindById(id) onSuccess {
+      case Some(envelope: Envelope) if envelope.isSealed() =>
+        log.info(s"envelope ${envelope._id} is already sealed")
+        sender ! new EnvelopeSealedException(envelope)
+      case Some(envelope: Envelope) =>
+        val sealedEnvelope: Envelope = envelope.copy(status = Sealed)
+        storage ask Save(sealedEnvelope) onComplete {
+          case response =>
+            log.info(s"sending response $response")
+            sender ! response
+        }
+      case None =>
+        log.info(s"envelope $id not found")
+        sender ! Success(false)
+      case Failure(t) => sender ! t
+    }
+  }
+
 
   override def postStop() {
     log.info("Envelope storage is going offline")

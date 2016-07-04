@@ -18,22 +18,15 @@ package uk.gov.hmrc.fileupload.actors
 
 import java.util.UUID
 
-import akka.testkit.TestActors
-import com.fasterxml.jackson.annotation.ObjectIdGenerators.UUIDGenerator
-import org.joda.time.DateTime
-import org.mockito.Matchers
 import org.mockito.Matchers.any
 import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
-import play.api.libs.json.{JsObject, JsResult, Json}
-import reactivemongo.api.commands.DefaultWriteResult
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.models.{Constraints, DuplicateFileException, Envelope, File}
+import uk.gov.hmrc.fileupload.models._
 import uk.gov.hmrc.fileupload.repositories.EnvelopeRepository
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.Try
 
 /**
   * Created by Josiah on 6/4/2016.
@@ -64,18 +57,13 @@ class StorageSpec extends ActorSpec with MockitoSugar {
       expectMsg(None)
     }
 
-	  "respond with a Id when it receives a create envelope message" in {
+	  "respond with true when it receives a create envelope message" in {
 		  within(500 millis) {
+			  when(envelopeRepository.update(any())(any())).thenReturn(Future.successful(true))
 
-			  val id = UUID.randomUUID().toString
-			  val rawData = Support.envelopeBody.asInstanceOf[JsObject] ++ Json.obj("_id" -> id)
-			  val envelope = Json.fromJson[Envelope](rawData).get
+			  storage ! Save(Support.envelope)
 
-			  when(envelopeRepository.add(any())(any())).thenReturn(Future.successful(true))
-
-			  storage ! Save(envelope)
-
-			  expectMsg(id)
+			  expectMsg(true)
 		  }
 	  }
 
@@ -134,8 +122,24 @@ class StorageSpec extends ActorSpec with MockitoSugar {
 			  expectMsgClass(classOf[DuplicateFileException])
 		  }
 	  }
+	  "respond with a success true after adding file metadata to an envelope" in {
+		  within(500 millis) {
 
+			  when(envelopeRepository.addFile(any())(any())).thenReturn(Future.successful(true))
+			  storage ! UpdateFile(new FileMetadata())
+
+			  expectMsg(true)
+		  }
+	  }
+
+	  "respond with a false after an unsuccessful add of a  file metadata to an envelope" in {
+		  within(500 millis) {
+
+			  when(envelopeRepository.addFile(any())(any())).thenReturn(Future.successful(false))
+			  storage ! UpdateFile(new FileMetadata())
+
+			  expectMsg(false)
+		  }
+	  }
   }
-
-
 }

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 /**
 	* Created by jay on 11/06/2016.
