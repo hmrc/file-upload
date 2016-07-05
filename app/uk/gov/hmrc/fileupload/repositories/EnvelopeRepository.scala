@@ -60,7 +60,7 @@ class EnvelopeRepository(mongo: () => DB with DBMetaCommands)
 
 	def addFile(envelopeId: String, fileId: String)(implicit ec: ExecutionContext): Future[Boolean] = {
     get(envelopeId).flatMap {
-			case Some(envelope) => {
+			case Some(envelope) =>
         val newFile: Seq[File] = Seq(File(href = uk.gov.hmrc.fileupload.controllers.routes.FileController.upload(envelopeId, fileId).url, id = fileId))
 
         val updatedEnvelope = envelope.files match {
@@ -72,7 +72,6 @@ class EnvelopeRepository(mongo: () => DB with DBMetaCommands)
 					case true => add(updatedEnvelope)
 					case false => Future.successful(false)
 				}
-			}
 			case None => Future.failed(new EnvelopeNotFoundException(envelopeId))
 		}
 	}

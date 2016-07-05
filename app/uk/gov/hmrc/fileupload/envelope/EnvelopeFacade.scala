@@ -44,7 +44,7 @@ object EnvelopeFacade {
   case class FindEnvelopeNotFoundError(id: String) extends FindError
   case class FindServiceError(id: String, message: String) extends FindError
 
-	abstract class DeleteError(override val code: Int, override val message: String) extends EnvelopeError
+	sealed abstract class DeleteError(override val code: Int, override val message: String) extends EnvelopeError
 
 	object DeleteError{
 		def unapply(error: DeleteError) : Option[(Int, String)] = Some(error.code, error.message)

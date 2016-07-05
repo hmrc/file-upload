@@ -101,17 +101,22 @@ class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFak
 		  val repository = new EnvelopeRepository(DefaultMongoConnection.db)
 		  val envelope = Support.envelope
 		  val id = envelope._id
+		  val fileId = UUID.randomUUID().toString
 		  await(repository add envelope)
 
-		  val result = await( repository.addFile( id, fileId = "456") )
+		  val result = await( repository.addFile( id, fileId) )
+		  val Some(Seq(savedFile, _*)) = await(repository.get(id)).get.files
+
 		  result shouldBe true
+		  savedFile.id shouldBe fileId
+
 	  }
 
 	  "add file metadata" in {
-		  val meatadata = createMetadata(UUID.randomUUID().toString)
+		  val metadata = createMetadata(UUID.randomUUID().toString)
 
 		  val repository = new EnvelopeRepository(DefaultMongoConnection.db)
-		  val result = await(repository addFile meatadata)
+		  val result = await(repository addFile metadata)
 		  result shouldBe true
 	  }
 
