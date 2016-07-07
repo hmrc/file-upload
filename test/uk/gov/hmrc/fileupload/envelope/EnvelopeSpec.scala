@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.models
+package uk.gov.hmrc.fileupload.envelope
 
 import java.lang.Math._
 import java.util.UUID
@@ -87,8 +87,6 @@ class EnvelopeSpec extends UnitSpec {
 
 	"an envelope's" should {
 		"expiryDate should be overridden when it is greater than the max expiry days configured" in {
-
-			import Envelope._
 
 			val maxTTL: Int = 2
       val maxExpiryDate: DateTime = DateTime.now().plusDays(maxTTL)

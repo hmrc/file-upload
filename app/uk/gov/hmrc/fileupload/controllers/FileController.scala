@@ -16,49 +16,50 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import akka.util.Timeout
 import play.api.libs.json.Json
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.actors.EnvelopeService.{GetFileMetaData, UpdateFileMetaData, UpdateEnvelope}
-import uk.gov.hmrc.fileupload.actors.{Actors, FileUploader}
-import uk.gov.hmrc.fileupload.models.FileMetadata
+import uk.gov.hmrc.fileupload.file.FileMetadata
 import uk.gov.hmrc.play.microservice.controller.BaseController
-import akka.pattern._
-import uk.gov.hmrc.fileupload.actors.Implicits.FutureUtil
+import cats.data.Xor
+import uk.gov.hmrc.fileupload.JSONReadFile
+import uk.gov.hmrc.fileupload.envelope.Service._
+import uk.gov.hmrc.fileupload.file.Service._
+
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
-import scala.concurrent.duration._
 
-object FileController extends BaseController{
+class FileController(uploadBodyParser: (String, String) => BodyParser[Future[JSONReadFile]],
+                     addFileToEnvelope: (String, String) => Future[AddFileResult],
+                     getMetadata: String => Future[GetMetadataResult],
+                     updateMetadata: FileMetadata => Future[UpdateMetadataResult])
+                    (implicit executionContext: ExecutionContext) extends BaseController {
 
-	implicit val system = Actors.actorSystem
-	implicit val ec = system.dispatcher
-	implicit val timeout = Timeout(2 seconds)
-	val envelopeService = Actors.envelopeService
-
-	def upload(envelopeId: String, fileId: String) = Action.async(FileUploader.parseBody(envelopeId, fileId)){ request =>
-		(envelopeService ? UpdateEnvelope(envelopeId, fileId))
-		  .breakOnFailure
-		  .map {
-				case true => Ok
-				case false => NotFound
-	    }.recover { case e =>  ExceptionHandler(e) }
+  def upload(envelopeId: String, fileId: String) = Action.async(uploadBodyParser(envelopeId, fileId)) { request =>
+    //TODO: rollback file upload if file not added to envelope
+	  request.body.flatMap { _ =>
+		  addFileToEnvelope(envelopeId, fileId).map {
+			  case Xor.Right(e) => Ok
+			  case Xor.Left(AddFileEnvelopeNotFoundError(id)) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
+			  case Xor.Left(AddFileSeaeldError(e)) => ExceptionHandler(BAD_REQUEST, s"The envelope ${e._id} is sealed")
+			  case Xor.Left(AddFileNotSuccessfulError(e)) => ExceptionHandler(INTERNAL_SERVER_ERROR, "File not added to envelope")
+			  case Xor.Left(AddFileServiceError(id, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+		  }.recover { case e => ExceptionHandler(e) }
+	  }
   }
 
-	def get(envelopeId: String, fileId: String) = Action.async{
-		import FileMetadata._
-		(envelopeService ? GetFileMetaData(fileId))
-		  .breakOnFailure
-			.mapTo[Option[FileMetadata]]
-			.map( _.map(res => Ok(Json.toJson[FileMetadata](res))).getOrElse(BadRequest))
-	}
+  def get(envelopeId: String, fileId: String) = Action.async {
+    getMetadata(fileId).map {
+      case Xor.Right(m) => Ok(Json.toJson[FileMetadata](m))
+      case Xor.Left(GetMetadataNotFoundError(e)) => ExceptionHandler(NOT_FOUND, s"File $fileId not found")
+      case Xor.Left(GetMetadataServiceError(e, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+    }.recover { case e => ExceptionHandler(e) }
+  }
 
-	def metadata(envelopeId: String, fileId: String) = Action.async(FileMetadataParser){ request =>
-		val data = request.body
-		(envelopeService ? UpdateFileMetaData(envelopeId, data))
-		  .breakOnFailure
-			.map {
-				case true => Ok
-				case false => NotFound
-			}.recover { case e =>  ExceptionHandler(e) }
+	def metadata(envelopeId: String, fileId: String) = Action.async(FileMetadataParser) { request =>
+    updateMetadata(request.body).map {
+      case Xor.Right(m) => Ok(Json.toJson[FileMetadata](m))
+      case Xor.Left(UpdateMetadataNotFoundError(e)) => ExceptionHandler(NOT_FOUND, s"File $fileId not found")
+      case Xor.Left(UpdateMetadataServiceError(e, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+    }.recover { case e => ExceptionHandler(e) }
 	}
 }

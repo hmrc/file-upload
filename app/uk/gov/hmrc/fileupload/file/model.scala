@@ -14,8 +14,19 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.models
+package uk.gov.hmrc.fileupload.file
 
-case class DuplicateFileException(message: String) extends Exception(message) {
+import java.util.UUID
 
+import play.api.libs.json.{Format, JsObject, Json}
+
+object FileMetadata{
+  implicit val fileMetaDataReads: Format[FileMetadata] = Json.format[FileMetadata]
 }
+
+case class FileMetadata(_id: String = UUID.randomUUID().toString,
+                        filename: Option[String] = None,
+                        contentType: Option[String] = None,
+                        revision: Option[Int] = None,
+                        metadata: Option[JsObject] = None)
+

@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload
 import com.typesafe.config.Config
 import play.api.mvc.{EssentialFilter, RequestHeader, Result}
 import play.api.{Application, Configuration, Play}
-import uk.gov.hmrc.fileupload.controllers.{BadRequestException, EnvelopeController, ExceptionHandler}
+import uk.gov.hmrc.fileupload.controllers._
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
@@ -27,9 +27,9 @@ import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import net.ceedubs.ficus.Ficus._
-import uk.gov.hmrc.fileupload.actors.FileUploadActors
-import uk.gov.hmrc.fileupload.envelope.EnvelopeFacade
-import uk.gov.hmrc.fileupload.models.Envelope
+import uk.gov.hmrc.fileupload.envelope.Envelope
+import uk.gov.hmrc.fileupload.infrastructure.DefaultMongoConnection
+import uk.gov.hmrc.play.http.BadRequestException
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -68,27 +68,58 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
   override val authFilter = None
 
-  val envelopeController = {
+  import play.api.libs.concurrent.Execution.Implicits._
+
+  lazy val db = DefaultMongoConnection.db
+
+  lazy val envelopeRepository = uk.gov.hmrc.fileupload.envelope.Repository.apply(db)
+
+  lazy val update = envelopeRepository.update _
+  lazy val get = envelopeRepository.get _
+  lazy val find = uk.gov.hmrc.fileupload.envelope.Service.find(get) _
+
+  lazy val addFileToEnvelope = uk.gov.hmrc.fileupload.envelope.Service.addFile(
+    (envelopeId: String, fileId: String) => routes.FileController.upload(envelopeId = envelopeId, fileId = fileId).url, update, find) _
+
+  lazy val envelopeController = {
+    import uk.gov.hmrc.fileupload.envelope.Service
     import play.api.libs.concurrent.Execution.Implicits._
-    val add = FileUploadActors.envelopeRepository.add _
-    val create = EnvelopeFacade.create(add) _
+
+    val create = Service.create(update) _
     val toEnvelope = Envelope.from _
 
-    val get = FileUploadActors.envelopeRepository.get _
-    val find = EnvelopeFacade.find(get) _
+    val del = envelopeRepository.delete _
+    val delete = Service.delete(del, find) _
 
-    val del = FileUploadActors.envelopeRepository.delete _
-    val delete = EnvelopeFacade.delete(del, find) _
-
-    val update = FileUploadActors.envelopeRepository.update _
-    val seal = EnvelopeFacade.seal(update, find) _
+    val seal = Service.seal(update, find) _
 
     new EnvelopeController(createEnvelope = create, toEnvelope = toEnvelope, findEnvelope = find, deleteEnvelope = delete, sealEnvelope = seal)
   }
 
+  lazy val fileController = {
+    import uk.gov.hmrc.fileupload.file.Service
+    import play.api.libs.concurrent.Execution.Implicits._
+
+    val fileRepository = uk.gov.hmrc.fileupload.file.Repository.apply(db)
+
+    val getFileMetadata = fileRepository.getFileMetadata _
+    val getMetadata = Service.getMetadata(getFileMetadata) _
+
+    val addFileMetadata = fileRepository.addFileMetadata _
+    val updateMetadata = Service.updateMetadata(addFileMetadata) _
+
+    val iterateeForUpload = fileRepository.iterateeForUpload _
+    val uploadBodyParser = UploadParser.parse(iterateeForUpload) _
+
+    new FileController(uploadBodyParser = uploadBodyParser, addFileToEnvelope = addFileToEnvelope, getMetadata = getMetadata, updateMetadata = updateMetadata)
+  }
+
   override def getControllerInstance[A](controllerClass: Class[A]): A = {
+    //TODO: optimise to use pattern match
     if (controllerClass == classOf[EnvelopeController]) {
       envelopeController.asInstanceOf[A]
+    } else if (controllerClass == classOf[FileController]) {
+      fileController.asInstanceOf[A]
     } else {
       super.getControllerInstance(controllerClass)
     }
@@ -103,5 +134,4 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   }
 
 	override def microserviceFilters: Seq[EssentialFilter] = defaultMicroserviceFilters  // ++ Seq(FileUploadValidationFilter)
-
 }

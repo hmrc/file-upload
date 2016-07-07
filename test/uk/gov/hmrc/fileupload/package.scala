@@ -27,7 +27,8 @@ import reactivemongo.api.DBMetaCommands
 import reactivemongo.api.commands.DefaultWriteResult
 import reactivemongo.api.gridfs.{GridFS, ReadFile}
 import reactivemongo.json.JSONSerializationPack
-import uk.gov.hmrc.fileupload.models.{Constraints, Open}
+import uk.gov.hmrc.fileupload.envelope.{Constraints, Envelope, Open}
+import uk.gov.hmrc.fileupload.file.Repository
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -48,8 +49,6 @@ package object fileupload {
   object Support{
     import reactivemongo.api.commands.WriteResult
     import reactivemongo.api.{MongoConnection, FailoverStrategy, DB}
-    import uk.gov.hmrc.fileupload.models.Envelope
-    import uk.gov.hmrc.fileupload.repositories.EnvelopeRepository
 
     import scala.concurrent.{Future, ExecutionContext}
 
@@ -88,18 +87,18 @@ package object fileupload {
 		  override def name: String = ???
 	  }
 
-	  object EnvelopRepositoryStub{
+	  object FileRepositoryStub {
 		  def OkWriteResult(n: Int) : Future[WriteResult] = Future.successful(DefaultWriteResult(ok = true, n, Seq(), None, Some(1), None))
 	  }
 
-	  class EnvelopRepositoryStub(var  data: Map[String, Envelope] = Map(), val iteratee: Iteratee[ByteStream, Future[JSONReadFile]]) extends EnvelopeRepository(() => new DBStub){
+	  class FileRepositoryStub(var data: Map[String, Envelope] = Map(), val iteratee: Iteratee[ByteStream, Future[JSONReadFile]]) extends Repository(() => new DBStub){
 
-		  override def add(envelope: Envelope)(implicit ex: ExecutionContext): Future[Boolean] = {
-			  data = data ++ Map(envelope._id -> envelope)
-			  Future.successful(true)
-		  }
-
-		  override def get(byId: String)(implicit ec: ExecutionContext): Future[Option[Envelope]] = Future.successful(data.get(byId))
+//		  override def add(envelope: Envelope)(implicit ex: ExecutionContext): Future[Boolean] = {
+//			  data = data ++ Map(envelope._id -> envelope)
+//			  Future.successful(true)
+//		  }
+//
+//		  override def get(byId: String)(implicit ec: ExecutionContext): Future[Option[Envelope]] = Future.successful(data.get(byId))
 
 		  override def iterateeForUpload(file: String)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = iteratee
 	  }

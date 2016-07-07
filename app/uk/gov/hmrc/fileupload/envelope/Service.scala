@@ -17,24 +17,17 @@
 package uk.gov.hmrc.fileupload.envelope
 
 import cats.data.Xor
-import uk.gov.hmrc.fileupload.models.{Envelope, Sealed}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
-import play.api.http.Status._
 
-object EnvelopeFacade {
+object Service {
   
   type CreateResult = Xor[CreateError, Envelope]
   type FindResult = Xor[FindError, Envelope]
   type DeleteResult = Xor[DeleteError, Envelope]
   type SealResult = Xor[SealError, Envelope]
-
-	sealed trait EnvelopeError extends Exception{
-		def code: Int
-		def message: String
-	}
-
+  type AddFileResult = Xor[AddFileError, Envelope]
 
 	sealed trait CreateError
   case class CreateNotSuccessfulError(envelope: Envelope) extends CreateError
@@ -44,22 +37,23 @@ object EnvelopeFacade {
   case class FindEnvelopeNotFoundError(id: String) extends FindError
   case class FindServiceError(id: String, message: String) extends FindError
 
-	sealed abstract class DeleteError(override val code: Int, override val message: String) extends EnvelopeError
-
-	object DeleteError{
-		def unapply(error: DeleteError) : Option[(Int, String)] = Some(error.code, error.message)
-	}
-
-  case class DeleteEnvelopeNotFoundError(msg: String) extends DeleteError(NOT_FOUND, msg)
-  case class DeleteEnvelopeSealedError(msg: String) extends DeleteError(BAD_REQUEST, msg)
-  case class DeleteEnvelopeNotSuccessfulError(msg: String) extends DeleteError(BAD_REQUEST,msg)
-  case class DeleteServiceError(msg: String) extends DeleteError(INTERNAL_SERVER_ERROR, msg)
+  sealed trait DeleteError
+  case class DeleteEnvelopeNotFoundError(id: String) extends DeleteError
+  case class DeleteEnvelopeSealedError(envelope: Envelope) extends DeleteError
+  case class DeleteEnvelopeNotSuccessfulError(envelope: Envelope) extends DeleteError
+  case class DeleteServiceError(id: String, message: String) extends DeleteError
 
   sealed trait SealError
   case class SealEnvelopeNotFoundError(id: String) extends SealError
   case class SealEnvelopeAlreadySealedError(envelope: Envelope) extends SealError
   case class SealEnvelopNotSuccessfulError(envelope: Envelope) extends SealError
   case class SealServiceError(id: String, message: String) extends SealError
+
+  sealed trait AddFileError
+  case class AddFileEnvelopeNotFoundError(id: String) extends AddFileError
+  case class AddFileSeaeldError(envelope: Envelope) extends AddFileError
+  case class AddFileNotSuccessfulError(envelope: Envelope) extends AddFileError
+  case class AddFileServiceError(id: String, message: String) extends AddFileError
 
   def create(add: Envelope => Future[Boolean])(envelope: Envelope)(implicit ex: ExecutionContext): Future[CreateResult] =
     add(envelope).map {
@@ -71,18 +65,18 @@ object EnvelopeFacade {
     get(id).map {
       case Some(e) => Xor.right(e)
       case _ => Xor.left(FindEnvelopeNotFoundError(id))
-    }.recover { case e =>  Xor.left(FindServiceError(id, e.getMessage))  }
+    }.recover { case e => Xor.left(FindServiceError(id, e.getMessage))  }
 
   def delete(delete: String => Future[Boolean], find: String => Future[FindResult])(id: String)(implicit ex: ExecutionContext): Future[DeleteResult] =
     find(id).flatMap {
-      case Xor.Right(envelope) if envelope.isSealed() => Future { Xor.left(DeleteEnvelopeSealedError(s"Envelope ${envelope._id} sealed")) }
+      case Xor.Right(envelope) if envelope.isSealed() => Future { Xor.left(DeleteEnvelopeSealedError(envelope)) }
       case Xor.Right(envelope) => delete(envelope._id).map {
         case true => Xor.right(envelope)
-        case _ => Xor.left(DeleteEnvelopeNotSuccessfulError("Envelope not deleted"))
-      }.recover { case e =>  Xor.left(DeleteServiceError(e.getMessage))  }
-      case Xor.Left(FindEnvelopeNotFoundError(i)) => Future { Xor.left(DeleteEnvelopeNotFoundError(s"Envelope $i not found")) }
-      case Xor.Left(FindServiceError(i, m)) => Future { Xor.left(DeleteServiceError(m)) }
-      }.recover { case e =>  Xor.left(DeleteServiceError(e.getMessage)) }
+        case _ => Xor.left(DeleteEnvelopeNotSuccessfulError(envelope))
+      }.recover { case e => Xor.left(DeleteServiceError(id, e.getMessage))  }
+      case Xor.Left(FindEnvelopeNotFoundError(i)) => Future { Xor.left(DeleteEnvelopeNotFoundError(i)) }
+      case Xor.Left(FindServiceError(i, m)) => Future { Xor.left(DeleteServiceError(i, m)) }
+      }.recover { case e => Xor.left(DeleteServiceError(id, e.getMessage)) }
 
   def seal(seal: Envelope => Future[Boolean], find: String => Future[FindResult])(id: String)(implicit ex: ExecutionContext): Future[SealResult] =
     find(id).flatMap {
@@ -90,8 +84,33 @@ object EnvelopeFacade {
       case Xor.Right(envelope) => seal(envelope.copy(status = Sealed)).map {
         case true => Xor.right(envelope)
         case _ => Xor.left(SealEnvelopNotSuccessfulError(envelope))
-      }.recover{ case e =>  Xor.left(SealServiceError(id, e.getMessage)) }
+      }.recover{ case e => Xor.left(SealServiceError(id, e.getMessage)) }
       case Xor.Left(FindEnvelopeNotFoundError(i)) => Future { Xor.left(SealEnvelopeNotFoundError(i)) }
       case Xor.Left(FindServiceError(i, m)) => Future { Xor.left(SealServiceError(i, m)) }
-      }.recover { case e =>  Xor.left(SealServiceError(id, e.getMessage))  }
+      }.recover { case e => Xor.left(SealServiceError(id, e.getMessage))  }
+
+  def addFile(toHref: (String, String) => String, update: Envelope => Future[Boolean], find: String => Future[FindResult])
+             (envelopeId: String, fileId: String)
+             (implicit ex: ExecutionContext): Future[AddFileResult] =
+    find(envelopeId).flatMap {
+      case Xor.Right(envelope) if envelope.isSealed() => Future { Xor.left(AddFileSeaeldError(envelope)) }
+      case Xor.Right(envelope) => {
+        val updatedEnvelope = addFileToEnvelope(toHref, envelope, fileId)
+        update(updatedEnvelope).map {
+          case true => Xor.right(updatedEnvelope)
+          case _ => Xor.left(AddFileNotSuccessfulError(envelope))
+        }
+      }.recover { case e => Xor.left(AddFileServiceError(envelopeId, e.getMessage))  }
+      case Xor.Left(FindEnvelopeNotFoundError(i)) => Future { Xor.left(AddFileEnvelopeNotFoundError(i)) }
+      case Xor.Left(FindServiceError(i, m)) => Future { Xor.left(AddFileServiceError(i, m)) }
+    }.recover { case e => Xor.left(AddFileServiceError(envelopeId, e.getMessage)) }
+
+  private def addFileToEnvelope(toHref: (String, String) => String, envelope: Envelope, fileId: String): Envelope = {
+    val newFile: Seq[File] = Seq(File(href = toHref(envelope._id, fileId), id = fileId))
+
+    envelope.files match {
+      case None => envelope.copy(files = Some(newFile))
+      case Some(seq) => envelope.copy(files = Some(seq ++ newFile))
+    }
+  }
 }

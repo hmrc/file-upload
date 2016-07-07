@@ -20,19 +20,18 @@ import java.util.UUID
 
 import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mock.MockitoSugar
 import play.api.http.Status
 import play.api.libs.json.{JsString, Json}
 import play.api.mvc.{AnyContentAsJson, Result}
 import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.envelope.EnvelopeFacade._
-import uk.gov.hmrc.fileupload.models.Envelope
+import uk.gov.hmrc.fileupload.envelope.Service._
+import uk.gov.hmrc.fileupload.envelope.Envelope
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with MockitoSugar with ScalaFutures {
+class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with ScalaFutures {
 
   import Envelope._
   import Support._
@@ -52,7 +51,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Mock
     "return response with OK status and a Location header specifying the envelope endpoint" in {
 	    val serverUrl = "http://production.com:8000"
 
-	    val fakeRequest = new FakeRequest[AnyContentAsJson]("POST", "/envelope",  FakeHeaders(), body =  AnyContentAsJson(envelopeBody)){
+	    val fakeRequest = new FakeRequest[AnyContentAsJson]("POST", "/envelope", FakeHeaders(), body = AnyContentAsJson(envelopeBody)){
 		    override lazy val host = serverUrl
 	    }
 
@@ -87,7 +86,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Mock
   }
 
   "Get Envelope" should {
-    "return an envelope resource when request id is valid" in {
+    "return an  envelope resource when request id is valid" in {
       val envelope = Support.envelope
       val request = FakeRequest("GET", s"/envelope/${envelope._id}")
 

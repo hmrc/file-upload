@@ -14,23 +14,22 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.repositories
+package uk.gov.hmrc.fileupload.file
 
 import java.util.UUID
 
-import org.junit
 import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.models._
+import uk.gov.hmrc.fileupload.infrastructure.DefaultMongoConnection
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplication with ScalaFutures  {
+class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplication with ScalaFutures {
 
 	def createMetadata(id: String) = FileMetadata(
 		_id = id,
@@ -58,70 +57,16 @@ class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFak
 	)
 
 	"repository" should {
-    "persist an envelope" in {
-      val repository = new EnvelopeRepository(DefaultMongoConnection.db)
-			val envelope = Support.envelope.copy(files = Some(Seq(File(href = "ads", id = "myfile", rel = "file"))))
-
-      val result = await(repository add envelope)
-      result shouldBe true
-    }
-
-    "retrieve a persisted envelope" in {
-      val repository = new EnvelopeRepository(DefaultMongoConnection.db)
-      val envelope = Support.envelope
-      val id = envelope._id
-
-      await(repository add envelope)
-      val result: Option[Envelope] = await(repository get id)
-
-      result shouldBe Some(envelope)
-    }
-
-	  "remove a persisted envelope" in {
-		  val repository = new EnvelopeRepository(DefaultMongoConnection.db)
-		  val envelope = Support.envelope
-		  val id = envelope._id
-
-		  await(repository add envelope)
-		  val result: Boolean = await(repository delete id)
-
-		  result shouldBe true
-		  junit.Assert.assertTrue( await(repository get id).isEmpty )
-	  }
-
-	  "return nothing for a none existent envelope" in {
-		  val repository = new EnvelopeRepository(DefaultMongoConnection.db)
-			val id = UUID.randomUUID().toString
-
-		  val result = await(repository get id)
-		  result shouldBe None
-	  }
-
-	  "adds a file to a envelope" in {
-		  val repository = new EnvelopeRepository(DefaultMongoConnection.db)
-		  val envelope = Support.envelope
-		  val id = envelope._id
-		  val fileId = UUID.randomUUID().toString
-		  await(repository add envelope)
-
-		  val result = await( repository.addFile( id, fileId) )
-		  val Some(Seq(savedFile, _*)) = await(repository.get(id)).get.files
-
-		  result shouldBe true
-		  savedFile.id shouldBe fileId
-
-	  }
-
 	  "add file metadata" in {
 		  val metadata = createMetadata(UUID.randomUUID().toString)
 
-		  val repository = new EnvelopeRepository(DefaultMongoConnection.db)
-		  val result = await(repository addFile metadata)
+		  val repository = new Repository(mongo)
+		  val result = await(repository addFileMetadata metadata)
 		  result shouldBe true
 	  }
 
 	  "be able to update matadata of an existing file" in {
-		  val repository = new EnvelopeRepository(DefaultMongoConnection.db)
+		  val repository = new Repository(mongo)
 		  val contents = Enumerator[ByteStream]("I only exists to be stored in mongo :<".getBytes)
 		  val id = UUID.randomUUID().toString
 
@@ -135,7 +80,7 @@ class EnvelopeRepositorySpec extends UnitSpec with MongoSpecSupport with WithFak
 		  metadata shouldBe emtpyMetadata
 
 		  val updatedMetadata = createMetadata(id)
-		  await(repository addFile updatedMetadata)
+		  await(repository addFileMetadata updatedMetadata)
 		  metadata = await(repository.getFileMetadata(id)).getOrElse(throw new Exception("should have metadata"))
 
 		  println(Json.stringify(Json.toJson[FileMetadata](metadata)))
