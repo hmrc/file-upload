@@ -42,11 +42,11 @@ object FileMetadataParser extends BodyParser[FileMetadata] {
 
 object UploadParser {
 
-  def parse(uploadFile: String => Iteratee[ByteStream, Future[JSONReadFile]])
+  def parse(uploadFile: (String, String) => Iteratee[ByteStream, Future[JSONReadFile]])
            (envelopeId: String, fileId: String)
            (implicit ex: ExecutionContext): BodyParser[Future[JSONReadFile]] = BodyParser { _ =>
 
-    uploadFile(fileId) map (Right(_)) recover { case NonFatal(e) => Left(ExceptionHandler(e)) }
+    uploadFile(envelopeId, fileId) map (Right(_)) recover { case NonFatal(e) => Left(ExceptionHandler(e)) }
   }
 }
 

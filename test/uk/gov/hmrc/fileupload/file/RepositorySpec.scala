@@ -22,6 +22,7 @@ import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.fileupload._
+import uk.gov.hmrc.fileupload.file.Repository.{FileNotFoundError, RetrieveFileResult}
 import uk.gov.hmrc.fileupload.infrastructure.DefaultMongoConnection
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
@@ -68,23 +69,49 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 	  "be able to update matadata of an existing file" in {
 		  val repository = new Repository(mongo)
 		  val contents = Enumerator[ByteStream]("I only exists to be stored in mongo :<".getBytes)
-		  val id = UUID.randomUUID().toString
+		  val fileId = UUID.randomUUID().toString
 
-
-		  val sink = repository.iterateeForUpload(id)
+      val envelopeId: String = Support.envelope._id
+      val sink = repository.iterateeForUpload(envelopeId, fileId)
 
 		  await(await(contents.run[Future[JSONReadFile]](sink)))
 
-		  var metadata = await(repository.getFileMetadata(id)).getOrElse(throw new Exception("should have metadata"))
-		  val emtpyMetadata = FileMetadata(_id = id)
-		  metadata shouldBe emtpyMetadata
+		  var metadata = await(repository.getFileMetadata(fileId)).getOrElse(throw new Exception("should have metadata"))
+		  val fileMetadata = FileMetadata(_id = fileId, metadata = Some(Json.obj("envelopeId" -> envelopeId)))
+		  metadata shouldBe fileMetadata
 
-		  val updatedMetadata = createMetadata(id)
+		  val updatedMetadata = createMetadata(fileId)
 		  await(repository addFileMetadata updatedMetadata)
-		  metadata = await(repository.getFileMetadata(id)).getOrElse(throw new Exception("should have metadata"))
+		  metadata = await(repository.getFileMetadata(fileId)).getOrElse(throw new Exception("should have metadata"))
 
 		  println(Json.stringify(Json.toJson[FileMetadata](metadata)))
 		  metadata shouldBe updatedMetadata
 	  }
+
+
+		"retrieve a file in a envelope" in {
+			val repository = new Repository(DefaultMongoConnection.db)
+			val contents = Enumerator[ByteStream]("I only exists to be stored in mongo :<".getBytes)
+			val envelopeId = Support.envelope._id
+			val fileId = UUID.randomUUID().toString
+			val sink = repository.iterateeForUpload(envelopeId, fileId)
+			await(await(contents.run[Future[JSONReadFile]](sink)))
+
+			val fileResult: RetrieveFileResult = await(repository retrieveFile(envelopeId, fileId))
+
+			fileResult.isRight shouldBe true
+			fileResult.toEither.right.get.length shouldBe 38
+		}
+
+
+		"returns a fileNotFound error" in {
+			val repository = new Repository(DefaultMongoConnection.db)
+
+			val fileResult: RetrieveFileResult = await(repository retrieveFile(Support.envelope._id, "nofile"))
+
+			fileResult.isLeft shouldBe true
+			fileResult.toEither.left.get shouldBe FileNotFoundError
+
+		}
   }
 }
