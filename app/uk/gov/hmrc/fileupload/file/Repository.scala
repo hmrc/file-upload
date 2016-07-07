@@ -16,52 +16,69 @@
 
 package uk.gov.hmrc.fileupload.file
 
-import play.api.libs.iteratee.Iteratee
+import cats.data.Xor
+import play.api.libs.iteratee.{Enumerator, Iteratee}
 import play.api.libs.json.Json
 import play.modules.reactivemongo.GridFSController._
 import play.modules.reactivemongo.JSONFileToSave
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.gridfs.GridFS
 import reactivemongo.api.{DB, DBMetaCommands, ReadPreference}
+import reactivemongo.bson.BSONDocument
 import reactivemongo.json._
 import uk.gov.hmrc.fileupload._
+import uk.gov.hmrc.fileupload.file.Repository.{FileFoundResult, FileNotFoundError, RetrieveFileResult}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 object Repository {
-	def apply(mongo: () => DB with DBMetaCommands): Repository = new Repository(mongo)
+  def apply(mongo: () => DB with DBMetaCommands): Repository = new Repository(mongo)
+
+  sealed trait RetrieveFileError
+  object FileNotFoundError extends RetrieveFileError
+  case class FileFoundResult(filename: Option[String] = None, length: Long = 0, data: Enumerator[Array[Byte]] = null)
+
+  type RetrieveFileResult = Xor[RetrieveFileError, FileFoundResult]
 }
 
 class Repository(mongo: () => DB with DBMetaCommands) {
 
-    import reactivemongo.json.collection._
-    lazy val gfs: JSONGridFS = GridFS[JSONSerializationPack.type](mongo(), "envelopes")
+  import reactivemongo.json.collection._
 
-    def addFileMetadata(metadata: FileMetadata)(implicit ec: ExecutionContext): Future[Boolean] = {
+  lazy val gfs: JSONGridFS = GridFS[JSONSerializationPack.type](mongo(), "envelopes")
 
-      val jsonObj = Json.obj("$set" -> Json.toJson[FileMetadata](metadata))
-      gfs.files.update(
-        _id(metadata._id),
-        jsonObj,
-        upsert = true
-      ).map(toBoolean)
-    }
+  def addFileMetadata(metadata: FileMetadata)(implicit ec: ExecutionContext): Future[Boolean] = {
 
-    def getFileMetadata(id: String)(implicit ec: ExecutionContext): Future[Option[FileMetadata]] = {
-      import FileMetadata._
-      gfs.files.find(_id(id))
-        .cursor[FileMetadata](ReadPreference.primaryPreferred)
-        .headOption
-    }
+    val jsonObj = Json.obj("$set" -> Json.toJson[FileMetadata](metadata))
+    gfs.files.update(
+      _id(metadata._id),
+      jsonObj,
+      upsert = true
+    ).map(toBoolean)
+  }
 
-    private def _id(id: String) = Json.obj("_id" -> id)
+  def getFileMetadata(id: String)(implicit ec: ExecutionContext): Future[Option[FileMetadata]] = {
+    import FileMetadata._
+    gfs.files.find(_id(id))
+      .cursor[FileMetadata](ReadPreference.primaryPreferred)
+      .headOption
+  }
 
-    def toBoolean(wr: WriteResult): Boolean = wr match {
-      case r if r.ok && r.n > 0 => true
-      case _ => false
-    }
+  private def _id(id: String) = Json.obj("_id" -> id)
 
-    def iterateeForUpload(fileId: String)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = {
-      gfs.iteratee(JSONFileToSave(filename = None, id = Json.toJson(fileId)))
+  def toBoolean(wr: WriteResult): Boolean = wr match {
+    case r if r.ok && r.n > 0 => true
+    case _ => false
+  }
+
+  def iterateeForUpload(envelopeId: String, fileId: String)(implicit ec: ExecutionContext) : Iteratee[ByteStream, Future[JSONReadFile]] = {
+    gfs.iteratee(JSONFileToSave(filename = None, id = Json.toJson(fileId), metadata = Json.obj("envelopeId" -> envelopeId)))
+  }
+
+  def retrieveFile(envelopeId: String, fileId: String)(implicit ec: ExecutionContext): Future[RetrieveFileResult] = {
+    gfs.find[BSONDocument, JSONReadFile](BSONDocument("_id" -> fileId, "metadata.envelopeId" -> envelopeId)).headOption.map {
+      case Some(file: JSONReadFile) => Xor.Right(FileFoundResult(file.filename, file.length, gfs.enumerate(file)))
+      case None => Xor.Left(FileNotFoundError)
     }
   }
+}

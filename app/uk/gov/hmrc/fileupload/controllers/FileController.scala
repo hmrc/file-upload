@@ -23,6 +23,7 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 import cats.data.Xor
 import uk.gov.hmrc.fileupload.JSONReadFile
 import uk.gov.hmrc.fileupload.envelope.Service._
+import uk.gov.hmrc.fileupload.file.Repository.RetrieveFileResult
 import uk.gov.hmrc.fileupload.file.Service._
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -31,7 +32,8 @@ import scala.language.postfixOps
 class FileController(uploadBodyParser: (String, String) => BodyParser[Future[JSONReadFile]],
                      addFileToEnvelope: (String, String) => Future[AddFileResult],
                      getMetadata: String => Future[GetMetadataResult],
-                     updateMetadata: FileMetadata => Future[UpdateMetadataResult])
+                     updateMetadata: FileMetadata => Future[UpdateMetadataResult],
+                     retrieveFile: (String, String) => Future[RetrieveFileResult])
                     (implicit executionContext: ExecutionContext) extends BaseController {
 
   def upload(envelopeId: String, fileId: String) = Action.async(uploadBodyParser(envelopeId, fileId)) { request =>
@@ -62,4 +64,12 @@ class FileController(uploadBodyParser: (String, String) => BodyParser[Future[JSO
       case Xor.Left(UpdateMetadataServiceError(e, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
     }.recover { case e => ExceptionHandler(e) }
 	}
+
+  def download(envelopeId: String, fileId: String) = Action.async { request =>
+    retrieveFile(envelopeId, fileId) map  {
+      case Xor.Right(result) =>
+        Ok feed result.data withHeaders(CONTENT_LENGTH -> s"${result.length}", CONTENT_DISPOSITION -> s"""attachment; filename="${result.filename.getOrElse("data")}"""")
+      case Xor.Left(result) => NotFound
+    }
+  }
 }

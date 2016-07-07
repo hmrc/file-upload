@@ -100,7 +100,7 @@ package object fileupload {
 //
 //		  override def get(byId: String)(implicit ec: ExecutionContext): Future[Option[Envelope]] = Future.successful(data.get(byId))
 
-		  override def iterateeForUpload(file: String)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = iteratee
+		  override def iterateeForUpload(envelopeId: String, file: String)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = iteratee
 	  }
   }
 }

@@ -50,5 +50,35 @@
 //			val result: Result = await( controller.upload(envelopeId = "123", fileId = "456")(fakeRequest) )
 //			result.header.status shouldBe Status.NOT_FOUND
 //		}
+//"respond with OK when a file is found" in {
+//  val envelopeId = "myEnvId"
+//  val fileId = "myFileId"
+//  val request = new FakeRequest[AnyContentAsJson]("GET", s"/envelope/$envelopeId/file/$fileId/content", FakeHeaders(), body = null)
+//  val fileEnumerator = mock[Enumerator[Array[Byte]]]
+//
+//  val fileFound: RetrieveFileResult = Xor.Right( FileFoundResult( Some("myfile.txt"), 100, fileEnumerator) )
+//  val controller = new FileController(getMetadata= null, updateMetadata = null, retrieveFile = (_, _) => Future.successful(fileFound) )
+//
+//  val result: Result = controller.download(envelopeId, fileId)(request).futureValue
+//
+//  result.header.status shouldBe Status.OK
+//  val headers = result.header.headers
+//  headers("Content-Length") shouldBe "100"
+//  headers("Content-Type") shouldBe "application/octet-stream"
+//  headers("Content-Disposition") shouldBe "attachment; filename=\"myfile.txt\""
+//}
+//
+//"respond with NOT FOUND when a file is not found" in {
+//  val envelopeId = "myEnvId"
+//  val fileId = "myFileId"
+//  val request = new FakeRequest[AnyContentAsJson]("GET", s"/envelope/$envelopeId/file/$fileId/content", FakeHeaders(), body = null)
+//  val fileEnumerator = mock[Enumerator[Array[Byte]]]
+//
+//  val fileFound: RetrieveFileResult = Xor.Left( FileNotFoundError )
+//  val controller = new FileController(getMetadata= null, updateMetadata = null, retrieveFile = (_, _) => Future.successful(fileFound) )
+//
+//  val result: Result = controller.download(envelopeId, fileId)(request).futureValue
+//
+//  result.header.status shouldBe Status.NOT_FOUND
 //	}
 //}

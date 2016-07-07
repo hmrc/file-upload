@@ -22,7 +22,7 @@ import uk.gov.hmrc.fileupload.file.Repository.RetrieveFileResult
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
-object Service {
+object FileService {
   
   type GetMetadataResult = Xor[GetMetadataError, FileMetadata]
   type UpdateMetadataResult = Xor[UpdateMetadataError, FileMetadata]
