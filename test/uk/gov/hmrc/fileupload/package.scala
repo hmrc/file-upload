@@ -28,7 +28,7 @@ import reactivemongo.api.commands.DefaultWriteResult
 import reactivemongo.api.gridfs.{GridFS, ReadFile}
 import reactivemongo.json.JSONSerializationPack
 import uk.gov.hmrc.fileupload.envelope.{Constraints, Envelope, Open}
-import uk.gov.hmrc.fileupload.file.Repository
+import uk.gov.hmrc.fileupload.file.{CompositeFileId, Repository}
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -100,7 +100,7 @@ package object fileupload {
 //
 //		  override def get(byId: String)(implicit ec: ExecutionContext): Future[Option[Envelope]] = Future.successful(data.get(byId))
 
-		  override def iterateeForUpload(envelopeId: String, file: String)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = iteratee
+		  override def iterateeForUpload(compositeFileId: CompositeFileId)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = iteratee
 	  }
   }
 }

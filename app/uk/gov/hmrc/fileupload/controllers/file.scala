@@ -20,7 +20,7 @@ import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.Json
 import play.api.mvc.{BodyParser, _}
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.file.FileMetadata
+import uk.gov.hmrc.fileupload.file.{CompositeFileId, FileMetadata}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -42,11 +42,11 @@ object FileMetadataParser extends BodyParser[FileMetadata] {
 
 object UploadParser {
 
-  def parse(uploadFile: (String, String) => Iteratee[ByteStream, Future[JSONReadFile]])
-           (envelopeId: String, fileId: String)
+  def parse(uploadFile: CompositeFileId => Iteratee[ByteStream, Future[JSONReadFile]])
+           (compositeFileId: CompositeFileId)
            (implicit ex: ExecutionContext): BodyParser[Future[JSONReadFile]] = BodyParser { _ =>
 
-    uploadFile(envelopeId, fileId) map (Right(_)) recover { case NonFatal(e) => Left(ExceptionHandler(e)) }
+    uploadFile(compositeFileId) map (Right(_)) recover { case NonFatal(e) => Left(ExceptionHandler(e)) }
   }
 }
 

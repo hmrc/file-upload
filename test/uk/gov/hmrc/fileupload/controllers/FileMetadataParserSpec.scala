@@ -31,12 +31,16 @@ import uk.gov.hmrc.play.test.UnitSpec
 	*/
 class FileMetadataParserSpec extends UnitSpec {
 
-	val id = UUID.randomUUID().toString
+	val envelopeId = UUID.randomUUID().toString
+	val fileId = UUID.randomUUID().toString
 
 	val json =
 		s"""
 			 |{
-			 |   "_id":"$id",
+			 |   "_id":{
+       |     "envelopeId": "$envelopeId",
+       |     "fileId": "$fileId"
+       |   },
 			 |   "filename":"test.pdf",
 			 |   "contentType":"application/pdf",
 			 |   "revision":1,
