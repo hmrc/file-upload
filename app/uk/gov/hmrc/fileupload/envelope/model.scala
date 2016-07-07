@@ -70,6 +70,7 @@ case class File(rel: String = "file", href: String, id: String)
 
 object Envelope {
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val fileReads: Format[File] = Json.format[File]
   implicit val statusReads: Reads[Status] = StatusReads
   implicit val statusWrites: Writes[Status] = StatusWrites

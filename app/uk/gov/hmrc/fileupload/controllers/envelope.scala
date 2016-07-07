@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import org.joda.time.DateTime
-import play.api.libs.json.{Format, JsValue, Json, Reads}
+import play.api.libs.json._
 
 case class CreateEnvelope(constraints: Option[CreateConstraints] = None, callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None, metadata: Option[Map[String, JsValue]] = None)
 
@@ -25,6 +25,7 @@ case class CreateConstraints(contentTypes: Option[Seq[String]] = None, maxItems:
 
 object Formatters {
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
 
   implicit val createConstraintsReads: Format[CreateConstraints] = Json.format[CreateConstraints]
   implicit val createEnvelopeReads: Format[CreateEnvelope] = Json.format[CreateEnvelope]
