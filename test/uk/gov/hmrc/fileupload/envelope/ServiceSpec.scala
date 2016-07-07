@@ -227,6 +227,66 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       result shouldBe Xor.right(expectedEnvelope)
     }
 
-    //TODO: add tests for error cases
+    "be file sealed error" in {
+      val envelope = Envelope.emptyEnvelope().copy(status = Sealed)
+      val fileId = "123"
+      val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
+
+      val result = addFile(envelope._id, fileId).futureValue
+
+      result shouldBe Xor.left(AddFileSeaeldError(envelope))
+    }
+
+    "be add file not successful error" in {
+      val envelope = Envelope.emptyEnvelope()
+      val fileId = "123"
+      val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.successful(false), _ => Future.successful(Xor.right(envelope))) _
+
+      val result = addFile(envelope._id, fileId).futureValue
+
+      result shouldBe Xor.left(AddFileNotSuccessfulError(envelope))
+    }
+
+    "be add file service error on update" in {
+      val envelope = Envelope.emptyEnvelope()
+      val fileId = "123"
+      val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.failed(new Exception("not good")), _ => Future.successful(Xor.right(envelope))) _
+
+      val result = addFile(envelope._id, fileId).futureValue
+
+      result shouldBe Xor.left(AddFileServiceError(envelope._id, "not good"))
+    }
+
+    "be add file envelope not found error" in {
+      val envelope = Envelope.emptyEnvelope()
+      val fileId = "123"
+      val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.successful(true),
+        _ => Future.successful(Xor.left(FindEnvelopeNotFoundError(envelope._id)))) _
+
+      val result = addFile(envelope._id, fileId).futureValue
+
+      result shouldBe Xor.left(AddFileEnvelopeNotFoundError(envelope._id))
+    }
+
+    "be add file service error" in {
+      val envelope = Envelope.emptyEnvelope()
+      val fileId = "123"
+      val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.successful(true),
+        _ => Future.successful(Xor.left(FindServiceError(envelope._id, "not good")))) _
+
+      val result = addFile(envelope._id, fileId).futureValue
+
+      result shouldBe Xor.left(AddFileServiceError(envelope._id, "not good"))
+    }
+
+    "be add file service error on find" in {
+      val envelope = Envelope.emptyEnvelope()
+      val fileId = "123"
+      val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.successful(true), _ => Future.failed(new Exception("not good"))) _
+
+      val result = addFile(envelope._id, fileId).futureValue
+
+      result shouldBe Xor.left(AddFileServiceError(envelope._id, "not good"))
+    }
   }
 }
