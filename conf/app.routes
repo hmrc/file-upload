@@ -3,11 +3,8 @@
 GET        /envelope/:id                                    @uk.gov.hmrc.fileupload.controllers.EnvelopeController.show(id: String)
 POST       /envelope                                        @uk.gov.hmrc.fileupload.controllers.EnvelopeController.create()
 DELETE     /envelope/:id                                    @uk.gov.hmrc.fileupload.controllers.EnvelopeController.delete(id: String)
-POST       /envelope/:id/seal                               @uk.gov.hmrc.fileupload.controllers.EnvelopeController.seal(id: String)
+PUT        /envelope/:id                                    @uk.gov.hmrc.fileupload.controllers.EnvelopeController.seal(id: String)
 PUT        /envelope/:envelopeId/file/:fileId/content       @uk.gov.hmrc.fileupload.controllers.FileController.upload(envelopeId: String, fileId: String)
 GET        /envelope/:envelopeId/file/:fileId/content       @uk.gov.hmrc.fileupload.controllers.FileController.download(envelopeId: String, fileId: String)
-GET        /envelope/:envelopeId/:fileId                    @uk.gov.hmrc.fileupload.controllers.FileController.get(envelopeId: String, fileId: String)
 PUT        /envelope/:envelopeId/file/:fileId/metadata      @uk.gov.hmrc.fileupload.controllers.FileController.metadata(envelopeId: String, fileId: String)
 GET        /envelope/:envelopeId/file/:fileId/metadata      @uk.gov.hmrc.fileupload.controllers.FileController.get(envelopeId: String, fileId: String)
-GET        /heart/beat                                      uk.gov.hmrc.fileupload.controllers.Heart.beat
-
