@@ -114,7 +114,6 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     val fromRepository = fileRepository.retrieveFile _
     val retrieveFile = Service.retrieveFile(fromRepository) _
 
-
     new FileController(uploadBodyParser = uploadBodyParser, addFileToEnvelope = addFileToEnvelope, getMetadata = getMetadata, updateMetadata = updateMetadata, retrieveFile = retrieveFile)
   }
 
