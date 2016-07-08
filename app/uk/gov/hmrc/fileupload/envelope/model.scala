@@ -20,7 +20,7 @@ import java.util.UUID
 
 import org.joda.time.DateTime
 import play.api.libs.json.{Format, JsObject, _}
-import uk.gov.hmrc.fileupload.controllers.{CreateConstraints, CreateEnvelope}
+import uk.gov.hmrc.fileupload.controllers.{ConstraintsReport, EnvelopeReport}
 
 sealed trait Status
 case object Open extends Status
@@ -77,8 +77,6 @@ object Envelope {
   implicit val constraintsReads: Format[Constraints] = Json.format[Constraints]
   implicit val envelopeReads: Format[Envelope] = Json.format[Envelope]
 
-  val MAX_ITEMS_DEFAULT = 1
-
   def fromJson(json: JsValue, _id: String, maxTTL: Int): Envelope = {
     val rawData = json.asInstanceOf[JsObject] ++ Json.obj("_id" -> _id)
     val envelope = Json.fromJson[Envelope](rawData).get
@@ -88,22 +86,11 @@ object Envelope {
     envelope.copy(expiryDate = expiryDate)
   }
 
-  def from(createEnvelope: Option[CreateEnvelope]): Envelope =
-    createEnvelope.map(fromCreateEnvelope).getOrElse(emptyEnvelope())
-
   def emptyEnvelope(id: String = UUID.randomUUID().toString): Envelope =
     new Envelope(id, constraints = Some(emptyConstraints()))
 
   def emptyConstraints() =
     new Constraints(maxItems = Some(1))
-
-  def fromCreateEnvelope(dto: CreateEnvelope) =
-    emptyEnvelope().copy(constraints = dto.constraints.map(fromCreateConstraints), callbackUrl = dto.callbackUrl, expiryDate = dto.expiryDate, metadata = dto.metadata, files = None)
-
-  private def fromCreateConstraints(dto: CreateConstraints): Constraints = {
-    val maxItems: Int = dto.maxItems.getOrElse[Int](MAX_ITEMS_DEFAULT)
-    emptyConstraints().copy(dto.contentTypes, Some(maxItems), dto.maxSize, dto.maxSizePerItem)
-  }
 
 }
 

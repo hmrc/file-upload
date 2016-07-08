@@ -86,7 +86,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     import play.api.libs.concurrent.Execution.Implicits._
 
     val create = Service.create(update) _
-    val toEnvelope = Envelope.from _
+    val toEnvelope = EnvelopeReport.from _
 
     val del = envelopeRepository.delete _
     val delete = Service.delete(del, find) _

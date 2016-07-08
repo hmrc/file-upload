@@ -27,7 +27,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 class EnvelopeController(createEnvelope: Envelope => Future[Xor[CreateError, Envelope]],
-                         toEnvelope: Option[CreateEnvelope] => Envelope,
+                         toEnvelope: Option[EnvelopeReport] => Envelope,
                          findEnvelope: String => Future[Xor[FindError, Envelope]],
                          deleteEnvelope: String => Future[Xor[DeleteError, Envelope]],
                          sealEnvelope: String => Future[Xor[SealError, Envelope]])
@@ -36,8 +36,8 @@ class EnvelopeController(createEnvelope: Envelope => Future[Xor[CreateError, Env
   def create() = Action.async { implicit request =>
     def envelopeLocation = (id: String) => LOCATION -> s"${request.host}${routes.EnvelopeController.show(id)}"
 
-    import Formatters._
-    val envelope = toEnvelope(request.body.asJson.map(Json.fromJson[CreateEnvelope](_).get))
+    import EnvelopeReport._
+    val envelope = toEnvelope(request.body.asJson.map(Json.fromJson[EnvelopeReport](_).get))
 
     createEnvelope(envelope).map {
       case Xor.Left(CreateNotSuccessfulError(e)) => ExceptionHandler(BAD_REQUEST, "Envelope not stored")
@@ -47,10 +47,13 @@ class EnvelopeController(createEnvelope: Envelope => Future[Xor[CreateError, Env
   }
 
   def show(id: String) = Action.async {
+
+    import EnvelopeReport._
+
     findEnvelope(id).map {
       case Xor.Left(FindEnvelopeNotFoundError(e)) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
       case Xor.Left(FindServiceError(e, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Right(e) => Ok(Json.toJson(e))
+      case Xor.Right(e) => Ok(Json.toJson( EnvelopeReport.toCreateEnvelope(e) ))
     }.recover { case e => ExceptionHandler(e) }
   }
 

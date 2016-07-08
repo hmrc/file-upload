@@ -41,7 +41,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
   val failed = Future.failed(new Exception("not good"))
 
   def newController(createEnvelope: Envelope => Future[Xor[CreateError, Envelope]] = _ => failed,
-                    toEnvelope: Option[CreateEnvelope] => Envelope = _ => Envelope.emptyEnvelope(),
+                    toEnvelope: Option[EnvelopeReport] => Envelope = _ => Envelope.emptyEnvelope(),
                     findEnvelope: String => Future[Xor[FindError, Envelope]] = _ => failed,
                     deleteEnvelope: String => Future[Xor[DeleteError, Envelope]] = _ => failed,
                     sealEnvelope: String => Future[Xor[SealError, Envelope]] = _ => failed) =
@@ -94,7 +94,9 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
       val result = controller.show(envelope._id)(request).futureValue
 
       val actualResponse = Json.parse(consume(result.body))
-      val expectedResponse = Json.toJson(envelope)
+
+      import EnvelopeReport._
+      val expectedResponse = Json.toJson(EnvelopeReport.toCreateEnvelope(envelope))
 
       result.header.status shouldBe Status.OK
 	    actualResponse shouldBe expectedResponse

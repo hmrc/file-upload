@@ -18,15 +18,37 @@ package uk.gov.hmrc.fileupload.controllers
 
 import org.joda.time.DateTime
 import play.api.libs.json._
+import uk.gov.hmrc.fileupload.envelope.{Constraints, Envelope, File}
 
-case class CreateEnvelope(constraints: Option[CreateConstraints] = None, callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None, metadata: Option[Map[String, JsValue]] = None)
+case class EnvelopeReport(id: Option[String] = None, constraints: Option[ConstraintsReport] = None, callbackUrl: Option[String] = None,
+                          expiryDate: Option[DateTime] = None, metadata: Option[Map[String, JsValue]] = None, status: Option[String] = None, files: Option[Seq[File]] = None)
 
-case class CreateConstraints(contentTypes: Option[Seq[String]] = None, maxItems: Option[Int] = None, maxSize: Option[String] = None, maxSizePerItem: Option[String] = None)
+case class ConstraintsReport(contentTypes: Option[Seq[String]] = None, maxItems: Option[Int] = None, maxSize: Option[String] = None, maxSizePerItem: Option[String] = None)
 
-object Formatters {
+object EnvelopeReport {
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val fileReads: Format[File] = Json.format[File]
 
-  implicit val createConstraintsReads: Format[CreateConstraints] = Json.format[CreateConstraints]
-  implicit val createEnvelopeReads: Format[CreateEnvelope] = Json.format[CreateEnvelope]
+  implicit val createConstraintsReads: Format[ConstraintsReport] = Json.format[ConstraintsReport]
+  implicit val createEnvelopeReads: Format[EnvelopeReport] = Json.format[EnvelopeReport]
+
+  val MAX_ITEMS_DEFAULT = 1
+
+  def from(createEnvelope: Option[EnvelopeReport]): Envelope =
+    createEnvelope.map(fromCreateEnvelope).getOrElse(Envelope.emptyEnvelope())
+
+  def fromCreateEnvelope(dto: EnvelopeReport) =
+    Envelope.emptyEnvelope().copy(constraints = dto.constraints.map(fromCreateConstraints), callbackUrl = dto.callbackUrl, expiryDate = dto.expiryDate, metadata = dto.metadata, files = None)
+
+  def toCreateEnvelope(envelope: Envelope) = {
+    val createConstraints = envelope.constraints.map ( constraint =>  ConstraintsReport(constraint.contentTypes, constraint.maxItems, constraint.maxSize, constraint.maxSizePerItem ) )
+    EnvelopeReport(Some(envelope._id), createConstraints, envelope.callbackUrl, envelope.expiryDate, envelope.metadata, Some(envelope.status.toString.toUpperCase()), envelope.files)
+  }
+
+  private def fromCreateConstraints(dto: ConstraintsReport): Constraints = {
+    val maxItems: Int = dto.maxItems.getOrElse[Int](MAX_ITEMS_DEFAULT)
+    Envelope.emptyConstraints().copy(dto.contentTypes, Some(maxItems), dto.maxSize, dto.maxSizePerItem)
+  }
 }
+
