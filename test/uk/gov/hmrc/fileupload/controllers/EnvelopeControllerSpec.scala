@@ -96,7 +96,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
       val actualResponse = Json.parse(consume(result.body))
 
       import EnvelopeReport._
-      val expectedResponse = Json.toJson(EnvelopeReport.toCreateEnvelope(envelope))
+      val expectedResponse = Json.toJson(EnvelopeReport.fromEnvelope(envelope))
 
       result.header.status shouldBe Status.OK
 	    actualResponse shouldBe expectedResponse

@@ -53,7 +53,7 @@ class EnvelopeController(createEnvelope: Envelope => Future[Xor[CreateError, Env
     findEnvelope(id).map {
       case Xor.Left(FindEnvelopeNotFoundError(e)) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
       case Xor.Left(FindServiceError(e, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Right(e) => Ok(Json.toJson( EnvelopeReport.toCreateEnvelope(e) ))
+      case Xor.Right(e) => Ok(Json.toJson( EnvelopeReport.fromEnvelope(e) ))
     }.recover { case e => ExceptionHandler(e) }
   }
 

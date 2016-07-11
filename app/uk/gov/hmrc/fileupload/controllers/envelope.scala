@@ -35,18 +35,18 @@ object EnvelopeReport {
 
   val MAX_ITEMS_DEFAULT = 1
 
-  def from(createEnvelope: Option[EnvelopeReport]): Envelope =
-    createEnvelope.map(fromCreateEnvelope).getOrElse(Envelope.emptyEnvelope())
+  def fromEnvelopeReportOption(createEnvelope: Option[EnvelopeReport]): Envelope =
+    createEnvelope.map(fromEnvelopeReport).getOrElse(Envelope.emptyEnvelope())
 
-  def fromCreateEnvelope(dto: EnvelopeReport) =
-    Envelope.emptyEnvelope().copy(constraints = dto.constraints.map(fromCreateConstraints), callbackUrl = dto.callbackUrl, expiryDate = dto.expiryDate, metadata = dto.metadata, files = None)
+  def fromEnvelopeReport(dto: EnvelopeReport) =
+    Envelope.emptyEnvelope().copy(constraints = dto.constraints.map(fromConstraintsReport), callbackUrl = dto.callbackUrl, expiryDate = dto.expiryDate, metadata = dto.metadata, files = None)
 
-  def toCreateEnvelope(envelope: Envelope) = {
+  def fromEnvelope(envelope: Envelope) = {
     val createConstraints = envelope.constraints.map ( constraint =>  ConstraintsReport(constraint.contentTypes, constraint.maxItems, constraint.maxSize, constraint.maxSizePerItem ) )
     EnvelopeReport(Some(envelope._id), createConstraints, envelope.callbackUrl, envelope.expiryDate, envelope.metadata, Some(envelope.status.toString.toUpperCase()), envelope.files)
   }
 
-  private def fromCreateConstraints(dto: ConstraintsReport): Constraints = {
+  private def fromConstraintsReport(dto: ConstraintsReport): Constraints = {
     val maxItems: Int = dto.maxItems.getOrElse[Int](MAX_ITEMS_DEFAULT)
     Envelope.emptyConstraints().copy(dto.contentTypes, Some(maxItems), dto.maxSize, dto.maxSizePerItem)
   }
