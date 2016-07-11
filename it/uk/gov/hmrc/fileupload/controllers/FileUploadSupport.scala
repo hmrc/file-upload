@@ -75,7 +75,7 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
 				val id = resp.header("Location").map{ _.split("/").last }.get
 				getEnvelopeFor(id)
 					.map{ resp =>
-						val envelope = EnvelopeReport.from(Some(Json.fromJson[EnvelopeReport](resp.json).get))
+						val envelope = EnvelopeReport.fromEnvelopeReportOption(Some(Json.fromJson[EnvelopeReport](resp.json).get))
 						self.mayBeEnvelope = Some(envelope)
 						self
 					}
@@ -92,7 +92,7 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
 		require(mayBeEnvelope.isDefined, "No envelope defined")
 		await(getEnvelopeFor(mayBeEnvelope.get._id)
 			.map{ resp =>
-				val envelope = EnvelopeReport.from(Some(Json.fromJson[EnvelopeReport](resp.json).get))
+				val envelope = EnvelopeReport.fromEnvelopeReportOption(Some(Json.fromJson[EnvelopeReport](resp.json).get))
 				self.mayBeEnvelope = Some(envelope)
 				self
 			})

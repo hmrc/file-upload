@@ -19,23 +19,24 @@ package uk.gov.hmrc.fileupload.envelope
 import java.util.UUID
 
 import org.junit
+import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.ScalaFutures
-import play.api.libs.iteratee.Enumerator
-import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.file._
-import uk.gov.hmrc.fileupload.infrastructure.DefaultMongoConnection
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplication with ScalaFutures  {
+class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplication with ScalaFutures with BeforeAndAfter  {
+
+  val repository = new Repository(mongo)
+
+  before {
+    repository.removeAll()
+  }
 
 	"repository" should {
     "persist an envelope" in {
-      val repository = new Repository(mongo)
 			val envelope = Support.envelope.copy(files = Some(Seq(File(href = "ads", id = "myfile", rel = "file"))))
 
       val result = await(repository add envelope)
@@ -43,7 +44,6 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
     }
 
     "retrieve a persisted envelope" in {
-      val repository = new Repository(mongo)
       val envelope = Support.envelope
       val id = envelope._id
 
@@ -54,7 +54,6 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
     }
 
 	  "remove a persisted envelope" in {
-		  val repository = new Repository(mongo)
 		  val envelope = Support.envelope
 		  val id = envelope._id
 
@@ -66,7 +65,6 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 	  }
 
 	  "return nothing for a none existent envelope" in {
-		  val repository = new Repository(mongo)
 			val id = UUID.randomUUID().toString
 
 		  val result = await(repository get id)

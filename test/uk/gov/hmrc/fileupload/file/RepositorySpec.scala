@@ -18,21 +18,27 @@ package uk.gov.hmrc.fileupload.file
 
 import java.util.UUID
 
+import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.file.Repository.{FileNotFoundError, RetrieveFileResult}
-import uk.gov.hmrc.fileupload.infrastructure.DefaultMongoConnection
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplication with ScalaFutures {
+class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplication with ScalaFutures with BeforeAndAfter {
 
-	def createMetadata(compositeFileId: CompositeFileId = CompositeFileId(UUID.randomUUID().toString, UUID.randomUUID().toString)) = FileMetadata(
+  val repository = new Repository(mongo)
+
+  before {
+    repository.removeAll()
+  }
+
+  def createMetadata(compositeFileId: CompositeFileId = CompositeFileId(UUID.randomUUID().toString, UUID.randomUUID().toString)) = FileMetadata(
 		_id = compositeFileId,
 		contentType = Some("application/pdf"),
 		revision = Some(1),
@@ -61,13 +67,11 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 	  "add file metadata" in {
 		  val metadata = createMetadata()
 
-		  val repository = new Repository(mongo)
 		  val result = await(repository addFileMetadata metadata)
 		  result shouldBe true
 	  }
 
 	  "be able to update matadata of an existing file" in {
-		  val repository = new Repository(mongo)
 		  val contents = Enumerator[ByteStream]("I only exists to be stored in mongo :<".getBytes)
 
 			val fileId = UUID.randomUUID().toString
@@ -92,7 +96,6 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 
 
 		"retrieve a file in a envelope" in {
-			val repository = new Repository(DefaultMongoConnection.db)
 			val contents = Enumerator[ByteStream]("I only exists to be stored in mongo :<".getBytes)
 
 			val envelopeId = Support.envelope._id
@@ -110,8 +113,6 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 
 
 		"returns a fileNotFound error" in {
-			val repository = new Repository(DefaultMongoConnection.db)
-
 			val compositeFileId = CompositeFileId(Support.envelope._id, "nofile")
 
 			val fileResult: RetrieveFileResult = await(repository retrieveFile(compositeFileId))
