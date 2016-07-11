@@ -24,4 +24,10 @@ trait EnvelopeActions extends ITestSupport{
       .withHeaders("Content-Type" -> "application/json")
       .post(data)
   }
+
+  def getEnvelopeFor(id: String): Future[WSResponse] = {
+    WS
+      .url(s"$url/envelope/$id")
+      .get()
+  }
 }

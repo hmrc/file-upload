@@ -47,12 +47,6 @@ class FileUploadSupport(var mayBeEnvelope: Option[EnvelopeReport] = None) extend
 			})
 	}
 
-	def getEnvelopeFor(id: String): Future[WSResponse] = {
-		WS
-			.url(s"$url/envelope/$id")
-			.get()
-	}
-
 	def refresh: FileUploadSupport = {
 		require(mayBeEnvelope.isDefined, "No envelope defined")
 		await(getEnvelopeFor(mayBeEnvelope.get.id.get)
