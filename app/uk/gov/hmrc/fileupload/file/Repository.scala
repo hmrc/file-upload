@@ -48,7 +48,6 @@ class Repository(mongo: () => DB with DBMetaCommands) {
   lazy val gfs: JSONGridFS = GridFS[JSONSerializationPack.type](mongo(), "envelopes")
 
   def addFileMetadata(metadata: FileMetadata)(implicit ec: ExecutionContext): Future[Boolean] = {
-
     val jsonObj = Json.obj("$set" -> Json.toJson[FileMetadata](metadata))
     gfs.files.update(
       _id(metadata._id),
@@ -57,26 +56,31 @@ class Repository(mongo: () => DB with DBMetaCommands) {
     ).map(toBoolean)
   }
 
-  def getFileMetadata(id: String)(implicit ec: ExecutionContext): Future[Option[FileMetadata]] = {
+  def getFileMetadata(compositeFileId: CompositeFileId)(implicit ec: ExecutionContext): Future[Option[FileMetadata]] = {
     import FileMetadata._
-    gfs.files.find(_id(id))
+    gfs.files.find(_id(compositeFileId))
       .cursor[FileMetadata](ReadPreference.primaryPreferred)
       .headOption
   }
 
-  private def _id(id: String) = Json.obj("_id" -> id)
+  private def _id(compositeFileId: CompositeFileId) = {
+    import FileMetadata._
+    Json.obj("_id" -> Json.toJson(compositeFileId))
+  }
 
   def toBoolean(wr: WriteResult): Boolean = wr match {
     case r if r.ok && r.n > 0 => true
     case _ => false
   }
 
-  def iterateeForUpload(envelopeId: String, fileId: String)(implicit ec: ExecutionContext) : Iteratee[ByteStream, Future[JSONReadFile]] = {
-    gfs.iteratee(JSONFileToSave(filename = None, id = Json.toJson(fileId), metadata = Json.obj("envelopeId" -> envelopeId)))
+  def iterateeForUpload(compositeFileId: CompositeFileId)(implicit ec: ExecutionContext) : Iteratee[ByteStream, Future[JSONReadFile]] = {
+    import FileMetadata._
+    gfs.iteratee(JSONFileToSave(filename = None, id = Json.toJson(compositeFileId)))
   }
 
-  def retrieveFile(envelopeId: String, fileId: String)(implicit ec: ExecutionContext): Future[RetrieveFileResult] = {
-    gfs.find[BSONDocument, JSONReadFile](BSONDocument("_id" -> fileId, "metadata.envelopeId" -> envelopeId)).headOption.map {
+  def retrieveFile(compositeFileId: CompositeFileId)(implicit ec: ExecutionContext): Future[RetrieveFileResult] = {
+    import FileMetadata._
+    gfs.find[BSONDocument, JSONReadFile](BSONDocument("_id" -> Json.toJson(compositeFileId))).headOption.map {
       case Some(file: JSONReadFile) => Xor.Right(FileFoundResult(file.filename, file.length, gfs.enumerate(file)))
       case None => Xor.Left(FileNotFoundError)
     }

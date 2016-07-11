@@ -17,23 +17,49 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import play.api.libs.iteratee.Iteratee
-import play.api.libs.json.Json
+import play.api.libs.json.{Format, JsObject, Json}
 import play.api.mvc.{BodyParser, _}
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.file.FileMetadata
+import uk.gov.hmrc.fileupload.file.{CompositeFileId, FileMetadata}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
-object FileMetadataParser extends BodyParser[FileMetadata] {
+case class FileMetadataReport(id: Option[String],
+                              filename: Option[String] = None,
+                              contentType: Option[String] = None,
+                              revision: Option[Int] = None,
+                              metadata: Option[JsObject] = None)
 
-  def apply(request: RequestHeader): Iteratee[Array[Byte], Either[Result, FileMetadata]] = {
-    import FileMetadata._
+object FileMetadataReport {
+  implicit val fileMetaDataReportFormat: Format[FileMetadataReport] = Json.format[FileMetadataReport]
+
+  def toFileMetadata(envelopeId: String, fileId: String, report: FileMetadataReport): FileMetadata =
+    FileMetadata(
+      _id = CompositeFileId(envelopeId = envelopeId, fileId = fileId),
+      filename = report.filename,
+      contentType = report.contentType,
+      revision = report.revision,
+      metadata = report.metadata)
+
+  def fromFileMetadata(fileMetadata: FileMetadata): FileMetadataReport =
+    FileMetadataReport(
+      id = Some(fileMetadata._id.fileId),
+      filename = fileMetadata.filename,
+      contentType = fileMetadata.contentType,
+      revision = fileMetadata.revision,
+      metadata = fileMetadata.metadata)
+}
+
+object FileMetadataParser extends BodyParser[FileMetadataReport] {
+
+  def apply(request: RequestHeader): Iteratee[Array[Byte], Either[Result, FileMetadataReport]] = {
+    import FileMetadataReport._
 
     Iteratee.consume[Array[Byte]]().map { data =>
-      Try(Json.fromJson[FileMetadata](Json.parse(data)).get) match {
-        case Success(fileMetadata) => Right(fileMetadata)
+      Try(Json.fromJson[FileMetadataReport](Json.parse(data)).get) match {
+        case Success(report) => Right(report)
         case Failure(NonFatal(e)) => Left(ExceptionHandler(e))
       }
     }(ExecutionContext.global)
@@ -42,11 +68,11 @@ object FileMetadataParser extends BodyParser[FileMetadata] {
 
 object UploadParser {
 
-  def parse(uploadFile: (String, String) => Iteratee[ByteStream, Future[JSONReadFile]])
-           (envelopeId: String, fileId: String)
+  def parse(uploadFile: CompositeFileId => Iteratee[ByteStream, Future[JSONReadFile]])
+           (compositeFileId: CompositeFileId)
            (implicit ex: ExecutionContext): BodyParser[Future[JSONReadFile]] = BodyParser { _ =>
 
-    uploadFile(envelopeId, fileId) map (Right(_)) recover { case NonFatal(e) => Left(ExceptionHandler(e)) }
+    uploadFile(compositeFileId) map (Right(_)) recover { case NonFatal(e) => Left(ExceptionHandler(e)) }
   }
 }
 

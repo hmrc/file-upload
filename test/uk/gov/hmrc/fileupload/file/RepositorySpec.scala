@@ -32,8 +32,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplication with ScalaFutures {
 
-	def createMetadata(id: String) = FileMetadata(
-		_id = id,
+	def createMetadata(compositeFileId: CompositeFileId = CompositeFileId(UUID.randomUUID().toString, UUID.randomUUID().toString)) = FileMetadata(
+		_id = compositeFileId,
 		contentType = Some("application/pdf"),
 		revision = Some(1),
 		filename = Some("test.pdf"),
@@ -59,7 +59,7 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 
 	"repository" should {
 	  "add file metadata" in {
-		  val metadata = createMetadata(UUID.randomUUID().toString)
+		  val metadata = createMetadata()
 
 		  val repository = new Repository(mongo)
 		  val result = await(repository addFileMetadata metadata)
@@ -69,20 +69,22 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 	  "be able to update matadata of an existing file" in {
 		  val repository = new Repository(mongo)
 		  val contents = Enumerator[ByteStream]("I only exists to be stored in mongo :<".getBytes)
-		  val fileId = UUID.randomUUID().toString
 
+			val fileId = UUID.randomUUID().toString
       val envelopeId: String = Support.envelope._id
-      val sink = repository.iterateeForUpload(envelopeId, fileId)
+			val compositeFileId = CompositeFileId(envelopeId, fileId)
+
+      val sink = repository.iterateeForUpload(compositeFileId)
 
 		  await(await(contents.run[Future[JSONReadFile]](sink)))
 
-		  var metadata = await(repository.getFileMetadata(fileId)).getOrElse(throw new Exception("should have metadata"))
-		  val fileMetadata = FileMetadata(_id = fileId, metadata = Some(Json.obj("envelopeId" -> envelopeId)))
+		  var metadata = await(repository.getFileMetadata(compositeFileId)).getOrElse(throw new Exception("should have metadata"))
+		  val fileMetadata = FileMetadata(_id = compositeFileId)
 		  metadata shouldBe fileMetadata
 
-		  val updatedMetadata = createMetadata(fileId)
+		  val updatedMetadata = createMetadata(compositeFileId)
 		  await(repository addFileMetadata updatedMetadata)
-		  metadata = await(repository.getFileMetadata(fileId)).getOrElse(throw new Exception("should have metadata"))
+		  metadata = await(repository.getFileMetadata(compositeFileId)).getOrElse(throw new Exception("should have metadata"))
 
 		  println(Json.stringify(Json.toJson[FileMetadata](metadata)))
 		  metadata shouldBe updatedMetadata
@@ -92,12 +94,15 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 		"retrieve a file in a envelope" in {
 			val repository = new Repository(DefaultMongoConnection.db)
 			val contents = Enumerator[ByteStream]("I only exists to be stored in mongo :<".getBytes)
+
 			val envelopeId = Support.envelope._id
 			val fileId = UUID.randomUUID().toString
-			val sink = repository.iterateeForUpload(envelopeId, fileId)
+			val compositeFileId = CompositeFileId(envelopeId, fileId)
+
+			val sink = repository.iterateeForUpload(compositeFileId)
 			await(await(contents.run[Future[JSONReadFile]](sink)))
 
-			val fileResult: RetrieveFileResult = await(repository retrieveFile(envelopeId, fileId))
+			val fileResult: RetrieveFileResult = await(repository retrieveFile(compositeFileId))
 
 			fileResult.isRight shouldBe true
 			fileResult.toEither.right.get.length shouldBe 38
@@ -107,7 +112,9 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 		"returns a fileNotFound error" in {
 			val repository = new Repository(DefaultMongoConnection.db)
 
-			val fileResult: RetrieveFileResult = await(repository retrieveFile(Support.envelope._id, "nofile"))
+			val compositeFileId = CompositeFileId(Support.envelope._id, "nofile")
+
+			val fileResult: RetrieveFileResult = await(repository retrieveFile(compositeFileId))
 
 			fileResult.isLeft shouldBe true
 			fileResult.toEither.left.get shouldBe FileNotFoundError

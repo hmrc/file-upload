@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.controllers
 
 import play.api.libs.json.Json
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.file.FileMetadata
+import uk.gov.hmrc.fileupload.file.{CompositeFileId, FileMetadata}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import cats.data.Xor
 import uk.gov.hmrc.fileupload.JSONReadFile
@@ -29,14 +29,14 @@ import uk.gov.hmrc.fileupload.file.Service._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
-class FileController(uploadBodyParser: (String, String) => BodyParser[Future[JSONReadFile]],
+class FileController(uploadBodyParser: CompositeFileId => BodyParser[Future[JSONReadFile]],
                      addFileToEnvelope: (String, String) => Future[AddFileResult],
-                     getMetadata: String => Future[GetMetadataResult],
+                     getMetadata: CompositeFileId => Future[GetMetadataResult],
                      updateMetadata: FileMetadata => Future[UpdateMetadataResult],
-                     retrieveFile: (String, String) => Future[RetrieveFileResult])
+                     retrieveFile: CompositeFileId => Future[RetrieveFileResult])
                     (implicit executionContext: ExecutionContext) extends BaseController {
 
-  def upload(envelopeId: String, fileId: String) = Action.async(uploadBodyParser(envelopeId, fileId)) { request =>
+  def upload(envelopeId: String, fileId: String) = Action.async(uploadBodyParser(CompositeFileId(envelopeId, fileId))) { request =>
     //TODO: rollback file upload if file not added to envelope
 	  request.body.flatMap { _ =>
 		  addFileToEnvelope(envelopeId, fileId).map {
@@ -50,25 +50,26 @@ class FileController(uploadBodyParser: (String, String) => BodyParser[Future[JSO
   }
 
   def get(envelopeId: String, fileId: String) = Action.async {
-    getMetadata(fileId).map {
-      case Xor.Right(m) => Ok(Json.toJson[FileMetadata](m))
+    getMetadata(CompositeFileId(envelopeId, fileId)).map {
+      case Xor.Right(m) => Ok(Json.toJson[FileMetadataReport](FileMetadataReport.fromFileMetadata(m)))
       case Xor.Left(GetMetadataNotFoundError(e)) => ExceptionHandler(NOT_FOUND, s"File $fileId not found")
       case Xor.Left(GetMetadataServiceError(e, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
     }.recover { case e => ExceptionHandler(e) }
   }
 
 	def metadata(envelopeId: String, fileId: String) = Action.async(FileMetadataParser) { request =>
-    updateMetadata(request.body).map {
-      case Xor.Right(m) => Ok(Json.toJson[FileMetadata](m))
+    updateMetadata(FileMetadataReport.toFileMetadata(envelopeId, fileId, request.body)).map {
+      case Xor.Right(m) => Ok(Json.toJson[FileMetadataReport](FileMetadataReport.fromFileMetadata(m)))
       case Xor.Left(UpdateMetadataNotFoundError(e)) => ExceptionHandler(NOT_FOUND, s"File $fileId not found")
       case Xor.Left(UpdateMetadataServiceError(e, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
     }.recover { case e => ExceptionHandler(e) }
 	}
 
   def download(envelopeId: String, fileId: String) = Action.async { request =>
-    retrieveFile(envelopeId, fileId) map  {
+    retrieveFile(CompositeFileId(envelopeId, fileId)) map  {
       case Xor.Right(result) =>
-        Ok feed result.data withHeaders(CONTENT_LENGTH -> s"${result.length}", CONTENT_DISPOSITION -> s"""attachment; filename="${result.filename.getOrElse("data")}"""")
+        Ok feed result.data withHeaders(
+          CONTENT_LENGTH -> s"${result.length}", CONTENT_DISPOSITION -> s"""attachment; filename="${result.filename.getOrElse("data")}"""")
       case Xor.Left(result) => NotFound
     }
   }

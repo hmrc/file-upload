@@ -23,31 +23,34 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 object Service {
-  
+
   type GetMetadataResult = Xor[GetMetadataError, FileMetadata]
   type UpdateMetadataResult = Xor[UpdateMetadataError, FileMetadata]
 
   sealed trait GetMetadataError
-  case class GetMetadataNotFoundError(id: String) extends GetMetadataError
-  case class GetMetadataServiceError(id: String, message: String) extends GetMetadataError
+  case class GetMetadataNotFoundError(compositeFileId: CompositeFileId) extends GetMetadataError
+  case class GetMetadataServiceError(compositeFileId: CompositeFileId, message: String) extends GetMetadataError
 
   sealed trait UpdateMetadataError
-  case class UpdateMetadataNotFoundError(id: String) extends UpdateMetadataError
-  case class UpdateMetadataServiceError(id: String, message: String) extends UpdateMetadataError
+  case class UpdateMetadataNotFoundError(compositeFileId: CompositeFileId) extends UpdateMetadataError
+  case class UpdateMetadataServiceError(compositeFileId: CompositeFileId, message: String) extends UpdateMetadataError
 
-  def getMetadata(getFileMetadata: String => Future[Option[FileMetadata]])(id: String)(implicit ex: ExecutionContext): Future[GetMetadataResult] =
-    getFileMetadata(id).map {
+  def getMetadata(getFileMetadata: CompositeFileId => Future[Option[FileMetadata]])(compositeFileId: CompositeFileId)
+                 (implicit ex: ExecutionContext): Future[GetMetadataResult] =
+    getFileMetadata(compositeFileId).map {
       case Some(e) => Xor.right(e)
-      case _ => Xor.left(GetMetadataNotFoundError(id))
-    }.recoverWith { case e => Future { Xor.left(GetMetadataServiceError(id, e.getMessage)) } }
+      case _ => Xor.left(GetMetadataNotFoundError(compositeFileId))
+    }.recoverWith { case e => Future { Xor.left(GetMetadataServiceError(compositeFileId, e.getMessage)) } }
 
-  def updateMetadata(updateMetadata: FileMetadata => Future[Boolean])(metadata: FileMetadata)(implicit ex: ExecutionContext): Future[UpdateMetadataResult] =
+  def updateMetadata(updateMetadata: FileMetadata => Future[Boolean])(metadata: FileMetadata)
+                    (implicit ex: ExecutionContext): Future[UpdateMetadataResult] =
     updateMetadata(metadata).map {
       case true => Xor.right(metadata)
       case _ => Xor.left(UpdateMetadataNotFoundError(metadata._id))
     }.recoverWith { case e => Future { Xor.left(UpdateMetadataServiceError(metadata._id, e.getMessage)) } }
 
-  def retrieveFile(fromRepository: (String, String) => Future[RetrieveFileResult])(envelopeId: String, fileId: String)(implicit ex: ExecutionContext): Future[RetrieveFileResult] = {
-    fromRepository(envelopeId, fileId)
+  def retrieveFile(fromRepository: CompositeFileId => Future[RetrieveFileResult])(compositeFileId: CompositeFileId)
+                  (implicit ex: ExecutionContext): Future[RetrieveFileResult] = {
+    fromRepository(compositeFileId)
   }
 }

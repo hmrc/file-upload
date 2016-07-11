@@ -20,13 +20,15 @@ import java.util.UUID
 
 import play.api.libs.json.{Format, JsObject, Json}
 
-object FileMetadata{
-  implicit val fileMetaDataReads: Format[FileMetadata] = Json.format[FileMetadata]
+object FileMetadata {
+  implicit val compositeFileIdFormat: Format[CompositeFileId] = Json.format[CompositeFileId]
+  implicit val fileMetaDataFormat: Format[FileMetadata] = Json.format[FileMetadata]
 }
 
-case class FileMetadata(_id: String = UUID.randomUUID().toString,
+case class FileMetadata(_id: CompositeFileId = CompositeFileId(envelopeId = UUID.randomUUID().toString, fileId = UUID.randomUUID().toString),
                         filename: Option[String] = None,
                         contentType: Option[String] = None,
                         revision: Option[Int] = None,
                         metadata: Option[JsObject] = None)
 
+case class CompositeFileId(envelopeId: String, fileId: String)
