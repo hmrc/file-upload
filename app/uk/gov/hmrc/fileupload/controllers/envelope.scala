@@ -17,13 +17,27 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import org.joda.time.DateTime
+import play.api.libs.iteratee.Iteratee
 import play.api.libs.json._
+import play.api.mvc.{Result, RequestHeader, BodyParser}
 import uk.gov.hmrc.fileupload.envelope.{Constraints, Envelope, File}
 
-case class EnvelopeReport(id: Option[String] = None, constraints: Option[ConstraintsReport] = None, callbackUrl: Option[String] = None,
-                          expiryDate: Option[DateTime] = None, metadata: Option[Map[String, JsValue]] = None, status: Option[String] = None, files: Option[Seq[File]] = None)
+import scala.concurrent.ExecutionContext
+import scala.util.control.NonFatal
+import scala.util.{Failure, Success, Try}
 
-case class ConstraintsReport(contentTypes: Option[Seq[String]] = None, maxItems: Option[Int] = None, maxSize: Option[String] = None, maxSizePerItem: Option[String] = None)
+case class EnvelopeReport(id: Option[String] = None,
+                          constraints: Option[ConstraintsReport] = None,
+                          callbackUrl: Option[String] = None,
+                          expiryDate: Option[DateTime] = None,
+                          metadata: Option[Map[String, JsValue]] = None,
+                          status: Option[String] = None,
+                          files: Option[Seq[File]] = None)
+
+case class ConstraintsReport(contentTypes: Option[Seq[String]] = None,
+                             maxItems: Option[Int] = None,
+                             maxSize: Option[String] = None,
+                             maxSizePerItem: Option[String] = None)
 
 object EnvelopeReport {
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
@@ -35,20 +49,49 @@ object EnvelopeReport {
 
   val MAX_ITEMS_DEFAULT = 1
 
-  def fromEnvelopeReportOption(createEnvelope: Option[EnvelopeReport]): Envelope =
-    createEnvelope.map(fromEnvelopeReport).getOrElse(Envelope.emptyEnvelope())
+  def toEnvelope(envelopeId: String, report: EnvelopeReport): Envelope =
+    Envelope(
+      _id = envelopeId,
+      constraints = report.constraints.map(toConstraints),
+      callbackUrl = report.callbackUrl,
+      expiryDate = report.expiryDate,
+      metadata = report.metadata,
+      files = report.files)
 
-  def fromEnvelopeReport(dto: EnvelopeReport) =
-    Envelope.emptyEnvelope().copy(constraints = dto.constraints.map(fromConstraintsReport), callbackUrl = dto.callbackUrl, expiryDate = dto.expiryDate, metadata = dto.metadata, files = None)
+  def fromEnvelope(envelope: Envelope): EnvelopeReport =
+    EnvelopeReport(
+      id = Some(envelope._id),
+      constraints = envelope.constraints.map(fromConstraints),
+      callbackUrl = envelope.callbackUrl,
+      expiryDate = envelope.expiryDate,
+      metadata = envelope.metadata,
+      status = Option(envelope.status).map(_.toString),
+      files = envelope.files)
 
-  def fromEnvelope(envelope: Envelope) = {
-    val createConstraints = envelope.constraints.map ( constraint =>  ConstraintsReport(constraint.contentTypes, constraint.maxItems, constraint.maxSize, constraint.maxSizePerItem ) )
-    EnvelopeReport(Some(envelope._id), createConstraints, envelope.callbackUrl, envelope.expiryDate, envelope.metadata, Some(envelope.status.toString.toUpperCase()), envelope.files)
+  private def toConstraints(report: ConstraintsReport): Constraints = {
+    val maxItems: Int = report.maxItems.getOrElse[Int](MAX_ITEMS_DEFAULT)
+    Constraints(contentTypes = report.contentTypes, maxItems = Some(maxItems), maxSize = report.maxSize, maxSizePerItem = report.maxSizePerItem)
   }
 
-  private def fromConstraintsReport(dto: ConstraintsReport): Constraints = {
-    val maxItems: Int = dto.maxItems.getOrElse[Int](MAX_ITEMS_DEFAULT)
-    Envelope.emptyConstraints().copy(dto.contentTypes, Some(maxItems), dto.maxSize, dto.maxSizePerItem)
+  private def fromConstraints(constraints: Constraints): ConstraintsReport =
+    ConstraintsReport(
+      contentTypes = constraints.contentTypes,
+      maxItems = constraints.maxItems,
+      maxSize = constraints.maxSize,
+      maxSizePerItem = constraints.maxSizePerItem)
+}
+
+object EnvelopeParser extends BodyParser[EnvelopeReport] {
+
+  def apply(request: RequestHeader): Iteratee[Array[Byte], Either[Result, EnvelopeReport]] = {
+    import EnvelopeReport._
+
+    Iteratee.consume[Array[Byte]]().map { data =>
+      Try(Json.fromJson[EnvelopeReport](Json.parse(data)).get) match {
+        case Success(report) => Right(report)
+        case Failure(NonFatal(e)) => Left(ExceptionHandler(e))
+      }
+    }(ExecutionContext.global)
   }
 }
 

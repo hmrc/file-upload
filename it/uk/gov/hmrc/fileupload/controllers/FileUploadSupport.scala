@@ -35,7 +35,7 @@ import scala.util.control.NonFatal
 /**
 	* Created by Josiah on 6/20/2016.
 	*/
-class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends WithServer
+class FileUploadSupport(var mayBeEnvelope: Option[EnvelopeReport] = None) extends WithServer
 	with FutureAwaits with DefaultAwaitTimeout with Status {
 	import Envelope._
 
@@ -75,7 +75,7 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
 				val id = resp.header("Location").map{ _.split("/").last }.get
 				getEnvelopeFor(id)
 					.map{ resp =>
-						val envelope = EnvelopeReport.fromEnvelopeReportOption(Some(Json.fromJson[EnvelopeReport](resp.json).get))
+						val envelope = Json.fromJson[EnvelopeReport](resp.json).get
 						self.mayBeEnvelope = Some(envelope)
 						self
 					}
@@ -90,9 +90,9 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
 
 	def refresh: FileUploadSupport = {
 		require(mayBeEnvelope.isDefined, "No envelope defined")
-		await(getEnvelopeFor(mayBeEnvelope.get._id)
+		await(getEnvelopeFor(mayBeEnvelope.get.id.get)
 			.map{ resp =>
-				val envelope = EnvelopeReport.fromEnvelopeReportOption(Some(Json.fromJson[EnvelopeReport](resp.json).get))
+				val envelope = Json.fromJson[EnvelopeReport](resp.json).get
 				self.mayBeEnvelope = Some(envelope)
 				self
 			})
@@ -101,7 +101,7 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
 	def doUpload(data: Array[Byte], fileId: String): WSResponse = {
 		require(mayBeEnvelope.isDefined, "No envelope defined")
 		await(WS
-			.url(s"$url/envelope/${envelope._id}/file/$fileId/content")
+			.url(s"$url/envelope/${envelope.id.get}/file/$fileId/content")
 			.withHeaders("Content-Type" -> "application/octet-stream")
 			.put(data))
 	}
@@ -111,13 +111,13 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
 	def putFileMetadata(data: Array[Byte], fileId: String): WSResponse = {
 		require(mayBeEnvelope.isDefined, "No envelope defined")
 		await(WS
-			.url(s"$url/envelope/${envelope._id}/file/$fileId/metadata" )
+			.url(s"$url/envelope/${envelope.id.get}/file/$fileId/metadata" )
 			.withHeaders("Content-Type" -> "application/json")
 			.put(data))
 	}
 
 
-	def getFileMetadataFor(fileId: String, envelopeId: String = envelope._id): String =
+	def getFileMetadataFor(fileId: String, envelopeId: String = envelope.id.get): String =
 		await(WS
 			.url(s"$url/envelope/$envelopeId/file/$fileId/metadata")
 			.get()

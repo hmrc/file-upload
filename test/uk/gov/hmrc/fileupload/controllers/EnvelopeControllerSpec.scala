@@ -33,7 +33,6 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with ScalaFutures {
 
-  import Envelope._
   import Support._
 
   implicit val ec = ExecutionContext.global
@@ -41,23 +40,23 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
   val failed = Future.failed(new Exception("not good"))
 
   def newController(createEnvelope: Envelope => Future[Xor[CreateError, Envelope]] = _ => failed,
-                    toEnvelope: Option[EnvelopeReport] => Envelope = _ => Envelope.emptyEnvelope(),
+                    nextId: () => String = () => "abc-def",
                     findEnvelope: String => Future[Xor[FindError, Envelope]] = _ => failed,
                     deleteEnvelope: String => Future[Xor[DeleteError, Envelope]] = _ => failed,
                     sealEnvelope: String => Future[Xor[SealError, Envelope]] = _ => failed) =
-    new EnvelopeController(createEnvelope, toEnvelope, findEnvelope, deleteEnvelope, sealEnvelope)
+    new EnvelopeController(createEnvelope, nextId, findEnvelope, deleteEnvelope, sealEnvelope)
 
   "Create envelope with a request" should {
     "return response with OK status and a Location header specifying the envelope endpoint" in {
 	    val serverUrl = "http://production.com:8000"
 
-	    val fakeRequest = new FakeRequest[AnyContentAsJson]("POST", "/envelope", FakeHeaders(), body = AnyContentAsJson(envelopeBody)){
+	    val fakeRequest = new FakeRequest[EnvelopeReport]("POST", "/envelope", FakeHeaders(), body = envelopeReport){
 		    override lazy val host = serverUrl
 	    }
 
       val envelope = Support.envelope
 
-      val controller = newController(createEnvelope = _ => Future.successful(Xor.right(envelope)), toEnvelope = _ => envelope)
+      val controller = newController(createEnvelope = _ => Future.successful(Xor.right(envelope)))
       val result: Result = controller.create()(fakeRequest).futureValue
 
       result.header.status shouldBe Status.CREATED
@@ -70,13 +69,13 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
     "return response with OK status and a Location header specifying the envelope endpoint" in {
       val serverUrl = "http://production.com:8000"
 
-      val fakeRequest = new FakeRequest[AnyContentAsJson]("POST", "/envelope", FakeHeaders(), body = AnyContentAsJson(JsString(""))) {
+      val fakeRequest = new FakeRequest[EnvelopeReport]("POST", "/envelope", FakeHeaders(), body = EnvelopeReport()) {
         override lazy val host = serverUrl
       }
 
       val envelope = Support.envelope
 
-      val controller = newController(createEnvelope = _ => Future.successful(Xor.right(envelope)), toEnvelope = _ => envelope)
+      val controller = newController(createEnvelope = _ => Future.successful(Xor.right(envelope)))
       val result: Result = controller.create()(fakeRequest).futureValue
 
       result.header.status shouldBe Status.CREATED

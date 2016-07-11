@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.fileupload
 
+import java.util.UUID
+
 import com.typesafe.config.Config
 import play.api.mvc.{EssentialFilter, RequestHeader, Result}
 import play.api.{Application, Configuration, Play}
@@ -27,7 +29,6 @@ import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import net.ceedubs.ficus.Ficus._
-import uk.gov.hmrc.fileupload.envelope.Envelope
 import uk.gov.hmrc.fileupload.infrastructure.DefaultMongoConnection
 import uk.gov.hmrc.play.http.BadRequestException
 
@@ -86,14 +87,14 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     import play.api.libs.concurrent.Execution.Implicits._
 
     val create = Service.create(update) _
-    val toEnvelope = EnvelopeReport.fromEnvelopeReportOption _
+    val nextId = () => UUID.randomUUID().toString
 
     val del = envelopeRepository.delete _
     val delete = Service.delete(del, find) _
 
     val seal = Service.seal(update, find) _
 
-    new EnvelopeController(createEnvelope = create, toEnvelope = toEnvelope, findEnvelope = find, deleteEnvelope = delete, sealEnvelope = seal)
+    new EnvelopeController(createEnvelope = create, nextId = nextId, findEnvelope = find, deleteEnvelope = delete, sealEnvelope = seal)
   }
 
   lazy val fileController = {

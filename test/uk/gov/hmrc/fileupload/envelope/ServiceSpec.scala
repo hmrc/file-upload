@@ -29,7 +29,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
   "create" should {
     "be successful" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val create = Service.create(_ => Future.successful(true)) _
 
       val result = create(envelope).futureValue
@@ -38,7 +38,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be not successful" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val create = Service.create(_ => Future.successful(false)) _
 
       val result = create(envelope).futureValue
@@ -47,7 +47,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be a create service error" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val create = Service.create(_ => Future.failed(new Exception("not good"))) _
 
       val result = create(envelope).futureValue
@@ -58,7 +58,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
   "find" should {
     "be successful" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val find = Service.find(_ => Future.successful(Some(envelope))) _
 
       val result = find(envelope._id).futureValue
@@ -67,7 +67,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be not found" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val find = Service.find(_ => Future.successful(None)) _
 
       val result = find(envelope._id).futureValue
@@ -76,7 +76,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be a find service error" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val find = Service.find(_ => Future.failed(new Exception("not good"))) _
 
       val result = find(envelope._id).futureValue
@@ -87,7 +87,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
   "delete" should {
     "be successful" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val delete = Service.delete(_ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
 
       val result = delete(envelope._id).futureValue
@@ -96,7 +96,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be a sealed error" in {
-      val envelope = Envelope.emptyEnvelope().copy(status = Sealed)
+      val envelope = Envelope().copy(status = Sealed)
       val delete = Service.delete(_ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
 
       val result = delete(envelope._id).futureValue
@@ -105,7 +105,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be not successful" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val delete = Service.delete(_ => Future.successful(false), _ => Future.successful(Xor.right(envelope))) _
 
       val result = delete(envelope._id).futureValue
@@ -114,7 +114,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be delete service error on delete" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val delete = Service.delete(_ => Future.failed(new Exception("not good")), _ => Future.successful(Xor.right(envelope))) _
 
       val result = delete(envelope._id).futureValue
@@ -123,7 +123,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be not found" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val delete = Service.delete(_ => Future.successful(true), _ => Future.successful(Xor.left(FindEnvelopeNotFoundError(envelope._id)))) _
 
       val result = delete(envelope._id).futureValue
@@ -132,7 +132,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be delete service error on find service error" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val delete = Service.delete(_ => Future.successful(true), _ => Future.successful(Xor.left(FindServiceError(envelope._id, "not good")))) _
 
       val result = delete(envelope._id).futureValue
@@ -141,7 +141,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be delete service error on find" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val delete = Service.delete(_ => Future.failed(new Exception("not good")), _ => Future.failed(new Exception("not good on find"))) _
 
       val result = delete(envelope._id).futureValue
@@ -152,7 +152,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
   "seal" should {
     "be successful" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val seal = Service.seal(_ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
 
       val result = seal(envelope._id).futureValue
@@ -161,7 +161,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be a sealed error" in {
-      val envelope = Envelope.emptyEnvelope().copy(status = Sealed)
+      val envelope = Envelope().copy(status = Sealed)
       val seal = Service.seal(_ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
 
       val result = seal(envelope._id).futureValue
@@ -170,7 +170,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be not successful" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val seal = Service.seal(_ => Future.successful(false), _ => Future.successful(Xor.right(envelope))) _
 
       val result = seal(envelope._id).futureValue
@@ -179,7 +179,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be seal service error on delete" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val seal = Service.seal(_ => Future.failed(new Exception("not good")), _ => Future.successful(Xor.right(envelope))) _
 
       val result = seal(envelope._id).futureValue
@@ -188,7 +188,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be not found" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val seal = Service.seal(_ => Future.successful(true), _ => Future.successful(Xor.left(FindEnvelopeNotFoundError(envelope._id)))) _
 
       val result = seal(envelope._id).futureValue
@@ -197,7 +197,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be seal service error on find service error" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val seal = Service.seal(_ => Future.successful(true), _ => Future.successful(Xor.left(FindServiceError(envelope._id, "not good")))) _
 
       val result = seal(envelope._id).futureValue
@@ -206,7 +206,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be seal service error on find" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val seal = Service.seal(_ => Future.failed(new Exception("not good")), _ => Future.failed(new Exception("not good on find"))) _
 
       val result = seal(envelope._id).futureValue
@@ -217,7 +217,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
   "addFile" should {
     "be successful" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val fileId = "123"
       val expectedEnvelope = envelope.copy(files = Some(Seq(File(href = s"url/$fileId", id = fileId))))
       val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
@@ -228,7 +228,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be file sealed error" in {
-      val envelope = Envelope.emptyEnvelope().copy(status = Sealed)
+      val envelope = Envelope().copy(status = Sealed)
       val fileId = "123"
       val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
 
@@ -238,7 +238,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be add file not successful error" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val fileId = "123"
       val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.successful(false), _ => Future.successful(Xor.right(envelope))) _
 
@@ -248,7 +248,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be add file service error on update" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val fileId = "123"
       val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.failed(new Exception("not good")), _ => Future.successful(Xor.right(envelope))) _
 
@@ -258,7 +258,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be add file envelope not found error" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val fileId = "123"
       val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.successful(true),
         _ => Future.successful(Xor.left(FindEnvelopeNotFoundError(envelope._id)))) _
@@ -269,7 +269,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be add file service error" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val fileId = "123"
       val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.successful(true),
         _ => Future.successful(Xor.left(FindServiceError(envelope._id, "not good")))) _
@@ -280,7 +280,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
 
     "be add file service error on find" in {
-      val envelope = Envelope.emptyEnvelope()
+      val envelope = Envelope()
       val fileId = "123"
       val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.successful(true), _ => Future.failed(new Exception("not good"))) _
 
