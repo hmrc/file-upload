@@ -101,7 +101,7 @@ class EnvelopeSpec extends UnitSpec {
     "have maxItems constrain defaulted to 1 when not specified" in {
       val dto: EnvelopeReport = EnvelopeReport(constraints = Some(ConstraintsReport(maxItems = None)))
 
-      val envelope: Envelope = EnvelopeReport.fromCreateEnvelope(dto)
+      val envelope: Envelope = EnvelopeReport.fromEnvelopeReport(dto)
 
       envelope.constraints.get.maxItems should equal( Some(1) )
     }
@@ -111,7 +111,7 @@ class EnvelopeSpec extends UnitSpec {
     "have maxItems constrain NOT defaulted to 1 when specified" in {
       val dto: EnvelopeReport = EnvelopeReport(constraints = Some(ConstraintsReport(maxItems = Some(2))))
 
-      val envelope: Envelope = EnvelopeReport.fromCreateEnvelope(dto)
+      val envelope: Envelope = EnvelopeReport.fromEnvelopeReport(dto)
 
       envelope.constraints.get.maxItems should equal( Some(2) )
     }
