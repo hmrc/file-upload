@@ -21,14 +21,13 @@ import java.util.UUID
 import org.scalatest.Matchers
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatestplus.play.OneServerPerSuite
-import org.scalatestplus.play.OneServerPerSuite
 import play.api.http.Status
 import play.api.libs.json.Json
-import play.api.test.PlaySpecification
-import uk.gov.hmrc.fileupload.file.FileMetadata
 import uk.gov.hmrc.play.test.UnitSpec
 
 class FileUploadIntegrationSpec extends UnitSpec with OneServerPerSuite with ScalaFutures with IntegrationPatience with Matchers with Status{
+
+	override lazy val port: Int = 9000
 
 	val nextId = () => UUID.randomUUID().toString
 
@@ -50,45 +49,23 @@ class FileUploadIntegrationSpec extends UnitSpec with OneServerPerSuite with Sca
 	val data = poem.getBytes
 
 	"Application" should{
-		"be able to process an upload request" in  {
-			val id = nextId()
-			val response = support.withEnvelope.doUpload(data, fileId = id)
-			val Some(Seq(file, _*)) = support.refresh.envelope.files
-
-			response.status shouldBe OK
-			file.id shouldBe id
-			// storedPoem shouldBe poem
-		}
+//		"be able to process an upload request" in  {
+//			val id = nextId()
+//			val response = support.withEnvelope.doUpload(data, fileId = id)
+//			val Some(Seq(file, _*)) = support.refresh.envelope.files
+//
+//			response.status shouldBe OK
+//			file.id shouldBe id
+//			// storedPoem shouldBe poem
+//		}
 		"be able to create file metadata" in {
 			val id = nextId()
 
-			val json =
-				s"""
-					 |{
-					 |   "_id":"$id",
-					 |   "filename":"test.pdf",
-					 |   "contentType":"application/pdf",
-					 |   "revision":1,
-					 |   "metadata":{
-					 |      "id":"1234567890",
-					 |      "origin":{
-					 |         "nino":"AB123456Z",
-					 |         "token":"48729348729348732894",
-					 |         "session":"cd30f8ec-d866-4ae0-82a0-1bc720f1cb09",
-					 |         "agent":"292929292",
-					 |         "trustedHelper":"8984293480239480",
-					 |         "ipAddress":"1.2.3.4"
-					 |      },
-					 |      "sender":{
-					 |         "service":"some-service-identifier/v1.2.33"
-					 |      }
-					 |   }
-					 |}
-		 """.stripMargin
+			val json = FileMetadataSupport.requestBody()
 
 			val response = support.withEnvelope.putFileMetadata(json, id)
-			val expectedMetadata = Json.fromJson[FileMetadata](Json.parse(json)).get
-			val actualMetadata = support.withEnvelope.getFileMetadataFor(id)
+			val expectedMetadata =Json.prettyPrint(FileMetadataSupport.responseBodyAsJson(id))
+			val actualMetadata = Json.prettyPrint(Json.parse(support.withEnvelope.getFileMetadataFor(id)))
 
 			response.status shouldBe OK
 			expectedMetadata shouldBe actualMetadata

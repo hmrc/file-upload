@@ -20,7 +20,6 @@
 //import play.api.http.Status
 //import play.api.mvc._
 //import play.api.test.{FakeHeaders, FakeRequest}
-//import uk.gov.hmrc.fileupload.actors.ActorStub
 //import uk.gov.hmrc.play.test.{WithFakeApplication, UnitSpec}
 //
 //class FileuploadControllerSpec extends UnitSpec with WithFakeApplication {

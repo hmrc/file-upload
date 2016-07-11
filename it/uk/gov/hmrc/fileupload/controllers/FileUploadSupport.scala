@@ -25,7 +25,6 @@ import play.api.libs.ws._
 import play.api.test.{DefaultAwaitTimeout, FutureAwaits, WithServer}
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.envelope.Envelope
-import uk.gov.hmrc.fileupload.file.FileMetadata
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.io.Source
@@ -76,7 +75,7 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
 				val id = resp.header("Location").map{ _.split("/").last }.get
 				getEnvelopeFor(id)
 					.map{ resp =>
-						val envelope = Json.fromJson[Envelope](resp.json).get
+						val envelope = EnvelopeReport.from(Some(Json.fromJson[EnvelopeReport](resp.json).get))
 						self.mayBeEnvelope = Some(envelope)
 						self
 					}
@@ -93,7 +92,7 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
 		require(mayBeEnvelope.isDefined, "No envelope defined")
 		await(getEnvelopeFor(mayBeEnvelope.get._id)
 			.map{ resp =>
-				val envelope = Json.fromJson[Envelope](resp.json).get
+				val envelope = EnvelopeReport.from(Some(Json.fromJson[EnvelopeReport](resp.json).get))
 				self.mayBeEnvelope = Some(envelope)
 				self
 			})
@@ -118,12 +117,12 @@ class FileUploadSupport(var mayBeEnvelope: Option[Envelope] = None) extends With
 	}
 
 
-	def getFileMetadataFor(fileId: String, envelopeId: String = envelope._id): FileMetadata = {
+	def getFileMetadataFor(fileId: String, envelopeId: String = envelope._id): String =
 		await(WS
 			.url(s"$url/envelope/$envelopeId/file/$fileId/metadata")
 			.get()
-			.map(resp => Json.fromJson[FileMetadata](resp.json).get))
-	}
+			.map(_.body))
+
 
 	def getFile(id: String): Future[ByteStream] = ???
 
