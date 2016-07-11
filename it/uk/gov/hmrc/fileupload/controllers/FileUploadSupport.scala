@@ -16,58 +16,23 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import java.io.File
-
-import akka.util.Timeout
-import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.libs.ws._
-import play.api.test.{DefaultAwaitTimeout, FutureAwaits, WithServer}
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.envelope.Envelope
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.io.Source
-import scala.concurrent.duration._
+import scala.concurrent.Future
 import scala.language.postfixOps
-import scala.util.control.NonFatal
 
 /**
 	* Created by Josiah on 6/20/2016.
 	*/
-class FileUploadSupport(var mayBeEnvelope: Option[EnvelopeReport] = None) extends WithServer
-	with FutureAwaits with DefaultAwaitTimeout with Status {
-	import Envelope._
+class FileUploadSupport(var mayBeEnvelope: Option[EnvelopeReport] = None) extends ITestSupport with EnvelopeActions{
+  import play.api.Play.current
 
-	implicit val ec = ExecutionContext.global
-	implicit val timeout = Timeout(1 minute)
 	var self = this
-	val url = "http://localhost:9000/file-upload"
-
 	private val payload = "{}".getBytes
 
-	def createEnvelope(file: File): Future[WSResponse] = createEnvelope(Source.fromFile(file).mkString)
-
-	def createEnvelope(data: String): Future[WSResponse] = createEnvelope(data.getBytes())
-
 	def envelope = mayBeEnvelope.get
-
-	def createEnvelope(data: Array[Byte]): Future[WSResponse] = {
-		WS
-			.url(s"$url/envelope")
-			.withHeaders("Content-Type" -> "application/json")
-			.post(data)
-	}
-
-	def appIsAlive: Boolean = {
-		await(WS
-			.url(s"$url/heart/beat")
-			.get().map{
-			case resp if resp.status == OK => true
-			case _ => false
-		}.recover{ case NonFatal(_) => false }
-		)
-	}
 
 	lazy val withEnvelope: FileUploadSupport = {
 		await(createEnvelope(payload)
