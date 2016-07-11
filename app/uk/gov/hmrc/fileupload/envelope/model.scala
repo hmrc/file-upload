@@ -40,12 +40,11 @@ object StatusReads extends Reads[Status] {
   }
 }
 
-case class Envelope(
-                     _id: String,
-                     constraints: Option[Constraints] = None,
-                     callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None,
-                     metadata: Option[Map[String, JsValue]] = None, files: Option[Seq[File]] = None,
-                     status: Status = Open ) {
+case class Envelope(_id: String = UUID.randomUUID().toString,
+                    constraints: Option[Constraints] = None,
+                    callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None,
+                    metadata: Option[Map[String, JsValue]] = None, files: Option[Seq[File]] = None,
+                    status: Status = Open ) {
   def isSealed(): Boolean = this.status == Sealed
 
   require(!isExpired, "expiry date cannot be in the past")
@@ -85,13 +84,6 @@ object Envelope {
     val expiryDate = envelope.expiryDate.map(d => if (d.isBefore(maxExpiryDate)) d else maxExpiryDate)
     envelope.copy(expiryDate = expiryDate)
   }
-
-  def emptyEnvelope(id: String = UUID.randomUUID().toString): Envelope =
-    new Envelope(id, constraints = Some(emptyConstraints()))
-
-  def emptyConstraints() =
-    new Constraints(maxItems = Some(1))
-
 }
 
 case class ValidationException(reason: String) extends IllegalArgumentException(reason)

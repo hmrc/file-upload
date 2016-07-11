@@ -27,17 +27,16 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 class EnvelopeController(createEnvelope: Envelope => Future[Xor[CreateError, Envelope]],
-                         toEnvelope: Option[EnvelopeReport] => Envelope,
+                         nextId: () => String,
                          findEnvelope: String => Future[Xor[FindError, Envelope]],
                          deleteEnvelope: String => Future[Xor[DeleteError, Envelope]],
                          sealEnvelope: String => Future[Xor[SealError, Envelope]])
                          (implicit executionContext: ExecutionContext) extends BaseController {
 
-  def create() = Action.async { implicit request =>
+  def create() = Action.async(EnvelopeParser) { implicit request =>
     def envelopeLocation = (id: String) => LOCATION -> s"${request.host}${routes.EnvelopeController.show(id)}"
 
-    import EnvelopeReport._
-    val envelope = toEnvelope(request.body.asJson.map(Json.fromJson[EnvelopeReport](_).get))
+    val envelope = EnvelopeReport.toEnvelope(nextId(), request.body)
 
     createEnvelope(envelope).map {
       case Xor.Left(CreateNotSuccessfulError(e)) => ExceptionHandler(BAD_REQUEST, "Envelope not stored")

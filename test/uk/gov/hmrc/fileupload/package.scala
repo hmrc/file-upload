@@ -27,6 +27,7 @@ import reactivemongo.api.DBMetaCommands
 import reactivemongo.api.commands.DefaultWriteResult
 import reactivemongo.api.gridfs.{GridFS, ReadFile}
 import reactivemongo.json.JSONSerializationPack
+import uk.gov.hmrc.fileupload.controllers.EnvelopeReport
 import uk.gov.hmrc.fileupload.envelope.{Constraints, Envelope, Open}
 import uk.gov.hmrc.fileupload.file.{CompositeFileId, Repository}
 
@@ -71,6 +72,10 @@ package object fileupload {
 			expiryDate = Some(DateTime.now().plusDays(1).withMillisOfSecond(0)), metadata = Some(Map("anything" -> JsString("the caller wants to add to the envelope"))), status = Open)
 
 	  val envelopeBody = Json.toJson[Envelope](envelope)
+
+    def envelopeReport = EnvelopeReport(callbackUrl = Some("http://absolute.callback.url"))
+
+    val envelopeReportBody = Json.toJson(envelopeReport)
 
 	  def expiredEnvelope = envelope.copy(expiryDate = Some(DateTime.now().minusMinutes(3)))
 	  def farInTheFutureEnvelope = envelope.copy(expiryDate = Some(DateTime.now().plusDays(3)))
