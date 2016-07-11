@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.models
+package uk.gov.hmrc.fileupload.envelope
 
 import java.lang.Math._
 import java.util.UUID
@@ -24,7 +24,7 @@ import org.joda.time.format.DateTimeFormat
 import org.junit.Assert.assertTrue
 import play.api.libs.json.{JsString, Json}
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.controllers.{CreateConstraints, CreateEnvelope}
+import uk.gov.hmrc.fileupload.controllers.{ConstraintsReport, EnvelopeReport}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.util.Try
@@ -88,8 +88,6 @@ class EnvelopeSpec extends UnitSpec {
 	"an envelope's" should {
 		"expiryDate should be overridden when it is greater than the max expiry days configured" in {
 
-			import Envelope._
-
 			val maxTTL: Int = 2
       val maxExpiryDate: DateTime = DateTime.now().plusDays(maxTTL)
 
@@ -101,9 +99,9 @@ class EnvelopeSpec extends UnitSpec {
 
   "an envelope" should {
     "have maxItems constrain defaulted to 1 when not specified" in {
-      val dto: CreateEnvelope = CreateEnvelope(constraints = Some(CreateConstraints(maxItems = None)))
+      val dto: EnvelopeReport = EnvelopeReport(constraints = Some(ConstraintsReport(maxItems = None)))
 
-      val envelope: Envelope = Envelope.fromCreateEnvelope(dto)
+      val envelope: Envelope = EnvelopeReport.fromEnvelopeReport(dto)
 
       envelope.constraints.get.maxItems should equal( Some(1) )
     }
@@ -111,9 +109,9 @@ class EnvelopeSpec extends UnitSpec {
 
   "an envelope" should {
     "have maxItems constrain NOT defaulted to 1 when specified" in {
-      val dto: CreateEnvelope = CreateEnvelope(constraints = Some(CreateConstraints(maxItems = Some(2))))
+      val dto: EnvelopeReport = EnvelopeReport(constraints = Some(ConstraintsReport(maxItems = Some(2))))
 
-      val envelope: Envelope = Envelope.fromCreateEnvelope(dto)
+      val envelope: Envelope = EnvelopeReport.fromEnvelopeReport(dto)
 
       envelope.constraints.get.maxItems should equal( Some(2) )
     }

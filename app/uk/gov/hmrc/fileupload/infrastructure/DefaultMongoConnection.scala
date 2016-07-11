@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.actors
+package uk.gov.hmrc.fileupload.infrastructure
 
-import uk.gov.hmrc.fileupload.models.Envelope
+import play.modules.reactivemongo.MongoDbConnection
 
-case class EnvelopeSealedException(envelope: Envelope) extends Exception(s"The envelope ${envelope._id} is sealed")
+object DefaultMongoConnection extends MongoDbConnection

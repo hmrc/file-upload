@@ -21,8 +21,8 @@ import play.api.http.Status._
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{ResponseHeader, Result}
-import uk.gov.hmrc.fileupload.actors.EnvelopeSealedException
-import uk.gov.hmrc.fileupload.models.{EnvelopeNotFoundException, ValidationException}
+import uk.gov.hmrc.fileupload.envelope.ValidationException
+import uk.gov.hmrc.play.http.BadRequestException
 
 object ExceptionHandler {
 
@@ -30,8 +30,6 @@ object ExceptionHandler {
     case e: ValidationException => IllegalArgumentHandler(e)
     case e: NoSuchElementException => NoSuchElementHandler(e)
     case e: BadRequestException => BadRequestHandler(e)
-    case e: EnvelopeNotFoundException => EnvelopeNotFoundHandler(e)
-    case e: EnvelopeSealedException => EnvelopeSealedHandler(e)
     case e: Throwable => DefaultExceptionHandler(e)
   }
 
@@ -42,19 +40,16 @@ object ExceptionHandler {
 }
 
 sealed trait ExceptionHandler[T <: Throwable] {
-
   def apply(exception: T): Result
 }
 
 object IllegalArgumentHandler extends ExceptionHandler[IllegalArgumentException] {
-
   def apply(exception: IllegalArgumentException): Result = {
 	  ExceptionHandler(BAD_REQUEST, exception.getMessage)
   }
 }
 
 object NoSuchElementHandler extends ExceptionHandler[NoSuchElementException] {
-
   def apply(exception: NoSuchElementException): Result = {
     val message = "Invalid json format"
     Logger.error(message, exception)
@@ -64,18 +59,6 @@ object NoSuchElementHandler extends ExceptionHandler[NoSuchElementException] {
 
 object BadRequestHandler extends ExceptionHandler[BadRequestException] {
   override def apply(exception: BadRequestException): Result = {
-	  ExceptionHandler(BAD_REQUEST, exception.getMessage)
-  }
-}
-
-object EnvelopeNotFoundHandler extends ExceptionHandler[EnvelopeNotFoundException] {
-  override def apply(exception: EnvelopeNotFoundException): Result = {
-	  ExceptionHandler(NOT_FOUND, exception.getMessage)
-  }
-}
-
-object EnvelopeSealedHandler extends ExceptionHandler[EnvelopeSealedException] {
-  override def apply(exception: EnvelopeSealedException): Result = {
 	  ExceptionHandler(BAD_REQUEST, exception.getMessage)
   }
 }

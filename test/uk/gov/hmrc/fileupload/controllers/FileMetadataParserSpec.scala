@@ -23,7 +23,7 @@ import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.Json
 import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.fileupload.ByteStream
-import uk.gov.hmrc.fileupload.models.FileMetadata
+import uk.gov.hmrc.fileupload.file._
 import uk.gov.hmrc.play.test.UnitSpec
 
 /**
@@ -31,12 +31,13 @@ import uk.gov.hmrc.play.test.UnitSpec
 	*/
 class FileMetadataParserSpec extends UnitSpec {
 
-	val id = UUID.randomUUID().toString
+	val envelopeId = UUID.randomUUID().toString
+	val fileId = UUID.randomUUID().toString
 
 	val json =
 		s"""
 			 |{
-			 |   "_id":"$id",
+       |   "id": "$fileId",
 			 |   "filename":"test.pdf",
 			 |   "contentType":"application/pdf",
 			 |   "revision":1,
@@ -58,25 +59,24 @@ class FileMetadataParserSpec extends UnitSpec {
 		 """.stripMargin
 
 	"A FileMetadata body parser" should {
-		"return a FileMetadata when given the appropiate json data" in {
-			import FileMetadata._
-			val fileMetadata = Json.fromJson[FileMetadata](Json.parse(json)).get
+		"return a File 	Metadata when given the appropiate json data" in {
+			val fileMetadata = Json.fromJson[FileMetadataReport](Json.parse(json)).get
 
 			val consumer = Enumerator[ByteStream](json.getBytes)
-			val request = FakeRequest[String]("POST", "/envelope",  FakeHeaders(), body =  "")
+			val request = FakeRequest[String]("POST", "/envelope", FakeHeaders(), body = "")
 			val either = await(consumer(FileMetadataParser(request)).run)
 			val parsedFileMatadata = either.right.get
 
 			parsedFileMatadata shouldBe fileMetadata
 		}
 
-		"return a result with status 400 when give bad json data" in {
-			val consumer = Enumerator[ByteStream]("{}".getBytes)
-			val request = FakeRequest[String]("POST", "/envelope",  FakeHeaders(), body =  "")
+		"return a result with status 500 when give bad json data" in {
+			val consumer = Enumerator[ByteStream]("abc".getBytes)
+			val request = FakeRequest[String]("POST", "/envelope", FakeHeaders(), body = "")
 			val either = await(consumer(FileMetadataParser(request)).run)
 			val result = either.left.get
 
-			result.header.status shouldBe Status.BAD_REQUEST
+			result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
 		}
 	}
 }

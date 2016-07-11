@@ -18,7 +18,8 @@ package uk.gov.hmrc.fileupload.controllers
 
 import play.api.http.Status._
 import play.api.libs.json.Json.parse
-import uk.gov.hmrc.fileupload.models.{EnvelopeNotFoundException, ValidationException}
+import uk.gov.hmrc.fileupload.envelope.ValidationException
+import uk.gov.hmrc.play.http.BadRequestException
 import uk.gov.hmrc.play.test.UnitSpec
 
 class ExceptionHandlerSpec extends UnitSpec {
@@ -44,13 +45,6 @@ class ExceptionHandlerSpec extends UnitSpec {
 
       status(result) shouldBe BAD_REQUEST
       jsonBodyOf(result) shouldBe parse("""{"error":{"msg":"someBadRequest"}}""")
-    }
-
-    "handle a EnvelopeNotFoundException exception" in {
-      val result = ExceptionHandler(new EnvelopeNotFoundException("someEnvelopeNotFound"))
-
-      status(result) shouldBe NOT_FOUND
-      jsonBodyOf(result) shouldBe parse("""{"error":{"msg":"Envelope someEnvelopeNotFound not found"}}""")
     }
   }
 }

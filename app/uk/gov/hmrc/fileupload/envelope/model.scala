@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.models
+package uk.gov.hmrc.fileupload.envelope
 
 import java.util.UUID
 
 import org.joda.time.DateTime
-import play.api.libs.json._
-import uk.gov.hmrc.fileupload.controllers.{CreateConstraints, CreateEnvelope}
+import play.api.libs.json.{Format, JsObject, _}
+import uk.gov.hmrc.fileupload.controllers.{ConstraintsReport, EnvelopeReport}
 
 sealed trait Status
 case object Open extends Status
@@ -45,8 +45,7 @@ case class Envelope(
                      constraints: Option[Constraints] = None,
                      callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None,
                      metadata: Option[Map[String, JsValue]] = None, files: Option[Seq[File]] = None,
-                     status: Status = Open )
-{
+                     status: Status = Open ) {
   def isSealed(): Boolean = this.status == Sealed
 
   require(!isExpired, "expiry date cannot be in the past")
@@ -65,20 +64,18 @@ case class Constraints(contentTypes: Option[Seq[String]] = None, maxItems: Optio
     val pattern = "[0-9]+(KB|MB|GB|TB|PB)".r
     if (pattern.findFirstIn(value).isEmpty) throw new ValidationException(s"$name has an invalid size format ($value)")
   }
-
 }
 
 case class File(rel: String = "file", href: String, id: String)
 
 object Envelope {
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val fileReads: Format[File] = Json.format[File]
   implicit val statusReads: Reads[Status] = StatusReads
   implicit val statusWrites: Writes[Status] = StatusWrites
   implicit val constraintsReads: Format[Constraints] = Json.format[Constraints]
   implicit val envelopeReads: Format[Envelope] = Json.format[Envelope]
-
-  val MAX_ITEMS_DEFAULT = 1
 
   def fromJson(json: JsValue, _id: String, maxTTL: Int): Envelope = {
     val rawData = json.asInstanceOf[JsObject] ++ Json.obj("_id" -> _id)
@@ -89,31 +86,12 @@ object Envelope {
     envelope.copy(expiryDate = expiryDate)
   }
 
-  def from(createEnvelope: Option[CreateEnvelope]): Envelope =
-    createEnvelope.map(fromCreateEnvelope).getOrElse(emptyEnvelope())
-
-  def emptyEnvelope(id : String = UUID.randomUUID().toString): Envelope =
+  def emptyEnvelope(id: String = UUID.randomUUID().toString): Envelope =
     new Envelope(id, constraints = Some(emptyConstraints()))
 
   def emptyConstraints() =
     new Constraints(maxItems = Some(1))
 
-  def fromCreateEnvelope(dto: CreateEnvelope) =
-    emptyEnvelope().copy(constraints = dto.constraints.map(fromCreateConstraints), callbackUrl = dto.callbackUrl, expiryDate = dto.expiryDate, metadata = dto.metadata, files = None)
-
-  private def fromCreateConstraints(dto: CreateConstraints): Constraints = {
-    val maxItems: Int = dto.maxItems.getOrElse[Int]( MAX_ITEMS_DEFAULT )
-    emptyConstraints ().copy(dto.contentTypes, Some(maxItems), dto.maxSize, dto.maxSizePerItem)
-  }
-
 }
 
-object FileMetadata{
-	implicit val fileMetaDataReads: Format[FileMetadata] = Json.format[FileMetadata]
-}
-
-case class FileMetadata(_id: String = UUID.randomUUID().toString,
-                        filename: Option[String] = None,
-                        contentType: Option[String] = None,
-                        revision: Option[Int] = None,
-                        metadata: Option[JsObject] = None)
+case class ValidationException(reason: String) extends IllegalArgumentException(reason)

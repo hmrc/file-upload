@@ -20,19 +20,18 @@ import java.util.UUID
 
 import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mock.MockitoSugar
 import play.api.http.Status
 import play.api.libs.json.{JsString, Json}
 import play.api.mvc.{AnyContentAsJson, Result}
 import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.envelope.EnvelopeFacade._
-import uk.gov.hmrc.fileupload.models.Envelope
+import uk.gov.hmrc.fileupload.envelope.Service._
+import uk.gov.hmrc.fileupload.envelope.Envelope
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with MockitoSugar with ScalaFutures {
+class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with ScalaFutures {
 
   import Envelope._
   import Support._
@@ -42,7 +41,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Mock
   val failed = Future.failed(new Exception("not good"))
 
   def newController(createEnvelope: Envelope => Future[Xor[CreateError, Envelope]] = _ => failed,
-                    toEnvelope: Option[CreateEnvelope] => Envelope = _ => Envelope.emptyEnvelope(),
+                    toEnvelope: Option[EnvelopeReport] => Envelope = _ => Envelope.emptyEnvelope(),
                     findEnvelope: String => Future[Xor[FindError, Envelope]] = _ => failed,
                     deleteEnvelope: String => Future[Xor[DeleteError, Envelope]] = _ => failed,
                     sealEnvelope: String => Future[Xor[SealError, Envelope]] = _ => failed) =
@@ -52,7 +51,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Mock
     "return response with OK status and a Location header specifying the envelope endpoint" in {
 	    val serverUrl = "http://production.com:8000"
 
-	    val fakeRequest = new FakeRequest[AnyContentAsJson]("POST", "/envelope",  FakeHeaders(), body =  AnyContentAsJson(envelopeBody)){
+	    val fakeRequest = new FakeRequest[AnyContentAsJson]("POST", "/envelope", FakeHeaders(), body = AnyContentAsJson(envelopeBody)){
 		    override lazy val host = serverUrl
 	    }
 
@@ -87,7 +86,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Mock
   }
 
   "Get Envelope" should {
-    "return an envelope resource when request id is valid" in {
+    "return an  envelope resource when request id is valid" in {
       val envelope = Support.envelope
       val request = FakeRequest("GET", s"/envelope/${envelope._id}")
 
@@ -95,7 +94,9 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Mock
       val result = controller.show(envelope._id)(request).futureValue
 
       val actualResponse = Json.parse(consume(result.body))
-      val expectedResponse = Json.toJson(envelope)
+
+      import EnvelopeReport._
+      val expectedResponse = Json.toJson(EnvelopeReport.fromEnvelope(envelope))
 
       result.header.status shouldBe Status.OK
 	    actualResponse shouldBe expectedResponse
