@@ -15,19 +15,19 @@ import scala.io.Source
 /**
   * Created by jay on 11/07/2016.
   */
-trait EnvelopeActions {
+trait EnvelopeActions extends ITestSupport {
 
-  self: ITestSupport =>
+  def createEnvelope(file: File): WSResponse = createEnvelope(Source.fromFile(file).mkString)
 
-  def createEnvelope(file: File): Future[WSResponse] = createEnvelope(Source.fromFile(file).mkString)
+  def createEnvelope(data: String): WSResponse = createEnvelope(data.getBytes())
 
-  def createEnvelope(data: String): Future[WSResponse] = createEnvelope(data.getBytes())
-
-  def createEnvelope(data: Array[Byte]): Future[WSResponse] = {
-    WS
-      .url(s"$url/envelope")
-      .withHeaders("Content-Type" -> "application/json")
-      .post(data)
+  def createEnvelope(data: Array[Byte]): WSResponse = {
+    await {
+      WS
+        .url(s"$url/envelope")
+        .withHeaders("Content-Type" -> "application/json")
+        .post(data)
+    }
   }
 
   def getEnvelopeFor(id: String): Future[WSResponse] = {

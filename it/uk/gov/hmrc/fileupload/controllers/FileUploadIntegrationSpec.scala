@@ -18,46 +18,46 @@ package uk.gov.hmrc.fileupload.controllers
 
 import play.api.libs.json.Json
 
-class FileUploadIntegrationSpec extends IntegrationSpec{
-
-	val support = new FileUploadSupport
-
-	val poem = """
-    |Do strangers make you human
-    |Science fiction visiting bodies as cold fact
-    |What unknown numbers govern our genes or phones
-    |A constant thrum from outer space
-    |Snow makes a sound in sand
-    |You are seen from far far above
-    |Unheard and vanished
-    |bodies dismember to dirt
-    |Hardly alive, hardly a person anymore
-    |Who will I be next and in that life will you know me
-    """.stripMargin
-
-	val data = poem.getBytes
-
-	"Application" should{
-		"be able to process an upload request" in {
-			val id = nextId()
-			val response = support.withEnvelope.doUpload(data, fileId = id)
-			val Some(Seq(file, _*)) = support.refresh.envelope.files
-
-			response.status shouldBe OK
-			file.id shouldBe id
-			// storedPoem shouldBe poem
-		}
-		"be able to create file metadata" in {
-			val id = nextId()
-
-			val json = FileMetadataSupport.requestBody()
-
-			val response = support.withEnvelope.putFileMetadata(json, id)
-			val expectedMetadata =Json.prettyPrint(FileMetadataSupport.responseBodyAsJson(id))
-			val actualMetadata = Json.prettyPrint(Json.parse(support.withEnvelope.getFileMetadataFor(id)))
-
-			response.status shouldBe OK
-			expectedMetadata shouldBe actualMetadata
-		}
-	}
-}
+//class FileUploadIntegrationSpec extends IntegrationSpec{
+//
+//	val support = new FileUploadSupport
+//
+//	val poem = """
+//    |Do strangers make you human
+//    |Science fiction visiting bodies as cold fact
+//    |What unknown numbers govern our genes or phones
+//    |A constant thrum from outer space
+//    |Snow makes a sound in sand
+//    |You are seen from far far above
+//    |Unheard and vanished
+//    |bodies dismember to dirt
+//    |Hardly alive, hardly a person anymore
+//    |Who will I be next and in that life will you know me
+//    """.stripMargin
+//
+//	val data = poem.getBytes
+//
+//	"Application" should{
+//		"be able to process an upload request" in {
+//			val id = nextId()
+//			val response = support.withEnvelope.doUpload(data, fileId = id)
+//			val Some(Seq(file, _*)) = support.refresh.envelope.files
+//
+//			response.status shouldBe OK
+//			file.id shouldBe id
+//			// storedPoem shouldBe poem
+//		}
+//		"be able to create file metadata" in {
+//			val id = nextId()
+//
+//			val json = FileMetadataSupport.requestBody()
+//
+//			val response = support.withEnvelope.putFileMetadata(json, id)
+//			val expectedMetadata =Json.prettyPrint(FileMetadataSupport.responseBodyAsJson(id))
+//			val actualMetadata = Json.prettyPrint(Json.parse(support.withEnvelope.getFileMetadataFor(id)))
+//
+//			response.status shouldBe OK
+//			expectedMetadata shouldBe actualMetadata
+//		}
+//	}
+//}
