@@ -42,7 +42,8 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 		_id = compositeFileId,
 		contentType = Some("application/pdf"),
 		revision = Some(1),
-		filename = Some("test.pdf"),
+    length = Some(38),
+		name = Some("test.pdf"),
 		metadata = Some(Json.parse(
 			"""
 				| {
@@ -71,8 +72,9 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 		  result shouldBe true
 	  }
 
-	  "be able to update matadata of an existing file" in {
-		  val contents = Enumerator[ByteStream]("I only exists to be stored in mongo :<".getBytes)
+	  "be able to update metadata of an existing file" in {
+			val bytes = "I only exists to be stored in mongo :<".getBytes
+		  val contents = Enumerator[ByteStream](bytes)
 
 			val fileId = UUID.randomUUID().toString
       val envelopeId: String = Support.envelope._id
@@ -83,15 +85,14 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 		  await(await(contents.run[Future[JSONReadFile]](sink)))
 
 		  var metadata = await(repository.getFileMetadata(compositeFileId)).getOrElse(throw new Exception("should have metadata"))
-		  val fileMetadata = FileMetadata(_id = compositeFileId)
+		  val fileMetadata = FileMetadata(_id = compositeFileId, length = Some(bytes.length), uploadDate = metadata.uploadDate)
 		  metadata shouldBe fileMetadata
 
 		  val updatedMetadata = createMetadata(compositeFileId)
 		  await(repository addFileMetadata updatedMetadata)
 		  metadata = await(repository.getFileMetadata(compositeFileId)).getOrElse(throw new Exception("should have metadata"))
 
-		  println(Json.stringify(Json.toJson[FileMetadata](metadata)))
-		  metadata shouldBe updatedMetadata
+		  metadata shouldBe updatedMetadata.copy(uploadDate = metadata.uploadDate)
 	  }
 
 

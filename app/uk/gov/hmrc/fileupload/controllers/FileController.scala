@@ -51,15 +51,15 @@ class FileController(uploadBodyParser: CompositeFileId => BodyParser[Future[JSON
 
   def get(envelopeId: String, fileId: String) = Action.async {
     getMetadata(CompositeFileId(envelopeId, fileId)).map {
-      case Xor.Right(m) => Ok(Json.toJson[FileMetadataReport](FileMetadataReport.fromFileMetadata(m)))
+      case Xor.Right(m) => Ok(Json.toJson[GetFileMetadataReport](GetFileMetadataReport.fromFileMetadata(m)))
       case Xor.Left(GetMetadataNotFoundError(e)) => ExceptionHandler(NOT_FOUND, s"File $fileId not found")
       case Xor.Left(GetMetadataServiceError(e, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
     }.recover { case e => ExceptionHandler(e) }
   }
 
 	def metadata(envelopeId: String, fileId: String) = Action.async(FileMetadataParser) { request =>
-    updateMetadata(FileMetadataReport.toFileMetadata(envelopeId, fileId, request.body)).map {
-      case Xor.Right(m) => Ok(Json.toJson[FileMetadataReport](FileMetadataReport.fromFileMetadata(m)))
+    updateMetadata(UpdateFileMetadataReport.toFileMetadata(envelopeId, fileId, request.body)).map {
+      case Xor.Right(m) => Ok(Json.toJson[GetFileMetadataReport](GetFileMetadataReport.fromFileMetadata(m)))
       case Xor.Left(UpdateMetadataNotFoundError(e)) => ExceptionHandler(NOT_FOUND, s"File $fileId not found")
       case Xor.Left(UpdateMetadataServiceError(e, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
     }.recover { case e => ExceptionHandler(e) }
