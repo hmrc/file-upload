@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-//package uk.gov.hmrc.fileupload.controllers
-//
-//import akka.testkit.TestActorRef
-//import play.api.http.Status
-//import play.api.mvc._
-//import play.api.test.{FakeHeaders, FakeRequest}
-//import uk.gov.hmrc.play.test.{WithFakeApplication, UnitSpec}
-//
-//class FileuploadControllerSpec extends UnitSpec with WithFakeApplication {
-//
+package uk.gov.hmrc.fileupload.controllers
+
+import akka.testkit.TestActorRef
+import play.api.http.Status
+import play.api.mvc._
+import play.api.test.{FakeHeaders, FakeRequest}
+import uk.gov.hmrc.play.test.{WithFakeApplication, UnitSpec}
+
+class FileuploadControllerSpec extends UnitSpec with WithFakeApplication {
+
 //	"once a file is uploaded the controller" should {
 //		"ask the envelope service to add the file in the envelope" in {
 //			val envelopeService =  Actors.envelopeService
@@ -36,7 +36,7 @@
 //			result.header.status shouldBe Status.OK
 //		}
 //	}
-//
+
 //	"the controller" should {
 //		"respond with 404 if the specified envelope does not exist" in {
 //			val envelopeService =  Actors.envelopeService
@@ -80,4 +80,4 @@
 //
 //  result.header.status shouldBe Status.NOT_FOUND
 //	}
-//}
+}
