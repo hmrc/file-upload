@@ -3,7 +3,10 @@ package uk.gov.hmrc.fileupload.controllers
 import java.io.File
 
 
+import play.api.http.Status
 import play.api.libs.ws.{WS, WSResponse}
+import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
+import play.test.WithServer
 import scala.concurrent.duration._
 import play.api.Play.current
 import scala.concurrent.Future
@@ -12,7 +15,9 @@ import scala.io.Source
 /**
   * Created by jay on 11/07/2016.
   */
-trait EnvelopeActions extends ITestSupport{
+trait EnvelopeActions {
+
+  self: ITestSupport =>
 
   def createEnvelope(file: File): Future[WSResponse] = createEnvelope(Source.fromFile(file).mkString)
 
