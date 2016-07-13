@@ -14,9 +14,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
 
     scenario("Upload a file") {
       Given("I have a valid envelope id")
-      val createResponse = createEnvelope("{}")
-      createResponse.status should equal(CREATED)
-      val envelopeId = envelopeIdFromHeader(createResponse)
+      val envelopeId: String = createEnvelope()
 
       And("I have a file")
       val data = "{}".getBytes
