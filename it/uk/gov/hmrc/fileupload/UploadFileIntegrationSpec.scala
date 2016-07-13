@@ -7,9 +7,6 @@ import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FileActions, Integration
   * Integration tests for FILE-...
   * Upload File
   *
-  * Currently configured to run against a local instance of the File Upload service
-  * Needs to be converted to FakeApplication tests and the contract level acceptance tests re-written
-  *
   */
 class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with EnvelopeActions {
 
@@ -23,7 +20,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
 
       And("I have a file")
       val data = "{}".getBytes
-      val fileId = "fileId-123"
+      val fileId = s"fileId-${nextId()}"
 
       When(s"I invoke PUT envelope/$envelopeId/file/$fileId/content")
       val response: WSResponse = upload(data, envelopeId, fileId)

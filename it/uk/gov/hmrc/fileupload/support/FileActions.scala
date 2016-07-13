@@ -12,11 +12,11 @@ trait FileActions extends ActionsSupport {
       .put(data)
       .futureValue
 
-  def updateFileMetadata(data: Array[Byte], envelopeId: String, fileId: String): WSResponse =
+  def updateFileMetadata(data: String, envelopeId: String, fileId: String): WSResponse =
     WS
       .url(s"$url/envelope/$envelopeId/file/$fileId/metadata" )
       .withHeaders("Content-Type" -> "application/json")
-      .put(data)
+      .put(data.getBytes)
       .futureValue
 
   def getFileMetadataFor(envelopeId: String, fileId: String): WSResponse =

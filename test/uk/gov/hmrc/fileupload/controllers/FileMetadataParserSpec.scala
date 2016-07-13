@@ -25,9 +25,6 @@ import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.fileupload.ByteStream
 import uk.gov.hmrc.play.test.UnitSpec
 
-/**
-	* Created by jay on 23/06/2016.
-	*/
 class FileMetadataParserSpec extends UnitSpec {
 
 	val envelopeId = UUID.randomUUID().toString
