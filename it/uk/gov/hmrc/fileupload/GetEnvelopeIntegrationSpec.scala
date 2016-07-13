@@ -1,10 +1,6 @@
 package uk.gov.hmrc.fileupload
 
-import org.scalatest._
-import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import org.scalatestplus.play.OneServerPerSuite
-import play.api.http.Status
-import uk.gov.hmrc.fileupload.controllers.EnvelopeActions
+import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
 
 /**
   * Integration tests for FILE-63 & FILE-64
@@ -14,12 +10,7 @@ import uk.gov.hmrc.fileupload.controllers.EnvelopeActions
   * Needs to be converted to FakeApplication tests and the contract level acceptance tests re-written
   *
   */
-class GetEnvelopeIntegrationSpec extends FeatureSpec with EnvelopeActions with GivenWhenThen with OneServerPerSuite with ScalaFutures
-  with IntegrationPatience with Matchers with Status with BeforeAndAfterEach {
-
-  override lazy val port: Int = 9000
-
-  //override implicit lazy val app: FakeApplication = new FakeApplication(additionalConfiguration = Map("application.router" -> "test.Routes"))
+class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions {
 
   feature("Retrieve Envelope") {
 
@@ -27,12 +18,10 @@ class GetEnvelopeIntegrationSpec extends FeatureSpec with EnvelopeActions with G
       Given("I have a valid envelope id")
       val createResponse = createEnvelope("{}")
       createResponse.status should equal(CREATED)
-      val locationHeader = createResponse.header("Location").get
-      val envelopeId = locationHeader.substring(locationHeader.lastIndexOf('/') + 1)
+      val envelopeId = envelopeIdFromHeader(createResponse)
 
       When("I call GET /file-upload/envelope/:envelope-id")
       val envelopeResponse = getEnvelopeFor(envelopeId)
-
 
       Then("I will receive a 200 Ok response")
       envelopeResponse.status shouldBe OK
