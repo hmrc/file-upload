@@ -44,15 +44,15 @@ class FileUploadSupport(var mayBeEnvelope: Option[EnvelopeReport] = None) extend
 //    }
 //	}
 
-	def refresh: FileUploadSupport = {
-		require(mayBeEnvelope.isDefined, "No envelope defined")
-		await(getEnvelopeFor(mayBeEnvelope.get.id.get)
-			.map{ resp =>
-				val envelope = Json.fromJson[EnvelopeReport](resp.json).get
-				self.mayBeEnvelope = Some(envelope)
-				self
-			})
-	}
+//	def refresh: FileUploadSupport = {
+//		require(mayBeEnvelope.isDefined, "No envelope defined")
+//		await(getEnvelopeFor(mayBeEnvelope.get.id.get)
+//			.map{ resp =>
+//				val envelope = Json.fromJson[EnvelopeReport](resp.json).get
+//				self.mayBeEnvelope = Some(envelope)
+//				self
+//			})
+//	}
 
 	def doUpload(data: Array[Byte], fileId: String): WSResponse = {
 		require(mayBeEnvelope.isDefined, "No envelope defined")

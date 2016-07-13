@@ -21,7 +21,7 @@ import java.util.UUID
 import org.junit
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.ScalaFutures
-import uk.gov.hmrc.fileupload._
+import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 

@@ -30,9 +30,11 @@ trait EnvelopeActions extends ITestSupport {
     }
   }
 
-  def getEnvelopeFor(id: String): Future[WSResponse] = {
-    WS
-      .url(s"$url/envelope/$id")
-      .get()
+  def getEnvelopeFor(id: String): WSResponse = {
+    await {
+      WS
+        .url(s"$url/envelope/$id")
+        .get()
+    }
   }
 }
