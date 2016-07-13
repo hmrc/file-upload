@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.envelope
 import java.util.UUID
 
 import org.junit
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterEach}
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import uk.gov.hmrc.fileupload.Support
@@ -35,16 +35,16 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
   val repository = new Repository(mongo)
 
   override def beforeEach {
-    repository.removeAll()
+    repository.removeAll().futureValue
   }
 
 	"repository" should {
-//    "persist an envelope" in {
-//			val envelope = Support.envelope.copy(files = Some(Seq(File(href = "ads", id = "myfile", rel = "file"))))
-//
-//      val result = (repository add envelope).futureValue
-//      result shouldBe true
-//    }
+    "persist an envelope" in {
+			val envelope = Support.envelope.copy(files = Some(Seq(File(href = "ads", id = "myfile", rel = "file"))))
+
+      val result = (repository add envelope).futureValue
+      result shouldBe true
+    }
 
     "retrieve a persisted envelope" in {
       val envelope = Support.envelope
@@ -56,23 +56,22 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
       result shouldBe Some(envelope)
     }
 
-//	  "remove a persisted envelope" in {
-//		  val envelope = Support.envelope
-//		  val id = envelope._id
-//
-//		  (repository add envelope).futureValue
-////      Thread.sleep(3000)
-//		  val result: Boolean = (repository delete id).futureValue
-//
-//		  result shouldBe true
-//		  junit.Assert.assertTrue( (repository get id).futureValue.isEmpty )
-//	  }
+	  "remove a persisted envelope" in {
+		  val envelope = Support.envelope
+		  val id = envelope._id
 
-//	  "return nothing for a none existent envelope" in {
-//			val id = UUID.randomUUID().toString
-//
-//		  val result = (repository get id).futureValue
-//		  result shouldBe None
-//	  }
+      (repository add envelope).futureValue
+      val result: Boolean = (repository delete id).futureValue
+
+      result shouldBe true
+      junit.Assert.assertTrue((repository get id).futureValue.isEmpty)
+	  }
+
+	  "return nothing for a none existent envelope" in {
+			val id = UUID.randomUUID().toString
+
+		  val result = (repository get id).futureValue
+      result shouldBe None
+	  }
   }
 }

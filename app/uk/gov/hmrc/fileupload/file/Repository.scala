@@ -86,9 +86,9 @@ class Repository(mongo: () => DB with DBMetaCommands) {
     }
   }
 
-  def removeAll()(implicit ec: ExecutionContext): Unit  = {
-    import FileMetadata._
-    gfs.files.remove(Json.obj())
-    gfs.chunks.remove(Json.obj())
+  def removeAll()(implicit ec: ExecutionContext): Future[List[WriteResult]]  = {
+    val files = gfs.files.remove(Json.obj())
+    val chunks = gfs.chunks.remove(Json.obj())
+    Future.sequence(List(files, chunks))
   }
 }

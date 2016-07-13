@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.file
 
 import java.util.UUID
 
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterEach}
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.iteratee.Enumerator
@@ -38,7 +38,7 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
   val repository = new Repository(mongo)
 
   override def beforeEach {
-    repository.removeAll()
+    repository.removeAll().futureValue
   }
 
   def createMetadata(compositeFileId: CompositeFileId = CompositeFileId(UUID.randomUUID().toString, UUID.randomUUID().toString)) = FileMetadata(
@@ -71,7 +71,8 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 		  val metadata = createMetadata()
 
 		  val result = (repository addFileMetadata metadata).futureValue
-		  result shouldBe true
+
+      result shouldBe true
 	  }
 
 	  "be able to update matadata of an existing file" in {
@@ -85,15 +86,15 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 
 		  contents.run[Future[JSONReadFile]](sink).futureValue.futureValue
 
-		  var metadata = repository.getFileMetadata(compositeFileId).futureValue.getOrElse(throw new Exception("should have metadata"))
-		  val fileMetadata = FileMetadata(_id = compositeFileId)
-		  metadata shouldBe fileMetadata
+      var metadata = repository.getFileMetadata(compositeFileId).futureValue.getOrElse(throw new Exception("should have metadata"))
+      val fileMetadata = FileMetadata(_id = compositeFileId)
+      metadata shouldBe fileMetadata
 
-		  val updatedMetadata = createMetadata(compositeFileId)
-		  (repository addFileMetadata updatedMetadata).futureValue
-		  metadata = repository.getFileMetadata(compositeFileId).futureValue.getOrElse(throw new Exception("should have metadata"))
+      val updatedMetadata = createMetadata(compositeFileId)
+      (repository addFileMetadata updatedMetadata).futureValue
+      metadata = repository.getFileMetadata(compositeFileId).futureValue.getOrElse(throw new Exception("should have metadata"))
 
-		  metadata shouldBe updatedMetadata
+      metadata shouldBe updatedMetadata
 	  }
 
 		"retrieve a file in a envelope" in {
@@ -108,8 +109,8 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 
 			val fileResult: RetrieveFileResult = (repository retrieveFile compositeFileId).futureValue
 
-			fileResult.isRight shouldBe true
-			fileResult.toEither.right.get.length shouldBe 38
+      fileResult.isRight shouldBe true
+      fileResult.toEither.right.get.length shouldBe 38
 		}
 
 		"returns a fileNotFound error" in {
@@ -117,8 +118,8 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 
 			val fileResult: RetrieveFileResult = (repository retrieveFile compositeFileId).futureValue
 
-			fileResult.isLeft shouldBe true
-			fileResult.toEither.left.get shouldBe FileNotFoundError
+      fileResult.isLeft shouldBe true
+      fileResult.toEither.left.get shouldBe FileNotFoundError
 		}
   }
 }

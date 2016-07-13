@@ -23,9 +23,7 @@ class GetEnvelopeIntegrationSpec extends FeatureSpec with EnvelopeActions with G
 
   feature("Retrieve Envelope") {
 
-
     scenario("GET Envelope responds with an ID") {
-      MicroserviceGlobal.db
       Given("I have a valid envelope id")
       val createResponse = createEnvelope("{}")
       createResponse.status should equal(CREATED)
@@ -53,15 +51,5 @@ class GetEnvelopeIntegrationSpec extends FeatureSpec with EnvelopeActions with G
       Then("I should receive a 404 not found response")
       envelopeResponse.status shouldBe NOT_FOUND
     }
-
   }
-
-
-
-
-
-
 }
-
-
-
