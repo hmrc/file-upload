@@ -14,7 +14,7 @@ import scala.io.Source
 /**
   * Created by jay on 11/07/2016.
   */
-trait ITestSupport extends WithServer with FutureAwaits with DefaultAwaitTimeout with Status {
+trait ITestSupport extends FutureAwaits with DefaultAwaitTimeout with Status {
   import scala.concurrent.duration._
 
   val url = "http://localhost:9000/file-upload"

@@ -34,28 +34,25 @@ class FileUploadSupport(var mayBeEnvelope: Option[EnvelopeReport] = None) extend
 
 	def envelope = mayBeEnvelope.get
 
-	lazy val withEnvelope: FileUploadSupport = {
-		await(createEnvelope(payload)
-			.flatMap{ resp =>
-				val id = resp.header("Location").map{ _.split("/").last }.get
-				getEnvelopeFor(id)
-					.map{ resp =>
-						val envelope = Json.fromJson[EnvelopeReport](resp.json).get
-						self.mayBeEnvelope = Some(envelope)
-						self
-					}
-			})
-	}
+//	lazy val withEnvelope: FileUploadSupport = {
+//		val resp = createEnvelope(payload)
+//    val id = resp.header("Location").map{ _.split("/").last }.get
+//    getEnvelopeFor(id).map { resp =>
+//        val envelope = Json.fromJson[EnvelopeReport](resp.json).get
+//        self.mayBeEnvelope = Some(envelope)
+//        self
+//    }
+//	}
 
-	def refresh: FileUploadSupport = {
-		require(mayBeEnvelope.isDefined, "No envelope defined")
-		await(getEnvelopeFor(mayBeEnvelope.get.id.get)
-			.map{ resp =>
-				val envelope = Json.fromJson[EnvelopeReport](resp.json).get
-				self.mayBeEnvelope = Some(envelope)
-				self
-			})
-	}
+//	def refresh: FileUploadSupport = {
+//		require(mayBeEnvelope.isDefined, "No envelope defined")
+//		await(getEnvelopeFor(mayBeEnvelope.get.id.get)
+//			.map{ resp =>
+//				val envelope = Json.fromJson[EnvelopeReport](resp.json).get
+//				self.mayBeEnvelope = Some(envelope)
+//				self
+//			})
+//	}
 
 	def doUpload(data: Array[Byte], fileId: String): WSResponse = {
 		require(mayBeEnvelope.isDefined, "No envelope defined")

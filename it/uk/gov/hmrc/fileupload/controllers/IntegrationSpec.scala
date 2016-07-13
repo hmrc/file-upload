@@ -2,7 +2,7 @@ package uk.gov.hmrc.fileupload.controllers
 
 import java.util.UUID
 
-import org.scalatest.Matchers
+import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatestplus.play.OneServerPerSuite
 import play.api.http.Status
