@@ -42,11 +42,9 @@ class CreateEnvelopeIntegrationSpec extends FeatureSpec with EnvelopeActions wit
 
       And("a new Envelope record with no attributes will be created")
 
-
       And("the Envelope ID will be returned in the location header")
       val locationHeader = response.header("Location").get
       locationHeader should fullyMatch regex ".*/file-upload/envelope/[A-z0-9-]+$"
-
     }
 
     scenario("Create a new Envelope using basic sample") {
@@ -84,18 +82,6 @@ class CreateEnvelopeIntegrationSpec extends FeatureSpec with EnvelopeActions wit
       And("the Envelope ID will be returned in the location header")
       val locationHeader = response.header("Location").get
       locationHeader should fullyMatch regex ".*/file-upload/envelope/[A-z0-9-]+$"
-    }
-
-    scenario("Attempt to create an Envelope with an empty request body") {
-      pending
-      Given("I have an empty request body (ie \"\")")
-      val json = ""
-
-      When("I invoke POST /file/upload/envelope")
-      val response = createEnvelope(json)
-
-      Then("I will receive a 400 Bad Request response")
-      response.status shouldBe BAD_REQUEST
     }
   }
 }
