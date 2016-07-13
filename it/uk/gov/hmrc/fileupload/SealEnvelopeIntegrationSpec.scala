@@ -1,14 +1,9 @@
 package uk.gov.hmrc.fileupload
 
-import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
-import org.scalatestplus.play.OneServerPerSuite
-import play.api.http.Status
 import play.api.libs.ws.WSResponse
-import uk.gov.hmrc.fileupload.controllers.EnvelopeActions
+import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
 
-class SealEnvelopeIntegrationSpec extends FeatureSpec with EnvelopeActions with GivenWhenThen with OneServerPerSuite with ScalaFutures
-  with IntegrationPatience with Matchers with Status {
+class SealEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions {
 
   override lazy val port: Int = 9000
 
