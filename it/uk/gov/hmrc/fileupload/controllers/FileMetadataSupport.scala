@@ -11,7 +11,7 @@ object FileMetadataSupport {
 
   def requestBody(args: Map[String, Any] = Map.empty) = s"""
      |{
-     |   "filename":"${args.getOrElse("filename", "test.jpg")}",
+     |   "name":"${args.getOrElse("name", "test.jpg")}",
      |   "contentType":"${args.getOrElse("contentType", "application/pdf")}",
      |   "revision":${args.getOrElse("revision", 1)},
      |   "metadata":{
@@ -36,7 +36,7 @@ object FileMetadataSupport {
   def responseBody(id: String, args: Map[String, Any] = Map.empty) = s"""
     |{
     |   "id":"$id",
-    |   "filename":"${args.getOrElse("filename", "test.jpg")}",
+    |   "name":"${args.getOrElse("name", "test.jpg")}",
     |   "contentType":"${args.getOrElse("contentType", "application/pdf")}",
     |   "revision":${args.getOrElse("revision", 1)},
     |   "metadata":{

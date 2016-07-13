@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import org.joda.time.DateTime
 import play.api.libs.iteratee.Iteratee
-import play.api.libs.json.{Format, JsObject, Json}
+import play.api.libs.json._
 import play.api.mvc.{BodyParser, _}
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.file.{CompositeFileId, FileMetadata}
@@ -26,39 +27,54 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
-case class FileMetadataReport(id: Option[String],
-                              filename: Option[String] = None,
-                              contentType: Option[String] = None,
-                              revision: Option[Int] = None,
-                              metadata: Option[JsObject] = None)
+case class UpdateFileMetadataReport(name: Option[String] = None,
+                                    contentType: Option[String] = None,
+                                    revision: Option[Int] = None,
+                                    metadata: Option[JsObject] = None)
 
-object FileMetadataReport {
-  implicit val fileMetaDataReportFormat: Format[FileMetadataReport] = Json.format[FileMetadataReport]
+object UpdateFileMetadataReport {
+  implicit val updateFileMetaDataReportFormat: Format[UpdateFileMetadataReport] = Json.format[UpdateFileMetadataReport]
 
-  def toFileMetadata(envelopeId: String, fileId: String, report: FileMetadataReport): FileMetadata =
+  def toFileMetadata(envelopeId: String, fileId: String, report: UpdateFileMetadataReport): FileMetadata =
     FileMetadata(
       _id = CompositeFileId(envelopeId = envelopeId, fileId = fileId),
-      filename = report.filename,
+      name = report.name,
       contentType = report.contentType,
       revision = report.revision,
       metadata = report.metadata)
+}
 
-  def fromFileMetadata(fileMetadata: FileMetadata): FileMetadataReport =
-    FileMetadataReport(
-      id = Some(fileMetadata._id.fileId),
-      filename = fileMetadata.filename,
+case class GetFileMetadataReport(id: String,
+                                 name: Option[String] = None,
+                                 contentType: Option[String] = None,
+                                 length: Option[Long] = None,
+                                 created: Option[DateTime] = None,
+                                 revision: Option[Int] = None,
+                                 metadata: Option[JsObject] = None)
+
+object GetFileMetadataReport {
+  implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val getFileMetaDataReportFormat: Format[GetFileMetadataReport] = Json.format[GetFileMetadataReport]
+
+  def fromFileMetadata(fileMetadata: FileMetadata): GetFileMetadataReport =
+    GetFileMetadataReport(
+      id = fileMetadata._id.fileId,
+      name = fileMetadata.name,
       contentType = fileMetadata.contentType,
+      length = fileMetadata.length,
+      created = fileMetadata.uploadDate,
       revision = fileMetadata.revision,
       metadata = fileMetadata.metadata)
 }
 
-object FileMetadataParser extends BodyParser[FileMetadataReport] {
+object FileMetadataParser extends BodyParser[UpdateFileMetadataReport] {
 
-  def apply(request: RequestHeader): Iteratee[Array[Byte], Either[Result, FileMetadataReport]] = {
-    import FileMetadataReport._
+  def apply(request: RequestHeader): Iteratee[Array[Byte], Either[Result, UpdateFileMetadataReport]] = {
+    import UpdateFileMetadataReport._
 
     Iteratee.consume[Array[Byte]]().map { data =>
-      Try(Json.fromJson[FileMetadataReport](Json.parse(data)).get) match {
+      Try(Json.fromJson[UpdateFileMetadataReport](Json.parse(data)).get) match {
         case Success(report) => Right(report)
         case Failure(NonFatal(e)) => Left(ExceptionHandler(e))
       }

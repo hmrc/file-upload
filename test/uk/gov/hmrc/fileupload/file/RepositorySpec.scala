@@ -45,7 +45,8 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 		_id = compositeFileId,
 		contentType = Some("application/pdf"),
 		revision = Some(1),
-		filename = Some("test.pdf"),
+    length = Some(38),
+		name = Some("test.pdf"),
 		metadata = Some(Json.parse(
 			"""
 				| {
@@ -71,12 +72,12 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 		  val metadata = createMetadata()
 
 		  val result = (repository addFileMetadata metadata).futureValue
-
       result shouldBe true
 	  }
 
-	  "be able to update matadata of an existing file" in {
-		  val contents = Enumerator[ByteStream]("I only exists to be stored in mongo :<".getBytes)
+	  "be able to update metadata of an existing file" in {
+			val bytes = "I only exists to be stored in mongo :<".getBytes
+		  val contents = Enumerator[ByteStream](bytes)
 
 			val fileId = UUID.randomUUID().toString
       val envelopeId: String = Support.envelope._id
@@ -86,15 +87,15 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 
 		  contents.run[Future[JSONReadFile]](sink).futureValue.futureValue
 
-      var metadata = repository.getFileMetadata(compositeFileId).futureValue.getOrElse(throw new Exception("should have metadata"))
-      val fileMetadata = FileMetadata(_id = compositeFileId)
-      metadata shouldBe fileMetadata
+		  var metadata = (repository.getFileMetadata(compositeFileId)).futureValue.getOrElse(throw new Exception("should have metadata"))
+      val fileMetadata = FileMetadata(_id = compositeFileId, length = Some(bytes.length), uploadDate = metadata.uploadDate)
+		  metadata shouldBe fileMetadata
 
       val updatedMetadata = createMetadata(compositeFileId)
       (repository addFileMetadata updatedMetadata).futureValue
       metadata = repository.getFileMetadata(compositeFileId).futureValue.getOrElse(throw new Exception("should have metadata"))
 
-      metadata shouldBe updatedMetadata
+		  metadata shouldBe updatedMetadata.copy(uploadDate = metadata.uploadDate)
 	  }
 
 		"retrieve a file in a envelope" in {

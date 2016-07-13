@@ -23,7 +23,6 @@ import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.Json
 import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.fileupload.ByteStream
-import uk.gov.hmrc.fileupload.file._
 import uk.gov.hmrc.play.test.UnitSpec
 
 /**
@@ -60,7 +59,7 @@ class FileMetadataParserSpec extends UnitSpec {
 
 	"A FileMetadata body parser" should {
 		"return a File 	Metadata when given the appropiate json data" in {
-			val fileMetadata = Json.fromJson[FileMetadataReport](Json.parse(json)).get
+			val fileMetadata = Json.fromJson[UpdateFileMetadataReport](Json.parse(json)).get
 
 			val consumer = Enumerator[ByteStream](json.getBytes)
 			val request = FakeRequest[String]("POST", "/envelope", FakeHeaders(), body = "")
