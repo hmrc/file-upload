@@ -12,6 +12,4 @@ trait ActionsSupport extends ScalaFutures with Status {
 
   val url = "http://localhost:9000/file-upload"
   implicit val ec = ExecutionContext.global
-//  implicit val timeout = Timeout(1 minute)
-
 }

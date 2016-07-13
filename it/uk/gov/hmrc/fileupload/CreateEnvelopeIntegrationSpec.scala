@@ -10,9 +10,6 @@ import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport._
   * Integration tests for FILE-63 & FILE-64
   * Create Envelope and Get Envelope
   *
-  * Currently configured to run against a local instance of the File Upload service
-  * Needs to be converted to FakeApplication tests and the contract level acceptance tests re-written
-  *
   */
 class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions {
 
