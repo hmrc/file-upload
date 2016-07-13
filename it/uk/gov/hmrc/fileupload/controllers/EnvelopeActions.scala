@@ -30,11 +30,26 @@ trait EnvelopeActions extends ITestSupport {
     }
   }
 
+  def createEmptyEnvelope() = {
+    val response: WSResponse = createEnvelope("{}")
+    val locationHeader = response.header("Location").get
+    locationHeader.substring(locationHeader.lastIndexOf('/') + 1)
+  }
+
   def getEnvelopeFor(id: String): WSResponse = {
     await {
       WS
         .url(s"$url/envelope/$id")
         .get()
+    }
+  }
+
+  def seal(id: String): WSResponse = {
+    await {
+      WS
+        .url(s"$url/envelope/$id")
+        .withHeaders("Content-Type" -> "application/json")
+        .put("""{"status": "sealed"}""")
     }
   }
 }
