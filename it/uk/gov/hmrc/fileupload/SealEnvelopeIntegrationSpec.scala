@@ -8,7 +8,6 @@ class SealEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions {
   override lazy val port: Int = 9000
 
   feature("Seal Envelope") {
-
     scenario("Sealing an envelope") {
       Given("I have a valid envelope id")
       val envelope: String = createEmptyEnvelope()
@@ -22,6 +21,5 @@ class SealEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions {
       val sealedEnvelope: WSResponse = getEnvelopeFor(envelope)
       sealedEnvelope.body should fullyMatch regex """.*"status":"Sealed".*"""
     }
-
   }
 }
