@@ -19,8 +19,6 @@ class GetEnvelopeIntegrationSpec extends FeatureSpec with EnvelopeActions with G
 
   override lazy val port: Int = 9000
 
-  //override implicit lazy val app: FakeApplication = new FakeApplication(additionalConfiguration = Map("application.router" -> "test.Routes"))
-
   feature("Retrieve Envelope") {
 
     scenario("GET Envelope responds with an ID") {
