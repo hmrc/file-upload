@@ -1,7 +1,8 @@
 package uk.gov.hmrc.fileupload
 
 import play.api.libs.ws.WSResponse
-import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
+import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EnvelopeReportSupport, IntegrationSpec}
+import play.api.libs.json.Json
 
 class SealEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions {
 
@@ -10,7 +11,7 @@ class SealEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions {
   feature("Seal Envelope") {
     scenario("Sealing an envelope") {
       Given("I have a valid envelope id")
-      val envelope: String = createEmptyEnvelope()
+      val envelope: String = createEnvelope()
 
       When("I seal an envelope")
       val response: WSResponse = seal(envelope)
@@ -19,7 +20,7 @@ class SealEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions {
       response.status shouldBe OK
 
       val sealedEnvelope: WSResponse = getEnvelopeFor(envelope)
-      sealedEnvelope.body should fullyMatch regex """.*"status":"Sealed".*"""
+      Json.prettyPrint(sealedEnvelope.json) shouldBe EnvelopeReportSupport.sealedResponseBody(envelope)
     }
   }
 }

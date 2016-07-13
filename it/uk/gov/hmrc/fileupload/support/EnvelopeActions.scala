@@ -31,8 +31,8 @@ trait EnvelopeActions extends ActionsSupport {
     locationHeader.substring(locationHeader.lastIndexOf('/') + 1)
   }
 
-  def createEmptyEnvelope() = {
-    val response: WSResponse = createEnvelope("{}")
+  def createEnvelope(): String = {
+    val response: WSResponse = createEnvelope( EnvelopeReportSupport.requestBody() )
     val locationHeader = response.header("Location").get
     locationHeader.substring(locationHeader.lastIndexOf('/') + 1)
   }
