@@ -94,7 +94,11 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
     val seal = Service.seal(update, find) _
 
-    new EnvelopeController(createEnvelope = create, nextId = nextId, findEnvelope = find, deleteEnvelope = delete, sealEnvelope = seal)
+    new EnvelopeController(createEnvelope = create,
+      nextId = nextId,
+      findEnvelope = find,
+      deleteEnvelope = delete,
+      sealEnvelope = seal)
   }
 
   lazy val fileController = {
@@ -107,7 +111,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     val getMetadata = Service.getMetadata(getFileMetadata) _
 
     val addFileMetadata = fileRepository.addFileMetadata _
-    val updateMetadata = Service.updateMetadata(addFileMetadata) _
+    val updateMetadata = Service.updateMetadata(addFileMetadata, find) _
 
     val iterateeForUpload = fileRepository.iterateeForUpload _
     val uploadBodyParser = UploadParser.parse(iterateeForUpload) _
@@ -115,7 +119,11 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     val fromRepository = fileRepository.retrieveFile _
     val retrieveFile = Service.retrieveFile(fromRepository) _
 
-    new FileController(uploadBodyParser = uploadBodyParser, addFileToEnvelope = addFileToEnvelope, getMetadata = getMetadata, updateMetadata = updateMetadata, retrieveFile = retrieveFile)
+    new FileController(uploadBodyParser = uploadBodyParser,
+      addFileToEnvelope = addFileToEnvelope,
+      getMetadata = getMetadata,
+      updateMetadata = updateMetadata,
+      retrieveFile = retrieveFile)
   }
 
   override def getControllerInstance[A](controllerClass: Class[A]): A = {
