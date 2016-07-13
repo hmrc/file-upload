@@ -18,16 +18,27 @@ package uk.gov.hmrc.fileupload.file
 
 import java.util.UUID
 
-import play.api.libs.json.{Format, JsObject, Json}
+import org.joda.time.{DateTime, DateTimeZone}
+import play.api.data.validation.ValidationError
+import play.api.libs.json._
 
 object FileMetadata {
+  implicit val readDate: Reads[DateTime] = new Reads[DateTime]{
+    override def reads(json: JsValue): JsResult[DateTime] = json match {
+      case JsObject(Seq(("$date", JsNumber(d)))) => JsSuccess(new DateTime(d.toLong, DateTimeZone.UTC))
+      case _ => JsError(Seq(JsPath() -> Seq(ValidationError("error.expected.date"))))
+    }
+  }
+  
   implicit val compositeFileIdFormat: Format[CompositeFileId] = Json.format[CompositeFileId]
   implicit val fileMetaDataFormat: Format[FileMetadata] = Json.format[FileMetadata]
 }
 
 case class FileMetadata(_id: CompositeFileId = CompositeFileId(envelopeId = UUID.randomUUID().toString, fileId = UUID.randomUUID().toString),
-                        filename: Option[String] = None,
+                        name: Option[String] = None,
                         contentType: Option[String] = None,
+                        length: Option[Long] = None,
+                        uploadDate: Option[DateTime] = None,
                         revision: Option[Int] = None,
                         metadata: Option[JsObject] = None)
 
