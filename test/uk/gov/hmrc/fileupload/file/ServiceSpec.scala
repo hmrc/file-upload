@@ -18,7 +18,9 @@ package uk.gov.hmrc.fileupload.file
 
 import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
-import uk.gov.hmrc.fileupload.file.Service.{GetMetadataNotFoundError, GetMetadataServiceError, UpdateMetadataNotFoundError, UpdateMetadataServiceError}
+import uk.gov.hmrc.fileupload.Support
+import uk.gov.hmrc.fileupload.envelope.Service.FindEnvelopeNotFoundError
+import uk.gov.hmrc.fileupload.file.Service.{GetMetadataNotFoundError, GetMetadataServiceError, UpdateMetadataEnvelopeNotFoundError, UpdateMetadataServiceError}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -59,7 +61,9 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
   "update" should {
     "be successful" in {
       val metadata = FileMetadata()
-      val update = Service.updateMetadata(_ => Future.successful(true)) _
+      val envelope = Support.envelope
+
+      val update = Service.updateMetadata(_ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
 
       val result = update(metadata).futureValue
 
@@ -68,16 +72,31 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
     "be not found" in {
       val metadata = FileMetadata()
-      val update = Service.updateMetadata(_ => Future.successful(false)) _
+      val envelope = Support.envelope
+
+      val update = Service.updateMetadata(_ => Future.successful(true), _ => Future.successful(Xor.left(FindEnvelopeNotFoundError(envelope._id)))) _
 
       val result = update(metadata).futureValue
 
-      result shouldBe Xor.left(UpdateMetadataNotFoundError(metadata._id))
+      result shouldBe Xor.left(UpdateMetadataEnvelopeNotFoundError(envelope._id))
     }
 
-    "be a get service error" in {
+    "be a service error after not successful" in {
       val metadata = FileMetadata()
-      val update = Service.updateMetadata(_ => Future.failed(new Exception("not good"))) _
+      val envelope = Support.envelope
+
+      val update = Service.updateMetadata(_ => Future.successful(false), _ => Future.successful(Xor.right(envelope))) _
+
+      val result = update(metadata).futureValue
+
+      result shouldBe Xor.left(UpdateMetadataServiceError(metadata._id, "Update failed"))
+    }
+
+    "be a service error after exception" in {
+      val metadata = FileMetadata()
+      val envelope = Support.envelope
+
+      val update = Service.updateMetadata(_ => Future.failed(new Exception("not good")), _ => Future.successful(Xor.right(envelope))) _
 
       val result = update(metadata).futureValue
 

@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.file
 
 import cats.data.Xor
+import uk.gov.hmrc.fileupload.envelope.Service.{FindEnvelopeNotFoundError, FindResult, FindServiceError}
 import uk.gov.hmrc.fileupload.file.Repository.RetrieveFileResult
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -32,7 +33,7 @@ object Service {
   case class GetMetadataServiceError(compositeFileId: CompositeFileId, message: String) extends GetMetadataError
 
   sealed trait UpdateMetadataError
-  case class UpdateMetadataNotFoundError(compositeFileId: CompositeFileId) extends UpdateMetadataError
+  case class UpdateMetadataEnvelopeNotFoundError(envelopeId: String) extends UpdateMetadataError
   case class UpdateMetadataServiceError(compositeFileId: CompositeFileId, message: String) extends UpdateMetadataError
 
   def getMetadata(getFileMetadata: CompositeFileId => Future[Option[FileMetadata]])(compositeFileId: CompositeFileId)
@@ -42,15 +43,18 @@ object Service {
       case _ => Xor.left(GetMetadataNotFoundError(compositeFileId))
     }.recoverWith { case e => Future { Xor.left(GetMetadataServiceError(compositeFileId, e.getMessage)) } }
 
-  def updateMetadata(updateMetadata: FileMetadata => Future[Boolean])(metadata: FileMetadata)
+  def updateMetadata(updateMetadata: FileMetadata => Future[Boolean], findEnvelope: String => Future[FindResult])(metadata: FileMetadata)
                     (implicit ex: ExecutionContext): Future[UpdateMetadataResult] =
-    updateMetadata(metadata).map {
-      case true => Xor.right(metadata)
-      case _ => Xor.left(UpdateMetadataNotFoundError(metadata._id))
+    findEnvelope(metadata._id.envelopeId).flatMap {
+      case Xor.Right(envelope) => updateMetadata(metadata).map {
+        case true => Xor.right(metadata)
+        case _ => Xor.left(UpdateMetadataServiceError(metadata._id, "Update failed"))
+      }.recoverWith { case e => Future { Xor.left(UpdateMetadataServiceError(metadata._id, e.getMessage)) } }
+      case Xor.Left(FindEnvelopeNotFoundError(id)) => Future { Xor.left(UpdateMetadataEnvelopeNotFoundError(id)) }
+      case Xor.Left(FindServiceError(id, m)) => Future { Xor.left(UpdateMetadataServiceError(metadata._id, m)) }
     }.recoverWith { case e => Future { Xor.left(UpdateMetadataServiceError(metadata._id, e.getMessage)) } }
 
   def retrieveFile(fromRepository: CompositeFileId => Future[RetrieveFileResult])(compositeFileId: CompositeFileId)
-                  (implicit ex: ExecutionContext): Future[RetrieveFileResult] = {
+                  (implicit ex: ExecutionContext): Future[RetrieveFileResult] =
     fromRepository(compositeFileId)
-  }
 }

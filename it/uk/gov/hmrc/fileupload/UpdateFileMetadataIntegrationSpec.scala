@@ -31,7 +31,7 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
     scenario("Create File Metadata - empty body") {
       Given("I have a valid envelope ID")
       And("a valid file ID")
-      val envelopeId = s"envelopeId-${nextId()}"
+      val envelopeId = createEnvelope()
       val fileId = s"fileId-${nextId()}"
 
       And("I have a JSON body {}")
@@ -80,5 +80,24 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
       // TODO
     }
 
+    scenario("Create File Metadata for envelope with a file attachment") {
+      Given("I have a valid envelope ID and a valid file ID")
+      val envelopeId = createEnvelope()
+      val fileId = s"fileId-${nextId()}"
+
+      And("I have a file already attached to the envelope")
+      upload("test".getBytes, envelopeId, fileId)
+
+      And("I have a JSON body with an example PUT File Metadata request ")
+      val json = requestBody()
+
+      When(s"I call PUT /file-upload/envelope/$envelopeId/file/$fileId/metadata")
+      val response = updateFileMetadata(json, envelopeId, fileId)
+
+      Then("I should receive a 200 OK response")
+      response.status shouldBe OK
+    }
+
   }
+
 }
