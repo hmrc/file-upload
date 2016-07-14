@@ -30,7 +30,7 @@ object FileMetadataReportSupport extends Support {
 
   def responseBodyAsJson(id: String, args: Map[String, Any] = Map.empty) = Json.parse(responseBody(id, args))
 
-  def responseBody(id: String, args: Map[String, Any] = Map.empty) = prettify( s"""
+  def responseBody(id: String, args: Map[String, Any] = Map.empty) = prettify(s"""
     |{
     |  "id":"$id",
     |  "name":"${args.getOrElse("name", "test.jpg")}",
@@ -60,7 +60,7 @@ object FileMetadataReportSupport extends Support {
     |  "id":"$id",
     |  "name":"${args.getOrElse("name", "test.jpg")}",
     |  "contentType":"${args.getOrElse("contentType", "application/pdf")}",
-    |  "length":"${args.getOrElse("length", 0)}",
+    |  "length":${args.getOrElse("length", 0)},
     |  "created":"${args.getOrElse("created", "")}",
     |  "revision":${args.getOrElse("revision", 1)},
     |  "metadata":{

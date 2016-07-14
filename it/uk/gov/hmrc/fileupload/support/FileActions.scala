@@ -12,6 +12,12 @@ trait FileActions extends ActionsSupport {
       .put(data)
       .futureValue
 
+  def download(envelopeId: String, fileId: String): WSResponse =
+    WS
+      .url(s"$url/envelope/$envelopeId/file/$fileId/content")
+      .get()
+      .futureValue
+
   def updateFileMetadata(data: String, envelopeId: String, fileId: String): WSResponse =
     WS
       .url(s"$url/envelope/$envelopeId/file/$fileId/metadata" )
