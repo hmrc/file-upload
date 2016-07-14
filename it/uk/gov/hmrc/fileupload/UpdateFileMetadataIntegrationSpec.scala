@@ -61,5 +61,24 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
       response.status shouldBe NOT_FOUND
     }
 
+    scenario("Overwrite Metadata with Valid request") {
+      Given("I have a valid envelope ID")
+      And("a valid file ID")
+      val envelopeId = createEnvelope()
+      val fileId = s"fileId-${nextId()}"
+
+      And("I have a JSON  body with a valid request")
+      val json = requestBody()
+
+      When(s"I invoke PUT envelope/$envelopeId/file/$fileId/metadata")
+      val response = updateFileMetadata(json, envelopeId, fileId)
+
+      Then("I will receive a 200 Ok response")
+      response.status shouldBe OK
+
+      And("the envelope is updated with the overwritten metadata")
+      // TODO
+    }
+
   }
 }

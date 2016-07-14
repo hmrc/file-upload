@@ -1,9 +1,8 @@
 package uk.gov.hmrc.fileupload.support
 
 import play.api.libs.json.Json
-import play.api.libs.json.Json.prettyPrint
 
-object EnvelopeReportSupport {
+object EnvelopeReportSupport extends Support {
 
   def requestBodyAsJson(args: Map[String, Any] = Map.empty) = Json.parse(requestBody(args))
 
@@ -67,7 +66,4 @@ object EnvelopeReportSupport {
        |  "status": "Sealed"
        |}""".stripMargin )
 
-  def prettify(json: String) = {
-    prettyPrint( Json.parse(json) )
-  }
 }

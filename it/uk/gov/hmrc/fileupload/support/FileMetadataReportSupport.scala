@@ -2,7 +2,7 @@ package uk.gov.hmrc.fileupload.support
 
 import play.api.libs.json.Json
 
-object FileMetadataReportSupport {
+object FileMetadataReportSupport extends Support {
 
   def requestBodyAsJson(args: Map[String, Any] = Map.empty) = Json.parse(requestBody(args))
 
@@ -30,7 +30,7 @@ object FileMetadataReportSupport {
 
   def responseBodyAsJson(id: String, args: Map[String, Any] = Map.empty) = Json.parse(responseBody(id, args))
 
-  def responseBody(id: String, args: Map[String, Any] = Map.empty) = s"""
+  def responseBody(id: String, args: Map[String, Any] = Map.empty) = prettify( s"""
     |{
     |  "id":"$id",
     |  "name":"${args.getOrElse("name", "test.jpg")}",
@@ -51,6 +51,6 @@ object FileMetadataReportSupport {
     |    }
     |  }
     |}
-		 """.stripMargin
+		 """.stripMargin)
 
 }
