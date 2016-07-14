@@ -1,5 +1,6 @@
 package uk.gov.hmrc.fileupload
 
+import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport.{prettify => _, requestBody => _, responseBody => _, _}
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FileActions, IntegrationSpec}
 import uk.gov.hmrc.fileupload.support.FileMetadataReportSupport._
 
@@ -12,7 +13,7 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
 
   feature("Update Metadata") {
 
-    scenario("Create File Metadata - Basic example") {
+    scenario("Create File Metadata for envelope with no file attachment") {
       Given("I have a valid envelope ID")
       And("a valid file ID")
       val envelopeId = createEnvelope()
@@ -45,7 +46,6 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
     }
 
     scenario("Create File Metadata - invalid Envelope ID") {
-      pending
       Given("I have a invalid envelope ID")
       And("a valid file ID")
       val envelopeId = s"envelopeId-${nextId()}"
@@ -66,18 +66,20 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
       And("a valid file ID")
       val envelopeId = createEnvelope()
       val fileId = s"fileId-${nextId()}"
+      updateFileMetadata(requestBody(), envelopeId, fileId)
 
       And("I have a JSON  body with a valid request")
-      val json = requestBody()
+      val json = requestBody( Map("contentType" -> "application/xml"))
 
-      When(s"I invoke PUT envelope/$envelopeId/file/$fileId/metadata")
+      When(s"I overwrite the existing file metadata")
       val response = updateFileMetadata(json, envelopeId, fileId)
 
       Then("I will receive a 200 Ok response")
       response.status shouldBe OK
 
       And("the envelope is updated with the overwritten metadata")
-      // TODO
+      val getMetadataresponse = getFileMetadataFor(envelopeId, fileId)
+      prettify(getMetadataresponse.body) shouldBe responseBody(fileId, Map("contentType" -> "application/xml"))
     }
 
     scenario("Create File Metadata for envelope with a file attachment") {
