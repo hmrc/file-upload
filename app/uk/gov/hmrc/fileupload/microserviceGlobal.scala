@@ -19,18 +19,18 @@ package uk.gov.hmrc.fileupload
 import java.util.UUID
 
 import com.typesafe.config.Config
+import net.ceedubs.ficus.Ficus._
 import play.api.mvc.{EssentialFilter, RequestHeader, Result}
 import play.api.{Application, Configuration, Play}
 import uk.gov.hmrc.fileupload.controllers._
+import uk.gov.hmrc.fileupload.infrastructure.DefaultMongoConnection
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
+import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
+import uk.gov.hmrc.play.http.BadRequestException
 import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
-import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
-import net.ceedubs.ficus.Ficus._
-import uk.gov.hmrc.fileupload.infrastructure.DefaultMongoConnection
-import uk.gov.hmrc.play.http.BadRequestException
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -83,8 +83,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     (envelopeId: String, fileId: String) => routes.FileController.upload(envelopeId = envelopeId, fileId = fileId).url, update, find) _
 
   lazy val envelopeController = {
-    import uk.gov.hmrc.fileupload.envelope.Service
     import play.api.libs.concurrent.Execution.Implicits._
+    import uk.gov.hmrc.fileupload.envelope.Service
 
     val create = Service.create(update) _
     val nextId = () => UUID.randomUUID().toString
@@ -102,8 +102,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   }
 
   lazy val fileController = {
-    import uk.gov.hmrc.fileupload.file.Service
     import play.api.libs.concurrent.Execution.Implicits._
+    import uk.gov.hmrc.fileupload.file.Service
 
     val fileRepository = uk.gov.hmrc.fileupload.file.Repository.apply(db)
 

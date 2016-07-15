@@ -17,7 +17,7 @@
 package uk.gov.hmrc
 
 import _root_.play.api.libs.json.JsValue
-import reactivemongo.api.gridfs.{ReadFile, GridFS}
+import reactivemongo.api.gridfs.{GridFS, ReadFile}
 import reactivemongo.json.JSONSerializationPack
 
 import scala.concurrent.Future

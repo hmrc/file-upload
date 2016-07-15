@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.fileupload.envelope
 
-import reactivemongo.api.{DB, DBMetaCommands}
 import reactivemongo.api.commands.WriteResult
+import reactivemongo.api.{DB, DBMetaCommands}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.mongo.ReactiveRepository
 

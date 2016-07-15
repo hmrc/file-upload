@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.controllers
 import org.joda.time.DateTime
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.json._
-import play.api.mvc.{Result, RequestHeader, BodyParser}
+import play.api.mvc.{BodyParser, RequestHeader, Result}
 import uk.gov.hmrc.fileupload.envelope.{Constraints, Envelope, File}
 
 import scala.concurrent.ExecutionContext

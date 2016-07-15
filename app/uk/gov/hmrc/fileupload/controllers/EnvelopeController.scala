@@ -19,8 +19,8 @@ package uk.gov.hmrc.fileupload.controllers
 import cats.data.Xor
 import play.api.libs.json._
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.envelope.Service._
 import uk.gov.hmrc.fileupload.envelope.Envelope
+import uk.gov.hmrc.fileupload.envelope.Service._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}

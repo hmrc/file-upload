@@ -16,15 +16,15 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import cats.data.Xor
 import play.api.libs.json.Json
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.file.{CompositeFileId, FileMetadata}
-import uk.gov.hmrc.play.microservice.controller.BaseController
-import cats.data.Xor
 import uk.gov.hmrc.fileupload.JSONReadFile
 import uk.gov.hmrc.fileupload.envelope.Service._
 import uk.gov.hmrc.fileupload.file.Repository.RetrieveFileResult
 import uk.gov.hmrc.fileupload.file.Service._
+import uk.gov.hmrc.fileupload.file.{CompositeFileId, FileMetadata}
+import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
