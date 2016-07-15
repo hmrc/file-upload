@@ -38,15 +38,15 @@ class FileController(uploadBodyParser: CompositeFileId => BodyParser[Future[JSON
 
   def upload(envelopeId: String, fileId: String) = Action.async(uploadBodyParser(CompositeFileId(envelopeId, fileId))) { request =>
     //TODO: rollback file upload if file not added to envelope
-	  request.body.flatMap { _ =>
-		  addFileToEnvelope(envelopeId, fileId).map {
-			  case Xor.Right(e) => Ok
-			  case Xor.Left(AddFileEnvelopeNotFoundError(id)) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
-			  case Xor.Left(AddFileSeaeldError(e)) => ExceptionHandler(BAD_REQUEST, s"The envelope ${e._id} is sealed")
-			  case Xor.Left(AddFileNotSuccessfulError(e)) => ExceptionHandler(INTERNAL_SERVER_ERROR, "File not added to envelope")
-			  case Xor.Left(AddFileServiceError(id, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-		  }.recover { case e => ExceptionHandler(e) }
-	  }
+    request.body.flatMap { _ =>
+      addFileToEnvelope(envelopeId, fileId).map {
+        case Xor.Right(e) => Ok
+        case Xor.Left(AddFileEnvelopeNotFoundError(id)) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
+        case Xor.Left(AddFileSeaeldError(e)) => ExceptionHandler(BAD_REQUEST, s"The envelope ${ e._id } is sealed")
+        case Xor.Left(AddFileNotSuccessfulError(e)) => ExceptionHandler(INTERNAL_SERVER_ERROR, "File not added to envelope")
+        case Xor.Left(AddFileServiceError(id, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      }.recover { case e => ExceptionHandler(e) }
+    }
   }
 
   def get(envelopeId: String, fileId: String) = Action.async {
@@ -57,19 +57,19 @@ class FileController(uploadBodyParser: CompositeFileId => BodyParser[Future[JSON
     }.recover { case e => ExceptionHandler(e) }
   }
 
-	def metadata(envelopeId: String, fileId: String) = Action.async(FileMetadataParser) { request =>
+  def metadata(envelopeId: String, fileId: String) = Action.async(FileMetadataParser) { request =>
     updateMetadata(UpdateFileMetadataReport.toFileMetadata(envelopeId, fileId, request.body)).map {
-      case Xor.Right(m) => Ok.withHeaders(LOCATION -> s"${request.host}${routes.FileController.get(envelopeId, fileId)}")
+      case Xor.Right(m) => Ok.withHeaders(LOCATION -> s"${ request.host }${ routes.FileController.get(envelopeId, fileId) }")
       case Xor.Left(UpdateMetadataEnvelopeNotFoundError(e)) => ExceptionHandler(NOT_FOUND, s"Envelope $fileId not found")
       case Xor.Left(UpdateMetadataServiceError(e, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
     }.recover { case e => ExceptionHandler(e) }
-	}
+  }
 
   def download(envelopeId: String, fileId: String) = Action.async { request =>
-    retrieveFile(CompositeFileId(envelopeId, fileId)) map  {
+    retrieveFile(CompositeFileId(envelopeId, fileId)) map {
       case Xor.Right(result) =>
         Ok feed result.data withHeaders(
-          CONTENT_LENGTH -> s"${result.length}", CONTENT_DISPOSITION -> s"""attachment; filename="${result.filename.getOrElse("data")}"""")
+          CONTENT_LENGTH -> s"${ result.length }", CONTENT_DISPOSITION -> s"""attachment; filename="${ result.filename.getOrElse("data") }"""")
       case Xor.Left(result) => NotFound
     }
   }

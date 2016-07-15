@@ -45,7 +45,7 @@ sealed trait ExceptionHandler[T <: Throwable] {
 
 object IllegalArgumentHandler extends ExceptionHandler[IllegalArgumentException] {
   def apply(exception: IllegalArgumentException): Result = {
-	  ExceptionHandler(BAD_REQUEST, exception.getMessage)
+    ExceptionHandler(BAD_REQUEST, exception.getMessage)
   }
 }
 
@@ -53,13 +53,13 @@ object NoSuchElementHandler extends ExceptionHandler[NoSuchElementException] {
   def apply(exception: NoSuchElementException): Result = {
     val message = "Invalid json format"
     Logger.error(message, exception)
-	  ExceptionHandler(BAD_REQUEST, message)
+    ExceptionHandler(BAD_REQUEST, message)
   }
 }
 
 object BadRequestHandler extends ExceptionHandler[BadRequestException] {
   override def apply(exception: BadRequestException): Result = {
-	  ExceptionHandler(BAD_REQUEST, exception.getMessage)
+    ExceptionHandler(BAD_REQUEST, exception.getMessage)
   }
 }
 
@@ -67,6 +67,6 @@ object DefaultExceptionHandler extends ExceptionHandler[Throwable] {
   override def apply(exception: Throwable): Result = {
     val message = "Internal Server Error"
     Logger.error(message, exception)
-	  ExceptionHandler(INTERNAL_SERVER_ERROR, message)
+    ExceptionHandler(INTERNAL_SERVER_ERROR, message)
   }
 }

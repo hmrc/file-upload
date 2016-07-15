@@ -35,7 +35,9 @@ object Repository {
   def apply(mongo: () => DB with DBMetaCommands): Repository = new Repository(mongo)
 
   sealed trait RetrieveFileError
+
   object FileNotFoundError extends RetrieveFileError
+
   case class FileFoundResult(filename: Option[String] = None, length: Long = 0, data: Enumerator[Array[Byte]] = null)
 
   type RetrieveFileResult = Xor[RetrieveFileError, FileFoundResult]
@@ -73,7 +75,7 @@ class Repository(mongo: () => DB with DBMetaCommands) {
     case _ => false
   }
 
-  def iterateeForUpload(compositeFileId: CompositeFileId)(implicit ec: ExecutionContext) : Iteratee[ByteStream, Future[JSONReadFile]] = {
+  def iterateeForUpload(compositeFileId: CompositeFileId)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = {
     import FileMetadata._
     gfs.iteratee(JSONFileToSave(filename = None, id = Json.toJson(compositeFileId)))
   }
@@ -86,7 +88,7 @@ class Repository(mongo: () => DB with DBMetaCommands) {
     }
   }
 
-  def removeAll()(implicit ec: ExecutionContext): Future[List[WriteResult]]  = {
+  def removeAll()(implicit ec: ExecutionContext): Future[List[WriteResult]] = {
     val files = gfs.files.remove(Json.obj())
     val chunks = gfs.chunks.remove(Json.obj())
     Future.sequence(List(files, chunks))

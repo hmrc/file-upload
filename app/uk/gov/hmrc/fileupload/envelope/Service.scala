@@ -22,14 +22,15 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 object Service {
-  
+
   type CreateResult = Xor[CreateError, Envelope]
   type FindResult = Xor[FindError, Envelope]
   type DeleteResult = Xor[DeleteError, Envelope]
   type SealResult = Xor[SealError, Envelope]
   type AddFileResult = Xor[AddFileError, Envelope]
 
-	sealed trait CreateError
+  sealed trait CreateError
+
   case class CreateNotSuccessfulError(envelope: Envelope) extends CreateError
   case class CreateServiceError(envelope: Envelope, message: String) extends CreateError
 
@@ -65,7 +66,7 @@ object Service {
     get(id).map {
       case Some(e) => Xor.right(e)
       case _ => Xor.left(FindEnvelopeNotFoundError(id))
-    }.recover { case e => Xor.left(FindServiceError(id, e.getMessage))  }
+    }.recover { case e => Xor.left(FindServiceError(id, e.getMessage)) }
 
   def delete(delete: String => Future[Boolean], find: String => Future[FindResult])(id: String)(implicit ex: ExecutionContext): Future[DeleteResult] =
     find(id).flatMap {
@@ -73,10 +74,10 @@ object Service {
       case Xor.Right(envelope) => delete(envelope._id).map {
         case true => Xor.right(envelope)
         case _ => Xor.left(DeleteEnvelopeNotSuccessfulError(envelope))
-      }.recover { case e => Xor.left(DeleteServiceError(id, e.getMessage))  }
+      }.recover { case e => Xor.left(DeleteServiceError(id, e.getMessage)) }
       case Xor.Left(FindEnvelopeNotFoundError(i)) => Future { Xor.left(DeleteEnvelopeNotFoundError(i)) }
       case Xor.Left(FindServiceError(i, m)) => Future { Xor.left(DeleteServiceError(i, m)) }
-      }.recover { case e => Xor.left(DeleteServiceError(id, e.getMessage)) }
+    }.recover { case e => Xor.left(DeleteServiceError(id, e.getMessage)) }
 
   def seal(seal: Envelope => Future[Boolean], find: String => Future[FindResult])(id: String)(implicit ex: ExecutionContext): Future[SealResult] =
     find(id).flatMap {
@@ -84,10 +85,10 @@ object Service {
       case Xor.Right(envelope) => seal(envelope.copy(status = Sealed)).map {
         case true => Xor.right(envelope)
         case _ => Xor.left(SealEnvelopNotSuccessfulError(envelope))
-      }.recover{ case e => Xor.left(SealServiceError(id, e.getMessage)) }
+      }.recover { case e => Xor.left(SealServiceError(id, e.getMessage)) }
       case Xor.Left(FindEnvelopeNotFoundError(i)) => Future { Xor.left(SealEnvelopeNotFoundError(i)) }
       case Xor.Left(FindServiceError(i, m)) => Future { Xor.left(SealServiceError(i, m)) }
-      }.recover { case e => Xor.left(SealServiceError(id, e.getMessage))  }
+    }.recover { case e => Xor.left(SealServiceError(id, e.getMessage)) }
 
   def addFile(toHref: (String, String) => String, update: Envelope => Future[Boolean], find: String => Future[FindResult])
              (envelopeId: String, fileId: String)
@@ -100,7 +101,7 @@ object Service {
           case true => Xor.right(updatedEnvelope)
           case _ => Xor.left(AddFileNotSuccessfulError(envelope))
         }
-      }.recover { case e => Xor.left(AddFileServiceError(envelopeId, e.getMessage))  }
+      }.recover { case e => Xor.left(AddFileServiceError(envelopeId, e.getMessage)) }
       case Xor.Left(FindEnvelopeNotFoundError(i)) => Future { Xor.left(AddFileEnvelopeNotFoundError(i)) }
       case Xor.Left(FindServiceError(i, m)) => Future { Xor.left(AddFileServiceError(i, m)) }
     }.recover { case e => Xor.left(AddFileServiceError(envelopeId, e.getMessage)) }

@@ -24,29 +24,29 @@ import uk.gov.hmrc.mongo.ReactiveRepository
 import scala.concurrent.{ExecutionContext, Future}
 
 object Repository {
-	def apply(mongo: () => DB with DBMetaCommands): Repository = new Repository(mongo)
+  def apply(mongo: () => DB with DBMetaCommands): Repository = new Repository(mongo)
 }
 
 class Repository(mongo: () => DB with DBMetaCommands)
-  extends ReactiveRepository[Envelope, BSONObjectID](collectionName = "envelopes", mongo, domainFormat = Envelope.envelopeReads ) {
+  extends ReactiveRepository[Envelope, BSONObjectID](collectionName = "envelopes", mongo, domainFormat = Envelope.envelopeReads) {
 
-	def update(envelope: Envelope)(implicit ex: ExecutionContext): Future[Boolean] =
-    delete(envelope._id).flatMap( _ => add(envelope) )
+  def update(envelope: Envelope)(implicit ex: ExecutionContext): Future[Boolean] =
+    delete(envelope._id).flatMap(_ => add(envelope))
 
-	def add(envelope: Envelope)(implicit ex: ExecutionContext): Future[Boolean] ={
+  def add(envelope: Envelope)(implicit ex: ExecutionContext): Future[Boolean] = {
     insert(envelope) map toBoolean
   }
 
   def get(id: String)(implicit ec: ExecutionContext): Future[Option[Envelope]] = {
-	  find("_id" -> id).map(_.headOption)
+    find("_id" -> id).map(_.headOption)
   }
 
-	def delete(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {
-		remove("_id" -> id) map toBoolean
-	}
+  def delete(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {
+    remove("_id" -> id) map toBoolean
+  }
 
-	def toBoolean(wr: WriteResult): Boolean = wr match {
-		case r if r.ok && r.n > 0 => true
-		case _ => false
-	}
+  def toBoolean(wr: WriteResult): Boolean = wr match {
+    case r if r.ok && r.n > 0 => true
+    case _ => false
+  }
 }

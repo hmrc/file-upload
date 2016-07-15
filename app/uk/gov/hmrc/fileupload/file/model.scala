@@ -23,13 +23,13 @@ import play.api.data.validation.ValidationError
 import play.api.libs.json._
 
 object FileMetadata {
-  implicit val readDate: Reads[DateTime] = new Reads[DateTime]{
+  implicit val readDate: Reads[DateTime] = new Reads[DateTime] {
     override def reads(json: JsValue): JsResult[DateTime] = json match {
       case JsObject(Seq(("$date", JsNumber(d)))) => JsSuccess(new DateTime(d.toLong, DateTimeZone.UTC))
       case _ => JsError(Seq(JsPath() -> Seq(ValidationError("error.expected.date"))))
     }
   }
-  
+
   implicit val compositeFileIdFormat: Format[CompositeFileId] = Json.format[CompositeFileId]
   implicit val fileMetaDataFormat: Format[FileMetadata] = Json.format[FileMetadata]
 }

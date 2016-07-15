@@ -29,11 +29,15 @@ object Service {
   type UpdateMetadataResult = Xor[UpdateMetadataError, FileMetadata]
 
   sealed trait GetMetadataError
+
   case class GetMetadataNotFoundError(compositeFileId: CompositeFileId) extends GetMetadataError
+
   case class GetMetadataServiceError(compositeFileId: CompositeFileId, message: String) extends GetMetadataError
 
   sealed trait UpdateMetadataError
+
   case class UpdateMetadataEnvelopeNotFoundError(envelopeId: String) extends UpdateMetadataError
+
   case class UpdateMetadataServiceError(compositeFileId: CompositeFileId, message: String) extends UpdateMetadataError
 
   def getMetadata(getFileMetadata: CompositeFileId => Future[Option[FileMetadata]])(compositeFileId: CompositeFileId)

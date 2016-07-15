@@ -22,7 +22,9 @@ import org.joda.time.DateTime
 import play.api.libs.json.{Format, JsObject, _}
 
 sealed trait Status
+
 case object Open extends Status
+
 case object Sealed extends Status
 
 object StatusWrites extends Writes[Status] {
@@ -34,8 +36,8 @@ object StatusWrites extends Writes[Status] {
 
 object StatusReads extends Reads[Status] {
   def reads(value: JsValue) = value.as[String] match {
-    case "SEALED" => JsSuccess( Sealed )
-    case "OPEN" => JsSuccess( Open )
+    case "SEALED" => JsSuccess(Sealed)
+    case "OPEN" => JsSuccess(Open)
   }
 }
 
@@ -43,7 +45,7 @@ case class Envelope(_id: String = UUID.randomUUID().toString,
                     constraints: Option[Constraints] = None,
                     callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None,
                     metadata: Option[Map[String, JsValue]] = None, files: Option[Seq[File]] = None,
-                    status: Status = Open ) {
+                    status: Status = Open) {
   def isSealed: Boolean = this.status == Sealed
 
   require(!isExpired, "expiry date cannot be in the past")

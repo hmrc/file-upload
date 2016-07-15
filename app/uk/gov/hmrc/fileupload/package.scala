@@ -25,7 +25,7 @@ import scala.util.Try
 
 package object fileupload {
   type ByteStream = Array[Byte]
-	type JSONGridFS = GridFS[JSONSerializationPack.type]
-	type JSONReadFile = ReadFile[JSONSerializationPack.type, JsValue]
-	type StreamedResults = Future[(JSONReadFile, Try[Boolean])]
+  type JSONGridFS = GridFS[JSONSerializationPack.type]
+  type JSONReadFile = ReadFile[JSONSerializationPack.type, JsValue]
+  type StreamedResults = Future[(JSONReadFile, Try[Boolean])]
 }
