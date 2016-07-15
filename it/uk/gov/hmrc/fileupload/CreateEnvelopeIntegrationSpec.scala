@@ -38,7 +38,7 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
     scenario("Create a new Envelope using basic sample") {
       val formattedExpiryDate: String = formatter.print(today)
 
-      Given("the json request")
+      Given("I have the following JSON")
       val json = requestBody(Map("formattedExpiryDate" -> formattedExpiryDate))
 
       When("I invoke POST /file/upload/envelope")
