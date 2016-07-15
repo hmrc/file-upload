@@ -30,42 +30,6 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
       response.status shouldBe OK
     }
 
-    scenario("PUT File Invalid Envelope ID") {
-      Given("I have a invalid envelope-id")
-      val envelopeId = "invalidId"
-
-      And("I have a file id")
-      val fileId = s"fileId-${nextId()}"
-
-      And("I have a valid file attached to the request body")
-      val data = "{}".getBytes
-
-      When(s"I invoke PUT envelope/$envelopeId/file/$fileId/content")
-      val response: WSResponse = upload(data, envelopeId, fileId)
-
-      Then("I will receive a 404 Not Found response")
-      response.status shouldBe NOT_FOUND
-    }
-
-    scenario("PUT File with invalid file-id") {
-      Given("I have a invalid envelope-id")
-      val envelopeId: String = createEnvelope()
-
-      And("I have an invalid file-id")
-      val fileId = ""
-
-      And("I have a valid file attached to the request body")
-      val data = "{}".getBytes
-
-      When(s"I invoke PUT envelope/$envelopeId/file/$fileId/content")
-      val response: WSResponse = upload(data, envelopeId, fileId)
-
-      Then("I will receive a 400 Not Found response")
-      response.status shouldBe NOT_FOUND
-
-      And("And the file should not be added to the DB")
-    }
-
     scenario("Add multiple files to envelope") {
       Given("I have an envelope-id with an existing file attached")
       val envelopeId: String = createEnvelope()
@@ -87,5 +51,60 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
       (envelope.json \ "files").as[List[JsObject]].size shouldBe 2
 
     }
+
+    scenario("PUT File Invalid Envelope ID") {
+      Given("I have a invalid envelope-id")
+      val envelopeId = "invalidId"
+
+      And("I have a file id")
+      val fileId = s"fileId-${nextId()}"
+
+      And("I have a valid file attached to the request body")
+      val data = "{}".getBytes
+
+      When(s"I invoke PUT envelope/$envelopeId/file/$fileId/content")
+      val response: WSResponse = upload(data, envelopeId, fileId)
+
+      Then("I will receive a 404 Not Found response")
+      response.status shouldBe NOT_FOUND
+    }
+
+    scenario("PUT File with no file attached") {
+      Given("I have a valid envelope-id")
+      val envelopeId = createEnvelope()
+
+      And("I have a valid file-id")
+      val fileId = s"nofile-${nextId()}"
+
+      And("I have no file attached to the request body")
+      val data = "".getBytes
+
+      When(s"I invoke PUT envelope/$envelopeId/file/$fileId/content")
+      val response: WSResponse = upload(data, envelopeId, fileId)
+
+      Then("I will receive a 200 Ok response")
+      response.status shouldBe OK
+    }
+
+    scenario("PUT File with invalid file-id") {
+      Given("I have a invalid envelope-id")
+      val envelopeId: String = createEnvelope()
+
+      And("I have an invalid file-id")
+      val fileId = ""
+
+      And("I have a valid file attached to the request body")
+      val data = "{}".getBytes
+
+      When(s"I invoke PUT envelope/$envelopeId/file/$fileId/content")
+      val response: WSResponse = upload(data, envelopeId, fileId)
+
+      Then("I will receive a 400 Not Found response")
+      response.status shouldBe NOT_FOUND
+
+      And("And the file should not be added to the DB")
+    }
+
+
   }
 }
