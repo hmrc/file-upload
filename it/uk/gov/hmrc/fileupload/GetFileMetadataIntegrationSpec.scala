@@ -1,9 +1,8 @@
 package uk.gov.hmrc.fileupload
 
-import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport.prettify
 import uk.gov.hmrc.fileupload.support.FileMetadataReportSupport._
-import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EnvelopeReportSupport, FileActions, IntegrationSpec}
+import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FileActions, IntegrationSpec}
 
 /**
   * Integration tests for FILE-100
