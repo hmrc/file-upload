@@ -145,7 +145,8 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 	"seal envelope" should {
 		"close the envelope to any change" in {
       val envelope = Support.envelope
-      val request = new FakeRequest[AnyContentAsJson]("POST", s"/envelope/${envelope._id}", FakeHeaders(), body = AnyContentAsJson(JsString("""{"sealed": true}""")))
+      val request = new FakeRequest[AnyContentAsJson]("POST", s"/envelope/${envelope._id}",
+        FakeHeaders(), body = AnyContentAsJson(JsString("""{"sealed": true}""")))
 
       val controller = newController(sealEnvelope = _ => Future.successful(Xor.right(envelope)))
       val result = controller.seal(envelope._id)(request).futureValue

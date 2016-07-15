@@ -20,7 +20,6 @@ import java.util.UUID
 
 import org.joda.time.DateTime
 import play.api.libs.json.{Format, JsObject, _}
-import uk.gov.hmrc.fileupload.controllers.{ConstraintsReport, EnvelopeReport}
 
 sealed trait Status
 case object Open extends Status
@@ -45,7 +44,7 @@ case class Envelope(_id: String = UUID.randomUUID().toString,
                     callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None,
                     metadata: Option[Map[String, JsValue]] = None, files: Option[Seq[File]] = None,
                     status: Status = Open ) {
-  def isSealed(): Boolean = this.status == Sealed
+  def isSealed: Boolean = this.status == Sealed
 
   require(!isExpired, "expiry date cannot be in the past")
 
@@ -54,7 +53,10 @@ case class Envelope(_id: String = UUID.randomUUID().toString,
   def contains(fileId: String) = files.exists(sequence => sequence.exists(_.id == fileId))
 }
 
-case class Constraints(contentTypes: Option[Seq[String]] = None, maxItems: Option[Int] = None, maxSize: Option[String] = None, maxSizePerItem: Option[String] = None) {
+case class Constraints(contentTypes: Option[Seq[String]] = None,
+                       maxItems: Option[Int] = None,
+                       maxSize: Option[String] = None,
+                       maxSizePerItem: Option[String] = None) {
 
   maxSize.foreach(validateSizeFormat("maxSize", _))
   maxSizePerItem.foreach(validateSizeFormat("maxSizePerItem", _))

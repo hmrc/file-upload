@@ -21,7 +21,7 @@ private object AppDependencies {
   private val microserviceBootstrapVersion = "4.2.1"
   private val playAuthVersion = "3.1.0"
   private val playHealthVersion = "1.1.0"
-  private val playJsonLoggerVersion = "2.1.1"  
+  private val playJsonLoggerVersion = "2.1.1"
   private val playUrlBindersVersion = "1.0.0"
   private val playConfigVersion = "2.0.1"
   private val domainVersion = "3.5.0"
@@ -34,7 +34,6 @@ private object AppDependencies {
   val compile = Seq(
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
     "uk.gov.hmrc" %% "simple-reactivemongo" % simpleReactivemongoVersion,
-
     ws,
     "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrapVersion,
     "uk.gov.hmrc" %% "play-authorisation" % playAuthVersion,
@@ -45,9 +44,7 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "domain" % domainVersion,
     "com.typesafe.akka" % "akka-actor_2.11" % akkaVersion,
     "com.typesafe.akka" % "akka-testkit_2.11" % akkaVersion,
-    "org.typelevel" %% "cats" % catsVersion
-
-  )
+    "org.typelevel" %% "cats" % catsVersion)
 
   trait TestDependencies {
     lazy val scope: String = "test"
@@ -84,4 +81,3 @@ private object AppDependencies {
 
   def apply() = compile ++ Test() ++ IntegrationTest()
 }
-

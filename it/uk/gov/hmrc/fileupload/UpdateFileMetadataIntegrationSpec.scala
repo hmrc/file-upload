@@ -1,6 +1,6 @@
 package uk.gov.hmrc.fileupload
 
-import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport.{prettify => _, requestBody => _, responseBody => _, _}
+import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport.{prettify => _, requestBody => _, responseBody => _}
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FileActions, IntegrationSpec}
 import uk.gov.hmrc.fileupload.support.FileMetadataReportSupport._
 
@@ -99,7 +99,5 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
       Then("I should receive a 200 OK response")
       response.status shouldBe OK
     }
-
   }
-
 }

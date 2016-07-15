@@ -87,7 +87,7 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 
 		  contents.run[Future[JSONReadFile]](sink).futureValue.futureValue
 
-		  var metadata = (repository.getFileMetadata(compositeFileId)).futureValue.getOrElse(throw new Exception("should have metadata"))
+		  var metadata = repository.getFileMetadata(compositeFileId).futureValue.getOrElse(throw new Exception("should have metadata"))
       val fileMetadata = FileMetadata(_id = compositeFileId, length = Some(bytes.length), uploadDate = metadata.uploadDate)
 		  metadata shouldBe fileMetadata
 

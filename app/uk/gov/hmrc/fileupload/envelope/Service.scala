@@ -69,7 +69,7 @@ object Service {
 
   def delete(delete: String => Future[Boolean], find: String => Future[FindResult])(id: String)(implicit ex: ExecutionContext): Future[DeleteResult] =
     find(id).flatMap {
-      case Xor.Right(envelope) if envelope.isSealed() => Future { Xor.left(DeleteEnvelopeSealedError(envelope)) }
+      case Xor.Right(envelope) if envelope.isSealed => Future { Xor.left(DeleteEnvelopeSealedError(envelope)) }
       case Xor.Right(envelope) => delete(envelope._id).map {
         case true => Xor.right(envelope)
         case _ => Xor.left(DeleteEnvelopeNotSuccessfulError(envelope))
@@ -80,7 +80,7 @@ object Service {
 
   def seal(seal: Envelope => Future[Boolean], find: String => Future[FindResult])(id: String)(implicit ex: ExecutionContext): Future[SealResult] =
     find(id).flatMap {
-      case Xor.Right(envelope) if envelope.isSealed() => Future { Xor.left(SealEnvelopeAlreadySealedError(envelope)) }
+      case Xor.Right(envelope) if envelope.isSealed => Future { Xor.left(SealEnvelopeAlreadySealedError(envelope)) }
       case Xor.Right(envelope) => seal(envelope.copy(status = Sealed)).map {
         case true => Xor.right(envelope)
         case _ => Xor.left(SealEnvelopNotSuccessfulError(envelope))
@@ -93,7 +93,7 @@ object Service {
              (envelopeId: String, fileId: String)
              (implicit ex: ExecutionContext): Future[AddFileResult] =
     find(envelopeId).flatMap {
-      case Xor.Right(envelope) if envelope.isSealed() => Future { Xor.left(AddFileSeaeldError(envelope)) }
+      case Xor.Right(envelope) if envelope.isSealed => Future { Xor.left(AddFileSeaeldError(envelope)) }
       case Xor.Right(envelope) => {
         val updatedEnvelope = addFileToEnvelope(toHref, envelope, fileId)
         update(updatedEnvelope).map {
