@@ -47,7 +47,8 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
       response.status shouldBe OK
 
       And("the response Location Header should contain the URL for the metadata")
-      // TODO
+      val locationHeader = response.header("Location").get
+      locationHeader should fullyMatch regex ".*/file-upload/envelope/[A-z0-9-]+/file/[A-z0-9-]+/metadata$"
     }
 
     scenario("Create File Metadata - invalid Envelope ID") {
