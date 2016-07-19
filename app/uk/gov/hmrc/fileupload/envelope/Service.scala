@@ -30,7 +30,6 @@ object Service {
   type AddFileResult = Xor[AddFileError, Envelope]
 
   sealed trait CreateError
-
   case class CreateNotSuccessfulError(envelope: Envelope) extends CreateError
   case class CreateServiceError(envelope: Envelope, message: String) extends CreateError
 
