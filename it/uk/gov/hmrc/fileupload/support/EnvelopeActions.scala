@@ -37,6 +37,12 @@ trait EnvelopeActions extends ActionsSupport {
     locationHeader.substring(locationHeader.lastIndexOf('/') + 1)
   }
 
+  def deleteEnvelopFor(id: String): WSResponse =
+    WS
+      .url(s"$url/envelope/$id")
+      .delete()
+      .futureValue
+
   def seal(id: String): WSResponse = {
       WS
         .url(s"$url/envelope/$id")
