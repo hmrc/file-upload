@@ -15,8 +15,9 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
 
     scenario("Create File Metadata for envelope with no file attachment") {
       Given("I have a valid envelope ID")
-      And("a valid file ID")
       val envelopeId = createEnvelope()
+
+      And("a valid file ID")
       val fileId = s"fileId-${nextId()}"
 
       And("I have no file attached to the envelope ")
@@ -27,23 +28,28 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
       When(s"I invoke PUT envelope/$envelopeId/file/$fileId/metadata")
       val response = updateFileMetadata(json, envelopeId, fileId)
 
-      Then("I will receive a 200 Ok response")
+      Then("I will receive a 200 OK response")
       response.status shouldBe OK
+
+      And("the response Location Header should contain the URL for the metadata")
+      val locationHeader = response.header("Location").get
+      locationHeader should fullyMatch regex ".*/file-upload/envelope/[A-z0-9-]+/file/[A-z0-9-]+/metadata$"
     }
 
     scenario("Create File Metadata - empty body") {
       Given("I have a valid envelope ID")
-      And("a valid file ID")
       val envelopeId = createEnvelope()
+
+      And("a valid file ID")
       val fileId = s"fileId-${nextId()}"
 
       And("I have a JSON body {}")
-      val json = requestBody()
+      val json = "{}"
 
       When(s"I invoke PUT envelope/$envelopeId/file/$fileId/metadata")
       val response = updateFileMetadata(json, envelopeId, fileId)
 
-      Then("I will receive a 200 Ok response")
+      Then("I will receive a 200 OK response")
       response.status shouldBe OK
 
       And("the response Location Header should contain the URL for the metadata")
@@ -53,8 +59,9 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
 
     scenario("Create File Metadata - invalid Envelope ID") {
       Given("I have a invalid envelope ID")
-      And("a valid file ID")
       val envelopeId = s"envelopeId-${nextId()}"
+
+      And("a valid file ID")
       val fileId = s"fileId-${nextId()}"
 
       And("I have a JSON body with an example PUT File Metadata request ")
@@ -69,20 +76,21 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
 
     scenario("Overwrite Metadata with Valid request") {
       Given("I have a valid envelope ID")
-      And("a valid file ID")
       val envelopeId = createEnvelope()
-      val fileId = s"fileId-${nextId()}"
-      updateFileMetadata(requestBody(Map("name" -> "toOverride")), envelopeId, fileId)
-      val firstVersion = getFileMetadataFor(envelopeId, fileId)
-      prettify(firstVersion.body) shouldBe responseBody(fileId, Map("name" -> "toOverride", "contentType" -> "application/pdf"))
 
-      And("I have a JSON  body with a valid request")
+      And("a valid file ID")
+      val fileId = s"fileId-${nextId()}"
+
+      And("there is existing metadata for the file ID")
+      updateFileMetadata(requestBody(Map("name" -> "toOverride")), envelopeId, fileId)
+
+      And("I have a JSON  body different metadata")
       val json = requestBody( Map("name" -> "toOverride", "contentType" -> "application/xml"))
 
-      When(s"I overwrite the existing file metadata")
+      When(s"I call PUT /file-upload/envelope/$envelopeId/file/$fileId/metadata")
       val response = updateFileMetadata(json, envelopeId, fileId)
 
-      Then("I will receive a 200 Ok response")
+      Then("I will receive a 200 OK response")
       response.status shouldBe OK
 
       And("the envelope is updated with the overwritten metadata")
@@ -91,8 +99,10 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
     }
 
     scenario("Create File Metadata for envelope with a file attachment") {
-      Given("I have a valid envelope ID and a valid file ID")
+      Given("I have a valid envelope ID")
       val envelopeId = createEnvelope()
+
+      And("a valid file ID")
       val fileId = s"fileId-${nextId()}"
 
       And("I have a file already attached to the envelope")
@@ -106,6 +116,10 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
 
       Then("I should receive a 200 OK response")
       response.status shouldBe OK
+
+      And("the response Location Header should contain the URL for the metadata")
+      val locationHeader = response.header("Location").get
+      locationHeader should fullyMatch regex ".*/file-upload/envelope/[A-z0-9-]+/file/[A-z0-9-]+/metadata$"
     }
   }
 }
