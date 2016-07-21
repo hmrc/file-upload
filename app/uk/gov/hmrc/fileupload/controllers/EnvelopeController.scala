@@ -70,7 +70,7 @@ class EnvelopeController(createEnvelope: Envelope => Future[Xor[CreateError, Env
     sealEnvelope(id).map {
       case Xor.Left(SealEnvelopeNotFoundError(e)) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
       case Xor.Left(SealEnvelopeAlreadySealedError(e)) => ExceptionHandler(BAD_REQUEST, s"Envelope ${ e._id } already sealed")
-      case Xor.Left(SealEnvelopNotSuccessfulError(e)) => ExceptionHandler(BAD_REQUEST, "Envelope not Seald")
+      case Xor.Left(SealEnvelopNotSuccessfulError(e)) => ExceptionHandler(BAD_REQUEST, "Envelope not sealed")
       case Xor.Left(SealServiceError(i, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
       case Xor.Right(e) => Ok
     }.recover { case e => ExceptionHandler(e) }
