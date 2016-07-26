@@ -34,7 +34,7 @@ class ExceptionHandlerSpec extends UnitSpec {
     }
 
     "handle a validation exception" in {
-      val result = ExceptionHandler(new ValidationException("someValidationException"))
+      val result = ExceptionHandler(ValidationException("someValidationException"))
 
       status(result) shouldBe BAD_REQUEST
       jsonBodyOf(result) shouldBe parse("""{"error":{"msg":"someValidationException"}}""")

@@ -49,21 +49,4 @@ object EnvelopeReportSupport extends Support {
     |}
     """.stripMargin
 
-  def sealedResponseBody(id: String, args: Map[String, Any] = Map.empty) =
-    prettify( s"""{
-       |  "id": "$id",
-       |  "constraints": {
-       |    "contentTypes" : [ "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.oasis.opendocument.spreadsheet" ],
-       |    "maxItems": 100,
-       |    "maxSize": "12GB",
-       |    "maxSizePerItem": "10MB"
-       |  },
-       |  "callbackUrl": "http://absolute.callback.url",
-       |  "expiryDate": "${args.getOrElse("formattedExpiryDate", "2099-07-14T10:28:18Z")}",
-       |  "metadata": {
-       |    "anything": "the caller wants to add to the envelope"
-       |  },
-       |  "status": "Sealed"
-       |}""".stripMargin )
-
 }

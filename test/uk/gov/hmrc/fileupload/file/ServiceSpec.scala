@@ -18,9 +18,10 @@ package uk.gov.hmrc.fileupload.file
 
 import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
+import play.api.libs.iteratee.Enumerator
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.envelope.Service.FindEnvelopeNotFoundError
-import uk.gov.hmrc.fileupload.file.Service.{GetMetadataNotFoundError, GetMetadataServiceError, UpdateMetadataEnvelopeNotFoundError, UpdateMetadataServiceError}
+import uk.gov.hmrc.fileupload.envelope.File
+import uk.gov.hmrc.fileupload.file.Service._
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -29,78 +30,86 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
   implicit val ec = ExecutionContext.global
 
-  "get" should {
-    "be successful" in {
-      val metadata = FileMetadata()
-      val get = Service.getMetadata(_ => Future.successful(Some(metadata))) _
+  "getting file metadata" should {
+    "be successful if metadata exists" in {
+      val fileId = "fileId"
+      val file = File(fileId = fileId)
+      val envelope = Support.envelope.copy(files = Some(List(file)))
+      val get = Service.getMetadata(_ => Future.successful(Some(envelope))) _
 
-      val result = get(metadata._id).futureValue
+      val result = get(envelope._id, fileId).futureValue
 
-      result shouldBe Xor.right(metadata)
+      result shouldBe Xor.right(file)
     }
 
-    "be not found" in {
-      val metadata = FileMetadata()
+    "fail if metadata does not exist" in {
+      val envelope = Support.envelope
+      val fileId = "NOTEXISTINGFILE"
       val get = Service.getMetadata(_ => Future.successful(None)) _
 
-      val result = get(metadata._id).futureValue
+      val result = get(envelope._id, fileId).futureValue
 
-      result shouldBe Xor.left(GetMetadataNotFoundError(metadata._id))
+      result shouldBe Xor.left(GetMetadataNotFoundError)
     }
 
-    "be a get service error" in {
-      val metadata = FileMetadata()
+    "fail if there was an exception" in {
+      val envelope = Support.envelope
+      val fileId = "somefileid"
       val get = Service.getMetadata(_ => Future.failed(new Exception("not good"))) _
 
-      val result = get(metadata._id).futureValue
+      val result = get(envelope._id, fileId).futureValue
 
-      result shouldBe Xor.left(GetMetadataServiceError(metadata._id, "not good"))
+      result shouldBe Xor.left(GetMetadataServiceError("not good"))
     }
   }
 
-  "update" should {
-    "be successful" in {
-      val metadata = FileMetadata()
-      val envelope = Support.envelope
+  "downloading a file" should {
+    "succeed if file was available" in {
+      val fileId = "somefileid"
+      val envelope = Support.envelopeWithAFile(fileId)
+      val filename = Some("filename")
+      val length = 10
+      val data = Enumerator("sth".getBytes())
 
-      val update = Service.updateMetadata(_ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
+      val result = Service.retrieveFile(
+        getEnvelope = _ => Future.successful(Some(envelope)),
+        getFileFromRepo = _ => Future.successful(Some(FileFoundResult(filename, length, data)))
+      )(envelope._id, fileId).futureValue
 
-      val result = update(metadata).futureValue
-
-      result shouldBe Xor.right(metadata)
+      result shouldBe Xor.Right(FileFoundResult(filename, length, data))
     }
+    "fail if file was not available" in {
+      val fileId = "somefileid"
+      val envelope = Support.envelopeWithAFile(fileId)
 
-    "be not found" in {
-      val metadata = FileMetadata()
-      val envelope = Support.envelope
+      val result = Service.retrieveFile(
+        getEnvelope = _ => Future.successful(Some(envelope)),
+        getFileFromRepo = _ => Future.successful(None)
+      )(envelope._id, fileId).futureValue
 
-      val update = Service.updateMetadata(_ => Future.successful(true), _ => Future.successful(Xor.left(FindEnvelopeNotFoundError(envelope._id)))) _
-
-      val result = update(metadata).futureValue
-
-      result shouldBe Xor.left(UpdateMetadataEnvelopeNotFoundError(envelope._id))
+      result shouldBe Xor.Left(GetFileNotFoundError)
     }
+    "fail if envelope was not available" in {
+      val fileId = "somefileid"
+      val envelope = Support.envelopeWithAFile(fileId)
+      val result = Service.retrieveFile(
+        getEnvelope = _ => Future.successful(None),
+        getFileFromRepo = _ => Future.successful(None)
+      )(envelope._id, fileId).futureValue
 
-    "be a service error after not successful" in {
-      val metadata = FileMetadata()
-      val envelope = Support.envelope
-
-      val update = Service.updateMetadata(_ => Future.successful(false), _ => Future.successful(Xor.right(envelope))) _
-
-      val result = update(metadata).futureValue
-
-      result shouldBe Xor.left(UpdateMetadataServiceError(metadata._id, "Update failed"))
+      result shouldBe Xor.Left(GetFileEnvelopeNotFound)
     }
+    "fail if file system reference (fsReference) was not found" in {
+      val fileId = "somefileid"
+      val envelope = Support.envelope.copy(files = Some(List(File(fileId, fsReference = None))))
 
-    "be a service error after exception" in {
-      val metadata = FileMetadata()
-      val envelope = Support.envelope
+      val result = Service.retrieveFile(
+        getEnvelope = _ => Future.successful(Some(envelope)),
+        getFileFromRepo = _ => ???
+      )(envelope._id, fileId).futureValue
 
-      val update = Service.updateMetadata(_ => Future.failed(new Exception("not good")), _ => Future.successful(Xor.right(envelope))) _
-
-      val result = update(metadata).futureValue
-
-      result shouldBe Xor.left(UpdateMetadataServiceError(metadata._id, "not good"))
+      result shouldBe Xor.Left(GetFileNotFoundError)
     }
   }
+
 }

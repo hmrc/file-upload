@@ -25,8 +25,8 @@ import play.api.libs.json.{JsString, Json}
 import play.api.mvc.{AnyContentAsJson, Result}
 import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.envelope.Service._
 import uk.gov.hmrc.fileupload.envelope.Envelope
+import uk.gov.hmrc.fileupload.envelope.Service._
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -42,9 +42,8 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
   def newController(createEnvelope: Envelope => Future[Xor[CreateError, Envelope]] = _ => failed,
                     nextId: () => String = () => "abc-def",
                     findEnvelope: String => Future[Xor[FindError, Envelope]] = _ => failed,
-                    deleteEnvelope: String => Future[Xor[DeleteError, Envelope]] = _ => failed,
-                    sealEnvelope: String => Future[Xor[SealError, Envelope]] = _ => failed) =
-    new EnvelopeController(createEnvelope, nextId, findEnvelope, deleteEnvelope, sealEnvelope)
+                    deleteEnvelope: String => Future[Xor[DeleteError, Envelope]] = _ => failed) =
+    new EnvelopeController(createEnvelope, nextId, findEnvelope, deleteEnvelope)
 
   "Create envelope with a request" should {
     "return response with OK status and a Location header specifying the envelope endpoint" in {
@@ -60,7 +59,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
       val result: Result = controller.create()(fakeRequest).futureValue
 
       result.header.status shouldBe Status.CREATED
-	    val location = result.header.headers.get("Location").get
+	    val location = result.header.headers("Location")
 	    location shouldBe s"$serverUrl${routes.EnvelopeController.show(s"${envelope._id}").url}"
     }
   }
@@ -79,7 +78,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
       val result: Result = controller.create()(fakeRequest).futureValue
 
       result.header.status shouldBe Status.CREATED
-      val location = result.header.headers.get("Location").get
+      val location = result.header.headers("Location")
       location shouldBe s"$serverUrl${routes.EnvelopeController.show(s"${envelope._id}").url}"
     }
   }
@@ -139,19 +138,6 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
 			result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
 			actualResponse shouldBe expectedResponse
-		}
-	}
-
-	"seal envelope" should {
-		"close the envelope to any change" in {
-      val envelope = Support.envelope
-      val request = new FakeRequest[AnyContentAsJson]("POST", s"/envelope/${envelope._id}",
-        FakeHeaders(), body = AnyContentAsJson(JsString("""{"sealed": true}""")))
-
-      val controller = newController(sealEnvelope = _ => Future.successful(Xor.right(envelope)))
-      val result = controller.seal(envelope._id)(request).futureValue
-
-      result.header.status shouldBe Status.OK
 		}
 	}
 

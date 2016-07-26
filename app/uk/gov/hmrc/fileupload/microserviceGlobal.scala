@@ -23,6 +23,8 @@ import net.ceedubs.ficus.Ficus._
 import play.api.mvc.{EssentialFilter, RequestHeader, Result}
 import play.api.{Application, Configuration, Play}
 import uk.gov.hmrc.fileupload.controllers._
+import uk.gov.hmrc.fileupload.envelope.{Service => EnvelopeService}
+import uk.gov.hmrc.fileupload.file.{Service => FileService}
 import uk.gov.hmrc.fileupload.infrastructure.DefaultMongoConnection
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
@@ -77,55 +79,49 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
   lazy val envelopeRepository = uk.gov.hmrc.fileupload.envelope.Repository.apply(db)
 
-  lazy val update = envelopeRepository.update _
-  lazy val get = envelopeRepository.get _
-  lazy val find = uk.gov.hmrc.fileupload.envelope.Service.find(get) _
-
-  lazy val addFileToEnvelope = uk.gov.hmrc.fileupload.envelope.Service.addFile(
-    (envelopeId: String, fileId: String) => routes.FileController.upload(envelopeId = envelopeId, fileId = fileId).url, update, find) _
+  lazy val updateEnvelope = envelopeRepository.update _
+  lazy val getEnvelope = envelopeRepository.get _
+  lazy val find = EnvelopeService.find(getEnvelope) _
 
   lazy val envelopeController = {
     import play.api.libs.concurrent.Execution.Implicits._
-    import uk.gov.hmrc.fileupload.envelope.Service
 
-    val create = Service.create(update) _
+    val create = EnvelopeService.create(updateEnvelope) _
     val nextId = () => UUID.randomUUID().toString
 
     val del = envelopeRepository.delete _
-    val delete = Service.delete(del, find) _
-
-    val seal = Service.seal(update, find) _
+    val delete = EnvelopeService.delete(del, find) _
 
     new EnvelopeController(createEnvelope = create,
       nextId = nextId,
       findEnvelope = find,
-      deleteEnvelope = delete,
-      sealEnvelope = seal)
+      deleteEnvelope = delete)
   }
 
   lazy val fileController = {
     import play.api.libs.concurrent.Execution.Implicits._
-    import uk.gov.hmrc.fileupload.file.Service
 
     val fileRepository = uk.gov.hmrc.fileupload.file.Repository.apply(db)
 
-    val getFileMetadata = fileRepository.getFileMetadata _
-    val getMetadata = Service.getMetadata(getFileMetadata) _
-
-    val addFileMetadata = fileRepository.addFileMetadata _
-    val updateMetadata = Service.updateMetadata(addFileMetadata, find) _
+    val getMetadata = FileService.getMetadata(getEnvelope) _
 
     val iterateeForUpload = fileRepository.iterateeForUpload _
     val uploadBodyParser = UploadParser.parse(iterateeForUpload) _
 
-    val fromRepository = fileRepository.retrieveFile _
-    val retrieveFile = Service.retrieveFile(fromRepository) _
+    val getFileFromRepo = fileRepository.retrieveFile _
+    val retrieveFile = FileService.retrieveFile(getEnvelope, getFileFromRepo) _
+
+    val uploadFile = EnvelopeService.uploadFile(getEnvelope, updateEnvelope) _
+
+    val updateMetadata = EnvelopeService.updateMetadata(getEnvelope, updateEnvelope) _
 
     new FileController(uploadBodyParser = uploadBodyParser,
-      addFileToEnvelope = addFileToEnvelope,
       getMetadata = getMetadata,
-      updateMetadata = updateMetadata,
-      retrieveFile = retrieveFile)
+      retrieveFile = retrieveFile,
+      getEnvelope = getEnvelope,
+      uploadFile = uploadFile,
+      updateMetadata = updateMetadata
+    )
   }
 
   override def getControllerInstance[A](controllerClass: Class[A]): A = {

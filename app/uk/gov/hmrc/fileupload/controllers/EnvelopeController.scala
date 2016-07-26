@@ -29,8 +29,7 @@ import scala.language.postfixOps
 class EnvelopeController(createEnvelope: Envelope => Future[Xor[CreateError, Envelope]],
                          nextId: () => String,
                          findEnvelope: String => Future[Xor[FindError, Envelope]],
-                         deleteEnvelope: String => Future[Xor[DeleteError, Envelope]],
-                         sealEnvelope: String => Future[Xor[SealError, Envelope]])
+                         deleteEnvelope: String => Future[Xor[DeleteError, Envelope]])
                         (implicit executionContext: ExecutionContext) extends BaseController {
 
   def create() = Action.async(EnvelopeParser) { implicit request =>
@@ -60,19 +59,9 @@ class EnvelopeController(createEnvelope: Envelope => Future[Xor[CreateError, Env
     deleteEnvelope(id).map {
       case Xor.Right(e) => Accepted
       case Xor.Left(DeleteEnvelopeNotFoundError(e)) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
-      case Xor.Left(DeleteEnvelopeSealedError(e)) => ExceptionHandler(BAD_REQUEST, s"Envelope ${ e._id } sealed")
       case Xor.Left(DeleteEnvelopeNotSuccessfulError(e)) => ExceptionHandler(BAD_REQUEST, "Envelope not deleted")
       case Xor.Left(DeleteServiceError(i, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  def seal(id: String) = Action.async {
-    sealEnvelope(id).map {
-      case Xor.Left(SealEnvelopeNotFoundError(e)) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
-      case Xor.Left(SealEnvelopeAlreadySealedError(e)) => ExceptionHandler(BAD_REQUEST, s"Envelope ${ e._id } already sealed")
-      case Xor.Left(SealEnvelopNotSuccessfulError(e)) => ExceptionHandler(BAD_REQUEST, "Envelope not sealed")
-      case Xor.Left(SealServiceError(i, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Right(e) => Ok
-    }.recover { case e => ExceptionHandler(e) }
-  }
 }

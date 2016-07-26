@@ -21,10 +21,9 @@ import java.util.UUID
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
-import play.api.libs.iteratee.Enumerator
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.iteratee.{Enumerator, Iteratee}
+import play.api.libs.json.JsString
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.file.Repository.{FileNotFoundError, RetrieveFileResult}
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
@@ -41,86 +40,36 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
     repository.removeAll().futureValue
   }
 
-  def createMetadata(compositeFileId: CompositeFileId = CompositeFileId(UUID.randomUUID().toString, UUID.randomUUID().toString)) = FileMetadata(
-		_id = compositeFileId,
-		contentType = Some("application/pdf"),
-		revision = Some(1),
-    length = Some(38),
-		name = Some("test.pdf"),
-		metadata = Some(Json.parse(
-			"""
-				| {
-				|   "id" : "1234567890",
-				|   "origin": {
-				|     "nino" : "AB123456Z",
-				|     "token": "48729348729348732894",
-				|     "session": "cd30f8ec-d866-4ae0-82a0-1bc720f1cb09",
-				|     "agent" : "292929292",
-				|     "trustedHelper" : "8984293480239480",
-				|     "ipAddress" : "1.2.3.4"
-				|   },
-				|   "sender" : {
-				|     "service" : "some-service-identifier/v1.2.33"
-				|    }
-				| }
-			""".stripMargin).asInstanceOf[JsObject]
-		)
-	)
-
 	"repository" should {
-	  "add file metadata" in {
-		  val metadata = createMetadata()
-
-		  val result = (repository addFileMetadata metadata).futureValue
-      result shouldBe true
-	  }
-
-	  "be able to update metadata of an existing file" in {
-			val bytes = "I only exists to be stored in mongo :<".getBytes
-		  val contents = Enumerator[ByteStream](bytes)
-
-			val fileId = UUID.randomUUID().toString
-      val envelopeId: String = Support.envelope._id
-			val compositeFileId = CompositeFileId(envelopeId, fileId)
-
-      val sink = repository.iterateeForUpload(compositeFileId)
-
-		  contents.run[Future[JSONReadFile]](sink).futureValue.futureValue
-
-		  var metadata = repository.getFileMetadata(compositeFileId).futureValue.getOrElse(throw new Exception("should have metadata"))
-      val fileMetadata = FileMetadata(_id = compositeFileId, length = Some(bytes.length), uploadDate = metadata.uploadDate)
-		  metadata shouldBe fileMetadata
-
-      val updatedMetadata = createMetadata(compositeFileId)
-      (repository addFileMetadata updatedMetadata).futureValue
-      metadata = repository.getFileMetadata(compositeFileId).futureValue.getOrElse(throw new Exception("should have metadata"))
-
-		  metadata shouldBe updatedMetadata.copy(uploadDate = metadata.uploadDate)
-	  }
-
 		"retrieve a file in a envelope" in {
-			val contents = Enumerator[ByteStream]("I only exists to be stored in mongo :<".getBytes)
+			val text = "I only exists to be stored in mongo :<"
+			val contents = Enumerator[ByteStream](text.getBytes)
 
 			val envelopeId = Support.envelope._id
 			val fileId = UUID.randomUUID().toString
-			val compositeFileId = CompositeFileId(envelopeId, fileId)
 
-			val sink = repository.iterateeForUpload(compositeFileId)
-			contents.run[Future[JSONReadFile]](sink).futureValue
+			val sink = repository.iterateeForUpload(envelopeId, fileId)
+			val fsId = contents.run[Future[JSONReadFile]](sink).futureValue.id match {
+				case JsString(v) => v
+				case _ => fail("expected JsString here")
+			}
 
-			val fileResult: RetrieveFileResult = (repository retrieveFile compositeFileId).futureValue
+			val fileResult = repository.retrieveFile(fsId).futureValue.get
 
-      fileResult.isRight shouldBe true
-      fileResult.toEither.right.get.length shouldBe 38
+      fileResult.length shouldBe text.getBytes.length
+			val resultAsString = {
+				val consume = Iteratee.consume[String]()
+				fileResult.data.map(new String(_)).run(consume).futureValue
+			}
+			resultAsString shouldBe text
 		}
 
 		"returns a fileNotFound error" in {
-			val compositeFileId = CompositeFileId(Support.envelope._id, "nofile")
+			val nonexistentId = UUID.randomUUID.toString
 
-			val fileResult: RetrieveFileResult = (repository retrieveFile compositeFileId).futureValue
+			val fileResult = repository.retrieveFile(nonexistentId).futureValue
 
-      fileResult.isLeft shouldBe true
-      fileResult.toEither.left.get shouldBe FileNotFoundError
+      fileResult shouldBe None
 		}
   }
 }

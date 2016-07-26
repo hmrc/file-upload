@@ -29,7 +29,7 @@ class GetFileMetadataIntegrationSpec extends IntegrationSpec with FileActions wi
       response.status shouldBe OK
 
       And("the response body should contain the file reference details")
-      prettify(response.body) shouldBe responseBody(fileId)
+      prettify(response.body) shouldBe responseBody(envelopeId, fileId)
     }
 
     scenario("GET metadata with invalid envelope id") {

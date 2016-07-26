@@ -40,10 +40,16 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 
 	"repository" should {
     "persist an envelope" in {
-			val envelope = Support.envelope.copy(files = Some(Seq(File(href = "ads", id = "myfile", rel = "file"))))
+      val file = File(href = Some("ads"), fileId = "myfile", rel = "file")
+      val envelope = Support.envelope.copy(files = Some(Seq(file)))
 
       val result = (repository add envelope).futureValue
       result shouldBe true
+
+      val persistedEnvelope = repository.get(envelope._id).futureValue.get
+      persistedEnvelope.callbackUrl shouldBe Some("http://absolute.callback.url")
+      persistedEnvelope.getFileById(file.fileId) shouldBe Some(file)
+
     }
 
     "retrieve a persisted envelope" in {

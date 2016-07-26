@@ -20,39 +20,53 @@ import java.util.UUID
 
 import org.joda.time.DateTime
 import play.api.libs.json.{Format, JsObject, _}
-
-sealed trait Status
-
-case object Open extends Status
-
-case object Sealed extends Status
-
-object StatusWrites extends Writes[Status] {
-  def writes(c: Status) = c match {
-    case Sealed => Json.toJson("SEALED")
-    case Open => Json.toJson("OPEN")
-  }
-}
-
-object StatusReads extends Reads[Status] {
-  def reads(value: JsValue) = value.as[String] match {
-    case "SEALED" => JsSuccess(Sealed)
-    case "OPEN" => JsSuccess(Open)
-  }
-}
+import uk.gov.hmrc.fileupload.envelope.Service.UploadedFileInfo
 
 case class Envelope(_id: String = UUID.randomUUID().toString,
                     constraints: Option[Constraints] = None,
                     callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None,
-                    metadata: Option[Map[String, JsValue]] = None, files: Option[Seq[File]] = None,
-                    status: Status = Open) {
-  def isSealed: Boolean = this.status == Sealed
+                    metadata: Option[Map[String, JsValue]] = None, files: Option[Seq[File]] = None) {
 
   require(!isExpired, "expiry date cannot be in the past")
 
   def isExpired: Boolean = expiryDate.exists(_.isBeforeNow)
 
-  def contains(fileId: String) = files.exists(sequence => sequence.exists(_.id == fileId))
+  def contains(fileId: String) = files.exists(sequence => sequence.exists(_.fileId == fileId))
+
+  def addFile(uploadedFileInfo: UploadedFileInfo) = {
+    val file = files.flatMap(_.collectFirst {
+      case f if f.fileId == uploadedFileInfo.fileId =>
+        f.copy(fsReference = Some(uploadedFileInfo.fsReference),
+          length = Some(uploadedFileInfo.length),
+          uploadDate = uploadedFileInfo.uploadDate.map(new DateTime(_)))
+    }).getOrElse(File(fileId = uploadedFileInfo.fileId, fsReference = Some(uploadedFileInfo.fsReference),
+      length = Some(uploadedFileInfo.length),
+      uploadDate = uploadedFileInfo.uploadDate.map(new DateTime(_))))
+
+    add(file)
+  }
+
+  def addMetadata(fileId: String, name: Option[String] = None, contentType: Option[String] = None,
+                  length: Option[Long] = None, uploadDate: Option[DateTime] = None,
+                  revision: Option[Int] = None, metadata: Option[JsObject] = None): Envelope = {
+
+    val file = files.flatMap(_.collectFirst {
+      case f if f.fileId == fileId =>
+        f.copy(name = name, contentType = contentType, metadata = metadata)
+    }).getOrElse(File(fileId = fileId, name = name, contentType = contentType, metadata = metadata))
+
+    add(file)
+  }
+
+  private def add(file: File): Envelope = {
+    val maybeFiles: Option[Seq[File]] = files.map( _.filterNot( _.fileId == file.fileId) )
+    val newFiles = maybeFiles.getOrElse(Seq.empty[File]) :+ file
+    copy(files = Some(newFiles))
+  }
+
+  def getFileById(fileId: String): Option[File] = {
+    files.flatMap { _.find { file => file.fileId == fileId }}
+  }
 }
 
 case class Constraints(contentTypes: Option[Seq[String]] = None,
@@ -65,18 +79,24 @@ case class Constraints(contentTypes: Option[Seq[String]] = None,
 
   def validateSizeFormat(name: String, value: String) = {
     val pattern = "[0-9]+(KB|MB|GB|TB|PB)".r
-    if (pattern.findFirstIn(value).isEmpty) throw new ValidationException(s"$name has an invalid size format ($value)")
+    if (pattern.findFirstIn(value).isEmpty) throw ValidationException(s"$name has an invalid size format ($value)")
   }
 }
 
-case class File(rel: String = "file", href: String, id: String)
+case class File(fileId: String,
+                fsReference: Option[String] = None,
+                name: Option[String] = None,
+                contentType: Option[String] = None,
+                length: Option[Long] = None,
+                uploadDate: Option[DateTime] = None,
+                revision: Option[Int] = None,
+                metadata: Option[JsObject] = None,
+                rel: String = "file", href: Option[String] = None)
 
 object Envelope {
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val fileReads: Format[File] = Json.format[File]
-  implicit val statusReads: Reads[Status] = StatusReads
-  implicit val statusWrites: Writes[Status] = StatusWrites
   implicit val constraintsReads: Format[Constraints] = Json.format[Constraints]
   implicit val envelopeReads: Format[Envelope] = Json.format[Envelope]
 

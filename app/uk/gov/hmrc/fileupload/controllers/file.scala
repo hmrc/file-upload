@@ -21,7 +21,7 @@ import play.api.libs.iteratee.Iteratee
 import play.api.libs.json._
 import play.api.mvc.{BodyParser, _}
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.file.{CompositeFileId, FileMetadata}
+import uk.gov.hmrc.fileupload.envelope.File
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -34,14 +34,6 @@ case class UpdateFileMetadataReport(name: Option[String] = None,
 
 object UpdateFileMetadataReport {
   implicit val updateFileMetaDataReportFormat: Format[UpdateFileMetadataReport] = Json.format[UpdateFileMetadataReport]
-
-  def toFileMetadata(envelopeId: String, fileId: String, report: UpdateFileMetadataReport): FileMetadata =
-    FileMetadata(
-      _id = CompositeFileId(envelopeId = envelopeId, fileId = fileId),
-      name = report.name,
-      contentType = report.contentType,
-      revision = report.revision,
-      metadata = report.metadata)
 }
 
 case class GetFileMetadataReport(id: String,
@@ -50,22 +42,26 @@ case class GetFileMetadataReport(id: String,
                                  length: Option[Long] = None,
                                  created: Option[DateTime] = None,
                                  revision: Option[Int] = None,
-                                 metadata: Option[JsObject] = None)
+                                 metadata: Option[JsObject] = None,
+                                 href: Option[String] = None)
 
 object GetFileMetadataReport {
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val getFileMetaDataReportFormat: Format[GetFileMetadataReport] = Json.format[GetFileMetadataReport]
 
-  def fromFileMetadata(fileMetadata: FileMetadata): GetFileMetadataReport =
+  def href(envelopeId: String, fileId: String) = routes.FileController.downloadFile(envelopeId, fileId).url
+
+  def fromFile(envelopeId: String, file: File): GetFileMetadataReport =
     GetFileMetadataReport(
-      id = fileMetadata._id.fileId,
-      name = fileMetadata.name,
-      contentType = fileMetadata.contentType,
-      length = fileMetadata.length,
-      created = fileMetadata.uploadDate,
-      revision = fileMetadata.revision,
-      metadata = fileMetadata.metadata)
+      id = file.fileId,
+      name = file.name,
+      contentType = file.contentType,
+      length = file.length,
+      created = file.uploadDate,
+      metadata = file.metadata,
+      href = Some(href(envelopeId, file.fileId))
+    )
 }
 
 object FileMetadataParser extends BodyParser[UpdateFileMetadataReport] {
@@ -84,35 +80,10 @@ object FileMetadataParser extends BodyParser[UpdateFileMetadataReport] {
 
 object UploadParser {
 
-  def parse(uploadFile: CompositeFileId => Iteratee[ByteStream, Future[JSONReadFile]])
-           (compositeFileId: CompositeFileId)
+  def parse(uploadFile: (String, String) => Iteratee[ByteStream, Future[JSONReadFile]])
+           (envelopeId: String, fileId: String)
            (implicit ex: ExecutionContext): BodyParser[Future[JSONReadFile]] = BodyParser { _ =>
 
-    uploadFile(compositeFileId) map (Right(_)) recover { case NonFatal(e) => Left(ExceptionHandler(e)) }
+    uploadFile(envelopeId, fileId) map (Right(_)) recover { case NonFatal(e) => Left(ExceptionHandler(e)) }
   }
 }
-
-//object FileUploadValidationFilter extends Filter {
-//
-//  implicit val defaultTimeout = Timeout(2 seconds)
-//  implicit val ec = ExecutionContext.global
-//
-//  val envelopeService = Actors.envelopeService
-//
-//  override def apply(nextFilter: (RequestHeader) => Future[Result])(requestHeader: RequestHeader): Future[Result] = {
-//
-//    val putFilePattern = "/file-upload/envelope/(.*)/file/(.*)/content".r
-//
-//    (requestHeader.method, requestHeader.path) match {
-//      case ("PUT", putFilePattern(envelopeId, fileId)) =>
-//        (envelopeService ? GetEnvelope(envelopeId))
-//          .breakOnFailure
-//          .flatMap {
-//            case e: Envelope if e.contains(fileId)  => Future.successful(Results.BadRequest)
-//            case _ => nextFilter(requestHeader)
-//          }.recover{ case e => Results.NotFound }
-//      case _ => nextFilter(requestHeader)
-//    }
-//  }
-//}
-

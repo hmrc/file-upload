@@ -17,60 +17,75 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, JsString, JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.JSONReadFile
+import uk.gov.hmrc.fileupload.envelope.Envelope
 import uk.gov.hmrc.fileupload.envelope.Service._
-import uk.gov.hmrc.fileupload.file.Repository.RetrieveFileResult
 import uk.gov.hmrc.fileupload.file.Service._
-import uk.gov.hmrc.fileupload.file.{CompositeFileId, FileMetadata}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
-class FileController(uploadBodyParser: CompositeFileId => BodyParser[Future[JSONReadFile]],
-                     addFileToEnvelope: (String, String) => Future[AddFileResult],
-                     getMetadata: CompositeFileId => Future[GetMetadataResult],
-                     updateMetadata: FileMetadata => Future[UpdateMetadataResult],
-                     retrieveFile: CompositeFileId => Future[RetrieveFileResult])
+class FileController(uploadBodyParser: (String, String) => BodyParser[Future[JSONReadFile]],
+                     getMetadata: (String, String) => Future[GetMetadataResult],
+                     retrieveFile: (String, String) => Future[GetFileResult],
+                     getEnvelope: String => Future[Option[Envelope]],
+                     uploadFile: UploadedFileInfo => Future[UpsertFileToEnvelopeResult],
+                     updateMetadata: (String, String, Option[String], Option[String], Option[JsObject]) => Future[UpdateMetadataResult])
                     (implicit executionContext: ExecutionContext) extends BaseController {
 
-  def upload(envelopeId: String, fileId: String) = Action.async(uploadBodyParser(CompositeFileId(envelopeId, fileId))) { request =>
-    //TODO: rollback file upload if file not added to envelope
-    request.body.flatMap { _ =>
-      addFileToEnvelope(envelopeId, fileId).map {
-        case Xor.Right(e) => Ok
-        case Xor.Left(AddFileEnvelopeNotFoundError(id)) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
-        case Xor.Left(AddFileSeaeldError(e)) => ExceptionHandler(BAD_REQUEST, s"The envelope ${ e._id } is sealed")
-        case Xor.Left(AddFileNotSuccessfulError(e)) => ExceptionHandler(INTERNAL_SERVER_ERROR, "File not added to envelope")
-        case Xor.Left(AddFileServiceError(id, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+  def upsertFile(envelopeId: String, fileId: String) = Action.async(uploadBodyParser(envelopeId, fileId)) { request =>
+
+    def fsReferenceAsString(j: JsValue) = j match {
+      case JsString(value) => value
+      case _ => j.toString
+    }
+
+    request.body.flatMap { jsonReadFile =>
+
+      val uploadedFileInfo = UploadedFileInfo(envelopeId, fileId, fsReferenceAsString(jsonReadFile.id),
+        jsonReadFile.length, jsonReadFile.uploadDate)
+
+      uploadFile(uploadedFileInfo).map {
+        case Xor.Right(_) => Ok
+        case Xor.Left(UpsertFileUpdatingEnvelopeFailed) => ExceptionHandler(INTERNAL_SERVER_ERROR, "File not added to envelope")
+        case Xor.Left(UpsertFileEnvelopeNotFoundError(id)) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
       }.recover { case e => ExceptionHandler(e) }
     }
   }
 
-  def get(envelopeId: String, fileId: String) = Action.async {
-    getMetadata(CompositeFileId(envelopeId, fileId)).map {
-      case Xor.Right(m) => Ok(Json.toJson[GetFileMetadataReport](GetFileMetadataReport.fromFileMetadata(m)))
-      case Xor.Left(GetMetadataNotFoundError(e)) => ExceptionHandler(NOT_FOUND, s"File $fileId not found")
-      case Xor.Left(GetMetadataServiceError(e, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+  def downloadFile(envelopeId: String, fileId: String) = Action.async { request =>
+    retrieveFile(envelopeId, fileId).map {
+      case Xor.Right(FileFoundResult(filename, length, data)) =>
+        Ok.feed(data).withHeaders(
+          CONTENT_LENGTH -> s"${ length }",
+          CONTENT_DISPOSITION -> s"""attachment; filename="${ filename.getOrElse("data") }""""
+        )
+      case Xor.Left(GetFileNotFoundError) =>
+        ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId")
+      case Xor.Left(GetFileEnvelopeNotFound) =>
+        ExceptionHandler(NOT_FOUND, s"Envelope $envelopeId not found")
+    }
+  }
+
+  def retrieveMetadata(envelopeId: String, fileId: String) = Action.async {
+    getMetadata(envelopeId, fileId).map {
+      case Xor.Right(f) => Ok(Json.toJson[GetFileMetadataReport](GetFileMetadataReport.fromFile(envelopeId, f)))
+      case Xor.Left(GetMetadataNotFoundError) => ExceptionHandler(NOT_FOUND, s"File $fileId not found in envelope: $envelopeId")
+      case Xor.Left(GetMetadataServiceError(message)) => ExceptionHandler(INTERNAL_SERVER_ERROR, message)
     }.recover { case e => ExceptionHandler(e) }
   }
 
   def metadata(envelopeId: String, fileId: String) = Action.async(FileMetadataParser) { request =>
-    updateMetadata(UpdateFileMetadataReport.toFileMetadata(envelopeId, fileId, request.body)).map {
-      case Xor.Right(m) => Ok.withHeaders(LOCATION -> s"${ request.host }${ routes.FileController.get(envelopeId, fileId) }")
-      case Xor.Left(UpdateMetadataEnvelopeNotFoundError(e)) => ExceptionHandler(NOT_FOUND, s"Envelope $fileId not found")
-      case Xor.Left(UpdateMetadataServiceError(e, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+    val report = request.body
+    updateMetadata(envelopeId, fileId, report.name, report.contentType, report.metadata).map {
+      case Xor.Right(_) => Ok.withHeaders(LOCATION -> s"${ request.host }${ routes.FileController.retrieveMetadata(envelopeId, fileId) }")
+      case Xor.Left(UpdateMetadataNotSuccessfulError) => ExceptionHandler(INTERNAL_SERVER_ERROR, "metadata not updated")
+      case Xor.Left(UpdateMetadataEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope $envelopeId not found")
+      case Xor.Left(UpdateMetadataServiceError(message)) => ExceptionHandler(INTERNAL_SERVER_ERROR, message)
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  def download(envelopeId: String, fileId: String) = Action.async { request =>
-    retrieveFile(CompositeFileId(envelopeId, fileId)) map {
-      case Xor.Right(result) =>
-        Ok feed result.data withHeaders(
-          CONTENT_LENGTH -> s"${ result.length }", CONTENT_DISPOSITION -> s"""attachment; filename="${ result.filename.getOrElse("data") }"""")
-      case Xor.Left(result) => NotFound
-    }
-  }
 }

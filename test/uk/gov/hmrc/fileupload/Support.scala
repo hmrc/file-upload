@@ -26,8 +26,8 @@ import play.api.libs.json.{JsString, Json}
 import reactivemongo.api.DBMetaCommands
 import reactivemongo.api.commands.DefaultWriteResult
 import uk.gov.hmrc.fileupload.controllers.EnvelopeReport
-import uk.gov.hmrc.fileupload.envelope.{Constraints, Envelope, Open}
-import uk.gov.hmrc.fileupload.file.{CompositeFileId, Repository}
+import uk.gov.hmrc.fileupload.envelope.{Constraints, Envelope, File}
+import uk.gov.hmrc.fileupload.file.Repository
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -36,9 +36,9 @@ import scala.util.Try
 object Support {
 
   import reactivemongo.api.commands.WriteResult
-  import reactivemongo.api.{MongoConnection, FailoverStrategy, DB}
+  import reactivemongo.api.{DB, FailoverStrategy, MongoConnection}
 
-  import scala.concurrent.{Future, ExecutionContext}
+  import scala.concurrent.{ExecutionContext, Future}
 
   class BlockingExecutionContext extends ExecutionContext {
 
@@ -59,8 +59,9 @@ object Support {
 
   def envelope = new Envelope(_id = UUID.randomUUID().toString, constraints = Some(constraints), callbackUrl = Some("http://absolute.callback.url"),
     expiryDate = Some(DateTime.now().plusDays(1).withMillisOfSecond(0)),
-    metadata = Some(Map("anything" -> JsString("the caller wants to add to the envelope"))),
-    status = Open)
+    metadata = Some(Map("anything" -> JsString("the caller wants to add to the envelope"))))
+
+  def envelopeWithAFile(fileId: String) = envelope.copy(files = Some(List(File(fileId, fsReference = Some("ref")))))
 
   val envelopeBody = Json.toJson[Envelope](envelope)
 
@@ -89,14 +90,6 @@ object Support {
   }
 
   class FileRepositoryStub(var data: Map[String, Envelope] = Map(), val iteratee: Iteratee[ByteStream, Future[JSONReadFile]]) extends Repository(() => new DBStub) {
-
-    //		  override def add(envelope: Envelope)(implicit ex: ExecutionContext): Future[Boolean] = {
-    //			  data = data ++ Map(envelope._id -> envelope)
-    //			  Future.successful(true)
-    //		  }
-    //
-    //		  override def get(byId: String)(implicit ec: ExecutionContext): Future[Option[Envelope]] = Future.successful(data.get(byId))
-
-    override def iterateeForUpload(compositeFileId: CompositeFileId)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = iteratee
+    override def iterateeForUpload(envelopeId: String, fileId: String)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = iteratee
   }
 }

@@ -18,6 +18,10 @@ package uk.gov.hmrc.fileupload.envelope
 
 import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
+import play.api.libs.json.Json
+import reactivemongo.api.gridfs.DefaultReadFile
+import reactivemongo.bson.{BSONDocument, BSONString}
+import uk.gov.hmrc.fileupload.{JSONReadFile, Support}
 import uk.gov.hmrc.fileupload.envelope.Service._
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -95,15 +99,6 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       result shouldBe Xor.right(envelope)
     }
 
-    "be a sealed error" in {
-      val envelope = Envelope().copy(status = Sealed)
-      val delete = Service.delete(_ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
-
-      val result = delete(envelope._id).futureValue
-
-      result shouldBe Xor.left(DeleteEnvelopeSealedError(envelope))
-    }
-
     "be not successful" in {
       val envelope = Envelope()
       val delete = Service.delete(_ => Future.successful(false), _ => Future.successful(Xor.right(envelope))) _
@@ -150,143 +145,117 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
   }
 
-  "seal" should {
-    "be successful" in {
-      val envelope = Envelope()
-      val seal = Service.seal(_ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
-
-      val result = seal(envelope._id).futureValue
-
-      result shouldBe Xor.right(envelope)
-    }
-
-    "be a sealed error" in {
-      val envelope = Envelope().copy(status = Sealed)
-      val seal = Service.seal(_ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
-
-      val result = seal(envelope._id).futureValue
-
-      result shouldBe Xor.left(SealEnvelopeAlreadySealedError(envelope))
-    }
-
-    "be not successful" in {
-      val envelope = Envelope()
-      val seal = Service.seal(_ => Future.successful(false), _ => Future.successful(Xor.right(envelope))) _
-
-      val result = seal(envelope._id).futureValue
-
-      result shouldBe Xor.left(SealEnvelopNotSuccessfulError(envelope))
-    }
-
-    "be seal service error on delete" in {
-      val envelope = Envelope()
-      val seal = Service.seal(_ => Future.failed(new Exception("not good")), _ => Future.successful(Xor.right(envelope))) _
-
-      val result = seal(envelope._id).futureValue
-
-      result shouldBe Xor.left(SealServiceError(envelope._id, "not good"))
-    }
-
-    "be not found" in {
-      val envelope = Envelope()
-      val seal = Service.seal(_ => Future.successful(true), _ => Future.successful(Xor.left(FindEnvelopeNotFoundError(envelope._id)))) _
-
-      val result = seal(envelope._id).futureValue
-
-      result shouldBe Xor.left(SealEnvelopeNotFoundError(envelope._id))
-    }
-
-    "be seal service error on find service error" in {
-      val envelope = Envelope()
-      val seal = Service.seal(_ => Future.successful(true), _ => Future.successful(Xor.left(FindServiceError(envelope._id, "not good")))) _
-
-      val result = seal(envelope._id).futureValue
-
-      result shouldBe Xor.left(SealServiceError(envelope._id, "not good"))
-    }
-
-    "be seal service error on find" in {
-      val envelope = Envelope()
-      val seal = Service.seal(_ => Future.failed(new Exception("not good")), _ => Future.failed(new Exception("not good on find"))) _
-
-      val result = seal(envelope._id).futureValue
-
-      result shouldBe Xor.left(SealServiceError(envelope._id, "not good on find"))
-    }
-  }
-
-  "addFile" should {
+  "upsert a file" should {
     "be successful" in {
       val envelope = Envelope()
       val fileId = "123"
-      val expectedEnvelope = envelope.copy(files = Some(Seq(File(href = s"url/$fileId", id = fileId))))
-      val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
+      val expectedEnvelope = envelope.copy(files = Some(Seq(File(href = Some(s"url/$fileId"), fileId = fileId))))
+      val upsertFile = Service.uploadFile(
+        getEnvelope = _ => Future.successful(Some(expectedEnvelope)),
+        updateEnvelope = _ => Future.successful(true)
+      ) _
+      val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, "fsReference", 1L, None)
 
-      val result = addFile(envelope._id, fileId).futureValue
+      val result = upsertFile(uploadedFileInfo).futureValue
 
-      result shouldBe Xor.right(expectedEnvelope)
+      result shouldBe Xor.right(UpsertFileSuccess)
     }
 
-    "be file sealed error" in {
-      val envelope = Envelope().copy(status = Sealed)
-      val fileId = "123"
-      val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
-
-      val result = addFile(envelope._id, fileId).futureValue
-
-      result shouldBe Xor.left(AddFileSeaeldError(envelope))
-    }
-
-    "be add file not successful error" in {
+    "fail if envelope with a given id didn't exist" in {
       val envelope = Envelope()
       val fileId = "123"
-      val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.successful(false), _ => Future.successful(Xor.right(envelope))) _
+      val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, "fsReference", 1L, None)
+      val upsertFile = Service.uploadFile(
+        getEnvelope = _ => Future.successful(None),
+        updateEnvelope = _ => ???
+      ) _
 
-      val result = addFile(envelope._id, fileId).futureValue
+      val result = upsertFile(uploadedFileInfo).futureValue
 
-      result shouldBe Xor.left(AddFileNotSuccessfulError(envelope))
+      result shouldBe Xor.left(UpsertFileEnvelopeNotFoundError(envelope._id))
     }
 
-    "be add file service error on update" in {
+    "fail if getting an envelope failed due to unknown exception (e.g. network error)" in {
       val envelope = Envelope()
       val fileId = "123"
-      val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.failed(new Exception("not good")), _ => Future.successful(Xor.right(envelope))) _
+      val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, "fsReference", 1L, None)
+      val upsertFile = Service.uploadFile(
+        getEnvelope = _ => Future.failed(new Exception("network error")),
+        updateEnvelope = _ => ???
+      ) _
 
-      val result = addFile(envelope._id, fileId).futureValue
+      val result = upsertFile(uploadedFileInfo).futureValue
 
-      result shouldBe Xor.left(AddFileServiceError(envelope._id, "not good"))
+      result shouldBe Xor.left(UpsertFileServiceError("network error"))
     }
 
-    "be add file envelope not found error" in {
+    "fail if updating an envelope failed" in {
       val envelope = Envelope()
       val fileId = "123"
-      val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.successful(true),
-        _ => Future.successful(Xor.left(FindEnvelopeNotFoundError(envelope._id)))) _
+      val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, "fsReference", 1L, None)
+      val upsertFile = Service.uploadFile(
+        getEnvelope = _ => Future.successful(Some(envelope)),
+        updateEnvelope = _ => Future.successful(false)
+      ) _
 
-      val result = addFile(envelope._id, fileId).futureValue
+      val result = upsertFile(uploadedFileInfo).futureValue
 
-      result shouldBe Xor.left(AddFileEnvelopeNotFoundError(envelope._id))
+      result shouldBe Xor.left(UpsertFileUpdatingEnvelopeFailed)
     }
 
-    "be add file service error" in {
+    "fail if updating an envelope failed due to unknown exception (e.g. network error)" in {
       val envelope = Envelope()
       val fileId = "123"
-      val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.successful(true),
-        _ => Future.successful(Xor.left(FindServiceError(envelope._id, "not good")))) _
+      val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, "fsReference", 1L, None)
+      val upsertFile = Service.uploadFile(
+        getEnvelope = _ => Future.successful(Some(envelope)),
+        updateEnvelope = _ => Future.failed(new Exception("network error"))
+      ) _
 
-      val result = addFile(envelope._id, fileId).futureValue
+      val result = upsertFile(uploadedFileInfo).futureValue
 
-      result shouldBe Xor.left(AddFileServiceError(envelope._id, "not good"))
-    }
-
-    "be add file service error on find" in {
-      val envelope = Envelope()
-      val fileId = "123"
-      val addFile = Service.addFile((_, _) => s"url/$fileId", _ => Future.successful(true), _ => Future.failed(new Exception("not good"))) _
-
-      val result = addFile(envelope._id, fileId).futureValue
-
-      result shouldBe Xor.left(AddFileServiceError(envelope._id, "not good"))
+      result shouldBe Xor.left(UpsertFileServiceError("network error"))
     }
   }
+
+  "update metadata" should {
+    "be successful (happy path)" in {
+      val envelope = Support.envelope
+      val update = Service.updateMetadata(_ => Future.successful(Some(envelope)), _ => Future.successful(true)) _
+
+      val result = update("envelopeId", "fileid", Some("file.txt"), Some("appliation/xml"), Some(Json.obj("a" -> "test"))).futureValue
+
+      result shouldBe Xor.right(UpdateMetadataSuccess)
+    }
+
+    "fail when envelope was not found" in {
+      val envelope = Support.envelope
+      val update = Service.updateMetadata(_ => Future.successful(None), _ => Future.successful(true)) _
+
+      val newEnvelopeId = "newEnvelopeId"
+      val result = update(newEnvelopeId, "fileid", Some("file.txt"), Some("appliation/xml"), Some(Json.obj("a" -> "test"))).futureValue
+
+      result shouldBe Xor.left(UpdateMetadataEnvelopeNotFoundError)
+    }
+
+    "fail when updating an envelope failed" in {
+      val envelope = Support.envelope
+      val update = Service.updateMetadata(_ => Future.successful(Some(envelope)), _ => Future.successful(false)) _
+
+      val result = update("envelopeId", "fileid", Some("file.txt"), Some("appliation/xml"), Some(Json.obj("a" -> "test"))).futureValue
+
+      result shouldBe Xor.left(UpdateMetadataNotSuccessfulError)
+    }
+
+    "fail if there was another exception" in {
+      val envelope = Support.envelope
+      val update = Service.updateMetadata(_ => Future.successful(Some(envelope)), _ => Future.failed(new Exception("not good"))) _
+
+      val newEnvelopeId = "newEnvelopeId"
+      val result = update(newEnvelopeId, "fileid", Some("file.txt"), Some("application/xml"), Some(Json.obj("a" -> "test"))).futureValue
+
+      result shouldBe Xor.left(UpdateMetadataServiceError("not good"))
+    }
+  }
+
 }

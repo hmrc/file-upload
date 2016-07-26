@@ -3,8 +3,8 @@ package uk.gov.hmrc.fileupload
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.ws._
-import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
 import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport._
+import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
 
 /**
   * Integration tests for FILE-63 & FILE-64

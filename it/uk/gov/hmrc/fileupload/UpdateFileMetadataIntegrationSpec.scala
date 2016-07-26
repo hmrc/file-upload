@@ -1,8 +1,8 @@
 package uk.gov.hmrc.fileupload
 
 import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport.{prettify => _, requestBody => _, responseBody => _}
-import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FileActions, IntegrationSpec}
 import uk.gov.hmrc.fileupload.support.FileMetadataReportSupport._
+import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FileActions, IntegrationSpec}
 
 /**
   * Integration tests for FILE-100
@@ -95,7 +95,7 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
 
       And("the envelope is updated with the overwritten metadata")
       val secondVersion = getFileMetadataFor(envelopeId, fileId)
-      prettify(secondVersion.body) shouldBe responseBody(fileId, Map("name" -> "toOverride", "contentType" -> "application/xml"))
+      prettify(secondVersion.body) shouldBe responseBody(envelopeId, fileId, Map("name" -> "toOverride", "contentType" -> "application/xml"))
     }
 
     scenario("Create File Metadata for envelope with a file attachment") {

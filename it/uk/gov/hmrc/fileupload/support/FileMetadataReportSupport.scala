@@ -10,7 +10,6 @@ object FileMetadataReportSupport extends Support {
      |{
      |  "name":"${args.getOrElse("name", "test.jpg")}",
      |  "contentType":"${args.getOrElse("contentType", "application/pdf")}",
-     |  "revision":${args.getOrElse("revision", 1)},
      |  "metadata":{
      |    "id":"${args.getOrElse("metadata.id", "1234567890")}",
      |    "origin":{
@@ -28,14 +27,14 @@ object FileMetadataReportSupport extends Support {
      |}
 		 """.stripMargin
 
-  def responseBodyAsJson(id: String, args: Map[String, Any] = Map.empty) = Json.parse(responseBody(id, args))
+  def responseBodyAsJson(envelopeId: String, fileId: String, args: Map[String, Any] = Map.empty) =
+    Json.parse(responseBody(envelopeId, fileId, args))
 
-  def responseBody(id: String, args: Map[String, Any] = Map.empty) = prettify(s"""
+  def responseBody(envelopeId: String, fileId: String, args: Map[String, Any] = Map.empty) = prettify(s"""
     |{
-    |  "id":"$id",
+    |  "id":"$fileId",
     |  "name":"${args.getOrElse("name", "test.jpg")}",
     |  "contentType":"${args.getOrElse("contentType", "application/pdf")}",
-    |  "revision":${args.getOrElse("revision", 1)},
     |  "metadata":{
     |    "id":"${args.getOrElse("metadata.id", "1234567890")}",
     |    "origin":{
@@ -49,7 +48,8 @@ object FileMetadataReportSupport extends Support {
     |    "sender":{
     |      "service":"${args.getOrElse("metadata.sender.service", "some-service-identifier/v1.2.33")}"
     |    }
-    |  }
+    |  },
+    |  "href" : "/file-upload/envelope/$envelopeId/file/$fileId/content"
     |}
 		 """.stripMargin)
 
@@ -62,7 +62,6 @@ object FileMetadataReportSupport extends Support {
     |  "contentType":"${args.getOrElse("contentType", "application/pdf")}",
     |  "length":${args.getOrElse("length", 0)},
     |  "created":"${args.getOrElse("created", "")}",
-    |  "revision":${args.getOrElse("revision", 1)},
     |  "metadata":{
     |    "id":"${args.getOrElse("metadata.id", "1234567890")}",
     |    "origin":{

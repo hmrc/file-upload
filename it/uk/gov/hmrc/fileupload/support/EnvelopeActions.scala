@@ -43,11 +43,4 @@ trait EnvelopeActions extends ActionsSupport {
       .delete()
       .futureValue
 
-  def seal(id: String): WSResponse = {
-      WS
-        .url(s"$url/envelope/$id")
-        .withHeaders("Content-Type" -> "application/json")
-        .put("""{"status": "sealed"}""")
-        .futureValue
-  }
 }

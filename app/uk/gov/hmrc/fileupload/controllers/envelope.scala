@@ -32,7 +32,7 @@ case class EnvelopeReport(id: Option[String] = None,
                           expiryDate: Option[DateTime] = None,
                           metadata: Option[Map[String, JsValue]] = None,
                           status: Option[String] = None,
-                          files: Option[Seq[File]] = None)
+                          files: Option[Seq[GetFileMetadataReport]] = None)
 
 case class ConstraintsReport(contentTypes: Option[Seq[String]] = None,
                              maxItems: Option[Int] = None,
@@ -49,24 +49,24 @@ object EnvelopeReport {
 
   val MAX_ITEMS_DEFAULT = 1
 
-  def toEnvelope(envelopeId: String, report: EnvelopeReport): Envelope =
-    Envelope(
-      _id = envelopeId,
+  def toEnvelope(envelopeId: String, report: EnvelopeReport): Envelope = {
+    Envelope(_id = envelopeId,
       constraints = report.constraints.map(toConstraints),
       callbackUrl = report.callbackUrl,
       expiryDate = report.expiryDate,
-      metadata = report.metadata,
-      files = report.files)
+      metadata = report.metadata)
+  }
 
-  def fromEnvelope(envelope: Envelope): EnvelopeReport =
+  def fromEnvelope(envelope: Envelope): EnvelopeReport = {
+    val fileReports = envelope.files.map( _.map(file => GetFileMetadataReport.fromFile(envelope._id, file)) )
     EnvelopeReport(
       id = Some(envelope._id),
       constraints = envelope.constraints.map(fromConstraints),
       callbackUrl = envelope.callbackUrl,
       expiryDate = envelope.expiryDate,
       metadata = envelope.metadata,
-      status = Option(envelope.status).map(_.toString),
-      files = envelope.files)
+      files = fileReports)
+  }
 
   private def toConstraints(report: ConstraintsReport): Constraints = {
     val maxItems: Int = report.maxItems.getOrElse[Int](MAX_ITEMS_DEFAULT)
