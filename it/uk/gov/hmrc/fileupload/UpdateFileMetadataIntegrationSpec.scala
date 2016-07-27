@@ -84,7 +84,7 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
       And("there is existing metadata for the file ID")
       updateFileMetadata(requestBody(Map("name" -> "toOverride")), envelopeId, fileId)
 
-      And("I have a JSON  body different metadata")
+      And("I have a JSON  body with different metadata")
       val json = requestBody( Map("name" -> "toOverride", "contentType" -> "application/xml"))
 
       When(s"I call PUT /file-upload/envelope/$envelopeId/file/$fileId/metadata")
