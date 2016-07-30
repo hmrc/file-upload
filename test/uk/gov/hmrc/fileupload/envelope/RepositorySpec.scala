@@ -22,7 +22,7 @@ import org.junit
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
-import uk.gov.hmrc.fileupload.{EnvelopeId, Support}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, Support}
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
@@ -40,7 +40,7 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 
 	"repository" should {
     "persist an envelope" in {
-      val file = File(href = Some("ads"), fileId = "myfile", rel = "file")
+      val file = File(href = Some("ads"), fileId = FileId(), rel = "file")
       val envelope = Support.envelope.copy(files = Some(Seq(file)))
 
       val result = (repository add envelope).futureValue
@@ -74,7 +74,7 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 	  }
 
 	  "return nothing for a none existent envelope" in {
-			val id = EnvelopeId(UUID.randomUUID().toString)
+			val id = EnvelopeId()
 
 		  val result = repository.get(id).futureValue
       result shouldBe None

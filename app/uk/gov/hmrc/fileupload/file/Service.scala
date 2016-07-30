@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.file
 
 import cats.data.Xor
 import play.api.libs.iteratee.Enumerator
-import uk.gov.hmrc.fileupload.EnvelopeId
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 import uk.gov.hmrc.fileupload.envelope.{Envelope, File}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -37,7 +37,7 @@ object Service {
   object GetFileNotFoundError extends GetFileError
   object GetFileEnvelopeNotFound extends GetFileError
 
-  def getMetadata(getEnvelope: EnvelopeId => Future[Option[Envelope]])(envelopeId: EnvelopeId, fileId: String)
+  def getMetadata(getEnvelope: EnvelopeId => Future[Option[Envelope]])(envelopeId: EnvelopeId, fileId: FileId)
                  (implicit ex: ExecutionContext): Future[GetMetadataResult] =
     getEnvelope(envelopeId).map {
       case Some(e) =>
@@ -46,8 +46,8 @@ object Service {
       case _ => Xor.left(GetMetadataNotFoundError)
     }.recoverWith { case e => Future { Xor.left(GetMetadataServiceError(e.getMessage)) } }
 
-  def retrieveFile(getEnvelope: EnvelopeId => Future[Option[Envelope]], getFileFromRepo: String => Future[Option[FileFoundResult]])
-                  (envelopeId: EnvelopeId, fileId: String)
+  def retrieveFile(getEnvelope: EnvelopeId => Future[Option[Envelope]], getFileFromRepo: FileId => Future[Option[FileFoundResult]])
+                  (envelopeId: EnvelopeId, fileId: FileId)
                   (implicit ex: ExecutionContext): Future[GetFileResult] = {
     getEnvelope(envelopeId).flatMap {
       case Some(envelope) =>

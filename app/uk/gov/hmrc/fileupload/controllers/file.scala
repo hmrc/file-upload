@@ -36,7 +36,7 @@ object UpdateFileMetadataReport {
   implicit val updateFileMetaDataReportFormat: Format[UpdateFileMetadataReport] = Json.format[UpdateFileMetadataReport]
 }
 
-case class GetFileMetadataReport(id: String,
+case class GetFileMetadataReport(id: FileId,
                                  name: Option[String] = None,
                                  contentType: Option[String] = None,
                                  length: Option[Long] = None,
@@ -50,7 +50,7 @@ object GetFileMetadataReport {
   implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val getFileMetaDataReportFormat: Format[GetFileMetadataReport] = Json.format[GetFileMetadataReport]
 
-  def href(envelopeId: EnvelopeId, fileId: String) = routes.FileController.downloadFile(envelopeId, fileId).url
+  def href(envelopeId: EnvelopeId, fileId: FileId) = routes.FileController.downloadFile(envelopeId, fileId.value).url
 
   def fromFile(envelopeId: EnvelopeId, file: File): GetFileMetadataReport =
     GetFileMetadataReport(
@@ -80,8 +80,8 @@ object FileMetadataParser extends BodyParser[UpdateFileMetadataReport] {
 
 object UploadParser {
 
-  def parse(uploadFile: (EnvelopeId, String) => Iteratee[ByteStream, Future[JSONReadFile]])
-           (envelopeId: EnvelopeId, fileId: String)
+  def parse(uploadFile: (EnvelopeId, FileId) => Iteratee[ByteStream, Future[JSONReadFile]])
+           (envelopeId: EnvelopeId, fileId: FileId)
            (implicit ex: ExecutionContext): BodyParser[Future[JSONReadFile]] = BodyParser { _ =>
 
     uploadFile(envelopeId, fileId) map (Right(_)) recover { case NonFatal(e) => Left(ExceptionHandler(e)) }

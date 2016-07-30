@@ -46,11 +46,11 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 			val contents = Enumerator[ByteStream](text.getBytes)
 
 			val envelopeId = Support.envelope._id
-			val fileId = UUID.randomUUID().toString
+			val fileId = FileId()
 
 			val sink = repository.iterateeForUpload(envelopeId, fileId)
 			val fsId = contents.run[Future[JSONReadFile]](sink).futureValue.id match {
-				case JsString(v) => v
+				case JsString(v) => FileId(v)
 				case _ => fail("expected JsString here")
 			}
 
@@ -65,7 +65,7 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 		}
 
 		"returns a fileNotFound error" in {
-			val nonexistentId = UUID.randomUUID.toString
+			val nonexistentId = FileId()
 
 			val fileResult = repository.retrieveFile(nonexistentId).futureValue
 

@@ -23,7 +23,7 @@ import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.junit.Assert.assertTrue
 import play.api.libs.json.{JsObject, JsString, Json}
-import uk.gov.hmrc.fileupload.{EnvelopeId, Support}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, Support}
 import uk.gov.hmrc.fileupload.controllers.{ConstraintsReport, EnvelopeReport}
 import uk.gov.hmrc.fileupload.envelope.Service.UploadedFileInfo
 import uk.gov.hmrc.play.test.UnitSpec
@@ -121,8 +121,8 @@ class EnvelopeSpec extends UnitSpec {
 
   "can add a file to a new Envelope" in {
     val envelopeId = EnvelopeId("envelopeId")
-    val fileId: String = "newfile"
-    val fsReference: String = "12334"
+    val fileId = FileId("newFile")
+    val fsReference = FileId("12334")
     val uploadedFileInfo = UploadedFileInfo(envelopeId = envelopeId, fileId, fsReference, 1L, None)
 
     val envelope = Envelope().addFile(uploadedFileInfo)
@@ -139,10 +139,10 @@ class EnvelopeSpec extends UnitSpec {
 
   "can add a file to an Envelope with other files" in {
     val envelopeId = EnvelopeId()
-    val fileId: String = "newfile"
-    val fsReference: String = "12334"
+    val fileId = FileId("newFile")
+    val fsReference = FileId("12334")
     val uploadedFileInfo = UploadedFileInfo(envelopeId = envelopeId, fileId, fsReference, 1L, None)
-    val oldFile= File(fileId = "oldFile")
+    val oldFile= File(fileId = FileId("oldFile"))
     val expectedFiles = Some(Seq(
       oldFile,
       File(fileId = fileId,
@@ -159,11 +159,11 @@ class EnvelopeSpec extends UnitSpec {
 
   "can update a file in an Envelope" in {
     val envelopeId = EnvelopeId()
-    val fileId: String = "newfile"
-    val fsReference: String = "12334"
+    val fileId = FileId("newfile")
+    val fsReference = FileId("12334")
     val file = File(fileId = fileId, fsReference = Some(fsReference))
-    val newRef = "newRef-1234"
-    val otherFile = File(fileId = "otherFile")
+    val newRef = FileId("newRef-1234")
+    val otherFile = File(fileId = FileId("otherFile"))
     val uploadedFileInfo = UploadedFileInfo(envelopeId = envelopeId, fileId, newRef, 1L, None)
     val expectedFiles = Some(Seq(
       otherFile,
@@ -180,7 +180,7 @@ class EnvelopeSpec extends UnitSpec {
   }
 
   "can add a file metadata to a new Envelope" in {
-    val fileId = "newfile"
+    val fileId = FileId("newfile")
     val name = "test"
     val metadata: JsObject = Json.obj("a" -> "v")
     val envelope = Envelope().addMetadata(fileId = fileId, name = Some(name), metadata = Some(metadata))
@@ -189,8 +189,8 @@ class EnvelopeSpec extends UnitSpec {
   }
 
   "can add a file metadata to an Envelope with other files" in {
-    val fileId = "newfile"
-    val oldFile = File(fileId = "oldFile")
+    val fileId = FileId("newfile")
+    val oldFile = File(fileId = FileId("oldFile"))
     val name = "test"
     val metadata: JsObject = Json.obj("a" -> "v")
 
@@ -200,33 +200,33 @@ class EnvelopeSpec extends UnitSpec {
   }
 
   "can update a file metadata in an Envelope" in {
-    val fileId = "myfile"
+    val fileId = FileId("myfile")
     val name = "test"
     val metadata = Json.obj("a" -> "v")
     val file = File(fileId = fileId, name = Some(name), metadata = Some(metadata))
 
     val newName = "newtest"
     val newMetadata = Json.obj("a" -> "newV")
-    val otherFile = File(fileId = "otherFile")
+    val otherFile = File(fileId = FileId("otherFile"))
     val envelope = Envelope(files = Some(Seq(otherFile, file))).addMetadata(fileId = fileId, name = Some(newName), metadata = Some(newMetadata))
 
     envelope.files shouldBe Some(Seq(otherFile, File(fileId = fileId, name = Some(newName), metadata = Some(newMetadata))))
   }
 
   "can get a file by id" in {
-    val fileId = "newfile"
+    val fileId = FileId("newfile")
     val file = File(fileId = fileId)
-    val files = Random.shuffle(Seq(File(fileId = "foo"), file, File(fileId = "bar")))
+    val files = Random.shuffle(Seq(File(fileId = FileId("foo")), file, File(fileId = FileId("bar"))))
     val envelope = Envelope(files = Some(files))
 
     envelope.getFileById(fileId) shouldBe Some(file)
   }
 
   "should respond None when getting a file not existing in the envelope" in {
-    val files = Random.shuffle(Seq(File(fileId = "foo"), File(fileId = "bar")))
+    val files = Random.shuffle(Seq(File(fileId = FileId("foo")), File(fileId = FileId("bar"))))
     val envelope = Envelope(files = Some(files))
 
-    envelope.getFileById("wrongid") shouldBe None
+    envelope.getFileById(FileId("wrongid")) shouldBe None
   }
 
 

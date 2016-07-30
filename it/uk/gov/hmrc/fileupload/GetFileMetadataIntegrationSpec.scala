@@ -16,7 +16,7 @@ class GetFileMetadataIntegrationSpec extends IntegrationSpec with FileActions wi
     scenario("GET metadata with valid envelope id") {
       Given("I have a valid envelope ID")
       val envelopeId = createEnvelope()
-      val fileId = s"fileId-${nextId()}"
+      val fileId = FileId(s"fileId-${nextId()}")
 
       And("I have a file with metadata already set")
       val json = requestBody()
@@ -36,7 +36,7 @@ class GetFileMetadataIntegrationSpec extends IntegrationSpec with FileActions wi
 
       Given("I have an invalid envelope ID")
       val envelopeId = EnvelopeId("invalidEnvelopeId")
-      val fileId = "invalidFileID"
+      val fileId = FileId("invalidFileID")
 
       When(s"I invoke GET envelope/$envelopeId/file/$fileId/metadata")
       val response = getFileMetadataFor(envelopeId, fileId)

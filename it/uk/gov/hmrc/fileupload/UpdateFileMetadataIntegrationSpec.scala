@@ -18,7 +18,7 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
       val envelopeId = createEnvelope()
 
       And("a valid file ID")
-      val fileId = s"fileId-${nextId()}"
+      val fileId = FileId(s"fileId-${nextId()}")
 
       And("I have no file attached to the envelope ")
 
@@ -41,7 +41,7 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
       val envelopeId = createEnvelope()
 
       And("a valid file ID")
-      val fileId = s"fileId-${nextId()}"
+      val fileId = FileId(s"fileId-${nextId()}")
 
       And("I have a JSON body {}")
       val json = "{}"
@@ -62,7 +62,7 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
       val envelopeId = EnvelopeId(s"envelopeId-${nextId()}")
 
       And("a valid file ID")
-      val fileId = s"fileId-${nextId()}"
+      val fileId = FileId(s"fileId-${nextId()}")
 
       And("I have a JSON body with an example PUT File Metadata request ")
       val json = requestBody()
@@ -79,7 +79,7 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
       val envelopeId = createEnvelope()
 
       And("a valid file ID")
-      val fileId = s"fileId-${nextId()}"
+      val fileId = FileId(s"fileId-${nextId()}")
 
       And("there is existing metadata for the file ID")
       updateFileMetadata(requestBody(Map("name" -> "toOverride")), envelopeId, fileId)
@@ -103,7 +103,7 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
       val envelopeId = createEnvelope()
 
       And("a valid file ID")
-      val fileId = s"fileId-${nextId()}"
+      val fileId = FileId(s"fileId-${nextId()}")
 
       And("I have a file already attached to the envelope")
       upload("test".getBytes, envelopeId, fileId)

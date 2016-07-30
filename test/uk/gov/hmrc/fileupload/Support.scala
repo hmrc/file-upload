@@ -59,7 +59,7 @@ object Support {
     expiryDate = Some(DateTime.now().plusDays(1).withMillisOfSecond(0)),
     metadata = Some(Map("anything" -> JsString("the caller wants to add to the envelope"))))
 
-  def envelopeWithAFile(fileId: String) = envelope.copy(files = Some(List(File(fileId, fsReference = Some("ref")))))
+  def envelopeWithAFile(fileId: FileId) = envelope.copy(files = Some(List(File(fileId, fsReference = Some(FileId("ref"))))))
 
   val envelopeBody = Json.toJson[Envelope](envelope)
 
@@ -88,6 +88,6 @@ object Support {
   }
 
   class FileRepositoryStub(var data: Map[String, Envelope] = Map(), val iteratee: Iteratee[ByteStream, Future[JSONReadFile]]) extends Repository(() => new DBStub) {
-    override def iterateeForUpload(envelopeId: EnvelopeId, fileId: String)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = iteratee
+    override def iterateeForUpload(envelopeId: EnvelopeId, fileId: FileId)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = iteratee
   }
 }

@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.envelope
 
 import cats.data.Xor
 import play.api.libs.json.JsObject
-import uk.gov.hmrc.fileupload.EnvelopeId
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -62,8 +62,8 @@ object Service {
   object UpsertFileSuccess
 
   case class UploadedFileInfo(envelopeId: EnvelopeId,
-                              fileId: String,
-                              fsReference: String,
+                              fileId: FileId,
+                              fsReference: FileId,
                               length: Long,
                               uploadDate: Option[Long])
 
@@ -104,7 +104,7 @@ object Service {
   }
 
   def updateMetadata(getEnvelope: EnvelopeId => Future[Option[Envelope]], updateEnvelope: Envelope => Future[Boolean])
-                    (envelopeId: EnvelopeId, fileId: String, name: Option[String], contentType: Option[String], metadata: Option[JsObject])
+                    (envelopeId: EnvelopeId, fileId: FileId, name: Option[String], contentType: Option[String], metadata: Option[JsObject])
                     (implicit ex: ExecutionContext): Future[UpdateMetadataResult] = {
     getEnvelope(envelopeId).flatMap {
       case Some(envelope) =>

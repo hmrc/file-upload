@@ -20,10 +20,10 @@ import java.util.UUID
 
 import org.joda.time.DateTime
 import play.api.libs.json.{Format, JsObject, _}
-import uk.gov.hmrc.fileupload.EnvelopeId
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 import uk.gov.hmrc.fileupload.envelope.Service.UploadedFileInfo
 
-case class Envelope(_id: EnvelopeId = EnvelopeId(UUID.randomUUID().toString),
+case class Envelope(_id: EnvelopeId = EnvelopeId(),
                     constraints: Option[Constraints] = None,
                     callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None,
                     metadata: Option[Map[String, JsValue]] = None, files: Option[Seq[File]] = None) {
@@ -31,8 +31,6 @@ case class Envelope(_id: EnvelopeId = EnvelopeId(UUID.randomUUID().toString),
   require(!isExpired, "expiry date cannot be in the past")
 
   def isExpired: Boolean = expiryDate.exists(_.isBeforeNow)
-
-  def contains(fileId: String) = files.exists(sequence => sequence.exists(_.fileId == fileId))
 
   def addFile(uploadedFileInfo: UploadedFileInfo) = {
     val file = files.flatMap(_.collectFirst {
@@ -47,7 +45,7 @@ case class Envelope(_id: EnvelopeId = EnvelopeId(UUID.randomUUID().toString),
     add(file)
   }
 
-  def addMetadata(fileId: String, name: Option[String] = None, contentType: Option[String] = None,
+  def addMetadata(fileId: FileId, name: Option[String] = None, contentType: Option[String] = None,
                   length: Option[Long] = None, uploadDate: Option[DateTime] = None,
                   revision: Option[Int] = None, metadata: Option[JsObject] = None): Envelope = {
 
@@ -65,7 +63,7 @@ case class Envelope(_id: EnvelopeId = EnvelopeId(UUID.randomUUID().toString),
     copy(files = Some(newFiles))
   }
 
-  def getFileById(fileId: String): Option[File] = {
+  def getFileById(fileId: FileId): Option[File] = {
     files.flatMap { _.find { file => file.fileId == fileId }}
   }
 }
@@ -84,8 +82,8 @@ case class Constraints(contentTypes: Option[Seq[String]] = None,
   }
 }
 
-case class File(fileId: String,
-                fsReference: Option[String] = None,
+case class File(fileId: FileId,
+                fsReference: Option[FileId] = None,
                 name: Option[String] = None,
                 contentType: Option[String] = None,
                 length: Option[Long] = None,

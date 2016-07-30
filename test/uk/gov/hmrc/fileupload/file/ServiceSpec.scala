@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.file
 import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.iteratee.Enumerator
-import uk.gov.hmrc.fileupload.Support
+import uk.gov.hmrc.fileupload.{FileId, Support}
 import uk.gov.hmrc.fileupload.envelope.File
 import uk.gov.hmrc.fileupload.file.Service._
 import uk.gov.hmrc.play.test.UnitSpec
@@ -32,7 +32,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
   "getting file metadata" should {
     "be successful if metadata exists" in {
-      val fileId = "fileId"
+      val fileId = FileId()
       val file = File(fileId = fileId)
       val envelope = Support.envelope.copy(files = Some(List(file)))
       val get = Service.getMetadata(_ => Future.successful(Some(envelope))) _
@@ -44,7 +44,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
     "fail if metadata does not exist" in {
       val envelope = Support.envelope
-      val fileId = "NOTEXISTINGFILE"
+      val fileId = FileId("NOTEXISTINGFILE")
       val get = Service.getMetadata(_ => Future.successful(None)) _
 
       val result = get(envelope._id, fileId).futureValue
@@ -54,7 +54,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
     "fail if there was an exception" in {
       val envelope = Support.envelope
-      val fileId = "somefileid"
+      val fileId = FileId()
       val get = Service.getMetadata(_ => Future.failed(new Exception("not good"))) _
 
       val result = get(envelope._id, fileId).futureValue
@@ -65,7 +65,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
   "downloading a file" should {
     "succeed if file was available" in {
-      val fileId = "somefileid"
+      val fileId = FileId()
       val envelope = Support.envelopeWithAFile(fileId)
       val filename = Some("filename")
       val length = 10
@@ -79,7 +79,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       result shouldBe Xor.Right(FileFoundResult(filename, length, data))
     }
     "fail if file was not available" in {
-      val fileId = "somefileid"
+      val fileId = FileId()
       val envelope = Support.envelopeWithAFile(fileId)
 
       val result = Service.retrieveFile(
@@ -90,7 +90,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       result shouldBe Xor.Left(GetFileNotFoundError)
     }
     "fail if envelope was not available" in {
-      val fileId = "somefileid"
+      val fileId = FileId()
       val envelope = Support.envelopeWithAFile(fileId)
       val result = Service.retrieveFile(
         getEnvelope = _ => Future.successful(None),
@@ -100,7 +100,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       result shouldBe Xor.Left(GetFileEnvelopeNotFound)
     }
     "fail if file system reference (fsReference) was not found" in {
-      val fileId = "somefileid"
+      val fileId = FileId()
       val envelope = Support.envelope.copy(files = Some(List(File(fileId, fsReference = None))))
 
       val result = Service.retrieveFile(

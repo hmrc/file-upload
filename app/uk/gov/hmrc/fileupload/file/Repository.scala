@@ -45,17 +45,12 @@ class Repository(mongo: () => DB with DBMetaCommands) {
 
   lazy val gfs: JSONGridFS = GridFS[JSONSerializationPack.type](mongo(), "envelopes")
 
-  def addFile(envelopeId: EnvelopeId, fileId: String, enumerator: Enumerator[Array[Byte]])(implicit ec: ExecutionContext): Future[JSONReadFile] = {
-    val iteratee = gfs.iteratee(new JSONFileToSave(metadata = Json.toJson(Map( "envelopeId" -> envelopeId.value , "fileId" -> fileId )).asInstanceOf[JsObject]))
-    enumerator.run(iteratee).flatMap(identity)
-  }
-
-  def iterateeForUpload(envelopeId: EnvelopeId, fileId: String)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = {
+  def iterateeForUpload(envelopeId: EnvelopeId, fileId: FileId)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = {
     gfs.iteratee(JSONFileToSave(filename = None, metadata = Json.obj("envelopeId" -> envelopeId, "fileId" -> fileId)))
   }
 
-  def retrieveFile(_id: String)(implicit ec: ExecutionContext): Future[Option[FileFoundResult]] = {
-    gfs.find[BSONDocument, JSONReadFile](BSONDocument("_id" -> _id)).headOption.map { file =>
+  def retrieveFile(_id: FileId)(implicit ec: ExecutionContext): Future[Option[FileFoundResult]] = {
+    gfs.find[BSONDocument, JSONReadFile](BSONDocument("_id" -> _id.value)).headOption.map { file =>
       file.map( f => FileFoundResult(f.filename, f.length, gfs.enumerate(f)))
     }
   }

@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.envelope
 import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.json.Json
-import uk.gov.hmrc.fileupload.{EnvelopeId, Support}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, Support}
 import uk.gov.hmrc.fileupload.envelope.Service._
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -146,13 +146,13 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
   "upsert a file" should {
     "be successful" in {
       val envelope = Envelope()
-      val fileId = "123"
+      val fileId = FileId()
       val expectedEnvelope = envelope.copy(files = Some(Seq(File(href = Some(s"url/$fileId"), fileId = fileId))))
       val upsertFile = Service.uploadFile(
         getEnvelope = _ => Future.successful(Some(expectedEnvelope)),
         updateEnvelope = _ => Future.successful(true)
       ) _
-      val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, "fsReference", 1L, None)
+      val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, FileId("fsReference"), 1L, None)
 
       val result = upsertFile(uploadedFileInfo).futureValue
 
@@ -161,8 +161,8 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
     "fail if envelope with a given id didn't exist" in {
       val envelope = Envelope()
-      val fileId = "123"
-      val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, "fsReference", 1L, None)
+      val fileId = FileId()
+      val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, FileId("fsReference"), 1L, None)
       val upsertFile = Service.uploadFile(
         getEnvelope = _ => Future.successful(None),
         updateEnvelope = _ => ???
@@ -175,8 +175,8 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
     "fail if getting an envelope failed due to unknown exception (e.g. network error)" in {
       val envelope = Envelope()
-      val fileId = "123"
-      val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, "fsReference", 1L, None)
+      val fileId = FileId()
+      val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, FileId("fsReference"), 1L, None)
       val upsertFile = Service.uploadFile(
         getEnvelope = _ => Future.failed(new Exception("network error")),
         updateEnvelope = _ => ???
@@ -189,8 +189,8 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
     "fail if updating an envelope failed" in {
       val envelope = Envelope()
-      val fileId = "123"
-      val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, "fsReference", 1L, None)
+      val fileId = FileId()
+      val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, FileId("fsReference"), 1L, None)
       val upsertFile = Service.uploadFile(
         getEnvelope = _ => Future.successful(Some(envelope)),
         updateEnvelope = _ => Future.successful(false)
@@ -203,8 +203,8 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
     "fail if updating an envelope failed due to unknown exception (e.g. network error)" in {
       val envelope = Envelope()
-      val fileId = "123"
-      val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, "fsReference", 1L, None)
+      val fileId = FileId()
+      val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, FileId("fsReference"), 1L, None)
       val upsertFile = Service.uploadFile(
         getEnvelope = _ => Future.successful(Some(envelope)),
         updateEnvelope = _ => Future.failed(new Exception("network error"))
@@ -221,7 +221,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       val envelope = Support.envelope
       val update = Service.updateMetadata(_ => Future.successful(Some(envelope)), _ => Future.successful(true)) _
 
-      val result = update(EnvelopeId("envelopeId"), "fileid", Some("file.txt"), Some("appliation/xml"), Some(Json.obj("a" -> "test"))).futureValue
+      val result = update(EnvelopeId("envelopeId"), FileId(), Some("file.txt"), Some("application/xml"), Some(Json.obj("a" -> "test"))).futureValue
 
       result shouldBe Xor.right(UpdateMetadataSuccess)
     }
@@ -231,7 +231,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       val update = Service.updateMetadata(_ => Future.successful(None), _ => Future.successful(true)) _
 
       val newEnvelopeId = EnvelopeId("newEnvelopeId")
-      val result = update(newEnvelopeId, "fileid", Some("file.txt"), Some("appliation/xml"), Some(Json.obj("a" -> "test"))).futureValue
+      val result = update(newEnvelopeId, FileId(), Some("file.txt"), Some("application/xml"), Some(Json.obj("a" -> "test"))).futureValue
 
       result shouldBe Xor.left(UpdateMetadataEnvelopeNotFoundError)
     }
@@ -240,7 +240,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       val envelope = Support.envelope
       val update = Service.updateMetadata(_ => Future.successful(Some(envelope)), _ => Future.successful(false)) _
 
-      val result = update(EnvelopeId("envelopeId"), "fileid", Some("file.txt"), Some("appliation/xml"), Some(Json.obj("a" -> "test"))).futureValue
+      val result = update(EnvelopeId("envelopeId"), FileId(), Some("file.txt"), Some("application/xml"), Some(Json.obj("a" -> "test"))).futureValue
 
       result shouldBe Xor.left(UpdateMetadataNotSuccessfulError)
     }
@@ -250,7 +250,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       val update = Service.updateMetadata(_ => Future.successful(Some(envelope)), _ => Future.failed(new Exception("not good"))) _
 
       val newEnvelopeId = EnvelopeId("newEnvelopeId")
-      val result = update(newEnvelopeId, "fileid", Some("file.txt"), Some("application/xml"), Some(Json.obj("a" -> "test"))).futureValue
+      val result = update(newEnvelopeId, FileId(), Some("file.txt"), Some("application/xml"), Some(Json.obj("a" -> "test"))).futureValue
 
       result shouldBe Xor.left(UpdateMetadataServiceError("not good"))
     }

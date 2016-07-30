@@ -29,7 +29,7 @@ import reactivemongo.json.JSONSerializationPack.Document
 import uk.gov.hmrc.fileupload.envelope.Envelope
 import uk.gov.hmrc.fileupload.envelope.Service._
 import uk.gov.hmrc.fileupload.file.Service._
-import uk.gov.hmrc.fileupload.{ByteStream, EnvelopeId, JSONReadFile, Support}
+import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -55,12 +55,12 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
 
   def parse = UploadParser.parse(null) _
 
-  def newController(uploadBodyParser: (EnvelopeId, String) => BodyParser[Future[JSONReadFile]] = parse,
-                    getMetadata: (EnvelopeId, String) => Future[GetMetadataResult] = (_,_) => failed,
-                    retrieveFile: (EnvelopeId, String) => Future[GetFileResult] = (_,_) => failed,
+  def newController(uploadBodyParser: (EnvelopeId, FileId) => BodyParser[Future[JSONReadFile]] = parse,
+                    getMetadata: (EnvelopeId, FileId) => Future[GetMetadataResult] = (_,_) => failed,
+                    retrieveFile: (EnvelopeId, FileId) => Future[GetFileResult] = (_,_) => failed,
                     getEnvelope: EnvelopeId => Future[Option[Envelope]] = _ => failed,
                     uploadFile: UploadedFileInfo => Future[UpsertFileToEnvelopeResult] = _ => failed,
-                    updateMetadata: (EnvelopeId, String, Option[String], Option[String], Option[JsObject]) => Future[UpdateMetadataResult] = (_,_,_,_,_) => failed) =
+                    updateMetadata: (EnvelopeId, FileId, Option[String], Option[String], Option[JsObject]) => Future[UpdateMetadataResult] = (_,_,_,_,_) => failed) =
     new FileController(uploadBodyParser = uploadBodyParser,
       getMetadata = getMetadata,
       retrieveFile = retrieveFile,
@@ -75,7 +75,7 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
       val envelope = Support.envelope
 
       val controller = newController(uploadFile = _ => Future.successful(Xor.right(UpsertFileSuccess)))
-      val result: Result = controller.upsertFile(envelope._id, "456")(fakeRequest).futureValue
+      val result = controller.upsertFile(envelope._id, FileId())(fakeRequest).futureValue
 
       result.header.status shouldBe Status.OK
     }
@@ -88,7 +88,7 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
       val controller = newController(
        uploadFile = _ => Future.successful(Xor.left(UpsertFileEnvelopeNotFoundError))
       )
-      val result: Result = controller.upsertFile(envelope._id, "456")(fakeRequest).futureValue
+      val result: Result = controller.upsertFile(envelope._id, FileId())(fakeRequest).futureValue
 
       result.header.status shouldBe Status.NOT_FOUND
     }
@@ -96,14 +96,14 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
 
   "Download a file" should {
     "return 200 when file is found" in {
-      val fileId = "fileId"
+      val fileId = FileId("fileId")
       val envelope = Support.envelopeWithAFile(fileId)
       val envelopeId = envelope._id
       val fakeRequest = new FakeRequest[AnyContentAsJson]("GET", s"/envelope/$envelopeId/file/$fileId/content", FakeHeaders(), body = null)
       val fileFound: GetFileResult = Xor.Right(FileFoundResult(Some("myfile.txt"), 100, Enumerator.eof[ByteStream]))
       val controller = newController(retrieveFile = (_,_) => Future.successful(fileFound))
 
-      val result = controller.downloadFile(envelopeId, fileId)(fakeRequest).futureValue
+      val result = controller.downloadFile(envelopeId, fileId.value)(fakeRequest).futureValue
 
       result.header.status shouldBe Status.OK
       val headers = result.header.headers
@@ -114,7 +114,7 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
 
     "respond with 404 when a file is not found" in {
       val envelopeId = EnvelopeId()
-      val fileId = "myFileId"
+      val fileId = FileId("myFileId")
       val fakeRequest = new FakeRequest[AnyContentAsJson]("GET", s"/envelope/$envelopeId/file/$fileId/content", FakeHeaders(), body = null)
 
       val fileFound: GetFileResult = Xor.Left(GetFileNotFoundError)
@@ -122,7 +122,7 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
         retrieveFile = (_,_) => Future.successful(fileFound)
       )
 
-      val result: Result = controller.downloadFile(envelopeId, fileId)(fakeRequest).futureValue
+      val result: Result = controller.downloadFile(envelopeId, fileId.value)(fakeRequest).futureValue
 
       result.header.status shouldBe Status.NOT_FOUND
     }

@@ -18,7 +18,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with FileActions with 
 
       And("I have uploaded a file")
       val data = "{'name':'pete'}"
-      val fileId = s"fileId-${nextId()}"
+      val fileId = FileId(s"fileId-${nextId()}")
       upload(data.getBytes, envelopeId, fileId)
 
       When(s"I invoke GET envelope/$envelopeId/file/$fileId/content")
@@ -42,7 +42,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with FileActions with 
       val envelopeId = createEnvelope()
 
       And("I have an invalid file id")
-      val fileId = s"fileId-${nextId()}"
+      val fileId = FileId(s"fileId-${nextId()}")
 
       When(s"I invoke GET envelope/$envelopeId/file/$fileId/content")
       val response: WSResponse = download(envelopeId, fileId)
