@@ -22,7 +22,7 @@ import org.junit
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
-import uk.gov.hmrc.fileupload.Support
+import uk.gov.hmrc.fileupload.{EnvelopeId, Support}
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
@@ -74,9 +74,9 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 	  }
 
 	  "return nothing for a none existent envelope" in {
-			val id = UUID.randomUUID().toString
+			val id = EnvelopeId(UUID.randomUUID().toString)
 
-		  val result = (repository get id).futureValue
+		  val result = repository.get(id).futureValue
       result shouldBe None
 	  }
   }

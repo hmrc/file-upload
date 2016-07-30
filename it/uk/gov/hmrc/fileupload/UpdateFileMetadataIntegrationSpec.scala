@@ -59,7 +59,7 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
 
     scenario("Create File Metadata - invalid Envelope ID") {
       Given("I have a invalid envelope ID")
-      val envelopeId = s"envelopeId-${nextId()}"
+      val envelopeId = EnvelopeId(s"envelopeId-${nextId()}")
 
       And("a valid file ID")
       val fileId = s"fileId-${nextId()}"

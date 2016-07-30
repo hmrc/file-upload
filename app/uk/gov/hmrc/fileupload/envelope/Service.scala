@@ -18,6 +18,7 @@ package uk.gov.hmrc.fileupload.envelope
 
 import cats.data.Xor
 import play.api.libs.json.JsObject
+import uk.gov.hmrc.fileupload.EnvelopeId
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -38,18 +39,17 @@ object Service {
   case class CreateServiceError(envelope: Envelope, message: String) extends CreateError
 
   sealed trait FindError
-  case class FindEnvelopeNotFoundError(id: String) extends FindError
-  case class FindServiceError(id: String, message: String) extends FindError
+  object FindEnvelopeNotFoundError extends FindError
+  case class FindServiceError(message: String) extends FindError
 
   sealed trait DeleteError
-  case class DeleteEnvelopeNotFoundError(id: String) extends DeleteError
-  case class DeleteEnvelopeSealedError(envelope: Envelope) extends DeleteError
-  case class DeleteEnvelopeNotSuccessfulError(envelope: Envelope) extends DeleteError
-  case class DeleteServiceError(id: String, message: String) extends DeleteError
+  object DeleteEnvelopeNotFoundError extends DeleteError
+  object DeleteEnvelopeNotSuccessfulError extends DeleteError
+  case class DeleteServiceError(message: String) extends DeleteError
 
   sealed trait UpsertFileError
-  case class UpsertFileEnvelopeNotFoundError(id: String) extends UpsertFileError
-  case class UpsertFileNotSuccessfulError(envelope: Envelope) extends UpsertFileError
+  object UpsertFileEnvelopeNotFoundError extends UpsertFileError
+  object UpsertFileNotSuccessfulError extends UpsertFileError
   case class UpsertFileServiceError(message: String) extends UpsertFileError
   object UpsertFileUpdatingEnvelopeFailed extends UpsertFileError
 
@@ -61,7 +61,7 @@ object Service {
   type UpsertFileToEnvelopeResult = UpsertFileError Xor UpsertFileSuccess.type
   object UpsertFileSuccess
 
-  case class UploadedFileInfo(envelopeId: String,
+  case class UploadedFileInfo(envelopeId: EnvelopeId,
                               fileId: String,
                               fsReference: String,
                               length: Long,
@@ -73,23 +73,23 @@ object Service {
       case _ => Xor.left(CreateNotSuccessfulError(envelope))
     }.recover { case e => Xor.left(CreateServiceError(envelope, e.getMessage)) }
 
-  def find(get: String => Future[Option[Envelope]])(id: String)(implicit ex: ExecutionContext): Future[FindResult] =
+  def find(get: EnvelopeId => Future[Option[Envelope]])(id: EnvelopeId)(implicit ex: ExecutionContext): Future[FindResult] =
     get(id).map {
       case Some(e) => Xor.right(e)
-      case _ => Xor.left(FindEnvelopeNotFoundError(id))
-    }.recover { case e => Xor.left(FindServiceError(id, e.getMessage)) }
+      case _ => Xor.left(FindEnvelopeNotFoundError)
+    }.recover { case e => Xor.left(FindServiceError(e.getMessage)) }
 
-  def delete(delete: String => Future[Boolean], find: String => Future[FindResult])(id: String)(implicit ex: ExecutionContext): Future[DeleteResult] =
+  def delete(delete: EnvelopeId => Future[Boolean], find: EnvelopeId => Future[FindResult])(id: EnvelopeId)(implicit ex: ExecutionContext): Future[DeleteResult] =
     find(id).flatMap {
-      case Xor.Right(envelope) => delete(envelope._id).map {
+      case Xor.Right(envelope) => delete(id).map {
         case true => Xor.right(envelope)
-        case _ => Xor.left(DeleteEnvelopeNotSuccessfulError(envelope))
-      }.recover { case e => Xor.left(DeleteServiceError(id, e.getMessage)) }
-      case Xor.Left(FindEnvelopeNotFoundError(i)) => Future { Xor.left(DeleteEnvelopeNotFoundError(i)) }
-      case Xor.Left(FindServiceError(i, m)) => Future { Xor.left(DeleteServiceError(i, m)) }
-    }.recover { case e => Xor.left(DeleteServiceError(id, e.getMessage)) }
+        case _ => Xor.left(DeleteEnvelopeNotSuccessfulError)
+      }.recover { case e => Xor.left(DeleteServiceError(e.getMessage)) }
+      case Xor.Left(FindEnvelopeNotFoundError) => Future { Xor.left(DeleteEnvelopeNotFoundError) }
+      case Xor.Left(FindServiceError(m)) => Future { Xor.left(DeleteServiceError(m)) }
+    }.recover { case e => Xor.left(DeleteServiceError(e.getMessage)) }
 
-  def uploadFile(getEnvelope: String => Future[Option[Envelope]], updateEnvelope: Envelope => Future[Boolean])
+  def uploadFile(getEnvelope: EnvelopeId => Future[Option[Envelope]], updateEnvelope: Envelope => Future[Boolean])
                 (uploadedFileInfo: UploadedFileInfo)
                 (implicit ex: ExecutionContext): Future[UpsertFileToEnvelopeResult] = {
     getEnvelope(uploadedFileInfo.envelopeId).flatMap({
@@ -99,12 +99,12 @@ object Service {
           case true => Xor.right(UpsertFileSuccess)
           case false => Xor.left(UpsertFileUpdatingEnvelopeFailed)
         }
-      case None => Future.successful(Xor.left(UpsertFileEnvelopeNotFoundError(uploadedFileInfo.envelopeId)))
+      case None => Future.successful(Xor.left(UpsertFileEnvelopeNotFoundError))
     }).recover { case NonFatal(e) => Xor.left(UpsertFileServiceError(e.getMessage)) }
   }
 
-  def updateMetadata(getEnvelope: String => Future[Option[Envelope]], updateEnvelope: Envelope => Future[Boolean])
-                    (envelopeId: String, fileId: String, name: Option[String], contentType: Option[String], metadata: Option[JsObject])
+  def updateMetadata(getEnvelope: EnvelopeId => Future[Option[Envelope]], updateEnvelope: Envelope => Future[Boolean])
+                    (envelopeId: EnvelopeId, fileId: String, name: Option[String], contentType: Option[String], metadata: Option[JsObject])
                     (implicit ex: ExecutionContext): Future[UpdateMetadataResult] = {
     getEnvelope(envelopeId).flatMap {
       case Some(envelope) =>

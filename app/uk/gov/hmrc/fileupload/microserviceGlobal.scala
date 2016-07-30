@@ -87,7 +87,9 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     import play.api.libs.concurrent.Execution.Implicits._
 
     val create = EnvelopeService.create(updateEnvelope) _
-    val nextId = () => UUID.randomUUID().toString
+
+    // todo DO WE NEED THIS? mongo can generate ids
+    val nextId = () => EnvelopeId(UUID.randomUUID().toString)
 
     val del = envelopeRepository.delete _
     val delete = EnvelopeService.delete(del, find) _

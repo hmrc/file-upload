@@ -20,13 +20,14 @@ import org.joda.time.DateTime
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.json._
 import play.api.mvc.{BodyParser, RequestHeader, Result}
+import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.envelope.{Constraints, Envelope, File}
 
 import scala.concurrent.ExecutionContext
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
-case class EnvelopeReport(id: Option[String] = None,
+case class EnvelopeReport(id: Option[EnvelopeId] = None,
                           constraints: Option[ConstraintsReport] = None,
                           callbackUrl: Option[String] = None,
                           expiryDate: Option[DateTime] = None,
@@ -49,7 +50,7 @@ object EnvelopeReport {
 
   val MAX_ITEMS_DEFAULT = 1
 
-  def toEnvelope(envelopeId: String, report: EnvelopeReport): Envelope = {
+  def toEnvelope(envelopeId: EnvelopeId, report: EnvelopeReport): Envelope = {
     Envelope(_id = envelopeId,
       constraints = report.constraints.map(toConstraints),
       callbackUrl = report.callbackUrl,

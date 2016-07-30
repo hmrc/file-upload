@@ -50,9 +50,9 @@ object GetFileMetadataReport {
   implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val getFileMetaDataReportFormat: Format[GetFileMetadataReport] = Json.format[GetFileMetadataReport]
 
-  def href(envelopeId: String, fileId: String) = routes.FileController.downloadFile(envelopeId, fileId).url
+  def href(envelopeId: EnvelopeId, fileId: String) = routes.FileController.downloadFile(envelopeId, fileId).url
 
-  def fromFile(envelopeId: String, file: File): GetFileMetadataReport =
+  def fromFile(envelopeId: EnvelopeId, file: File): GetFileMetadataReport =
     GetFileMetadataReport(
       id = file.fileId,
       name = file.name,
@@ -80,8 +80,8 @@ object FileMetadataParser extends BodyParser[UpdateFileMetadataReport] {
 
 object UploadParser {
 
-  def parse(uploadFile: (String, String) => Iteratee[ByteStream, Future[JSONReadFile]])
-           (envelopeId: String, fileId: String)
+  def parse(uploadFile: (EnvelopeId, String) => Iteratee[ByteStream, Future[JSONReadFile]])
+           (envelopeId: EnvelopeId, fileId: String)
            (implicit ex: ExecutionContext): BodyParser[Future[JSONReadFile]] = BodyParser { _ =>
 
     uploadFile(envelopeId, fileId) map (Right(_)) recover { case NonFatal(e) => Left(ExceptionHandler(e)) }

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc
 
-import _root_.play.api.libs.json.JsValue
+import _root_.play.api.libs.json.{JsString, JsValue, Reads, Writes, JsResult, JsSuccess, JsError}
 import reactivemongo.api.gridfs.{GridFS, ReadFile}
 import reactivemongo.json.JSONSerializationPack
 

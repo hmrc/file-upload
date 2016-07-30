@@ -20,9 +20,10 @@ import java.util.UUID
 
 import org.joda.time.DateTime
 import play.api.libs.json.{Format, JsObject, _}
+import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.envelope.Service.UploadedFileInfo
 
-case class Envelope(_id: String = UUID.randomUUID().toString,
+case class Envelope(_id: EnvelopeId = EnvelopeId(UUID.randomUUID().toString),
                     constraints: Option[Constraints] = None,
                     callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None,
                     metadata: Option[Map[String, JsValue]] = None, files: Option[Seq[File]] = None) {
@@ -100,7 +101,7 @@ object Envelope {
   implicit val constraintsReads: Format[Constraints] = Json.format[Constraints]
   implicit val envelopeReads: Format[Envelope] = Json.format[Envelope]
 
-  def fromJson(json: JsValue, _id: String, maxTTL: Int): Envelope = {
+  def fromJson(json: JsValue, _id: EnvelopeId, maxTTL: Int): Envelope = {
     val rawData = json.asInstanceOf[JsObject] ++ Json.obj("_id" -> _id)
     val envelope = Json.fromJson[Envelope](rawData).get
     val maxExpiryDate: DateTime = DateTime.now().plusDays(maxTTL)

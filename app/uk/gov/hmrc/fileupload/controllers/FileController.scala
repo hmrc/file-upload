@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.controllers
 import cats.data.Xor
 import play.api.libs.json.{JsObject, JsString, JsValue, Json}
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.JSONReadFile
+import uk.gov.hmrc.fileupload.{EnvelopeId, JSONReadFile}
 import uk.gov.hmrc.fileupload.envelope.Envelope
 import uk.gov.hmrc.fileupload.envelope.Service._
 import uk.gov.hmrc.fileupload.file.Service._
@@ -28,15 +28,15 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
-class FileController(uploadBodyParser: (String, String) => BodyParser[Future[JSONReadFile]],
-                     getMetadata: (String, String) => Future[GetMetadataResult],
-                     retrieveFile: (String, String) => Future[GetFileResult],
-                     getEnvelope: String => Future[Option[Envelope]],
+class FileController(uploadBodyParser: (EnvelopeId, String) => BodyParser[Future[JSONReadFile]],
+                     getMetadata: (EnvelopeId, String) => Future[GetMetadataResult],
+                     retrieveFile: (EnvelopeId, String) => Future[GetFileResult],
+                     getEnvelope: EnvelopeId => Future[Option[Envelope]],
                      uploadFile: UploadedFileInfo => Future[UpsertFileToEnvelopeResult],
-                     updateMetadata: (String, String, Option[String], Option[String], Option[JsObject]) => Future[UpdateMetadataResult])
+                     updateMetadata: (EnvelopeId, String, Option[String], Option[String], Option[JsObject]) => Future[UpdateMetadataResult])
                     (implicit executionContext: ExecutionContext) extends BaseController {
 
-  def upsertFile(envelopeId: String, fileId: String) = Action.async(uploadBodyParser(envelopeId, fileId)) { request =>
+  def upsertFile(envelopeId: EnvelopeId, fileId: String) = Action.async(uploadBodyParser(envelopeId, fileId)) { request =>
 
     def fsReferenceAsString(j: JsValue) = j match {
       case JsString(value) => value
@@ -51,12 +51,12 @@ class FileController(uploadBodyParser: (String, String) => BodyParser[Future[JSO
       uploadFile(uploadedFileInfo).map {
         case Xor.Right(_) => Ok
         case Xor.Left(UpsertFileUpdatingEnvelopeFailed) => ExceptionHandler(INTERNAL_SERVER_ERROR, "File not added to envelope")
-        case Xor.Left(UpsertFileEnvelopeNotFoundError(id)) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
+        case Xor.Left(UpsertFileEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope $envelopeId not found")
       }.recover { case e => ExceptionHandler(e) }
     }
   }
 
-  def downloadFile(envelopeId: String, fileId: String) = Action.async { request =>
+  def downloadFile(envelopeId: EnvelopeId, fileId: String) = Action.async { request =>
     retrieveFile(envelopeId, fileId).map {
       case Xor.Right(FileFoundResult(filename, length, data)) =>
         Ok.feed(data).withHeaders(
@@ -70,7 +70,7 @@ class FileController(uploadBodyParser: (String, String) => BodyParser[Future[JSO
     }
   }
 
-  def retrieveMetadata(envelopeId: String, fileId: String) = Action.async {
+  def retrieveMetadata(envelopeId: EnvelopeId, fileId: String) = Action.async {
     getMetadata(envelopeId, fileId).map {
       case Xor.Right(f) => Ok(Json.toJson[GetFileMetadataReport](GetFileMetadataReport.fromFile(envelopeId, f)))
       case Xor.Left(GetMetadataNotFoundError) => ExceptionHandler(NOT_FOUND, s"File $fileId not found in envelope: $envelopeId")
@@ -78,7 +78,7 @@ class FileController(uploadBodyParser: (String, String) => BodyParser[Future[JSO
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  def metadata(envelopeId: String, fileId: String) = Action.async(FileMetadataParser) { request =>
+  def metadata(envelopeId: EnvelopeId, fileId: String) = Action.async(FileMetadataParser) { request =>
     val report = request.body
     updateMetadata(envelopeId, fileId, report.name, report.contentType, report.metadata).map {
       case Xor.Right(_) => Ok.withHeaders(LOCATION -> s"${ request.host }${ routes.FileController.retrieveMetadata(envelopeId, fileId) }")

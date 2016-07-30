@@ -45,12 +45,12 @@ class Repository(mongo: () => DB with DBMetaCommands) {
 
   lazy val gfs: JSONGridFS = GridFS[JSONSerializationPack.type](mongo(), "envelopes")
 
-  def addFile(envelopeId: String, fileId: String, enumerator: Enumerator[Array[Byte]])(implicit ec: ExecutionContext): Future[JSONReadFile] = {
-    val iteratee = gfs.iteratee(new JSONFileToSave(metadata = Json.toJson(Map("envelopeId" -> envelopeId, "fileId" -> fileId)).asInstanceOf[JsObject]))
+  def addFile(envelopeId: EnvelopeId, fileId: String, enumerator: Enumerator[Array[Byte]])(implicit ec: ExecutionContext): Future[JSONReadFile] = {
+    val iteratee = gfs.iteratee(new JSONFileToSave(metadata = Json.toJson(Map( "envelopeId" -> envelopeId.value , "fileId" -> fileId )).asInstanceOf[JsObject]))
     enumerator.run(iteratee).flatMap(identity)
   }
 
-  def iterateeForUpload(envelopeId: String, fileId: String)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = {
+  def iterateeForUpload(envelopeId: EnvelopeId, fileId: String)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = {
     gfs.iteratee(JSONFileToSave(filename = None, metadata = Json.obj("envelopeId" -> envelopeId, "fileId" -> fileId)))
   }
 

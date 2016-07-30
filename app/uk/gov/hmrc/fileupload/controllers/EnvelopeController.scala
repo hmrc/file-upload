@@ -19,21 +19,22 @@ package uk.gov.hmrc.fileupload.controllers
 import cats.data.Xor
 import play.api.libs.json._
 import play.api.mvc._
+import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.envelope.Envelope
-import uk.gov.hmrc.fileupload.envelope.Service._
+import uk.gov.hmrc.fileupload.envelope.Service.{DeleteEnvelopeNotFoundError, _}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 class EnvelopeController(createEnvelope: Envelope => Future[Xor[CreateError, Envelope]],
-                         nextId: () => String,
-                         findEnvelope: String => Future[Xor[FindError, Envelope]],
-                         deleteEnvelope: String => Future[Xor[DeleteError, Envelope]])
+                         nextId: () => EnvelopeId,
+                         findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]],
+                         deleteEnvelope: EnvelopeId => Future[Xor[DeleteError, Envelope]])
                         (implicit executionContext: ExecutionContext) extends BaseController {
 
   def create() = Action.async(EnvelopeParser) { implicit request =>
-    def envelopeLocation = (id: String) => LOCATION -> s"${ request.host }${ routes.EnvelopeController.show(id) }"
+    def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ routes.EnvelopeController.show(id) }"
 
     val envelope = EnvelopeReport.toEnvelope(nextId(), request.body)
 
@@ -44,23 +45,23 @@ class EnvelopeController(createEnvelope: Envelope => Future[Xor[CreateError, Env
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  def show(id: String) = Action.async {
+  def show(id: EnvelopeId) = Action.async {
 
     import EnvelopeReport._
 
     findEnvelope(id).map {
-      case Xor.Left(FindEnvelopeNotFoundError(e)) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
-      case Xor.Left(FindServiceError(e, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Xor.Left(FindEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
+      case Xor.Left(FindServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
       case Xor.Right(e) => Ok(Json.toJson(EnvelopeReport.fromEnvelope(e)))
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  def delete(id: String) = Action.async {
+  def delete(id: EnvelopeId) = Action.async {
     deleteEnvelope(id).map {
       case Xor.Right(e) => Accepted
-      case Xor.Left(DeleteEnvelopeNotFoundError(e)) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
-      case Xor.Left(DeleteEnvelopeNotSuccessfulError(e)) => ExceptionHandler(BAD_REQUEST, "Envelope not deleted")
-      case Xor.Left(DeleteServiceError(i, m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Xor.Left(DeleteEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
+      case Xor.Left(DeleteEnvelopeNotSuccessfulError) => ExceptionHandler(BAD_REQUEST, "Envelope not deleted")
+      case Xor.Left(DeleteServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
     }.recover { case e => ExceptionHandler(e) }
   }
 

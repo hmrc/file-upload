@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.fileupload
 
-import java.util.UUID
-
 import akka.actor.{Actor, ActorRef}
 import akka.testkit.TestActorRef
 import org.joda.time.DateTime
@@ -51,13 +49,13 @@ object Support {
 
   def consume(data: Enumerator[Array[Byte]])(implicit ec: ExecutionContext): Array[Byte] = {
     val futureResult: Future[Array[Byte]] = data |>>> Iteratee.consume[Array[Byte]]()
-    Await.result(futureResult, 500 millis)
+    Await.result(futureResult, 500.millis)
   }
 
   def constraints = Constraints(contentTypes = Some(Seq("application/vnd.openxmlformats-officedocument.wordprocessingml.document")),
     maxItems = Some(100), maxSize = Some("12GB"), maxSizePerItem = Some("10MB"))
 
-  def envelope = new Envelope(_id = UUID.randomUUID().toString, constraints = Some(constraints), callbackUrl = Some("http://absolute.callback.url"),
+  def envelope = new Envelope(_id = EnvelopeId(), constraints = Some(constraints), callbackUrl = Some("http://absolute.callback.url"),
     expiryDate = Some(DateTime.now().plusDays(1).withMillisOfSecond(0)),
     metadata = Some(Map("anything" -> JsString("the caller wants to add to the envelope"))))
 
@@ -90,6 +88,6 @@ object Support {
   }
 
   class FileRepositoryStub(var data: Map[String, Envelope] = Map(), val iteratee: Iteratee[ByteStream, Future[JSONReadFile]]) extends Repository(() => new DBStub) {
-    override def iterateeForUpload(envelopeId: String, fileId: String)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = iteratee
+    override def iterateeForUpload(envelopeId: EnvelopeId, fileId: String)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = iteratee
   }
 }

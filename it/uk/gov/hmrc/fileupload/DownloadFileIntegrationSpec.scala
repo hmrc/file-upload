@@ -14,7 +14,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with FileActions with 
 
     scenario("Check that a file can be downloaded") {
       Given("I have a valid envelope id")
-      val envelopeId: String = createEnvelope()
+      val envelopeId = createEnvelope()
 
       And("I have uploaded a file")
       val data = "{'name':'pete'}"
@@ -39,7 +39,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with FileActions with 
 
     scenario("File can not be found") {
       Given("I have a valid envelope id")
-      val envelopeId: String = createEnvelope()
+      val envelopeId = createEnvelope()
 
       And("I have an invalid file id")
       val fileId = s"fileId-${nextId()}"

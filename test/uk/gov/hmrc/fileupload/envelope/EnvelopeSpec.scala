@@ -23,7 +23,7 @@ import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.junit.Assert.assertTrue
 import play.api.libs.json.{JsObject, JsString, Json}
-import uk.gov.hmrc.fileupload.Support
+import uk.gov.hmrc.fileupload.{EnvelopeId, Support}
 import uk.gov.hmrc.fileupload.controllers.{ConstraintsReport, EnvelopeReport}
 import uk.gov.hmrc.fileupload.envelope.Service.UploadedFileInfo
 import uk.gov.hmrc.play.test.UnitSpec
@@ -60,7 +60,7 @@ class EnvelopeSpec extends UnitSpec {
           |}
         """.stripMargin)
 
-	    val id: String = UUID.randomUUID().toString
+	    val id = EnvelopeId()
 	    val result: Envelope = Envelope.fromJson(json, id, maxTTL = 2)
 
       val contraints = Constraints(contentTypes = Some(Seq("application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -92,7 +92,7 @@ class EnvelopeSpec extends UnitSpec {
 			val maxTTL: Int = 2
       val maxExpiryDate: DateTime = DateTime.now().plusDays(maxTTL)
 
-			val envelope = Envelope.fromJson(Json.toJson(Support.farInTheFutureEnvelope), UUID.randomUUID().toString, maxTTL)
+			val envelope = Envelope.fromJson(Json.toJson(Support.farInTheFutureEnvelope), EnvelopeId(), maxTTL)
 
 			assertTrue( isWithinAMinute(maxExpiryDate, envelope.expiryDate) )
 		}
@@ -102,7 +102,7 @@ class EnvelopeSpec extends UnitSpec {
     "have maxItems constrain defaulted to 1 when not specified" in {
       val dto: EnvelopeReport = EnvelopeReport(constraints = Some(ConstraintsReport(maxItems = None)))
 
-      val envelope: Envelope = EnvelopeReport.toEnvelope("abc", dto)
+      val envelope: Envelope = EnvelopeReport.toEnvelope(EnvelopeId("abc"), dto)
 
       envelope.constraints.get.maxItems should equal( Some(1) )
     }
@@ -112,7 +112,7 @@ class EnvelopeSpec extends UnitSpec {
     "have maxItems constrain NOT defaulted to 1 when specified" in {
       val dto: EnvelopeReport = EnvelopeReport(constraints = Some(ConstraintsReport(maxItems = Some(2))))
 
-      val envelope: Envelope = EnvelopeReport.toEnvelope("abc", dto)
+      val envelope: Envelope = EnvelopeReport.toEnvelope(EnvelopeId("abc"), dto)
 
       envelope.constraints.get.maxItems should equal( Some(2) )
     }
@@ -120,7 +120,7 @@ class EnvelopeSpec extends UnitSpec {
 
 
   "can add a file to a new Envelope" in {
-    val envelopeId = "envelopeId"
+    val envelopeId = EnvelopeId("envelopeId")
     val fileId: String = "newfile"
     val fsReference: String = "12334"
     val uploadedFileInfo = UploadedFileInfo(envelopeId = envelopeId, fileId, fsReference, 1L, None)
@@ -138,7 +138,7 @@ class EnvelopeSpec extends UnitSpec {
   }
 
   "can add a file to an Envelope with other files" in {
-    val envelopeId = "envelopeId"
+    val envelopeId = EnvelopeId()
     val fileId: String = "newfile"
     val fsReference: String = "12334"
     val uploadedFileInfo = UploadedFileInfo(envelopeId = envelopeId, fileId, fsReference, 1L, None)
@@ -158,7 +158,7 @@ class EnvelopeSpec extends UnitSpec {
   }
 
   "can update a file in an Envelope" in {
-    val envelopeId = "envelopeId"
+    val envelopeId = EnvelopeId()
     val fileId: String = "newfile"
     val fsReference: String = "12334"
     val file = File(fileId = fileId, fsReference = Some(fsReference))
@@ -180,8 +180,8 @@ class EnvelopeSpec extends UnitSpec {
   }
 
   "can add a file metadata to a new Envelope" in {
-    val fileId: String = "newfile"
-    val name: String = "test"
+    val fileId = "newfile"
+    val name = "test"
     val metadata: JsObject = Json.obj("a" -> "v")
     val envelope = Envelope().addMetadata(fileId = fileId, name = Some(name), metadata = Some(metadata))
 
@@ -189,9 +189,9 @@ class EnvelopeSpec extends UnitSpec {
   }
 
   "can add a file metadata to an Envelope with other files" in {
-    val fileId: String = "newfile"
-    val oldFile: File = File(fileId = "oldFile")
-    val name: String = "test"
+    val fileId = "newfile"
+    val oldFile = File(fileId = "oldFile")
+    val name = "test"
     val metadata: JsObject = Json.obj("a" -> "v")
 
     val envelope = Envelope(files = Some(Seq(oldFile))).addMetadata(fileId = fileId, name = Some(name), metadata = Some(metadata))
@@ -200,13 +200,13 @@ class EnvelopeSpec extends UnitSpec {
   }
 
   "can update a file metadata in an Envelope" in {
-    val fileId: String = "myfile"
-    val name: String = "test"
-    val metadata: JsObject = Json.obj("a" -> "v")
-    val file: File = File(fileId = fileId, name = Some(name), metadata = Some(metadata))
+    val fileId = "myfile"
+    val name = "test"
+    val metadata = Json.obj("a" -> "v")
+    val file = File(fileId = fileId, name = Some(name), metadata = Some(metadata))
 
-    val newName: String = "newtest"
-    val newMetadata: JsObject = Json.obj("a" -> "newV")
+    val newName = "newtest"
+    val newMetadata = Json.obj("a" -> "newV")
     val otherFile = File(fileId = "otherFile")
     val envelope = Envelope(files = Some(Seq(otherFile, file))).addMetadata(fileId = fileId, name = Some(newName), metadata = Some(newMetadata))
 

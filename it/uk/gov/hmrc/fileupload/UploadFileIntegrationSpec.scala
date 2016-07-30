@@ -20,7 +20,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
 
     scenario("Add valid file to envelope") {
       Given("I have a valid envelope id")
-      val envelopeId: String = createEnvelope()
+      val envelopeId = createEnvelope()
 
       And("I have a file id")
       val fileId = s"fileId-${nextId()}"
@@ -37,7 +37,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
 
     scenario("Add valid 3mb file to envelope") {
       Given("I have a valid envelope id")
-      val envelopeId: String = createEnvelope()
+      val envelopeId = createEnvelope()
 
       And("I have a file id")
       val fileId = s"fileId-${nextId()}"
@@ -57,7 +57,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
 
     scenario("Add multiple files to envelope") {
       Given("I have an envelope-id with an existing file attached")
-      val envelopeId: String = createEnvelope()
+      val envelopeId = createEnvelope()
       val firstFileId = s"fileId-${nextId()}"
       upload("{}".getBytes, envelopeId, firstFileId)
 
@@ -79,7 +79,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
 
     scenario("PUT File Invalid Envelope ID") {
       Given("I have a invalid envelope-id")
-      val envelopeId = "invalidId"
+      val envelopeId = EnvelopeId("invalidId")
 
       And("I have a file id")
       val fileId = s"fileId-${nextId()}"
@@ -113,7 +113,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
 
     scenario("PUT File with invalid file-id") {
       Given("I have a invalid envelope-id")
-      val envelopeId: String = createEnvelope()
+      val envelopeId = createEnvelope()
 
       And("I have an invalid file-id")
       val fileId = ""

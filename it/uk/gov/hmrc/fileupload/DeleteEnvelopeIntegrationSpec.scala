@@ -30,7 +30,7 @@ class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
 
     scenario("Delete Envelope - invalid ID") {
       Given("I have an invalid envelope id")
-      val invalidEnvelopeId = "12345678"
+      val invalidEnvelopeId = EnvelopeId()
 
       When("I call DELETE /file-upload/envelope/:envelope-id")
       val envelopeResponse = deleteEnvelopFor(invalidEnvelopeId)

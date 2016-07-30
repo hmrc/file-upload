@@ -29,7 +29,7 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions {
 
     scenario("GET envelope using invalid ID") {
       Given("I have an invalid envelope id")
-      val envelopeId = "123435"
+      val envelopeId = EnvelopeId()
 
       When("I call GET /file-upload/envelope/:envelope-id")
       val envelopeResponse = getEnvelopeFor(envelopeId)

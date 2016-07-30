@@ -1,6 +1,7 @@
 package uk.gov.hmrc.fileupload.support
 
 import play.api.libs.json.Json
+import uk.gov.hmrc.fileupload.EnvelopeId
 
 object FileMetadataReportSupport extends Support {
 
@@ -27,10 +28,10 @@ object FileMetadataReportSupport extends Support {
      |}
 		 """.stripMargin
 
-  def responseBodyAsJson(envelopeId: String, fileId: String, args: Map[String, Any] = Map.empty) =
+  def responseBodyAsJson(envelopeId: EnvelopeId, fileId: String, args: Map[String, Any] = Map.empty) =
     Json.parse(responseBody(envelopeId, fileId, args))
 
-  def responseBody(envelopeId: String, fileId: String, args: Map[String, Any] = Map.empty) = prettify(s"""
+  def responseBody(envelopeId: EnvelopeId, fileId: String, args: Map[String, Any] = Map.empty) = prettify(s"""
     |{
     |  "id":"$fileId",
     |  "name":"${args.getOrElse("name", "test.jpg")}",

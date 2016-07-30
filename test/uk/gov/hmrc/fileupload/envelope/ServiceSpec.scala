@@ -19,9 +19,7 @@ package uk.gov.hmrc.fileupload.envelope
 import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.json.Json
-import reactivemongo.api.gridfs.DefaultReadFile
-import reactivemongo.bson.{BSONDocument, BSONString}
-import uk.gov.hmrc.fileupload.{JSONReadFile, Support}
+import uk.gov.hmrc.fileupload.{EnvelopeId, Support}
 import uk.gov.hmrc.fileupload.envelope.Service._
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -76,7 +74,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
       val result = find(envelope._id).futureValue
 
-      result shouldBe Xor.left(FindEnvelopeNotFoundError(envelope._id))
+      result shouldBe Xor.left(FindEnvelopeNotFoundError)
     }
 
     "be a find service error" in {
@@ -85,7 +83,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
       val result = find(envelope._id).futureValue
 
-      result shouldBe Xor.left(FindServiceError(envelope._id, "not good"))
+      result shouldBe Xor.left(FindServiceError("not good"))
     }
   }
 
@@ -105,7 +103,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
       val result = delete(envelope._id).futureValue
 
-      result shouldBe Xor.left(DeleteEnvelopeNotSuccessfulError(envelope))
+      result shouldBe Xor.left(DeleteEnvelopeNotSuccessfulError)
     }
 
     "be delete service error on delete" in {
@@ -114,25 +112,25 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
       val result = delete(envelope._id).futureValue
 
-      result shouldBe Xor.left(DeleteServiceError(envelope._id, "not good"))
+      result shouldBe Xor.left(DeleteServiceError("not good"))
     }
 
     "be not found" in {
       val envelope = Envelope()
-      val delete = Service.delete(_ => Future.successful(true), _ => Future.successful(Xor.left(FindEnvelopeNotFoundError(envelope._id)))) _
+      val delete = Service.delete(_ => Future.successful(true), _ => Future.successful(Xor.left(FindEnvelopeNotFoundError))) _
 
       val result = delete(envelope._id).futureValue
 
-      result shouldBe Xor.left(DeleteEnvelopeNotFoundError(envelope._id))
+      result shouldBe Xor.left(DeleteEnvelopeNotFoundError)
     }
 
     "be delete service error on find service error" in {
       val envelope = Envelope()
-      val delete = Service.delete(_ => Future.successful(true), _ => Future.successful(Xor.left(FindServiceError(envelope._id, "not good")))) _
+      val delete = Service.delete(_ => Future.successful(true), _ => Future.successful(Xor.left(FindServiceError("not good")))) _
 
       val result = delete(envelope._id).futureValue
 
-      result shouldBe Xor.left(DeleteServiceError(envelope._id, "not good"))
+      result shouldBe Xor.left(DeleteServiceError("not good"))
     }
 
     "be delete service error on find" in {
@@ -141,7 +139,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
       val result = delete(envelope._id).futureValue
 
-      result shouldBe Xor.left(DeleteServiceError(envelope._id, "not good on find"))
+      result shouldBe Xor.left(DeleteServiceError("not good on find"))
     }
   }
 
@@ -172,7 +170,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
       val result = upsertFile(uploadedFileInfo).futureValue
 
-      result shouldBe Xor.left(UpsertFileEnvelopeNotFoundError(envelope._id))
+      result shouldBe Xor.left(UpsertFileEnvelopeNotFoundError)
     }
 
     "fail if getting an envelope failed due to unknown exception (e.g. network error)" in {
@@ -223,7 +221,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       val envelope = Support.envelope
       val update = Service.updateMetadata(_ => Future.successful(Some(envelope)), _ => Future.successful(true)) _
 
-      val result = update("envelopeId", "fileid", Some("file.txt"), Some("appliation/xml"), Some(Json.obj("a" -> "test"))).futureValue
+      val result = update(EnvelopeId("envelopeId"), "fileid", Some("file.txt"), Some("appliation/xml"), Some(Json.obj("a" -> "test"))).futureValue
 
       result shouldBe Xor.right(UpdateMetadataSuccess)
     }
@@ -232,7 +230,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       val envelope = Support.envelope
       val update = Service.updateMetadata(_ => Future.successful(None), _ => Future.successful(true)) _
 
-      val newEnvelopeId = "newEnvelopeId"
+      val newEnvelopeId = EnvelopeId("newEnvelopeId")
       val result = update(newEnvelopeId, "fileid", Some("file.txt"), Some("appliation/xml"), Some(Json.obj("a" -> "test"))).futureValue
 
       result shouldBe Xor.left(UpdateMetadataEnvelopeNotFoundError)
@@ -242,7 +240,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       val envelope = Support.envelope
       val update = Service.updateMetadata(_ => Future.successful(Some(envelope)), _ => Future.successful(false)) _
 
-      val result = update("envelopeId", "fileid", Some("file.txt"), Some("appliation/xml"), Some(Json.obj("a" -> "test"))).futureValue
+      val result = update(EnvelopeId("envelopeId"), "fileid", Some("file.txt"), Some("appliation/xml"), Some(Json.obj("a" -> "test"))).futureValue
 
       result shouldBe Xor.left(UpdateMetadataNotSuccessfulError)
     }
@@ -251,7 +249,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       val envelope = Support.envelope
       val update = Service.updateMetadata(_ => Future.successful(Some(envelope)), _ => Future.failed(new Exception("not good"))) _
 
-      val newEnvelopeId = "newEnvelopeId"
+      val newEnvelopeId = EnvelopeId("newEnvelopeId")
       val result = update(newEnvelopeId, "fileid", Some("file.txt"), Some("application/xml"), Some(Json.obj("a" -> "test"))).futureValue
 
       result shouldBe Xor.left(UpdateMetadataServiceError("not good"))

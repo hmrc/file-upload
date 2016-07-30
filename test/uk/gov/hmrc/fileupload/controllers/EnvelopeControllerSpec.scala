@@ -24,7 +24,7 @@ import play.api.http.Status
 import play.api.libs.json.{JsString, Json}
 import play.api.mvc.{AnyContentAsJson, Result}
 import play.api.test.{FakeHeaders, FakeRequest}
-import uk.gov.hmrc.fileupload.Support
+import uk.gov.hmrc.fileupload.{EnvelopeId, Support}
 import uk.gov.hmrc.fileupload.envelope.Envelope
 import uk.gov.hmrc.fileupload.envelope.Service._
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
@@ -40,9 +40,9 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
   val failed = Future.failed(new Exception("not good"))
 
   def newController(createEnvelope: Envelope => Future[Xor[CreateError, Envelope]] = _ => failed,
-                    nextId: () => String = () => "abc-def",
-                    findEnvelope: String => Future[Xor[FindError, Envelope]] = _ => failed,
-                    deleteEnvelope: String => Future[Xor[DeleteError, Envelope]] = _ => failed) =
+                    nextId: () => EnvelopeId = () => EnvelopeId("abc-def"),
+                    findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]] = _ => failed,
+                    deleteEnvelope: EnvelopeId => Future[Xor[DeleteError, Envelope]] = _ => failed) =
     new EnvelopeController(createEnvelope, nextId, findEnvelope, deleteEnvelope)
 
   "Create envelope with a request" should {
@@ -60,7 +60,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
       result.header.status shouldBe Status.CREATED
 	    val location = result.header.headers("Location")
-	    location shouldBe s"$serverUrl${routes.EnvelopeController.show(s"${envelope._id}").url}"
+	    location shouldBe s"$serverUrl${routes.EnvelopeController.show(envelope._id).url}"
     }
   }
 
@@ -79,7 +79,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
       result.header.status shouldBe Status.CREATED
       val location = result.header.headers("Location")
-      location shouldBe s"$serverUrl${routes.EnvelopeController.show(s"${envelope._id}").url}"
+      location shouldBe s"$serverUrl${routes.EnvelopeController.show(envelope._id).url}"
     }
   }
 
@@ -113,10 +113,10 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 		}
 
 		"respond with 404 NOT FOUND status" in {
-			val id: String = UUID.randomUUID().toString
+			val id = EnvelopeId()
 			val request = FakeRequest("DELETE", s"/envelope/$id")
 
-      val controller = newController(deleteEnvelope = _ => Xor.left(DeleteEnvelopeNotFoundError(s"Envelope $id not found")))
+      val controller = newController(deleteEnvelope = _ => Xor.left(DeleteEnvelopeNotFoundError))
 			val result = controller.delete(id)(request).futureValue
 
 			val actualRespone = Json.parse(consume(result.body))
@@ -127,7 +127,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 		}
 
 		"respond with 500 INTERNAL SERVER ERROR status" in {
-			val id: String = UUID.randomUUID().toString
+			val id = EnvelopeId()
 			val request = FakeRequest("DELETE", s"/envelope/$id")
 
       val controller = newController(deleteEnvelope = _ => Future.failed(new Exception()))

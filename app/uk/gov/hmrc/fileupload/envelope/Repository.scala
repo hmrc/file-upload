@@ -19,6 +19,7 @@ package uk.gov.hmrc.fileupload.envelope
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.{DB, DBMetaCommands}
 import reactivemongo.bson.BSONObjectID
+import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.mongo.ReactiveRepository
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -37,11 +38,11 @@ class Repository(mongo: () => DB with DBMetaCommands)
     insert(envelope) map toBoolean
   }
 
-  def get(id: String)(implicit ec: ExecutionContext): Future[Option[Envelope]] = {
+  def get(id: EnvelopeId)(implicit ec: ExecutionContext): Future[Option[Envelope]] = {
     find("_id" -> id).map(_.headOption)
   }
 
-  def delete(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {
+  def delete(id: EnvelopeId)(implicit ec: ExecutionContext): Future[Boolean] = {
     remove("_id" -> id) map toBoolean
   }
 
