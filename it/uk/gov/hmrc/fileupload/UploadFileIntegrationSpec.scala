@@ -97,7 +97,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
       response.status shouldBe NOT_FOUND
     }
 
-    scenario("PUT File with no file attached") {
+    scenario("Add file with no file attached") {
       Given("I have a valid envelope-id")
       val envelopeId = createEnvelope()
 
@@ -112,26 +112,6 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
 
       Then("I will receive a 200 OK response")
       response.status shouldBe OK
-    }
-
-    scenario("PUT File with invalid file-id") {
-      pending
-      Given("I have a invalid envelope-id")
-      val envelopeId = createEnvelope()
-
-      And("I have an invalid file-id")
-      val fileId = FileId("")
-
-      And("I have a valid file attached to the request body")
-      val data = "{}".getBytes
-
-      When(s"I invoke PUT envelope/$envelopeId/file/$fileId/content")
-      val response: WSResponse = upload(data, envelopeId, fileId)
-
-      Then("I will receive a 400 Bad Request response")
-      response.status shouldBe BAD_REQUEST
-
-      And("And the file should not be added to the DB")
     }
   }
 }
