@@ -18,11 +18,15 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
 
   feature("Upload File") {
 
-    scenario("Add valid file to envelope") {
-      Given("I have a valid envelope id")
+    info("As a DFS consumer of the file upload service")
+    info("I want to upload a file")
+    info("So that I can persist it in the the database")
+
+    scenario("Add file to envelope (valid)") {
+      Given("I have a valid envelope-id")
       val envelopeId = createEnvelope()
 
-      And("I have a file id")
+      And("I have a valid file-id")
       val fileId = FileId(s"fileId-${nextId()}")
 
       And("I have a valid file attached to the request body")
@@ -31,18 +35,18 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
       When(s"I invoke PUT envelope/$envelopeId/file/$fileId/content")
       val response: WSResponse = upload(data, envelopeId, fileId)
 
-      Then("I will receive a 200 Created response")
+      Then("I will receive a 200 OK response")
       response.status shouldBe OK
     }
 
-    scenario("Add valid 3mb file to envelope") {
-      Given("I have a valid envelope id")
+    scenario("Add valid 3MB file to envelope") {
+      Given("I have a valid envelope-id")
       val envelopeId = createEnvelope()
 
-      And("I have a file id")
+      And("I have a valid file-id")
       val fileId = FileId(s"fileId-${nextId()}")
 
-      And("I have a valid 3mb file attached to the request body")
+      And("I have a valid 3MB file attached to the request body")
       val file = new RandomAccessFile("t", "rw")
       file.setLength(1024 * 1024 * 3)
       val data = new Array[Byte](file.length().toInt)
@@ -51,7 +55,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
       When(s"I invoke PUT envelope/$envelopeId/file/$fileId/content")
       val response: WSResponse = upload(data, envelopeId, fileId)
 
-      Then("I will receive a 200 Created response")
+      Then("I will receive a 200 OK response")
       response.status shouldBe OK
     }
 
@@ -68,16 +72,15 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
       When(s"I invoke PUT envelope/$envelopeId/file/$fileId/content")
       val response = upload(data, envelopeId, fileId)
 
-      Then("I will receive a 200 Created response")
+      Then("I will receive a 200 OK response")
       response.status shouldBe OK
 
       And("there should be 2 files available within that envelope")
       val envelope = getEnvelopeFor(envelopeId)
       (envelope.json \ "files").as[List[JsObject]].size shouldBe 2
-
     }
 
-    scenario("PUT File Invalid Envelope ID") {
+    scenario("Add file with invalid envelope-id") {
       Given("I have a invalid envelope-id")
       val envelopeId = EnvelopeId("invalidId")
 
@@ -107,7 +110,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
       When(s"I invoke PUT envelope/$envelopeId/file/$fileId/content")
       val response: WSResponse = upload(data, envelopeId, fileId)
 
-      Then("I will receive a 200 Ok response")
+      Then("I will receive a 200 OK response")
       response.status shouldBe OK
     }
 
@@ -124,12 +127,10 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
       When(s"I invoke PUT envelope/$envelopeId/file/$fileId/content")
       val response: WSResponse = upload(data, envelopeId, fileId)
 
-      Then("I will receive a 400 Not Found response")
-      response.status shouldBe NOT_FOUND
+      Then("I will receive a 400 Bad Request response")
+      response.status shouldBe BAD_REQUEST
 
       And("And the file should not be added to the DB")
     }
-
-
   }
 }
