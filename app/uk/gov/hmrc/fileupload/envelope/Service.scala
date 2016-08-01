@@ -49,7 +49,6 @@ object Service {
 
   sealed trait UpsertFileError
   object UpsertFileEnvelopeNotFoundError extends UpsertFileError
-  object UpsertFileNotSuccessfulError extends UpsertFileError
   case class UpsertFileServiceError(message: String) extends UpsertFileError
   object UpsertFileUpdatingEnvelopeFailed extends UpsertFileError
 

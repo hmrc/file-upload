@@ -103,7 +103,7 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
       val fileFound: GetFileResult = Xor.Right(FileFoundResult(Some("myfile.txt"), 100, Enumerator.eof[ByteStream]))
       val controller = newController(retrieveFile = (_,_) => Future.successful(fileFound))
 
-      val result = controller.downloadFile(envelopeId, fileId.value)(fakeRequest).futureValue
+      val result = controller.downloadFile(envelopeId, fileId)(fakeRequest).futureValue
 
       result.header.status shouldBe Status.OK
       val headers = result.header.headers
@@ -122,7 +122,7 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
         retrieveFile = (_,_) => Future.successful(fileFound)
       )
 
-      val result: Result = controller.downloadFile(envelopeId, fileId.value)(fakeRequest).futureValue
+      val result: Result = controller.downloadFile(envelopeId, fileId)(fakeRequest).futureValue
 
       result.header.status shouldBe Status.NOT_FOUND
     }
