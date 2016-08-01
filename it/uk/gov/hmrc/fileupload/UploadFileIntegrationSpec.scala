@@ -115,6 +115,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
     }
 
     scenario("PUT File with invalid file-id") {
+      pending
       Given("I have a invalid envelope-id")
       val envelopeId = createEnvelope()
 
