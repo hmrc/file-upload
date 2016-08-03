@@ -183,7 +183,7 @@ class EnvelopeSpec extends UnitSpec {
     val fileId = FileId("newfile")
     val name = "test"
     val metadata: JsObject = Json.obj("a" -> "v")
-    val envelope = Envelope().addMetadata(fileId = fileId, name = Some(name), metadata = Some(metadata))
+    val envelope = Envelope().addMetadataToAFile(fileId = fileId, name = Some(name), metadata = Some(metadata))
 
     envelope.files shouldBe Some(Seq(File(fileId = fileId, name = Some(name), metadata = Some(metadata))))
   }
@@ -194,7 +194,7 @@ class EnvelopeSpec extends UnitSpec {
     val name = "test"
     val metadata: JsObject = Json.obj("a" -> "v")
 
-    val envelope = Envelope(files = Some(Seq(oldFile))).addMetadata(fileId = fileId, name = Some(name), metadata = Some(metadata))
+    val envelope = Envelope(files = Some(Seq(oldFile))).addMetadataToAFile(fileId = fileId, name = Some(name), metadata = Some(metadata))
 
     envelope.files shouldBe Some(Seq(oldFile, File(fileId = fileId, name = Some(name), metadata = Some(metadata))))
   }
@@ -208,7 +208,7 @@ class EnvelopeSpec extends UnitSpec {
     val newName = "newtest"
     val newMetadata = Json.obj("a" -> "newV")
     val otherFile = File(fileId = FileId("otherFile"))
-    val envelope = Envelope(files = Some(Seq(otherFile, file))).addMetadata(fileId = fileId, name = Some(newName), metadata = Some(newMetadata))
+    val envelope = Envelope(files = Some(Seq(otherFile, file))).addMetadataToAFile(fileId = fileId, name = Some(newName), metadata = Some(newMetadata))
 
     envelope.files shouldBe Some(Seq(otherFile, File(fileId = fileId, name = Some(newName), metadata = Some(newMetadata))))
   }

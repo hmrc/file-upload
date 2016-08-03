@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.file
 
 import play.api.libs.iteratee.{Enumerator, Iteratee}
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.Json
 import play.modules.reactivemongo.GridFSController._
 import play.modules.reactivemongo.JSONFileToSave
 import reactivemongo.api.commands.WriteResult
@@ -26,7 +26,6 @@ import reactivemongo.api.{DB, DBMetaCommands}
 import reactivemongo.bson.BSONDocument
 import reactivemongo.json._
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.file.Service.FileFoundResult
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -36,8 +35,9 @@ object Repository {
   sealed trait RetrieveFileError
 
   object FileNotFoundError extends RetrieveFileError
-
 }
+
+case class FileData(length: Long = 0, data: Enumerator[Array[Byte]] = null)
 
 class Repository(mongo: () => DB with DBMetaCommands) {
 
@@ -49,9 +49,9 @@ class Repository(mongo: () => DB with DBMetaCommands) {
     gfs.iteratee(JSONFileToSave(filename = None, metadata = Json.obj("envelopeId" -> envelopeId, "fileId" -> fileId)))
   }
 
-  def retrieveFile(_id: FileId)(implicit ec: ExecutionContext): Future[Option[FileFoundResult]] = {
+  def retrieveFile(_id: FileId)(implicit ec: ExecutionContext): Future[Option[FileData]] = {
     gfs.find[BSONDocument, JSONReadFile](BSONDocument("_id" -> _id.value)).headOption.map { file =>
-      file.map( f => FileFoundResult(f.filename, f.length, gfs.enumerate(f)))
+      file.map( f => FileData(f.length, gfs.enumerate(f)))
     }
   }
 

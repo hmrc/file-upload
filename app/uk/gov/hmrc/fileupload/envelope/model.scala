@@ -16,12 +16,10 @@
 
 package uk.gov.hmrc.fileupload.envelope
 
-import java.util.UUID
-
 import org.joda.time.DateTime
 import play.api.libs.json.{Format, JsObject, _}
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 import uk.gov.hmrc.fileupload.envelope.Service.UploadedFileInfo
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 case class Envelope(_id: EnvelopeId = EnvelopeId(),
                     constraints: Option[Constraints] = None,
@@ -45,9 +43,8 @@ case class Envelope(_id: EnvelopeId = EnvelopeId(),
     add(file)
   }
 
-  def addMetadata(fileId: FileId, name: Option[String] = None, contentType: Option[String] = None,
-                  length: Option[Long] = None, uploadDate: Option[DateTime] = None,
-                  revision: Option[Int] = None, metadata: Option[JsObject] = None): Envelope = {
+  def addMetadataToAFile(fileId: FileId, name: Option[String] = None, contentType: Option[String] = None,
+                         revision: Option[Int] = None, metadata: Option[JsObject] = None): Envelope = {
 
     val file = files.flatMap(_.collectFirst {
       case f if f.fileId == fileId =>

@@ -59,7 +59,7 @@ class FileController(uploadBodyParser: (EnvelopeId, FileId) => BodyParser[Future
 
   def downloadFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { request =>
     retrieveFile(envelopeId, fileId).map {
-      case Xor.Right(FileFoundResult(filename, length, data)) =>
+      case Xor.Right(FileFound(filename, length, data)) =>
         Ok.feed(data).withHeaders(
           CONTENT_LENGTH -> s"${ length }",
           CONTENT_DISPOSITION -> s"""attachment; filename="${ filename.getOrElse("data") }""""

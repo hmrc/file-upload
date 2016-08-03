@@ -18,8 +18,8 @@ package uk.gov.hmrc.fileupload.file
 
 import cats.data.Xor
 import play.api.libs.iteratee.Enumerator
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 import uk.gov.hmrc.fileupload.envelope.{Envelope, File}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -28,14 +28,14 @@ object Service {
 
   type GetMetadataResult = Xor[GetMetadataError, File]
   sealed trait GetMetadataError
-  object GetMetadataNotFoundError extends GetMetadataError
+  case object GetMetadataNotFoundError extends GetMetadataError
   case class GetMetadataServiceError(message: String) extends GetMetadataError
 
-  type GetFileResult = GetFileError Xor FileFoundResult
-  case class FileFoundResult(filename: Option[String] = None, length: Long = 0, data: Enumerator[Array[Byte]] = null)
+  type GetFileResult = GetFileError Xor FileFound
+  case class FileFound(name: Option[String] = None, length: Long, data: Enumerator[Array[Byte]])
   sealed trait GetFileError
-  object GetFileNotFoundError extends GetFileError
-  object GetFileEnvelopeNotFound extends GetFileError
+  case object GetFileNotFoundError extends GetFileError
+  case object GetFileEnvelopeNotFound extends GetFileError
 
   def getMetadata(getEnvelope: EnvelopeId => Future[Option[Envelope]])(envelopeId: EnvelopeId, fileId: FileId)
                  (implicit ex: ExecutionContext): Future[GetMetadataResult] =
@@ -44,20 +44,22 @@ object Service {
         val maybeFile = e.getFileById(fileId)
         maybeFile.map(f => Xor.right(f)).getOrElse(Xor.left(GetMetadataNotFoundError))
       case _ => Xor.left(GetMetadataNotFoundError)
-    }.recoverWith { case e => Future { Xor.left(GetMetadataServiceError(e.getMessage)) } }
+    }.recoverWith { case e => Future.successful( Xor.left(GetMetadataServiceError(e.getMessage)) )}
 
-  def retrieveFile(getEnvelope: EnvelopeId => Future[Option[Envelope]], getFileFromRepo: FileId => Future[Option[FileFoundResult]])
+  def retrieveFile(getEnvelope: EnvelopeId => Future[Option[Envelope]], getFileFromRepo: FileId => Future[Option[FileData]])
                   (envelopeId: EnvelopeId, fileId: FileId)
                   (implicit ex: ExecutionContext): Future[GetFileResult] = {
     getEnvelope(envelopeId).flatMap {
       case Some(envelope) =>
-        val maybeFsReference = envelope.getFileById(fileId).flatMap(_.fsReference)
-        maybeFsReference match {
-          case Some(id) => getFileFromRepo(id).map { maybeResult =>
-            Xor.fromOption(maybeResult, ifNone = GetFileNotFoundError)
+        (for {
+          file <- envelope.getFileById(fileId)
+          fsReference <- file.fsReference
+        } yield {
+          getFileFromRepo(fsReference).map { maybeData =>
+            val fileWithClientProvidedName = maybeData.map { d => FileFound(file.name, d.length, d.data) }
+            Xor.fromOption(fileWithClientProvidedName, ifNone = GetFileNotFoundError)
           }
-          case None => Future.successful(Xor.left(GetFileNotFoundError))
-        }
+        }).getOrElse(Future.successful(Xor.left(GetFileNotFoundError)))
       case None => Future.successful(Xor.left(GetFileEnvelopeNotFound))
     }
   }
