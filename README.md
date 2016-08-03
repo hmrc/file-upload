@@ -5,6 +5,16 @@
 This API provides a mechanism whereby a client microservice can define and manage an envelope which can later be filled with files and then optionally routed to another system.
 The envelope resources are exposed on the /file-upload/envelope endpoint.
 
+## Run the application locally
+
+To run the application execute
+
+```
+sbt run
+```
+
+The app will start-up on port 8898 by default.
+
 ##Create Envelope
 ###Request
 ```
