@@ -26,10 +26,10 @@ import play.api.mvc._
 import play.api.test.{FakeHeaders, FakeRequest}
 import reactivemongo.json.JSONSerializationPack
 import reactivemongo.json.JSONSerializationPack.Document
+import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.envelope.Envelope
 import uk.gov.hmrc.fileupload.envelope.Service._
 import uk.gov.hmrc.fileupload.file.Service._
-import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -95,21 +95,25 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
   }
 
   "Download a file" should {
-    "return 200 when file is found" in {
-      val fileId = FileId("fileId")
-      val envelope = Support.envelopeWithAFile(fileId)
-      val envelopeId = envelope._id
-      val fakeRequest = new FakeRequest[AnyContentAsJson]("GET", s"/envelope/$envelopeId/file/$fileId/content", FakeHeaders(), body = null)
-      val fileFound: GetFileResult = Xor.Right(FileFoundResult(Some("myfile.txt"), 100, Enumerator.eof[ByteStream]))
+    "return 200 response with correct headers when file is found" in {
+      val fileFound = Xor.Right(FileFound(Some("myfile.txt"), 100, Enumerator.eof[ByteStream]))
       val controller = newController(retrieveFile = (_,_) => Future.successful(fileFound))
 
-      val result = controller.downloadFile(envelopeId, fileId)(fakeRequest).futureValue
+      val result = controller.downloadFile(EnvelopeId(), FileId())(FakeRequest()).futureValue
 
       result.header.status shouldBe Status.OK
       val headers = result.header.headers
       headers("Content-Length") shouldBe "100"
       headers("Content-Type") shouldBe "application/octet-stream"
       headers("Content-Disposition") shouldBe "attachment; filename=\"myfile.txt\""
+    }
+    "return filename = `data` in headers if absent in client metadata for a given file" in {
+      val fileFound = Xor.Right(FileFound(None, 100, Enumerator.eof[ByteStream]))
+      val controller = newController(retrieveFile = (_,_) => Future.successful(fileFound))
+      val result = controller.downloadFile(EnvelopeId(), FileId())(FakeRequest()).futureValue
+
+      val headers = result.header.headers
+      headers("Content-Disposition") shouldBe "attachment; filename=\"data\""
     }
 
     "respond with 404 when a file is not found" in {

@@ -63,20 +63,25 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     }
   }
 
-  "downloading a file" should {
+  "retrieving a file" should {
     "succeed if file was available" in {
       val fileId = FileId()
-      val envelope = Support.envelopeWithAFile(fileId)
-      val filename = Some("filename")
+      val expectedFileName = Some("expected-file-name.txt")
+      val envelope = Support.envelope.copy(
+        files = Some(List(File(fileId, name = expectedFileName, fsReference = Some(FileId("ref")))))
+      )
       val length = 10
       val data = Enumerator("sth".getBytes())
 
       val result = Service.retrieveFile(
         getEnvelope = _ => Future.successful(Some(envelope)),
-        getFileFromRepo = _ => Future.successful(Some(FileFoundResult(filename, length, data)))
+        getFileFromRepo = _ => Future.successful(Some(FileData(length, data)))
       )(envelope._id, fileId).futureValue
 
-      result shouldBe Xor.Right(FileFoundResult(filename, length, data))
+      result.isRight shouldBe true
+      result.foreach { fileFound =>
+        fileFound shouldBe FileFound(expectedFileName, length, data)
+      }
     }
     "fail if file was not available" in {
       val fileId = FileId()

@@ -32,33 +32,33 @@ object Service {
   type UpsertFileResult = Xor[UpsertFileError, Envelope]
 
   type UpdateMetadataResult = Xor[UpdateMetadataError, UpdateMetadataSuccess.type]
-  object UpdateMetadataSuccess
+  case object UpdateMetadataSuccess
 
   sealed trait CreateError
   case class CreateNotSuccessfulError(envelope: Envelope) extends CreateError
   case class CreateServiceError(envelope: Envelope, message: String) extends CreateError
 
   sealed trait FindError
-  object FindEnvelopeNotFoundError extends FindError
+  case object FindEnvelopeNotFoundError extends FindError
   case class FindServiceError(message: String) extends FindError
 
   sealed trait DeleteError
-  object DeleteEnvelopeNotFoundError extends DeleteError
-  object DeleteEnvelopeNotSuccessfulError extends DeleteError
+  case object DeleteEnvelopeNotFoundError extends DeleteError
+  case object DeleteEnvelopeNotSuccessfulError extends DeleteError
   case class DeleteServiceError(message: String) extends DeleteError
 
   sealed trait UpsertFileError
-  object UpsertFileEnvelopeNotFoundError extends UpsertFileError
+  case object UpsertFileEnvelopeNotFoundError extends UpsertFileError
   case class UpsertFileServiceError(message: String) extends UpsertFileError
-  object UpsertFileUpdatingEnvelopeFailed extends UpsertFileError
+  case object UpsertFileUpdatingEnvelopeFailed extends UpsertFileError
 
   sealed trait UpdateMetadataError
-  object UpdateMetadataEnvelopeNotFoundError extends UpdateMetadataError
-  object UpdateMetadataNotSuccessfulError extends UpdateMetadataError
+  case object UpdateMetadataEnvelopeNotFoundError extends UpdateMetadataError
+  case object UpdateMetadataNotSuccessfulError extends UpdateMetadataError
   case class UpdateMetadataServiceError(message: String) extends UpdateMetadataError
 
   type UpsertFileToEnvelopeResult = UpsertFileError Xor UpsertFileSuccess.type
-  object UpsertFileSuccess
+  case object UpsertFileSuccess
 
   case class UploadedFileInfo(envelopeId: EnvelopeId,
                               fileId: FileId,
@@ -107,7 +107,7 @@ object Service {
                     (implicit ex: ExecutionContext): Future[UpdateMetadataResult] = {
     getEnvelope(envelopeId).flatMap {
       case Some(envelope) =>
-        val updatedEnvelope = envelope.addMetadata(fileId = fileId, name = name, contentType = contentType, metadata = metadata)
+        val updatedEnvelope = envelope.addMetadataToAFile(fileId = fileId, name = name, contentType = contentType, metadata = metadata)
         updateEnvelope(updatedEnvelope).map {
           case true => Xor.right(UpdateMetadataSuccess)
           case false => Xor.left(UpdateMetadataNotSuccessfulError)
