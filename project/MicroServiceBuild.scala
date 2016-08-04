@@ -24,7 +24,7 @@ private object AppDependencies {
   private val playJsonLoggerVersion = "2.1.1"
   private val playUrlBindersVersion = "1.0.0"
   private val playConfigVersion = "2.0.1"
-  private val domainVersion = "3.5.0"
+  private val domainVersion = "3.7.0"
   private val hmrcTestVersion = "1.6.0"
   private val playReactivemongoVersion = "4.8.0"
   private val simpleReactivemongoVersion = "4.8.0"
