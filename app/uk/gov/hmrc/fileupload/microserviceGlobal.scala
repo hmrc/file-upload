@@ -126,6 +126,13 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     )
   }
 
+  override def onStart(app: Application): Unit = {
+    super.onStart(app)
+
+    envelopeController
+    fileController
+  }
+
   override def getControllerInstance[A](controllerClass: Class[A]): A = {
     //TODO: optimise to use pattern match
     if (controllerClass == classOf[EnvelopeController]) {
