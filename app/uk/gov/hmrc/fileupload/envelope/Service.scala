@@ -78,7 +78,8 @@ object Service {
       case _ => Xor.left(FindEnvelopeNotFoundError)
     }.recover { case e => Xor.left(FindServiceError(e.getMessage)) }
 
-  def delete(delete: EnvelopeId => Future[Boolean], find: EnvelopeId => Future[FindResult])(id: EnvelopeId)(implicit ex: ExecutionContext): Future[DeleteResult] =
+  def delete(delete: EnvelopeId => Future[Boolean], find: EnvelopeId => Future[FindResult])(id: EnvelopeId)
+            (implicit ex: ExecutionContext): Future[DeleteResult] =
     find(id).flatMap {
       case Xor.Right(envelope) => delete(id).map {
         case true => Xor.right(envelope)
