@@ -18,6 +18,7 @@ package uk.gov.hmrc.fileupload
 
 import java.util.UUID
 
+import akka.actor.ActorRef
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
 import play.api.mvc.{EssentialFilter, RequestHeader, Result}
@@ -75,6 +76,9 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
   import play.api.libs.concurrent.Execution.Implicits._
 
+  var subscribe: (ActorRef, Class[_]) => Boolean = _
+  var publish: (AnyRef) => Unit = _
+
   lazy val db = DefaultMongoConnection.db
 
   lazy val envelopeRepository = uk.gov.hmrc.fileupload.envelope.Repository.apply(db)
@@ -128,6 +132,13 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
   override def onStart(app: Application): Unit = {
     super.onStart(app)
+
+    // event stream
+    import play.api.Play.current
+    import play.api.libs.concurrent.Akka
+    val eventStream = Akka.system.eventStream
+    subscribe = eventStream.subscribe
+    publish = eventStream.publish
 
     envelopeController
     fileController
