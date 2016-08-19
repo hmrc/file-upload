@@ -110,7 +110,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   }
 
   lazy val eventController = {
-    new EventController()
+    new EventController(publish)
   }
 
   lazy val fileController = {
@@ -165,7 +165,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       fileController.asInstanceOf[A]
     } else if (controllerClass == classOf[EventController]) {
       eventController.asInstanceOf[A]
-    }else {
+    } else {
       super.getControllerInstance(controllerClass)
     }
   }

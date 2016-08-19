@@ -33,9 +33,9 @@ case class VirusDetected(envelopeId: EnvelopeId, fileId: FileId, reason: String)
 
 
 object EventFormatters {
-  implicit val noVirusDetectedFormat: Format[NoVirusDetected] = Json.format[NoVirusDetected]
   implicit val quarantinedFormat: Format[Quarantined] = Json.format[Quarantined]
   implicit val toTransientMovedFormat: Format[ToTransientMoved] = Json.format[ToTransientMoved]
   implicit val movingToTransientFailedFormat: Format[MovingToTransientFailed] = Json.format[MovingToTransientFailed]
+  implicit val noVirusDetectedFormat: Format[NoVirusDetected] = Json.format[NoVirusDetected]
   implicit val virusDetectedFormat: Format[VirusDetected] = Json.format[VirusDetected]
 }
