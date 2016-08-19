@@ -59,3 +59,7 @@ object FileId {
   implicit val binder: PathBindable[FileId] =
     new SimpleObjectBinder[FileId](FileId.apply, _.value)
 }
+
+case class EventType(value: String) extends AnyVal {
+  override def toString = value
+}

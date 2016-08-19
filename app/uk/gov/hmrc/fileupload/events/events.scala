@@ -16,14 +16,26 @@
 
 package uk.gov.hmrc.fileupload.events
 
+import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
-case class Quarantined(envelopeId: EnvelopeId, fileId: FileId)
+sealed trait Event
 
-case class ToTransientMoved(envelopeId: EnvelopeId, fileId: FileId)
+case class Quarantined(envelopeId: EnvelopeId, fileId: FileId) extends Event
 
-case class MovingToTransientFailed(envelopeId: EnvelopeId, fileId: FileId, reason: String)
+case class ToTransientMoved(envelopeId: EnvelopeId, fileId: FileId) extends Event
 
-case class NoVirusDetected(envelopeId: EnvelopeId, fileId: FileId)
+case class MovingToTransientFailed(envelopeId: EnvelopeId, fileId: FileId, reason: String) extends Event
 
-case class VirusDetected(envelopeId: EnvelopeId, fileId: FileId, reason: String)
+case class NoVirusDetected(envelopeId: EnvelopeId, fileId: FileId) extends Event
+
+case class VirusDetected(envelopeId: EnvelopeId, fileId: FileId, reason: String) extends Event
+
+
+object EventFormatters {
+  implicit val noVirusDetectedFormat: Format[NoVirusDetected] = Json.format[NoVirusDetected]
+  implicit val quarantinedFormat: Format[Quarantined] = Json.format[Quarantined]
+  implicit val toTransientMovedFormat: Format[ToTransientMoved] = Json.format[ToTransientMoved]
+  implicit val movingToTransientFailedFormat: Format[MovingToTransientFailed] = Json.format[MovingToTransientFailed]
+  implicit val virusDetectedFormat: Format[VirusDetected] = Json.format[VirusDetected]
+}

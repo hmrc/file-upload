@@ -104,6 +104,10 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       deleteEnvelope = delete)
   }
 
+  lazy val eventController = {
+    new EventController()
+  }
+
   lazy val fileController = {
     import play.api.libs.concurrent.Execution.Implicits._
 
@@ -140,6 +144,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     subscribe = eventStream.subscribe
     publish = eventStream.publish
 
+    eventController
     envelopeController
     fileController
   }
@@ -150,7 +155,9 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       envelopeController.asInstanceOf[A]
     } else if (controllerClass == classOf[FileController]) {
       fileController.asInstanceOf[A]
-    } else {
+    } else if (controllerClass == classOf[EventController]) {
+      eventController.asInstanceOf[A]
+    }else {
       super.getControllerInstance(controllerClass)
     }
   }
