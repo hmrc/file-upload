@@ -22,11 +22,12 @@ import akka.actor.ActorRef
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
 import play.api.mvc.{EssentialFilter, RequestHeader, Result}
-import play.api.{Application, Configuration, Play}
+import play.api.{Application, Configuration, Logger, Play}
 import uk.gov.hmrc.fileupload.controllers._
 import uk.gov.hmrc.fileupload.envelope.{Service => EnvelopeService}
 import uk.gov.hmrc.fileupload.file.{Service => FileService}
-import uk.gov.hmrc.fileupload.infrastructure.DefaultMongoConnection
+import uk.gov.hmrc.fileupload.infrastructure.{DefaultMongoConnection, PlayHttp}
+import uk.gov.hmrc.fileupload.notifier.{NotifierActor, NotifierRepository}
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
@@ -81,11 +82,15 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
   lazy val db = DefaultMongoConnection.db
 
+  lazy val auditedHttpExecute = PlayHttp.execute(auditConnector, appName, Some(t => Logger.warn(t.getMessage, t))) _
+
   lazy val envelopeRepository = uk.gov.hmrc.fileupload.envelope.Repository.apply(db)
 
   lazy val updateEnvelope = envelopeRepository.update _
   lazy val getEnvelope = envelopeRepository.get _
   lazy val find = EnvelopeService.find(getEnvelope) _
+
+  lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute) _
 
   lazy val envelopeController = {
     import play.api.libs.concurrent.Execution.Implicits._
@@ -143,6 +148,9 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     val eventStream = Akka.system.eventStream
     subscribe = eventStream.subscribe
     publish = eventStream.publish
+
+    // notifier
+    Akka.system.actorOf(NotifierActor.props(subscribe, find, sendNotification), "notifierActor")
 
     eventController
     envelopeController
