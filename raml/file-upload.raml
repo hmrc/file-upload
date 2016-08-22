@@ -1,0 +1,64 @@
+#%RAML 1.0
+title: file-upload-frontend
+protocols: [ HTTP, HTTPS ]
+baseUri: https://{environmentHost}/file-upload
+baseUriParameters:
+  environmentHost:
+    enum: ["www-dev.tax.service.gov.uk","www-qa.tax.service.gov.uk"]
+description: Upload files to the Tax Platform
+
+/envelope:
+  post:
+    description: Create an envelope
+    body:
+      application/json:
+        example: {}
+    responses:
+      201:
+        description: Successfully created
+        headers:
+          Location:
+            description: URI for the resource for showing this envelope
+            example: www-dev.tax.service.gov.uk/file-upload/envelope/1234567890
+
+  /{envelopeId}:
+    uriParameters:
+      envelopeId:
+        displayName: Envelope ID
+        example: "1234567890"
+    get:
+      description: Check the existence of an Envelope
+      responses:
+        200:
+          description: Envelope exists
+          body:
+            application/json:
+              example: { "id": "1234567890" }
+        404:
+          description: Envelope with specified ID not found
+          body:
+            application/json:
+              example: |
+                {
+                  "error": {
+                    "msg": "Envelope 1234567890 not found"
+                  }
+                }
+  delete:
+    description: Deletion of an Envelope
+      responses:
+        202:
+          description: Successful
+        404:
+          description: Envelope with specified ID not found
+          body:
+            application/json:
+              example: |
+                {
+                  "error": {
+                    "msg": "Envelope 1234567890 not found"
+                  }
+                }
+
+
+
