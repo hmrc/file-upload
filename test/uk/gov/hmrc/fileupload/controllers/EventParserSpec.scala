@@ -35,7 +35,7 @@ class EventParserSpec extends UnitSpec with ScalaFutures {
       val body = """{"envelopeId":"env1","fileId":"file1"}""".getBytes
 
       val parserIteratee: Iteratee[Array[Byte], Either[Result, Event]] = EventParser(request)
-      val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee)
+      val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee).futureValue
 
       futureValue shouldBe Right(Quarantined(EnvelopeId("env1"), FileId("file1")))
     }
@@ -45,7 +45,7 @@ class EventParserSpec extends UnitSpec with ScalaFutures {
       val body = """{"envelopeId":"env1","fileId":"file1"}""".getBytes
 
       val parserIteratee: Iteratee[Array[Byte], Either[Result, Event]] = EventParser(request)
-      val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee)
+      val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee).futureValue
 
       futureValue shouldBe Right(ToTransientMoved(EnvelopeId("env1"), FileId("file1")))
     }
@@ -55,7 +55,7 @@ class EventParserSpec extends UnitSpec with ScalaFutures {
       val body = """{"envelopeId":"env1","fileId":"file1", "reason": "something not good"}""".getBytes
 
       val parserIteratee: Iteratee[Array[Byte], Either[Result, Event]] = EventParser(request)
-      val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee)
+      val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee).futureValue
 
       futureValue shouldBe Right(MovingToTransientFailed(EnvelopeId("env1"), FileId("file1"), "something not good"))
     }
@@ -65,7 +65,7 @@ class EventParserSpec extends UnitSpec with ScalaFutures {
       val body = """{"envelopeId":"env1","fileId":"file1"}""".getBytes
 
       val parserIteratee: Iteratee[Array[Byte], Either[Result, Event]] = EventParser(request)
-      val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee)
+      val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee).futureValue
 
       futureValue shouldBe Right(NoVirusDetected(EnvelopeId("env1"), FileId("file1")))
     }
@@ -75,7 +75,7 @@ class EventParserSpec extends UnitSpec with ScalaFutures {
       val body = """{"envelopeId":"env1","fileId":"file1", "reason": "something not good"}""".getBytes
 
       val parserIteratee: Iteratee[Array[Byte], Either[Result, Event]] = EventParser(request)
-      val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee)
+      val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee).futureValue
 
       futureValue shouldBe Right(VirusDetected(EnvelopeId("env1"), FileId("file1"), "something not good"))
     }
@@ -85,7 +85,7 @@ class EventParserSpec extends UnitSpec with ScalaFutures {
       val body = """{"envelopeId":"env1","fileId":"file1"}""".getBytes
 
       val parserIteratee: Iteratee[Array[Byte], Either[Result, Event]] = EventParser(request)
-      val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee)
+      val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee).futureValue
 
       val isLeftResult = futureValue match {
         case Left(result) => true
