@@ -41,7 +41,7 @@ class EventController(publish: (AnyRef) => Unit )(implicit executionContext: Exe
 object EventParser extends BodyParser[Event] {
 
   def apply(request: RequestHeader): Iteratee[Array[Byte], Either[Result, Event]] = {
-    val pattern =  routes.EventController.collect("(.+)").url.r
+    val pattern =  "events/(.+)$".r.unanchored
 
     Iteratee.consume[Array[Byte]]().map { data =>
       val parsedData = Json.parse(data)
