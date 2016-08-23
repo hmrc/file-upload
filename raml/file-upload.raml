@@ -44,18 +44,63 @@ description: Upload files to the Tax Platform
                     "msg": "Envelope 4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa not found"
                   }
                 }
-  delete:
-    description: Deletion of an Envelope
-    responses:
-      202:
-        description: Successful
-      404:
-        description: Envelope not found
-        body:
-          application/json:
-            example: |
-              {
-                "error": {
-                "msg": "Envelope 4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa not found"
+    delete:
+      description: Deletion of an Envelope
+      responses:
+        202:
+          description: Deleted
+        404:
+          description: Envelope not found
+          body:
+            application/json:
+              example: |
+                {
+                  "error": {
+                  "msg": "Envelope 4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa not found"
+                  }
                 }
-              }
+    /file/{fileId}:
+      uriParameters:
+        fileId:
+          displayName: File ID
+          example: "1234567890"
+      /content:
+        put:
+          description: Upload a file to an envelope
+          responses:
+            200:
+              description: Uploaded
+            404:
+              description: Envelope not found
+              body:
+                application/json:
+                  example: |
+                    {
+                      "error": {
+                      "msg": "Envelope 4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa not found"
+                      }
+                    }
+        get:
+          description: Get a files contents
+          responses:
+            200:
+              description: The files body
+            404:
+              description: File not found
+              body:
+                application/json:
+                  example: |
+                    {
+                      "error": {
+                      "msg": "Envelope 4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa not found"
+                      }
+                    }
+      /metadata:
+        put:
+        get:
+  /events/{eventType}:
+    uriParameters:
+      eventType:
+        displayName: Event ID
+        enum: ["novirusdetected","quarantined","totransientmoved","movingtotransientfailed","virusdetected"]
+    post:
