@@ -65,6 +65,7 @@ object EnvelopeReport {
       constraints = envelope.constraints.map(fromConstraints),
       callbackUrl = envelope.callbackUrl,
       expiryDate = envelope.expiryDate,
+      status = Some(envelope.status.name),
       metadata = envelope.metadata,
       files = fileReports)
   }

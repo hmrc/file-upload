@@ -22,6 +22,7 @@ import uk.gov.hmrc.fileupload.envelope.Service.UploadedFileInfo
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 case class Envelope(_id: EnvelopeId = EnvelopeId(),
+                    status: EnvelopeStatus = EnvelopeStatusOpen,
                     constraints: Option[Constraints] = None,
                     callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None,
                     metadata: Option[Map[String, JsValue]] = None, files: Option[Seq[File]] = None) {
@@ -90,9 +91,14 @@ case class File(fileId: FileId,
                 rel: String = "file", href: Option[String] = None)
 
 object Envelope {
+
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val fileStatusReads: Reads[FileStatus] = FileStatusReads
+  implicit val fileStatusWrites: Writes[FileStatus] = FileStatusWrites
   implicit val fileReads: Format[File] = Json.format[File]
+  implicit val envelopeStatusReads: Reads[EnvelopeStatus] = EnvelopeStatusReads
+  implicit val envelopeStatusWrites: Writes[EnvelopeStatus] = EnvelopeStatusWrites
   implicit val constraintsReads: Format[Constraints] = Json.format[Constraints]
   implicit val envelopeReads: Format[Envelope] = Json.format[Envelope]
 
@@ -107,3 +113,66 @@ object Envelope {
 }
 
 case class ValidationException(reason: String) extends IllegalArgumentException(reason)
+
+sealed trait EnvelopeStatus {
+  def name: String
+}
+case object EnvelopeStatusOpen extends EnvelopeStatus {
+  override val name: String = "OPEN"
+}
+case object EnvelopeStatusClosed extends EnvelopeStatus {
+  override val name: String = "CLOSED"
+}
+case object EnvelopeStatusAvailable extends EnvelopeStatus {
+  override val name: String = "AVAILABLE"
+}
+case object EnvelopeStatusDeleted extends EnvelopeStatus {
+  override val name: String = "DELETED"
+}
+
+object EnvelopeStatusWrites extends Writes[EnvelopeStatus] {
+  def writes(c: EnvelopeStatus) = c match {
+    case EnvelopeStatusOpen => Json.toJson(EnvelopeStatusOpen.name)
+    case EnvelopeStatusClosed => Json.toJson(EnvelopeStatusClosed.name)
+    case EnvelopeStatusAvailable => Json.toJson(EnvelopeStatusAvailable.name)
+    case EnvelopeStatusDeleted => Json.toJson(EnvelopeStatusDeleted.name)
+  }
+}
+
+object EnvelopeStatusReads extends Reads[EnvelopeStatus] {
+  def reads(value: JsValue) = value.as[String] match {
+    case EnvelopeStatusOpen.name => JsSuccess(EnvelopeStatusOpen)
+    case EnvelopeStatusClosed.name => JsSuccess(EnvelopeStatusClosed)
+    case EnvelopeStatusAvailable.name => JsSuccess(EnvelopeStatusAvailable)
+    case EnvelopeStatusDeleted.name => JsSuccess(EnvelopeStatusDeleted)
+  }
+}
+
+sealed trait FileStatus {
+  def name: String
+}
+case object FileStatusQuarantined extends FileStatus {
+  override val name: String = "QUARANTINED"
+}
+case object FileStatusCleaned extends FileStatus {
+  override val name: String = "CLEANED"
+}
+case object FileStatusAvailable extends FileStatus {
+  override val name: String = "AVAILABLE"
+}
+
+object FileStatusWrites extends Writes[FileStatus] {
+  def writes(c: FileStatus) = c match {
+    case FileStatusQuarantined => Json.toJson(FileStatusQuarantined.name)
+    case FileStatusCleaned => Json.toJson(FileStatusCleaned.name)
+    case FileStatusAvailable => Json.toJson(FileStatusAvailable.name)
+  }
+}
+
+object FileStatusReads extends Reads[FileStatus] {
+  def reads(value: JsValue) = value.as[String] match {
+    case FileStatusQuarantined.name => JsSuccess(FileStatusQuarantined)
+    case FileStatusCleaned.name => JsSuccess(FileStatusCleaned)
+    case FileStatusAvailable.name => JsSuccess(FileStatusAvailable)
+  }
+}

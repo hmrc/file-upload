@@ -70,7 +70,7 @@ class EnvelopeSpec extends UnitSpec {
         maxSize = Some("12GB"),
         maxSizePerItem = Some("10MB"))
 
-      val expectedResult = Envelope(id, Some(contraints),
+      val expectedResult = Envelope(id, EnvelopeStatusOpen, Some(contraints),
                                     callbackUrl = Some("http://absolute.callback.url"),
                                     expiryDate = Some(formatter.parseDateTime(formattedExpiryDate)),
                                     metadata = Some(Map("anything" -> JsString("the caller wants to add to the envelope"))), None)

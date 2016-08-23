@@ -29,7 +29,7 @@ private object AppDependencies {
   private val playReactivemongoVersion = "4.8.0"
   private val simpleReactivemongoVersion = "4.8.0"
   private val akkaVersion = "2.4.6"
-  private val catsVersion = "0.6.0"
+  private val catsVersion = "0.7.0"
 
   val compile = Seq(
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
