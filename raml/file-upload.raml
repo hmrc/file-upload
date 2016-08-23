@@ -197,3 +197,15 @@ description: Upload files to the Tax Platform
         displayName: Event ID
         enum: ["novirusdetected","quarantined","totransientmoved","movingtotransientfailed","virusdetected"]
     post:
+      description: Upload an event
+      body:
+        application/json:
+          example: |
+            {
+              "envelopeId": "sss123456-03d6-4ae3-b8c6-3b5c6ad2f748,
+              "fileId": "123456789",
+              "reason": "Some event reason"
+            }
+      responses:
+        200:
+          description: Event uploaded
