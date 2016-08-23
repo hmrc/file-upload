@@ -25,7 +25,7 @@ description: Upload files to the Tax Platform
     uriParameters:
       envelopeId:
         displayName: Envelope ID
-        example: "1234567890"
+        example: "4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa"
     get:
       description: Check the existence of an Envelope
       responses:
@@ -33,7 +33,7 @@ description: Upload files to the Tax Platform
           description: Envelope exists
           body:
             application/json:
-              example: { "id": "1234567890" }
+              example: { "id": "4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa" }
         404:
           description: Envelope with specified ID not found
           body:
@@ -41,24 +41,21 @@ description: Upload files to the Tax Platform
               example: |
                 {
                   "error": {
-                    "msg": "Envelope 1234567890 not found"
+                    "msg": "Envelope 4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa not found"
                   }
                 }
   delete:
     description: Deletion of an Envelope
-      responses:
-        202:
-          description: Successful
-        404:
-          description: Envelope with specified ID not found
-          body:
-            application/json:
-              example: |
-                {
-                  "error": {
-                    "msg": "Envelope 1234567890 not found"
-                  }
+    responses:
+      202:
+        description: Successful
+      404:
+        description: Envelope not found
+        body:
+          application/json:
+            example: |
+              {
+                "error": {
+                "msg": "Envelope 4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa not found"
                 }
-
-
-
+              }
