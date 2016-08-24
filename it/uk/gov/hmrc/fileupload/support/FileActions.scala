@@ -13,6 +13,12 @@ trait FileActions extends ActionsSupport {
       .put(data)
       .futureValue
 
+  def delete(envelopeId: EnvelopeId, fileId: FileId): WSResponse =
+    WS
+      .url(s"$url/envelope/$envelopeId/file/$fileId")
+      .delete()
+      .futureValue
+
   def download(envelopeId: EnvelopeId, fileId: FileId): WSResponse =
     WS
       .url(s"$url/envelope/$envelopeId/file/$fileId/content")

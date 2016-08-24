@@ -36,6 +36,11 @@ class FileController(uploadBodyParser: (EnvelopeId, FileId) => BodyParser[Future
                      updateMetadata: (EnvelopeId, FileId, Option[String], Option[String], Option[JsObject]) => Future[UpdateMetadataResult])
                     (implicit executionContext: ExecutionContext) extends BaseController {
 
+
+  def deleteFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { request =>
+    Future.successful(Ok)
+  }
+
   def upsertFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async(uploadBodyParser(envelopeId, fileId)) { request =>
 
     def fsReference(j: JsValue) = j match {
