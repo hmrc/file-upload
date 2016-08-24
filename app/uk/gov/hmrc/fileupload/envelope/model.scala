@@ -110,7 +110,11 @@ object Envelope {
   implicit val envelopeStatusReads: Reads[EnvelopeStatus] = EnvelopeStatusReads
   implicit val envelopeStatusWrites: Writes[EnvelopeStatus] = EnvelopeStatusWrites
   implicit val constraintsReads: Format[Constraints] = Json.format[Constraints]
-  implicit val envelopeReads: Format[Envelope] = Json.format[Envelope]
+  implicit val envelopeFormat: Format[Envelope] = Json.format[Envelope]
+  implicit val envelopeOFormat: OFormat[Envelope] = new OFormat[Envelope] {
+    def reads(json: JsValue): JsResult[Envelope] = envelopeFormat.reads(json)
+    def writes(o: Envelope): JsObject = envelopeFormat.writes(o).as[JsObject]
+  }
 
   def fromJson(json: JsValue, _id: EnvelopeId, maxTTL: Int): Envelope = {
     val rawData = json.asInstanceOf[JsObject] ++ Json.obj("_id" -> _id)

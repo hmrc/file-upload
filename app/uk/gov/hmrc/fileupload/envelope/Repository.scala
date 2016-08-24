@@ -16,10 +16,13 @@
 
 package uk.gov.hmrc.fileupload.envelope
 
+import org.joda.time.DateTime
+import play.api.libs.json.{JsObject, Json}
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.{DB, DBMetaCommands}
 import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.fileupload.EnvelopeId
+import uk.gov.hmrc.fileupload.envelope.Service.UploadedFileInfo
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 import uk.gov.hmrc.mongo.ReactiveRepository
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -29,10 +32,30 @@ object Repository {
 }
 
 class Repository(mongo: () => DB with DBMetaCommands)
-  extends ReactiveRepository[Envelope, BSONObjectID](collectionName = "envelopes", mongo, domainFormat = Envelope.envelopeReads) {
+  extends ReactiveRepository[Envelope, BSONObjectID](collectionName = "envelopes", mongo, domainFormat = Envelope.envelopeFormat) {
 
-  def update(envelope: Envelope)(implicit ex: ExecutionContext): Future[Boolean] =
-    delete(envelope._id).flatMap(_ => add(envelope))
+  def update(envelope: Envelope)(implicit ec: ExecutionContext): Future[Boolean] = {
+    collection.update(Json.obj(_Id -> envelope._id.value), envelope).map(toBoolean)
+  }
+
+  def updateFileStatus(envelopeId: EnvelopeId, fileId: FileId, fileStatus: FileStatus)
+                      (implicit ec: ExecutionContext): Future[Boolean] = {
+    val selector = Json.obj(_Id -> envelopeId.value, "files.fileId" -> fileId.value)
+    val update = Json.obj("$set" -> Json.obj("files.$.status" -> fileStatus.name))
+    collection.update(selector, update).map(toBoolean)
+  }
+
+  // TODO: WIP (konrad)
+  def upsertFile(envelopeId: EnvelopeId, uploadedFileInfo: UploadedFileInfo)
+                (implicit ec: ExecutionContext): Future[Boolean] = {
+    val selector = Json.obj(_Id -> envelopeId.value, "files.fileId" -> uploadedFileInfo.fileId)
+    val update = Json.obj("$set" -> Json.obj(
+      "files.$.length"      -> uploadedFileInfo.length,
+      "files.$.fsReference" -> uploadedFileInfo.fsReference,
+      "files.$.uploadDate"  -> uploadedFileInfo.uploadDate.map(new DateTime(_))
+    ))
+    collection.update(selector, update, upsert = true).map(toBoolean)
+  }
 
   def add(envelope: Envelope)(implicit ex: ExecutionContext): Future[Boolean] = {
     insert(envelope) map toBoolean

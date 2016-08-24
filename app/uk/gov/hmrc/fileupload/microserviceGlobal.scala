@@ -87,16 +87,18 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   lazy val envelopeRepository = uk.gov.hmrc.fileupload.envelope.Repository.apply(db)
 
   lazy val updateEnvelope = envelopeRepository.update _
+  lazy val addEnvelope = envelopeRepository.add _
   lazy val getEnvelope = envelopeRepository.get _
   lazy val find = EnvelopeService.find(getEnvelope) _
-  lazy val updateFileStatus = EnvelopeService.updateFileStatus(getEnvelope, updateEnvelope) _
+  lazy val updateFileStatusMongo = envelopeRepository.updateFileStatus _
+  lazy val updateFileStatus = EnvelopeService.updateFileStatus(getEnvelope, updateFileStatusMongo) _
 
   lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute) _
 
   lazy val envelopeController = {
     import play.api.libs.concurrent.Execution.Implicits._
 
-    val create = EnvelopeService.create(updateEnvelope) _
+    val create = EnvelopeService.create(addEnvelope) _
 
     // todo DO WE NEED THIS? mongo can generate ids
     val nextId = () => EnvelopeId(UUID.randomUUID().toString)
