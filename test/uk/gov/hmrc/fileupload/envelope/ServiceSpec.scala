@@ -20,6 +20,7 @@ import cats.data.Xor
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, Support}
 import uk.gov.hmrc.fileupload.envelope.Service._
+import uk.gov.hmrc.fileupload.events.FileUploadedAndAssigned
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -144,18 +145,25 @@ class ServiceSpec extends UnitSpec {
 
   "upsert a file" should {
     "be successful" in {
+      var collector: AnyRef = null
+      val publisher = (event:AnyRef) => {
+        collector = event
+      }
+
       val envelope = Envelope()
       val fileId = FileId()
-      val expectedEnvelope = envelope.copy(files = Some(Seq(File(href = Some(s"url/$fileId"), fileId = fileId))))
+      val expectedEnvelope = envelope.copy(files = Some(Seq(File(fileId = fileId))))
       val upsertFile = Service.uploadFile(
         getEnvelope = _ => Future.successful(Some(expectedEnvelope)),
-        updateEnvelope = _ => Future.successful(true)
+        updateEnvelope = _ => Future.successful(true),
+        publish = publisher
       ) _
       val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, FileId("fsReference"), 1L, None)
 
       val result = await(upsertFile(uploadedFileInfo))
 
       result shouldBe Xor.right(UpsertFileSuccess)
+      collector shouldBe FileUploadedAndAssigned(envelope._id, fileId)
     }
 
     "fail if envelope with a given id didn't exist" in {
@@ -164,7 +172,8 @@ class ServiceSpec extends UnitSpec {
       val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, FileId("fsReference"), 1L, None)
       val upsertFile = Service.uploadFile(
         getEnvelope = _ => Future.successful(None),
-        updateEnvelope = _ => ???
+        updateEnvelope = _ => ???,
+        publish = _ => Unit
       ) _
 
       val result = await(upsertFile(uploadedFileInfo))
@@ -178,7 +187,8 @@ class ServiceSpec extends UnitSpec {
       val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, FileId("fsReference"), 1L, None)
       val upsertFile = Service.uploadFile(
         getEnvelope = _ => Future.failed(new Exception("network error")),
-        updateEnvelope = _ => ???
+        updateEnvelope = _ => ???,
+        publish = _ => Unit
       ) _
 
       val result = await(upsertFile(uploadedFileInfo))
@@ -192,7 +202,8 @@ class ServiceSpec extends UnitSpec {
       val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, FileId("fsReference"), 1L, None)
       val upsertFile = Service.uploadFile(
         getEnvelope = _ => Future.successful(Some(envelope)),
-        updateEnvelope = _ => Future.successful(false)
+        updateEnvelope = _ => Future.successful(false),
+        publish = _ => Unit
       ) _
 
       val result = await(upsertFile(uploadedFileInfo))
@@ -206,7 +217,8 @@ class ServiceSpec extends UnitSpec {
       val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, FileId("fsReference"), 1L, None)
       val upsertFile = Service.uploadFile(
         getEnvelope = _ => Future.successful(Some(envelope)),
-        updateEnvelope = _ => Future.failed(new Exception("network error"))
+        updateEnvelope = _ => Future.failed(new Exception("network error")),
+        publish = _ => Unit
       ) _
 
       val result = await(upsertFile(uploadedFileInfo))
@@ -226,7 +238,6 @@ class ServiceSpec extends UnitSpec {
     }
 
     "fail when envelope was not found" in {
-      val envelope = Support.envelope
       val update = Service.updateMetadata(_ => Future.successful(None), _ => Future.successful(true)) _
 
       val newEnvelopeId = EnvelopeId("newEnvelopeId")

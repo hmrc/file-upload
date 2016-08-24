@@ -21,7 +21,7 @@ import play.api.libs.iteratee.Iteratee
 import play.api.libs.json._
 import play.api.mvc.{BodyParser, RequestHeader, Result}
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.envelope.{Constraints, Envelope, File}
+import uk.gov.hmrc.fileupload.envelope._
 
 import scala.concurrent.ExecutionContext
 import scala.util.control.NonFatal
@@ -43,6 +43,8 @@ case class ConstraintsReport(contentTypes: Option[Seq[String]] = None,
 object EnvelopeReport {
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val fileStatusReads: Reads[FileStatus] = FileStatusReads
+  implicit val fileStatusWrites: Writes[FileStatus] = FileStatusWrites
   implicit val fileReads: Format[File] = Json.format[File]
 
   implicit val createConstraintsReads: Format[ConstraintsReport] = Json.format[ConstraintsReport]

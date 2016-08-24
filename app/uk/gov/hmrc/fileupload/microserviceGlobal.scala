@@ -24,7 +24,7 @@ import net.ceedubs.ficus.Ficus._
 import play.api.mvc.{EssentialFilter, RequestHeader, Result}
 import play.api.{Application, Configuration, Logger, Play}
 import uk.gov.hmrc.fileupload.controllers._
-import uk.gov.hmrc.fileupload.envelope.{Service => EnvelopeService}
+import uk.gov.hmrc.fileupload.envelope.{FileStatusHandlerActor, Service => EnvelopeService}
 import uk.gov.hmrc.fileupload.file.{Service => FileService}
 import uk.gov.hmrc.fileupload.infrastructure.{DefaultMongoConnection, PlayHttp}
 import uk.gov.hmrc.fileupload.notifier.{NotifierActor, NotifierRepository}
@@ -89,6 +89,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   lazy val updateEnvelope = envelopeRepository.update _
   lazy val getEnvelope = envelopeRepository.get _
   lazy val find = EnvelopeService.find(getEnvelope) _
+  lazy val updateFileStatus = EnvelopeService.updateFileStatus(getEnvelope, updateEnvelope) _
 
   lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute) _
 
@@ -126,7 +127,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     val getFileFromRepo = fileRepository.retrieveFile _
     val retrieveFile = FileService.retrieveFile(getEnvelope, getFileFromRepo) _
 
-    val uploadFile = EnvelopeService.uploadFile(getEnvelope, updateEnvelope) _
+    val uploadFile = EnvelopeService.uploadFile(getEnvelope, updateEnvelope, publish) _
 
     val updateMetadata = EnvelopeService.updateMetadata(getEnvelope, updateEnvelope) _
 
@@ -151,6 +152,9 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
     // notifier
     Akka.system.actorOf(NotifierActor.props(subscribe, find, sendNotification), "notifierActor")
+
+    // file status handler
+    Akka.system.actorOf(FileStatusHandlerActor.props(subscribe, updateFileStatus), "fileStatusHandlerActor")
 
     eventController
     envelopeController

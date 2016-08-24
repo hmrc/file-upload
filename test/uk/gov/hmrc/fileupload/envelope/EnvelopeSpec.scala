@@ -213,6 +213,36 @@ class EnvelopeSpec extends UnitSpec {
     envelope.files shouldBe Some(Seq(otherFile, File(fileId = fileId, name = Some(newName), metadata = Some(newMetadata))))
   }
 
+  "can add a file status to a new Envelope" in {
+    val fileId = FileId("newfile")
+    val status = FileStatusQuarantined
+    val envelope = Envelope().addStatusToAFile(fileId = fileId, status = status)
+
+    envelope.files shouldBe Some(Seq(File(fileId = fileId, status = Some(status))))
+  }
+
+  "can add a file status to an Envelope with other files" in {
+    val fileId = FileId("newfile")
+    val oldFile = File(fileId = FileId("oldFile"))
+    val status = FileStatusQuarantined
+
+    val envelope = Envelope(files = Some(Seq(oldFile))).addStatusToAFile(fileId = fileId, status = status)
+
+    envelope.files shouldBe Some(Seq(oldFile, File(fileId = fileId, status = Some(status))))
+  }
+
+  "can update a file status in an Envelope" in {
+    val fileId = FileId("myfile")
+    val status = FileStatusQuarantined
+    val file = File(fileId = fileId, status = Some(status))
+
+    val newStatus = FileStatusAvailable
+    val otherFile = File(fileId = FileId("otherFile"))
+    val envelope = Envelope(files = Some(Seq(otherFile, file))).addStatusToAFile(fileId = fileId, status = newStatus)
+
+    envelope.files shouldBe Some(Seq(otherFile, File(fileId = fileId, status = Some(newStatus))))
+  }
+
   "can get a file by id" in {
     val fileId = FileId("newfile")
     val file = File(fileId = fileId)

@@ -40,7 +40,7 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 
 	"repository" should {
     "persist an envelope" in {
-      val file = File(href = Some("ads"), fileId = FileId(), rel = "file")
+      val file = File(fileId = FileId(), rel = "file")
       val envelope = Support.envelope.copy(files = Some(Seq(file)))
 
       val result = (repository add envelope).futureValue

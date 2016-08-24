@@ -37,6 +37,7 @@ object UpdateFileMetadataReport {
 }
 
 case class GetFileMetadataReport(id: FileId,
+                                 status: Option[String] = None,
                                  name: Option[String] = None,
                                  contentType: Option[String] = None,
                                  length: Option[Long] = None,
@@ -55,6 +56,7 @@ object GetFileMetadataReport {
   def fromFile(envelopeId: EnvelopeId, file: File): GetFileMetadataReport =
     GetFileMetadataReport(
       id = file.fileId,
+      status = file.status.map(_.name),
       name = file.name,
       contentType = file.contentType,
       length = file.length,

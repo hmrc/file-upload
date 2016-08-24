@@ -31,6 +31,8 @@ case class NoVirusDetected(envelopeId: EnvelopeId, fileId: FileId) extends Event
 
 case class VirusDetected(envelopeId: EnvelopeId, fileId: FileId, reason: String) extends Event
 
+case class FileUploadedAndAssigned(envelopeId: EnvelopeId, fileId: FileId) extends Event
+
 
 object EventFormatters {
   implicit val quarantinedFormat: Format[Quarantined] = Json.format[Quarantined]

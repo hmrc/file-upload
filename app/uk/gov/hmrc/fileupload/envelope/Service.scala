@@ -18,6 +18,7 @@ package uk.gov.hmrc.fileupload.envelope
 
 import cats.data.Xor
 import play.api.libs.json.JsObject
+import uk.gov.hmrc.fileupload.events.FileUploadedAndAssigned
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -89,14 +90,17 @@ object Service {
       case Xor.Left(FindServiceError(m)) => Future { Xor.left(DeleteServiceError(m)) }
     }.recover { case e => Xor.left(DeleteServiceError(e.getMessage)) }
 
-  def uploadFile(getEnvelope: EnvelopeId => Future[Option[Envelope]], updateEnvelope: Envelope => Future[Boolean])
+  def uploadFile(getEnvelope: EnvelopeId => Future[Option[Envelope]], updateEnvelope: Envelope => Future[Boolean], publish: AnyRef => Unit)
                 (uploadedFileInfo: UploadedFileInfo)
                 (implicit ex: ExecutionContext): Future[UpsertFileToEnvelopeResult] = {
     getEnvelope(uploadedFileInfo.envelopeId).flatMap({
       case Some(envelope) =>
         val updatedEnvelope = envelope.addFile(uploadedFileInfo)
         updateEnvelope(updatedEnvelope).map{
-          case true => Xor.right(UpsertFileSuccess)
+          case true => {
+            publish(FileUploadedAndAssigned(envelopeId = uploadedFileInfo.envelopeId, fileId = uploadedFileInfo.fileId))
+            Xor.right(UpsertFileSuccess)
+          }
           case false => Xor.left(UpsertFileUpdatingEnvelopeFailed)
         }
       case None => Future.successful(Xor.left(UpsertFileEnvelopeNotFoundError))
@@ -117,4 +121,17 @@ object Service {
     }.recover { case NonFatal(e) => Xor.left(UpdateMetadataServiceError(e.getMessage))}
   }
 
+  def updateFileStatus(getEnvelope: EnvelopeId => Future[Option[Envelope]], updateEnvelope: Envelope => Future[Boolean])
+                      (envelopeId: EnvelopeId, fileId: FileId, status: FileStatus)
+                      (implicit ex: ExecutionContext): Future[UpdateMetadataResult] = {
+    getEnvelope(envelopeId).flatMap {
+      case Some(envelope) =>
+        val updatedEnvelope = envelope.addStatusToAFile(fileId = fileId, status = status)
+        updateEnvelope(updatedEnvelope).map {
+          case true => Xor.right(UpdateMetadataSuccess)
+          case false => Xor.left(UpdateMetadataNotSuccessfulError)
+        }
+      case None => Future.successful(Xor.left(UpdateMetadataEnvelopeNotFoundError))
+    }.recover { case NonFatal(e) => Xor.left(UpdateMetadataServiceError(e.getMessage))}
+  }
 }

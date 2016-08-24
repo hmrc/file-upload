@@ -55,6 +55,15 @@ case class Envelope(_id: EnvelopeId = EnvelopeId(),
     add(file)
   }
 
+  def addStatusToAFile(fileId: FileId, status: FileStatus): Envelope = {
+    val file = files.flatMap(_.collectFirst {
+      case f if f.fileId == fileId =>
+        f.copy(status = Some(status))
+    }).getOrElse(File(fileId = fileId, status = Some(status)))
+
+    add(file)
+  }
+
   private def add(file: File): Envelope = {
     val maybeFiles: Option[Seq[File]] = files.map( _.filterNot( _.fileId == file.fileId) )
     val newFiles = maybeFiles.getOrElse(Seq.empty[File]) :+ file
@@ -81,6 +90,7 @@ case class Constraints(contentTypes: Option[Seq[String]] = None,
 }
 
 case class File(fileId: FileId,
+                status: Option[FileStatus] = None,
                 fsReference: Option[FileId] = None,
                 name: Option[String] = None,
                 contentType: Option[String] = None,
@@ -88,7 +98,7 @@ case class File(fileId: FileId,
                 uploadDate: Option[DateTime] = None,
                 revision: Option[Int] = None,
                 metadata: Option[JsObject] = None,
-                rel: String = "file", href: Option[String] = None)
+                rel: String = "file")
 
 object Envelope {
 

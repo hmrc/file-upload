@@ -14,21 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.notifier
+package uk.gov.hmrc.fileupload.envelope
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import cats.data.Xor
-import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.envelope.Service.FindResult
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
+import uk.gov.hmrc.fileupload.envelope.Service.{FindResult, UpdateMetadataResult}
 import uk.gov.hmrc.fileupload.events._
 import uk.gov.hmrc.fileupload.notifier.NotifierRepository.{Notification, NotifyResult}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class NotifierActor(subscribe: (ActorRef, Class[_]) => Boolean,
-                    findEnvelope: (EnvelopeId) => Future[FindResult],
-                    notify: (Notification, String) => Future[NotifyResult])
-                   (implicit executionContext: ExecutionContext) extends Actor with ActorLogging {
+class FileStatusHandlerActor(subscribe: (ActorRef, Class[_]) => Boolean,
+                             update: (EnvelopeId, FileId, FileStatus) => Future[UpdateMetadataResult])
+                            (implicit executionContext: ExecutionContext) extends Actor with ActorLogging {
 
   override def preStart = {
     subscribe(self, classOf[Quarantined])
@@ -42,35 +41,26 @@ class NotifierActor(subscribe: (ActorRef, Class[_]) => Boolean,
   def receive = {
     case e: Quarantined =>
       log.info("Quarantined event received for {} and {}", e.envelopeId, e.fileId)
-      notifyEnvelopeCallback(Notification(e.envelopeId, e.fileId, "QUARANTINED", None))
+      update(e.envelopeId, e.fileId, FileStatusQuarantined)
     case e: NoVirusDetected =>
       log.info("NoVirusDetected event received for {} and {}", e.envelopeId, e.fileId)
-      notifyEnvelopeCallback(Notification(e.envelopeId, e.fileId, "CLEANED", None))
+      update(e.envelopeId, e.fileId, FileStatusCleaned)
     case e: VirusDetected =>
       log.info("VirusDetected event received for {} and {} and reason = {}", e.envelopeId, e.fileId, e.reason)
-      notifyEnvelopeCallback(Notification(e.envelopeId, e.fileId, "ERROR", Some("VirusDetected")))
     case e: ToTransientMoved =>
       log.info("ToTransientMoved event received for {} and {}", e.envelopeId, e.fileId)
     case e: MovingToTransientFailed =>
       log.info("MovingToTransientFailed event received for {} and {} and {}", e.envelopeId, e.fileId, e.reason)
-      notifyEnvelopeCallback(Notification(e.envelopeId, e.fileId, "ERROR", Some("MovingToTransientFailed")))
     case e: FileUploadedAndAssigned =>
       log.info("FileUploadedAndAssigned event received for {} and {}", e.envelopeId, e.fileId)
-      notifyEnvelopeCallback(Notification(e.envelopeId, e.fileId, "AVAILABLE", None))
+      update(e.envelopeId, e.fileId, FileStatusAvailable)
   }
-
-  def notifyEnvelopeCallback(notification: Notification) =
-    findEnvelope(notification.envelopeId).map {
-      case Xor.Right(envelope) => envelope.callbackUrl.foreach(notify(notification, _))
-      case Xor.Left(e) => log.error(e.toString)
-    }
 }
 
-object NotifierActor {
+object FileStatusHandlerActor {
 
   def props(subscribe: (ActorRef, Class[_]) => Boolean,
-            findEnvelope: (EnvelopeId) => Future[FindResult],
-            notify: (Notification, String) => Future[NotifyResult])
+            update: (EnvelopeId, FileId, FileStatus) => Future[UpdateMetadataResult])
            (implicit executionContext: ExecutionContext) =
-    Props(new NotifierActor(subscribe = subscribe, findEnvelope = findEnvelope, notify = notify))
+    Props(new FileStatusHandlerActor(subscribe = subscribe, update = update))
 }
