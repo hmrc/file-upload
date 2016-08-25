@@ -34,12 +34,20 @@ trait FakeConsumingService extends BeforeAndAfterAll with ScalaFutures {
   }
 
   def verifyQuarantinedCallbackReceived(callbackPath: String = "mycallbackpath", envelopeId: EnvelopeId, fileId: FileId): Unit = {
+    happyCallbackEvent(callbackPath, envelopeId, fileId, "QUARANTINED")
+  }
+
+  def verifyNoVirusDetectedCallbackReceived(callbackPath: String = "mycallbackpath", envelopeId: EnvelopeId, fileId: FileId): Unit = {
+    happyCallbackEvent(callbackPath, envelopeId, fileId, "CLEANED")
+  }
+
+  def happyCallbackEvent(callbackPath: String, envelopeId: EnvelopeId, fileId: FileId, status: String): Unit = {
     server.verify(postRequestedFor(
       urlEqualTo(s"/$callbackPath"))
       .withHeader("Content-Type", equalTo("application/json"))
       .withRequestBody(equalToJson(
         s"""
-          |{"envelopeId": "$envelopeId", "fileId": "$fileId", "status": "QUARANTINED"}
+           |{"envelopeId": "$envelopeId", "fileId": "$fileId", "status": "$status"}
         """.stripMargin))
     )
   }
