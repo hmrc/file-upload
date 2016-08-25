@@ -18,7 +18,7 @@ object EnvelopeReportSupport extends Support {
      |    "maxSize": "12GB",
      |    "maxSizePerItem": "10MB"
      |  },
-     |  "callbackUrl": "http://absolute.callback.url",
+     |  "callbackUrl": "${args.getOrElse("callbackUrl", "http://absolute.callback.url")}",
      |  "expiryDate": "${args.getOrElse("formattedExpiryDate", "2099-07-14T10:28:18Z")}",
      |  "metadata": {
      |    "anything": "the caller wants to add to the envelope"

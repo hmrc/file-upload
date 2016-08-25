@@ -28,6 +28,7 @@ import uk.gov.hmrc.fileupload.envelope.{FileStatusHandlerActor, Service => Envel
 import uk.gov.hmrc.fileupload.file.{Service => FileService}
 import uk.gov.hmrc.fileupload.infrastructure.{DefaultMongoConnection, PlayHttp}
 import uk.gov.hmrc.fileupload.notifier.{NotifierActor, NotifierRepository}
+import uk.gov.hmrc.fileupload.testonly.TestOnlyController
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
@@ -114,6 +115,10 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     new EventController(publish)
   }
 
+  lazy val testOnlyController = {
+    new TestOnlyController()
+  }
+
   lazy val fileController = {
     import play.api.libs.concurrent.Execution.Implicits._
 
@@ -159,6 +164,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     eventController
     envelopeController
     fileController
+    testOnlyController
   }
 
   override def getControllerInstance[A](controllerClass: Class[A]): A = {

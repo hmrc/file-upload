@@ -9,3 +9,6 @@ GET        /envelope/:envelopeId/file/:fileId/content       @uk.gov.hmrc.fileupl
 PUT        /envelope/:envelopeId/file/:fileId/metadata      @uk.gov.hmrc.fileupload.controllers.FileController.metadata(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId)
 GET        /envelope/:envelopeId/file/:fileId/metadata      @uk.gov.hmrc.fileupload.controllers.FileController.retrieveMetadata(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId)
 POST       /events/:eventType                               @uk.gov.hmrc.fileupload.controllers.EventController.collect(eventType: String)
+
+
+POST        /file-upload/test-only/registerEvent        @uk.gov.hmrc.fileupload.testonly.TestOnlyController.registerEvent()
