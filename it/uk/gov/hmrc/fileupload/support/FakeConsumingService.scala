@@ -41,13 +41,28 @@ trait FakeConsumingService extends BeforeAndAfterAll with ScalaFutures {
     happyCallbackEvent(callbackPath, envelopeId, fileId, "CLEANED")
   }
 
-  def happyCallbackEvent(callbackPath: String, envelopeId: EnvelopeId, fileId: FileId, status: String): Unit = {
+  def verifyVirusDetectedCallbackReceived(callbackPath: String = "mycallbackpath", envelopeId: EnvelopeId, fileId: FileId): Unit = {
+    sadCallbackEvent(callbackPath, envelopeId, fileId, "ERROR", "VirusDetected")
+  }
+
+  private def happyCallbackEvent(callbackPath: String, envelopeId: EnvelopeId, fileId: FileId, status: String): Unit = {
     server.verify(postRequestedFor(
       urlEqualTo(s"/$callbackPath"))
       .withHeader("Content-Type", equalTo("application/json"))
       .withRequestBody(equalToJson(
         s"""
            |{"envelopeId": "$envelopeId", "fileId": "$fileId", "status": "$status"}
+        """.stripMargin))
+    )
+  }
+
+  private def sadCallbackEvent(callbackPath: String, envelopeId: EnvelopeId, fileId: FileId, status: String, reason: String): Unit = {
+    server.verify(postRequestedFor(
+      urlEqualTo(s"/$callbackPath"))
+      .withHeader("Content-Type", equalTo("application/json"))
+      .withRequestBody(equalToJson(
+        s"""
+           |{"envelopeId": "$envelopeId", "fileId": "$fileId", "status": "$status", "reason": "$reason"}
         """.stripMargin))
     )
   }

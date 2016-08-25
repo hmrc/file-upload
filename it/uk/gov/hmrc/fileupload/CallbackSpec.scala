@@ -58,5 +58,27 @@ class CallbackSpec extends IntegrationSpec with EnvelopeActions with Eventually 
       response.status shouldBe OK
       eventually { verifyQuarantinedCallbackReceived(callbackPath, envelopeId, fileId ) }
     }
+
+    scenario("When virusdetected event is received then the consuming service is notified at the callback specified in the envelope") {
+
+      val callbackPath = "mycallbackpath"
+      stubCallback(callbackPath)
+
+      val createEnvelopeResponse = createEnvelope(EnvelopeReportSupport.requestBody(Map("callbackUrl" -> callbackUrl(callbackPath))))
+      val locationHeader = createEnvelopeResponse.header("Location").get
+      val envelopeId = EnvelopeId(locationHeader.substring(locationHeader.lastIndexOf('/') + 1))
+      val fileId = FileId("1")
+
+      val response: WSResponse = WS.url(s"$url/events/virusdetected")
+        .withHeaders("Content-Type" -> "application/json")
+        .post(
+          s"""
+             | { "envelopeId": "$envelopeId", "fileId": "$fileId", "reason": "VirusDetected" }
+          """.stripMargin)
+        .futureValue
+
+      response.status shouldBe OK
+      eventually { verifyVirusDetectedCallbackReceived(callbackPath, envelopeId, fileId ) }
+    }
   }
 }
