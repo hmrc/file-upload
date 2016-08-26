@@ -3,14 +3,14 @@ package uk.gov.hmrc.fileupload
 import org.scalatest.time.{Millis, Seconds, Span}
 import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport.{prettify => _, requestBody => _, responseBody => _}
 import uk.gov.hmrc.fileupload.support.FileMetadataReportSupport._
-import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FileActions, IntegrationSpec}
+import uk.gov.hmrc.fileupload.support._
 
 /**
   * Integration tests for FILE-100
   * Update FileMetadata
   *
   */
-class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions with EnvelopeActions {
+class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions with EnvelopeActions with FakeAuditingService with FakeConsumingService {
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
 

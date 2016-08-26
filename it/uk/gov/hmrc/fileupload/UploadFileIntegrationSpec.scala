@@ -2,17 +2,18 @@ package uk.gov.hmrc.fileupload
 
 import java.io.RandomAccessFile
 
+import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.json.JsObject
 import play.api.libs.ws._
-import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FileActions, IntegrationSpec}
+import uk.gov.hmrc.fileupload.support._
 
 /**
   * Integration tests for FILE-83
   * Upload File
   *
   */
-class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with EnvelopeActions {
+class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with EnvelopeActions with FakeConsumingService with Eventually {
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(20, Seconds), interval = Span(5, Millis))
 
@@ -24,7 +25,11 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
 
     scenario("Add file to envelope (valid)") {
       Given("I have a valid envelope-id")
-      val envelopeId = createEnvelope()
+      stubCallback()
+
+      val createEnvelopeResponse = createEnvelope(EnvelopeReportSupport.requestBody(Map("callbackUrl" -> callbackUrl())))
+      val locationHeader = createEnvelopeResponse.header("Location").get
+      val envelopeId = EnvelopeId(locationHeader.substring(locationHeader.lastIndexOf('/') + 1))
 
       And("I have a valid file-id")
       val fileId = FileId(s"fileId-${nextId()}")
@@ -36,6 +41,8 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
       val response: WSResponse = upload(data, envelopeId, fileId)
 
       Then("I will receive a 200 OK response")
+      eventually { verifyAvailableCallbackReceived(envelopeId = envelopeId, fileId = fileId) }
+
       response.status shouldBe OK
     }
 
