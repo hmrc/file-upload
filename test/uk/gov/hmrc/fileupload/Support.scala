@@ -21,10 +21,11 @@ import akka.testkit.TestActorRef
 import org.joda.time.DateTime
 import play.api.libs.iteratee.{Enumerator, Iteratee}
 import play.api.libs.json.{JsString, Json}
+import play.api.mvc.{Result, Results}
 import reactivemongo.api.DBMetaCommands
 import reactivemongo.api.commands.DefaultWriteResult
 import uk.gov.hmrc.fileupload.controllers.EnvelopeReport
-import uk.gov.hmrc.fileupload.envelope.{Constraints, Envelope, File}
+import uk.gov.hmrc.fileupload.envelope.{Constraints, Envelope, File, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.file.Repository
 
 import scala.concurrent.Await
@@ -70,6 +71,16 @@ object Support {
   def expiredEnvelope = envelope.copy(expiryDate = Some(DateTime.now().minusMinutes(3)))
 
   def farInTheFutureEnvelope = envelope.copy(expiryDate = Some(DateTime.now().plusDays(3)))
+
+  val envelopeAvailable = new WithValidEnvelope {
+    def apply(id: EnvelopeId)(block: (Envelope) => Future[Result])
+             (implicit ec: ExecutionContext): Future[Result] = block(envelope)
+  }
+
+  val envelopeNotFound = new WithValidEnvelope {
+    def apply(id: EnvelopeId)(block: (Envelope) => Future[Result])
+             (implicit ec: ExecutionContext): Future[Result] = Future.successful(Results.NotFound)
+  }
 
   object Implicits {
     implicit def underLyingActor[T <: Actor](actorRef: ActorRef): T = actorRef.asInstanceOf[TestActorRef[T]].underlyingActor

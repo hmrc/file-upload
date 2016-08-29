@@ -74,9 +74,8 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       val data = Enumerator("sth".getBytes())
 
       val result = Service.retrieveFile(
-        getEnvelope = _ => Future.successful(Some(envelope)),
         getFileFromRepo = _ => Future.successful(Some(FileData(length, data)))
-      )(envelope._id, fileId).futureValue
+      )(envelope, fileId).futureValue
 
       result.isRight shouldBe true
       result.foreach { fileFound =>
@@ -88,30 +87,18 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       val envelope = Support.envelopeWithAFile(fileId)
 
       val result = Service.retrieveFile(
-        getEnvelope = _ => Future.successful(Some(envelope)),
         getFileFromRepo = _ => Future.successful(None)
-      )(envelope._id, fileId).futureValue
+      )(envelope, fileId).futureValue
 
       result shouldBe Xor.Left(GetFileNotFoundError)
-    }
-    "fail if envelope was not available" in {
-      val fileId = FileId()
-      val envelope = Support.envelopeWithAFile(fileId)
-      val result = Service.retrieveFile(
-        getEnvelope = _ => Future.successful(None),
-        getFileFromRepo = _ => Future.successful(None)
-      )(envelope._id, fileId).futureValue
-
-      result shouldBe Xor.Left(GetFileEnvelopeNotFound)
     }
     "fail if file system reference (fsReference) was not found" in {
       val fileId = FileId()
       val envelope = Support.envelope.copy(files = Some(List(File(fileId, fsReference = None))))
 
       val result = Service.retrieveFile(
-        getEnvelope = _ => Future.successful(Some(envelope)),
         getFileFromRepo = _ => ???
-      )(envelope._id, fileId).futureValue
+      )(envelope, fileId).futureValue
 
       result shouldBe Xor.Left(GetFileNotFoundError)
     }

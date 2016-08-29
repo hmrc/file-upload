@@ -17,10 +17,10 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
-import play.api.libs.json.{JsObject, JsString, JsValue, Json}
+import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.envelope.Envelope
 import uk.gov.hmrc.fileupload.envelope.Service._
+import uk.gov.hmrc.fileupload.envelope.{Envelope, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.file.Service._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, JSONReadFile}
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -30,49 +30,45 @@ import scala.language.postfixOps
 
 class FileController(uploadBodyParser: (EnvelopeId, FileId) => BodyParser[Future[JSONReadFile]],
                      getMetadata: (EnvelopeId, FileId) => Future[GetMetadataResult],
-                     retrieveFile: (EnvelopeId, FileId) => Future[GetFileResult],
-                     getEnvelope: EnvelopeId => Future[Option[Envelope]],
+                     retrieveFile: (Envelope, FileId) => Future[GetFileResult],
+                     withValidEnvelope: WithValidEnvelope,
                      uploadFile: UploadedFileInfo => Future[UpsertFileToEnvelopeResult],
                      updateMetadata: (EnvelopeId, FileId, Option[String], Option[String], Option[JsObject]) => Future[UpdateMetadataResult])
                     (implicit executionContext: ExecutionContext) extends BaseController {
 
 
   def deleteFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { request =>
-    Future.successful(Ok)
+    withValidEnvelope(envelopeId) { envelope =>
+      Future.successful(Ok)
+    }
   }
 
   def upsertFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async(uploadBodyParser(envelopeId, fileId)) { request =>
+    withValidEnvelope(envelopeId) { envelope =>
+      request.body.flatMap { jsonReadFile =>
+        val uploadedFileInfo = UploadedFileInfo(envelopeId, fileId, FileId(jsonReadFile.id.asInstanceOf[JsString].value),
+          jsonReadFile.length, jsonReadFile.uploadDate)
 
-    def fsReference(j: JsValue) = j match {
-      case JsString(value) => FileId(value)
-      case _ => FileId(j.toString)
-    }
-
-    request.body.flatMap { jsonReadFile =>
-
-      val uploadedFileInfo = UploadedFileInfo(envelopeId, fileId, fsReference(jsonReadFile.id),
-        jsonReadFile.length, jsonReadFile.uploadDate)
-
-      uploadFile(uploadedFileInfo).map {
-        case Xor.Right(_) => Ok
-        case Xor.Left(UpsertFileUpdatingEnvelopeFailed) => ExceptionHandler(INTERNAL_SERVER_ERROR, "File not added to envelope")
-        case Xor.Left(UpsertFileEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope $envelopeId not found")
-        case Xor.Left(UpsertFileServiceError(msg)) => ExceptionHandler(INTERNAL_SERVER_ERROR, msg)
-      }.recover { case e => ExceptionHandler(e) }
+        uploadFile(uploadedFileInfo).map {
+          case Xor.Right(_) => Ok
+          case Xor.Left(UpsertFileUpdatingEnvelopeFailed) => ExceptionHandler(INTERNAL_SERVER_ERROR, "File not added to envelope")
+          case Xor.Left(UpsertFileServiceError(msg)) => ExceptionHandler(INTERNAL_SERVER_ERROR, msg)
+        }.recover { case e => ExceptionHandler(e) }
+      }
     }
   }
 
   def downloadFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { request =>
-    retrieveFile(envelopeId, fileId).map {
-      case Xor.Right(FileFound(filename, length, data)) =>
-        Ok.feed(data).withHeaders(
-          CONTENT_LENGTH -> s"${ length }",
-          CONTENT_DISPOSITION -> s"""attachment; filename="${ filename.getOrElse("data") }""""
-        )
-      case Xor.Left(GetFileNotFoundError) =>
-        ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId")
-      case Xor.Left(GetFileEnvelopeNotFound) =>
-        ExceptionHandler(NOT_FOUND, s"Envelope $envelopeId not found")
+    withValidEnvelope(envelopeId) { envelope =>
+      retrieveFile(envelope, fileId).map {
+        case Xor.Right(FileFound(filename, length, data)) =>
+          Ok.feed(data).withHeaders(
+            CONTENT_LENGTH -> s"${ length }",
+            CONTENT_DISPOSITION -> s"""attachment; filename="${ filename.getOrElse("data") }""""
+          )
+        case Xor.Left(GetFileNotFoundError) =>
+          ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId")
+      }
     }
   }
 

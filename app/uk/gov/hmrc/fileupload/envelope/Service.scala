@@ -49,7 +49,6 @@ object Service {
   case class DeleteServiceError(message: String) extends DeleteError
 
   sealed trait UpsertFileError
-  case object UpsertFileEnvelopeNotFoundError extends UpsertFileError
   case class UpsertFileServiceError(message: String) extends UpsertFileError
   case object UpsertFileUpdatingEnvelopeFailed extends UpsertFileError
 
@@ -94,31 +93,18 @@ object Service {
       case Xor.Left(FindServiceError(m)) => Future { Xor.left(DeleteServiceError(m)) }
     }.recover { case e => Xor.left(DeleteServiceError(e.getMessage)) }
 
-  def uploadFile(getEnvelope: EnvelopeId => Future[Option[Envelope]],
-                 updateEnvelope: Envelope => Future[Boolean],
-                 publish: AnyRef => Unit,
-                 upsertFile: (EnvelopeId, UploadedFileInfo) => Future[Boolean] = null)
+  def uploadFile(upsertFile: (EnvelopeId, UploadedFileInfo) => Future[Boolean], publish: AnyRef => Unit)
                 (uploadedFileInfo: UploadedFileInfo)
                 (implicit ex: ExecutionContext): Future[UpsertFileToEnvelopeResult] = {
-    getEnvelope(uploadedFileInfo.envelopeId).flatMap({
-      case Some(envelope) =>
-        val updatedEnvelope = envelope.addFile(uploadedFileInfo)
-        updateEnvelope(updatedEnvelope).map {
-          case true => {
-            publish(FileUploadedAndAssigned(envelopeId = uploadedFileInfo.envelopeId, fileId = uploadedFileInfo.fileId))
-            Xor.right(UpsertFileSuccess)
-          }
-          case false => Xor.left(UpsertFileUpdatingEnvelopeFailed)
-        }
-// TODO: WIP (konrad)
-//        upsertFile(envelope._id, uploadedFileInfo).map {
-//          case true =>
-//            publish(FileUploadedAndAssigned(envelopeId = uploadedFileInfo.envelopeId, fileId = uploadedFileInfo.fileId))
-//            Xor.right(UpsertFileSuccess)
-//          case false => Xor.left(UpsertFileUpdatingEnvelopeFailed)
-//        }
-      case None => Future.successful(Xor.left(UpsertFileEnvelopeNotFoundError))
-    }).recover { case NonFatal(e) => Xor.left(UpsertFileServiceError(e.getMessage)) }
+
+      upsertFile(uploadedFileInfo.envelopeId, uploadedFileInfo).map {
+        case true =>
+          publish(FileUploadedAndAssigned(envelopeId = uploadedFileInfo.envelopeId, fileId = uploadedFileInfo.fileId))
+          Xor.right(UpsertFileSuccess)
+        case false => Xor.left(UpsertFileUpdatingEnvelopeFailed)
+      }.recover {
+        case NonFatal(e) => Xor.left(UpsertFileServiceError(e.getMessage))
+      }
   }
 
   def updateMetadata(getEnvelope: EnvelopeId => Future[Option[Envelope]], updateEnvelope: Envelope => Future[Boolean])

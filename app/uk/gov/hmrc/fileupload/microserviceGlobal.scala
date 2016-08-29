@@ -24,7 +24,7 @@ import net.ceedubs.ficus.Ficus._
 import play.api.mvc.{EssentialFilter, RequestHeader, Result}
 import play.api.{Application, Configuration, Logger, Play}
 import uk.gov.hmrc.fileupload.controllers._
-import uk.gov.hmrc.fileupload.envelope.{FileStatusHandlerActor, Service => EnvelopeService}
+import uk.gov.hmrc.fileupload.envelope.{FileStatusHandlerActor, WithValidEnvelopeImpl, Service => EnvelopeService}
 import uk.gov.hmrc.fileupload.file.{Service => FileService}
 import uk.gov.hmrc.fileupload.infrastructure.{DefaultMongoConnection, PlayHttp}
 import uk.gov.hmrc.fileupload.notifier.{NotifierActor, NotifierRepository}
@@ -85,10 +85,12 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   lazy val auditedHttpExecute = PlayHttp.execute(auditConnector, appName, Some(t => Logger.warn(t.getMessage, t))) _
 
   lazy val envelopeRepository = uk.gov.hmrc.fileupload.envelope.Repository.apply(db)
+  lazy val withValidEnvelope = new WithValidEnvelopeImpl(envelopeRepository)
 
   lazy val updateEnvelope = envelopeRepository.update _
   lazy val addEnvelope = envelopeRepository.add _
   lazy val getEnvelope = envelopeRepository.get _
+
   lazy val find = EnvelopeService.find(getEnvelope) _
   lazy val updateFileStatusMongo = envelopeRepository.updateFileStatus _
   lazy val updateFileStatus = EnvelopeService.updateFileStatus(getEnvelope, updateFileStatusMongo) _
@@ -127,16 +129,17 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     val uploadBodyParser = UploadParser.parse(iterateeForUpload) _
 
     val getFileFromRepo = fileRepository.retrieveFile _
-    val retrieveFile = FileService.retrieveFile(getEnvelope, getFileFromRepo) _
+    val retrieveFile = FileService.retrieveFile(getFileFromRepo) _
+    val upsertFile = envelopeRepository.upsertFile _
 
-    val uploadFile = EnvelopeService.uploadFile(getEnvelope, updateEnvelope, publish) _
+    val uploadFile = EnvelopeService.uploadFile(upsertFile, publish) _
 
     val updateMetadata = EnvelopeService.updateMetadata(getEnvelope, updateEnvelope) _
 
     new FileController(uploadBodyParser = uploadBodyParser,
       getMetadata = getMetadata,
       retrieveFile = retrieveFile,
-      getEnvelope = getEnvelope,
+      withValidEnvelope = withValidEnvelope,
       uploadFile = uploadFile,
       updateMetadata = updateMetadata
     )
