@@ -96,16 +96,12 @@ class Repository(mongo: () => DB with DBMetaCommands)
   }
 }
 
-trait WithValidEnvelope {
-  def apply(id: EnvelopeId)(block: Envelope => Future[Result])(implicit ec: ExecutionContext): Future[Result]
-}
-
-class WithValidEnvelopeImpl(repo: Repository) extends WithValidEnvelope {
+class WithValidEnvelope(getEnvelope: EnvelopeId => Future[Option[Envelope]]) {
   def apply(id: EnvelopeId)(block: Envelope => Future[Result])(implicit ec: ExecutionContext): Future[Result] = {
-      repo.get(id).flatMap {
+      getEnvelope(id).flatMap {
       case Some(e) => block(e) // eventually do other checks here, e.g. is envelope sealed?
       case None => Future.successful(
-        Results.NotFound(Json.toJson(Json.obj("message" -> s"Envelope: $id not found")))
+        Results.NotFound(Json.toJson(Json.obj("message" -> s"Envelope with id: $id not found")))
       )
     }
   }

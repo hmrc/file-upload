@@ -29,7 +29,6 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 class FileController(uploadBodyParser: (EnvelopeId, FileId) => BodyParser[Future[JSONReadFile]],
-                     getMetadata: (EnvelopeId, FileId) => Future[GetMetadataResult],
                      retrieveFile: (Envelope, FileId) => Future[GetFileResult],
                      withValidEnvelope: WithValidEnvelope,
                      uploadFile: UploadedFileInfo => Future[UpsertFileToEnvelopeResult],
@@ -72,12 +71,15 @@ class FileController(uploadBodyParser: (EnvelopeId, FileId) => BodyParser[Future
     }
   }
 
-  def retrieveMetadata(envelopeId: EnvelopeId, fileId: FileId) = Action.async {
-    getMetadata(envelopeId, fileId).map {
-      case Xor.Right(f) => Ok(Json.toJson[GetFileMetadataReport](GetFileMetadataReport.fromFile(envelopeId, f)))
-      case Xor.Left(GetMetadataNotFoundError) => ExceptionHandler(NOT_FOUND, s"File $fileId not found in envelope: $envelopeId")
-      case Xor.Left(GetMetadataServiceError(message)) => ExceptionHandler(INTERNAL_SERVER_ERROR, message)
-    }.recover { case e => ExceptionHandler(e) }
+  def retrieveMetadata(envelopeId: EnvelopeId, fileId: FileId) = Action.async { request =>
+    withValidEnvelope(envelopeId) { envelope =>
+      envelope.getFileById(fileId).map(GetFileMetadataReport.fromFile(envelopeId, _)) match {
+        case Some(report) => Future.successful(Ok(Json.toJson(report)))
+        case None => Future.successful(
+          ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId")
+        )
+      }
+    }.recover { case e => ExceptionHandler(e) } // todo delete this exception handler
   }
 
   def metadata(envelopeId: EnvelopeId, fileId: FileId) = Action.async(FileMetadataParser) { request =>

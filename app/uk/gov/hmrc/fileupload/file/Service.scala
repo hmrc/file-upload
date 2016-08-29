@@ -26,24 +26,10 @@ import scala.language.postfixOps
 
 object Service {
 
-  type GetMetadataResult = Xor[GetMetadataError, File]
-  sealed trait GetMetadataError
-  case object GetMetadataNotFoundError extends GetMetadataError
-  case class GetMetadataServiceError(message: String) extends GetMetadataError
-
   type GetFileResult = GetFileError Xor FileFound
   case class FileFound(name: Option[String] = None, length: Long, data: Enumerator[Array[Byte]])
   sealed trait GetFileError
   case object GetFileNotFoundError extends GetFileError
-
-  def getMetadata(getEnvelope: EnvelopeId => Future[Option[Envelope]])(envelopeId: EnvelopeId, fileId: FileId)
-                 (implicit ex: ExecutionContext): Future[GetMetadataResult] =
-    getEnvelope(envelopeId).map {
-      case Some(e) =>
-        val maybeFile = e.getFileById(fileId)
-        maybeFile.map(f => Xor.right(f)).getOrElse(Xor.left(GetMetadataNotFoundError))
-      case _ => Xor.left(GetMetadataNotFoundError)
-    }.recoverWith { case e => Future.successful( Xor.left(GetMetadataServiceError(e.getMessage)) )}
 
   def retrieveFile(getFileFromRepo: FileId => Future[Option[FileData]])
                   (envelope: Envelope, fileId: FileId)

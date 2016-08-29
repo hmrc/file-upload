@@ -28,9 +28,10 @@ import reactivemongo.json.JSONSerializationPack
 import reactivemongo.json.JSONSerializationPack.Document
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.envelope.Service._
-import uk.gov.hmrc.fileupload.envelope.{Envelope, WithValidEnvelope}
+import uk.gov.hmrc.fileupload.envelope.{Envelope, File, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.file.Service._
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import play.api.test.Helpers._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -56,13 +57,11 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
   def parse = UploadParser.parse(null) _
 
   def newController(uploadBodyParser: (EnvelopeId, FileId) => BodyParser[Future[JSONReadFile]] = parse,
-                    getMetadata: (EnvelopeId, FileId) => Future[GetMetadataResult] = (_,_) => failed,
                     retrieveFile: (Envelope, FileId) => Future[GetFileResult] = (_,_) => failed,
-                    withValidEnvelope: WithValidEnvelope = Support.envelopeAvailable,
+                    withValidEnvelope: WithValidEnvelope = Support.envelopeAvailable(),
                     uploadFile: UploadedFileInfo => Future[UpsertFileToEnvelopeResult] = _ => failed,
                     updateMetadata: (EnvelopeId, FileId, Option[String], Option[String], Option[JsObject]) => Future[UpdateMetadataResult] = (_,_,_,_,_) => failed) =
     new FileController(uploadBodyParser = uploadBodyParser,
-      getMetadata = getMetadata,
       retrieveFile = retrieveFile,
       withValidEnvelope = withValidEnvelope,
       uploadFile = uploadFile,
@@ -141,6 +140,45 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
       val result: Result = controller.downloadFile(envelopeId, fileId)(FakeRequest()).futureValue
 
       result.header.status shouldBe Status.NOT_FOUND
+    }
+  }
+
+  "Retrieve metadata" should {
+    "be successful if metadata exists" in {
+      val fileId = FileId()
+      val file = File(fileId = fileId)
+      val envelope = Support.envelope.copy(files = Some(List(file)))
+      val envelopeAvailable = Support.envelopeAvailable(envelope)
+      val controller = newController(
+        withValidEnvelope = envelopeAvailable
+      )
+
+      val result = controller.retrieveMetadata(envelope._id, fileId)(FakeRequest()).futureValue
+
+      result.header.status shouldBe 200
+    }
+
+    "fail if metadata does not exist" in {
+      val fileId = FileId("nonexistent")
+      val envelope = Support.envelope
+      val controller = newController()
+
+      val result = controller.retrieveMetadata(envelope._id, fileId)(FakeRequest()).futureValue
+
+      status(result) shouldBe 404
+      contentAsString(result) should include(s"File with id: $fileId not found in envelope: ${envelope._id}")
+    }
+
+    "fail if envelope does not exist" in {
+      val controller = newController(
+        withValidEnvelope = Support.envelopeNotFound
+      )
+      val nonexistentEnvelopeId = EnvelopeId("nonexistent")
+
+      val result = controller.retrieveMetadata(nonexistentEnvelopeId, FileId())(FakeRequest()).futureValue
+
+      status(result) shouldBe 404
+      contentAsString(result) should include(s"Envelope with id: $nonexistentEnvelopeId not found")
     }
   }
 }

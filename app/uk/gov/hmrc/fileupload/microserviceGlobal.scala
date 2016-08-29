@@ -24,7 +24,7 @@ import net.ceedubs.ficus.Ficus._
 import play.api.mvc.{EssentialFilter, RequestHeader, Result}
 import play.api.{Application, Configuration, Logger, Play}
 import uk.gov.hmrc.fileupload.controllers._
-import uk.gov.hmrc.fileupload.envelope.{FileStatusHandlerActor, WithValidEnvelopeImpl, Service => EnvelopeService}
+import uk.gov.hmrc.fileupload.envelope.{FileStatusHandlerActor, WithValidEnvelope, Service => EnvelopeService}
 import uk.gov.hmrc.fileupload.file.{Service => FileService}
 import uk.gov.hmrc.fileupload.infrastructure.{DefaultMongoConnection, PlayHttp}
 import uk.gov.hmrc.fileupload.notifier.{NotifierActor, NotifierRepository}
@@ -85,11 +85,12 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   lazy val auditedHttpExecute = PlayHttp.execute(auditConnector, appName, Some(t => Logger.warn(t.getMessage, t))) _
 
   lazy val envelopeRepository = uk.gov.hmrc.fileupload.envelope.Repository.apply(db)
-  lazy val withValidEnvelope = new WithValidEnvelopeImpl(envelopeRepository)
 
   lazy val updateEnvelope = envelopeRepository.update _
   lazy val addEnvelope = envelopeRepository.add _
   lazy val getEnvelope = envelopeRepository.get _
+
+  lazy val withValidEnvelope = new WithValidEnvelope(getEnvelope)
 
   lazy val find = EnvelopeService.find(getEnvelope) _
   lazy val updateFileStatusMongo = envelopeRepository.updateFileStatus _
@@ -123,8 +124,6 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
     val fileRepository = uk.gov.hmrc.fileupload.file.Repository.apply(db)
 
-    val getMetadata = FileService.getMetadata(getEnvelope) _
-
     val iterateeForUpload = fileRepository.iterateeForUpload _
     val uploadBodyParser = UploadParser.parse(iterateeForUpload) _
 
@@ -137,7 +136,6 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     val updateMetadata = EnvelopeService.updateMetadata(getEnvelope, updateEnvelope) _
 
     new FileController(uploadBodyParser = uploadBodyParser,
-      getMetadata = getMetadata,
       retrieveFile = retrieveFile,
       withValidEnvelope = withValidEnvelope,
       uploadFile = uploadFile,

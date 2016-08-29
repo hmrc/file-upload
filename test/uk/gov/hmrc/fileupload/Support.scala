@@ -72,15 +72,13 @@ object Support {
 
   def farInTheFutureEnvelope = envelope.copy(expiryDate = Some(DateTime.now().plusDays(3)))
 
-  val envelopeAvailable = new WithValidEnvelope {
-    def apply(id: EnvelopeId)(block: (Envelope) => Future[Result])
-             (implicit ec: ExecutionContext): Future[Result] = block(envelope)
-  }
+  def envelopeAvailable(e: Envelope = envelope): WithValidEnvelope = new WithValidEnvelope(
+    _ => Future.successful(Some(e))
+  )
 
-  val envelopeNotFound = new WithValidEnvelope {
-    def apply(id: EnvelopeId)(block: (Envelope) => Future[Result])
-             (implicit ec: ExecutionContext): Future[Result] = Future.successful(Results.NotFound)
-  }
+  val envelopeNotFound: WithValidEnvelope = new WithValidEnvelope(
+    _ => Future.successful(None)
+  )
 
   object Implicits {
     implicit def underLyingActor[T <: Actor](actorRef: ActorRef): T = actorRef.asInstanceOf[TestActorRef[T]].underlyingActor

@@ -30,39 +30,6 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
   implicit val ec = ExecutionContext.global
 
-  "getting file metadata" should {
-    "be successful if metadata exists" in {
-      val fileId = FileId()
-      val file = File(fileId = fileId)
-      val envelope = Support.envelope.copy(files = Some(List(file)))
-      val get = Service.getMetadata(_ => Future.successful(Some(envelope))) _
-
-      val result = get(envelope._id, fileId).futureValue
-
-      result shouldBe Xor.right(file)
-    }
-
-    "fail if metadata does not exist" in {
-      val envelope = Support.envelope
-      val fileId = FileId("NOTEXISTINGFILE")
-      val get = Service.getMetadata(_ => Future.successful(None)) _
-
-      val result = get(envelope._id, fileId).futureValue
-
-      result shouldBe Xor.left(GetMetadataNotFoundError)
-    }
-
-    "fail if there was an exception" in {
-      val envelope = Support.envelope
-      val fileId = FileId()
-      val get = Service.getMetadata(_ => Future.failed(new Exception("not good"))) _
-
-      val result = get(envelope._id, fileId).futureValue
-
-      result shouldBe Xor.left(GetMetadataServiceError("not good"))
-    }
-  }
-
   "retrieving a file" should {
     "succeed if file was available" in {
       val fileId = FileId()
