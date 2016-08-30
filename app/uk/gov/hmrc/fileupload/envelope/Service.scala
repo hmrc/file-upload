@@ -31,6 +31,7 @@ object Service {
   type FindResult = Xor[FindError, Envelope]
   type DeleteResult = Xor[DeleteError, Envelope]
   type UpsertFileResult = Xor[UpsertFileError, Envelope]
+  type DeleteFileResult = Xor[DeleteFileError, FileId]
 
   type UpdateMetadataResult = Xor[UpdateMetadataError, UpdateMetadataSuccess.type]
   case object UpdateMetadataSuccess
@@ -75,6 +76,10 @@ object Service {
                                   name: Option[String],
                                   contentType: Option[String],
                                   metadata: Option[JsObject])
+
+  sealed trait DeleteFileError
+  case object DeleteFileNotFoundError extends DeleteFileError
+  case class DeleteFileServiceError(message: String) extends DeleteFileError
 
   def create(add: Envelope => Future[Boolean])(envelope: Envelope)(implicit ex: ExecutionContext): Future[CreateResult] =
     add(envelope).map {
@@ -138,4 +143,12 @@ object Service {
       case NonFatal(e) => Xor.left(UpdateMetadataServiceError(e.getMessage))
     }
   }
+
+  def deleteFile(deleteFile: (EnvelopeId, FileId) => Future[Boolean])
+                (envelopeId: EnvelopeId, fileId: FileId)
+                (implicit ex: ExecutionContext): Future[DeleteFileResult] =
+    deleteFile(envelopeId, fileId).map {
+      case true => Xor.right(fileId)
+      case false => Xor.left(DeleteFileNotFoundError)
+    }.recover { case NonFatal(e) => Xor.left(DeleteFileServiceError(e.getMessage))}
 }

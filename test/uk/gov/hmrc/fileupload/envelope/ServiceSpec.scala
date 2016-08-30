@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.envelope
 
 import cats.data.Xor
+import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, Support}
 import uk.gov.hmrc.fileupload.envelope.Service._
@@ -25,7 +26,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class ServiceSpec extends UnitSpec {
+class ServiceSpec extends UnitSpec with ScalaFutures {
 
   implicit val ec = ExecutionContext.global
 
@@ -34,7 +35,7 @@ class ServiceSpec extends UnitSpec {
       val envelope = Envelope()
       val create = Service.create(_ => Future.successful(true)) _
 
-      val result = await(create(envelope))
+      val result = create(envelope).futureValue
 
       result shouldBe Xor.right(envelope)
     }
@@ -43,7 +44,7 @@ class ServiceSpec extends UnitSpec {
       val envelope = Envelope()
       val create = Service.create(_ => Future.successful(false)) _
 
-      val result = await(create(envelope))
+      val result = create(envelope).futureValue
 
       result shouldBe Xor.left(CreateNotSuccessfulError(envelope))
     }
@@ -52,7 +53,7 @@ class ServiceSpec extends UnitSpec {
       val envelope = Envelope()
       val create = Service.create(_ => Future.failed(new Exception("not good"))) _
 
-      val result = await(create(envelope))
+      val result = create(envelope).futureValue
 
       result shouldBe Xor.left(CreateServiceError(envelope, "not good"))
     }
@@ -63,7 +64,7 @@ class ServiceSpec extends UnitSpec {
       val envelope = Envelope()
       val find = Service.find(_ => Future.successful(Some(envelope))) _
 
-      val result = await(find(envelope._id))
+      val result = find(envelope._id).futureValue
 
       result shouldBe Xor.right(envelope)
     }
@@ -72,7 +73,7 @@ class ServiceSpec extends UnitSpec {
       val envelope = Envelope()
       val find = Service.find(_ => Future.successful(None)) _
 
-      val result = await(find(envelope._id))
+      val result = find(envelope._id).futureValue
 
       result shouldBe Xor.left(FindEnvelopeNotFoundError)
     }
@@ -81,7 +82,7 @@ class ServiceSpec extends UnitSpec {
       val envelope = Envelope()
       val find = Service.find(_ => Future.failed(new Exception("not good"))) _
 
-      val result = await(find(envelope._id))
+      val result = find(envelope._id).futureValue
 
       result shouldBe Xor.left(FindServiceError("not good"))
     }
@@ -92,7 +93,7 @@ class ServiceSpec extends UnitSpec {
       val envelope = Envelope()
       val delete = Service.delete(_ => Future.successful(true), _ => Future.successful(Xor.right(envelope))) _
 
-      val result = await(delete(envelope._id))
+      val result = delete(envelope._id).futureValue
 
       result shouldBe Xor.right(envelope)
     }
@@ -101,7 +102,7 @@ class ServiceSpec extends UnitSpec {
       val envelope = Envelope()
       val delete = Service.delete(_ => Future.successful(false), _ => Future.successful(Xor.right(envelope))) _
 
-      val result = await(delete(envelope._id))
+      val result = delete(envelope._id).futureValue
 
       result shouldBe Xor.left(DeleteEnvelopeNotSuccessfulError)
     }
@@ -110,7 +111,7 @@ class ServiceSpec extends UnitSpec {
       val envelope = Envelope()
       val delete = Service.delete(_ => Future.failed(new Exception("not good")), _ => Future.successful(Xor.right(envelope))) _
 
-      val result = await(delete(envelope._id))
+      val result = delete(envelope._id).futureValue
 
       result shouldBe Xor.left(DeleteServiceError("not good"))
     }
@@ -119,7 +120,7 @@ class ServiceSpec extends UnitSpec {
       val envelope = Envelope()
       val delete = Service.delete(_ => Future.successful(true), _ => Future.successful(Xor.left(FindEnvelopeNotFoundError))) _
 
-      val result = await(delete(envelope._id))
+      val result = delete(envelope._id).futureValue
 
       result shouldBe Xor.left(DeleteEnvelopeNotFoundError)
     }
@@ -128,7 +129,7 @@ class ServiceSpec extends UnitSpec {
       val envelope = Envelope()
       val delete = Service.delete(_ => Future.successful(true), _ => Future.successful(Xor.left(FindServiceError("not good")))) _
 
-      val result = await(delete(envelope._id))
+      val result = delete(envelope._id).futureValue
 
       result shouldBe Xor.left(DeleteServiceError("not good"))
     }
@@ -137,7 +138,7 @@ class ServiceSpec extends UnitSpec {
       val envelope = Envelope()
       val delete = Service.delete(_ => Future.failed(new Exception("not good")), _ => Future.failed(new Exception("not good on find"))) _
 
-      val result = await(delete(envelope._id))
+      val result = delete(envelope._id).futureValue
 
       result shouldBe Xor.left(DeleteServiceError("not good on find"))
     }
@@ -158,7 +159,7 @@ class ServiceSpec extends UnitSpec {
       ) _
       val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, FileId("fsReference"), 1L, None)
 
-      val result = await(upsertFile(uploadedFileInfo))
+      val result = upsertFile(uploadedFileInfo).futureValue
 
       result shouldBe Xor.right(UpsertFileSuccess)
       collector shouldBe FileUploadedAndAssigned(envelope._id, fileId)
@@ -173,7 +174,7 @@ class ServiceSpec extends UnitSpec {
         publish = _ => Unit
       ) _
 
-      val result = await(upsertFile(uploadedFileInfo))
+      val result = upsertFile(uploadedFileInfo).futureValue
 
       result shouldBe Xor.left(UpsertFileUpdatingEnvelopeFailed)
     }
@@ -187,7 +188,7 @@ class ServiceSpec extends UnitSpec {
         publish = _ => Unit
       ) _
 
-      val result = await(upsertFile(uploadedFileInfo))
+      val result = upsertFile(uploadedFileInfo).futureValue
 
       result shouldBe Xor.left(UpsertFileServiceError("network error"))
     }
@@ -236,4 +237,29 @@ class ServiceSpec extends UnitSpec {
     }
   }
 
+  "delete file" should {
+    "be successful (happy path)" in {
+      val deleteFile = Service.deleteFile((_, _) => Future.successful(true)) _
+
+      val result = deleteFile(EnvelopeId("envelopeId"), FileId("fileId")).futureValue
+
+      result shouldBe Xor.right(FileId("fileId"))
+    }
+
+    "fail when envelope was not found" in {
+      val deleteFile = Service.deleteFile((_, _) => Future.successful(false)) _
+
+      val result = deleteFile(EnvelopeId("newEnvelopeId"), FileId()).futureValue
+
+      result shouldBe Xor.left(DeleteFileNotFoundError)
+    }
+
+    "fail if there was another exception" in {
+      val deleteFile = Service.deleteFile((_, _) => Future.failed(new Exception("not good"))) _
+
+      val result = deleteFile(EnvelopeId("newEnvelopeId"), FileId()).futureValue
+
+      result shouldBe Xor.left(DeleteFileServiceError("not good"))
+    }
+  }
 }
