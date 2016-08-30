@@ -30,39 +30,6 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
   implicit val ec = ExecutionContext.global
 
-  "getting file metadata" should {
-    "be successful if metadata exists" in {
-      val fileId = FileId()
-      val file = File(fileId = fileId)
-      val envelope = Support.envelope.copy(files = Some(List(file)))
-      val get = Service.getMetadata(_ => Future.successful(Some(envelope))) _
-
-      val result = get(envelope._id, fileId).futureValue
-
-      result shouldBe Xor.right(file)
-    }
-
-    "fail if metadata does not exist" in {
-      val envelope = Support.envelope
-      val fileId = FileId("NOTEXISTINGFILE")
-      val get = Service.getMetadata(_ => Future.successful(None)) _
-
-      val result = get(envelope._id, fileId).futureValue
-
-      result shouldBe Xor.left(GetMetadataNotFoundError)
-    }
-
-    "fail if there was an exception" in {
-      val envelope = Support.envelope
-      val fileId = FileId()
-      val get = Service.getMetadata(_ => Future.failed(new Exception("not good"))) _
-
-      val result = get(envelope._id, fileId).futureValue
-
-      result shouldBe Xor.left(GetMetadataServiceError("not good"))
-    }
-  }
-
   "retrieving a file" should {
     "succeed if file was available" in {
       val fileId = FileId()
@@ -74,9 +41,8 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       val data = Enumerator("sth".getBytes())
 
       val result = Service.retrieveFile(
-        getEnvelope = _ => Future.successful(Some(envelope)),
         getFileFromRepo = _ => Future.successful(Some(FileData(length, data)))
-      )(envelope._id, fileId).futureValue
+      )(envelope, fileId).futureValue
 
       result.isRight shouldBe true
       result.foreach { fileFound =>
@@ -88,30 +54,18 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       val envelope = Support.envelopeWithAFile(fileId)
 
       val result = Service.retrieveFile(
-        getEnvelope = _ => Future.successful(Some(envelope)),
         getFileFromRepo = _ => Future.successful(None)
-      )(envelope._id, fileId).futureValue
+      )(envelope, fileId).futureValue
 
       result shouldBe Xor.Left(GetFileNotFoundError)
-    }
-    "fail if envelope was not available" in {
-      val fileId = FileId()
-      val envelope = Support.envelopeWithAFile(fileId)
-      val result = Service.retrieveFile(
-        getEnvelope = _ => Future.successful(None),
-        getFileFromRepo = _ => Future.successful(None)
-      )(envelope._id, fileId).futureValue
-
-      result shouldBe Xor.Left(GetFileEnvelopeNotFound)
     }
     "fail if file system reference (fsReference) was not found" in {
       val fileId = FileId()
       val envelope = Support.envelope.copy(files = Some(List(File(fileId, fsReference = None))))
 
       val result = Service.retrieveFile(
-        getEnvelope = _ => Future.successful(Some(envelope)),
         getFileFromRepo = _ => ???
-      )(envelope._id, fileId).futureValue
+      )(envelope, fileId).futureValue
 
       result shouldBe Xor.Left(GetFileNotFoundError)
     }

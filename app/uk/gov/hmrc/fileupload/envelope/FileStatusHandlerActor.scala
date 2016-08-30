@@ -38,6 +38,8 @@ class FileStatusHandlerActor(subscribe: (ActorRef, Class[_]) => Boolean,
     subscribe(self, classOf[FileUploadedAndAssigned])
   }
 
+  // todo (konrad) add logging if updating status fails
+
   def receive = {
     case e: Quarantined =>
       log.info("Quarantined event received for {} and {}", e.envelopeId, e.fileId)

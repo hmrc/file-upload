@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.fileupload.file
 
-import java.util.UUID
-
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}

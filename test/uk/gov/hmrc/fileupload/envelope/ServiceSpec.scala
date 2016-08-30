@@ -152,10 +152,8 @@ class ServiceSpec extends UnitSpec {
 
       val envelope = Envelope()
       val fileId = FileId()
-      val expectedEnvelope = envelope.copy(files = Some(Seq(File(fileId = fileId))))
       val upsertFile = Service.uploadFile(
-        getEnvelope = _ => Future.successful(Some(expectedEnvelope)),
-        updateEnvelope = _ => Future.successful(true),
+        upsertFile = (_,_) => Future.successful(true),
         publish = publisher
       ) _
       val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, FileId("fsReference"), 1L, None)
@@ -166,43 +164,12 @@ class ServiceSpec extends UnitSpec {
       collector shouldBe FileUploadedAndAssigned(envelope._id, fileId)
     }
 
-    "fail if envelope with a given id didn't exist" in {
-      val envelope = Envelope()
-      val fileId = FileId()
-      val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, FileId("fsReference"), 1L, None)
-      val upsertFile = Service.uploadFile(
-        getEnvelope = _ => Future.successful(None),
-        updateEnvelope = _ => ???,
-        publish = _ => Unit
-      ) _
-
-      val result = await(upsertFile(uploadedFileInfo))
-
-      result shouldBe Xor.left(UpsertFileEnvelopeNotFoundError)
-    }
-
-    "fail if getting an envelope failed due to unknown exception (e.g. network error)" in {
-      val envelope = Envelope()
-      val fileId = FileId()
-      val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, FileId("fsReference"), 1L, None)
-      val upsertFile = Service.uploadFile(
-        getEnvelope = _ => Future.failed(new Exception("network error")),
-        updateEnvelope = _ => ???,
-        publish = _ => Unit
-      ) _
-
-      val result = await(upsertFile(uploadedFileInfo))
-
-      result shouldBe Xor.left(UpsertFileServiceError("network error"))
-    }
-
     "fail if updating an envelope failed" in {
       val envelope = Envelope()
       val fileId = FileId()
       val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, FileId("fsReference"), 1L, None)
       val upsertFile = Service.uploadFile(
-        getEnvelope = _ => Future.successful(Some(envelope)),
-        updateEnvelope = _ => Future.successful(false),
+        upsertFile = (_,_) => Future.successful(false),
         publish = _ => Unit
       ) _
 
@@ -216,8 +183,7 @@ class ServiceSpec extends UnitSpec {
       val fileId = FileId()
       val uploadedFileInfo = UploadedFileInfo(envelope._id, fileId, FileId("fsReference"), 1L, None)
       val upsertFile = Service.uploadFile(
-        getEnvelope = _ => Future.successful(Some(envelope)),
-        updateEnvelope = _ => Future.failed(new Exception("network error")),
+        upsertFile = (_,_) => Future.failed(new Exception("network error")),
         publish = _ => Unit
       ) _
 
@@ -229,38 +195,42 @@ class ServiceSpec extends UnitSpec {
 
   "update metadata" should {
     "be successful (happy path)" in {
-      val envelope = Support.envelope
-      val update = Service.updateMetadata(_ => Future.successful(Some(envelope)), _ => Future.successful(true)) _
+      val update = Service.updateMetadata(_ => Future.successful(true)) _
 
-      val result = await(update(EnvelopeId("envelopeId"), FileId(), Some("file.txt"), Some("application/xml"), Some(Json.obj("a" -> "test"))))
+      val result = await(update(UploadedFileMetadata(
+        EnvelopeId("envelopeId"), FileId(), Some("file.txt"), Some("application/xml"), Some(Json.obj("a" -> "test"))
+      )))
 
       result shouldBe Xor.right(UpdateMetadataSuccess)
     }
 
     "fail when envelope was not found" in {
-      val update = Service.updateMetadata(_ => Future.successful(None), _ => Future.successful(true)) _
-
-      val newEnvelopeId = EnvelopeId("newEnvelopeId")
-      val result = await(update(newEnvelopeId, FileId(), Some("file.txt"), Some("application/xml"), Some(Json.obj("a" -> "test"))))
-
-      result shouldBe Xor.left(UpdateMetadataEnvelopeNotFoundError)
+      pending
+//      val update = Service.updateMetadata(_ => Future.successful(None), _ => Future.successful(true)) _
+//
+//      val newEnvelopeId = EnvelopeId("newEnvelopeId")
+//      val result = await(update(newEnvelopeId, FileId(), Some("file.txt"), Some("application/xml"), Some(Json.obj("a" -> "test"))))
+//
+//      result shouldBe Xor.left(UpdateMetadataEnvelopeNotFoundError)
     }
 
     "fail when updating an envelope failed" in {
-      val envelope = Support.envelope
-      val update = Service.updateMetadata(_ => Future.successful(Some(envelope)), _ => Future.successful(false)) _
+      val update = Service.updateMetadata(_ => Future.successful(false)) _
 
-      val result = await(update(EnvelopeId("envelopeId"), FileId(), Some("file.txt"), Some("application/xml"), Some(Json.obj("a" -> "test"))))
+      val result = await(update(
+        UploadedFileMetadata(EnvelopeId("envelopeId"), FileId(), Some("file.txt"), Some("application/xml"), Some(Json.obj("a" -> "test")))
+      ))
 
       result shouldBe Xor.left(UpdateMetadataNotSuccessfulError)
     }
 
     "fail if there was another exception" in {
-      val envelope = Support.envelope
-      val update = Service.updateMetadata(_ => Future.successful(Some(envelope)), _ => Future.failed(new Exception("not good"))) _
+      val update = Service.updateMetadata(_ => Future.failed(new Exception("not good"))) _
 
       val newEnvelopeId = EnvelopeId("newEnvelopeId")
-      val result = await(update(newEnvelopeId, FileId(), Some("file.txt"), Some("application/xml"), Some(Json.obj("a" -> "test"))))
+      val result = await(update(
+        UploadedFileMetadata(newEnvelopeId, FileId(), Some("file.txt"), Some("application/xml"), Some(Json.obj("a" -> "test")))
+      ))
 
       result shouldBe Xor.left(UpdateMetadataServiceError("not good"))
     }

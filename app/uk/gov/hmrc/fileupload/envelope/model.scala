@@ -31,6 +31,7 @@ case class Envelope(_id: EnvelopeId = EnvelopeId(),
 
   def isExpired: Boolean = expiryDate.exists(_.isBeforeNow)
 
+  // todo (konrad) delete this method
   def addFile(uploadedFileInfo: UploadedFileInfo) = {
     val file = files.flatMap(_.collectFirst {
       case f if f.fileId == uploadedFileInfo.fileId =>
@@ -98,7 +99,7 @@ case class File(fileId: FileId,
                 uploadDate: Option[DateTime] = None,
                 revision: Option[Int] = None,
                 metadata: Option[JsObject] = None,
-                rel: String = "file")
+                rel: Option[String] = Some("file"))
 
 object Envelope {
 

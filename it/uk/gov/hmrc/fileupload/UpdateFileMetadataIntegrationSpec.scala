@@ -88,7 +88,7 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
       updateFileMetadata(requestBody(Map("name" -> "toOverride")), envelopeId, fileId)
 
       And("I have a JSON  body with different metadata")
-      val json = requestBody( Map("name" -> "toOverride", "contentType" -> "application/xml"))
+      val json = requestBody( Map("name" -> "overridden", "contentType" -> "application/xml"))
 
       When(s"I call PUT /file-upload/envelope/$envelopeId/file/$fileId/metadata")
       val response = updateFileMetadata(json, envelopeId, fileId)
@@ -98,7 +98,7 @@ class UpdateFileMetadataIntegrationSpec extends IntegrationSpec with FileActions
 
       And("the envelope is updated with the overwritten metadata")
       val secondVersion = getFileMetadataFor(envelopeId, fileId)
-      prettify(secondVersion.body) shouldBe responseBody(envelopeId, fileId, Map("name" -> "toOverride", "contentType" -> "application/xml"))
+      prettify(secondVersion.body) shouldBe responseBody(envelopeId, fileId, Map("name" -> "overridden", "contentType" -> "application/xml"))
     }
 
     scenario("Create File Metadata for envelope with a file attachment") {

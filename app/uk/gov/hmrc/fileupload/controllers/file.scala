@@ -74,7 +74,7 @@ object FileMetadataParser extends BodyParser[UpdateFileMetadataReport] {
     Iteratee.consume[Array[Byte]]().map { data =>
       Try(Json.fromJson[UpdateFileMetadataReport](Json.parse(data)).get) match {
         case Success(report) => Right(report)
-        case Failure(NonFatal(e)) => println(s"\n\n Problem with Json parsing, input was ${new String(data)} \n\n");Left(ExceptionHandler(e))
+        case Failure(NonFatal(e)) => Left(ExceptionHandler(e))
       }
     }(ExecutionContext.global)
   }
