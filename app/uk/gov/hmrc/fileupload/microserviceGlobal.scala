@@ -28,6 +28,7 @@ import uk.gov.hmrc.fileupload.envelope.{FileStatusHandlerActor, WithValidEnvelop
 import uk.gov.hmrc.fileupload.file.{Service => FileService}
 import uk.gov.hmrc.fileupload.infrastructure.{DefaultMongoConnection, PlayHttp}
 import uk.gov.hmrc.fileupload.notifier.{NotifierActor, NotifierRepository}
+import uk.gov.hmrc.fileupload.testonly.TestOnlyController
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
@@ -86,7 +87,6 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
   lazy val envelopeRepository = uk.gov.hmrc.fileupload.envelope.Repository.apply(db)
 
-  lazy val updateEnvelope = envelopeRepository.update _
   lazy val addEnvelope = envelopeRepository.add _
   lazy val getEnvelope = envelopeRepository.get _
 
@@ -147,6 +147,11 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       deleteFileFromEnvelope = deleteFile)
   }
 
+  lazy val testOnlyController = {
+    val fileRepository = uk.gov.hmrc.fileupload.file.Repository.apply(db)
+    new TestOnlyController(fileRepository)
+  }
+
   override def onStart(app: Application): Unit = {
     super.onStart(app)
 
@@ -166,6 +171,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     eventController
     envelopeController
     fileController
+    testOnlyController
   }
 
   override def getControllerInstance[A](controllerClass: Class[A]): A = {
@@ -176,6 +182,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       fileController.asInstanceOf[A]
     } else if (controllerClass == classOf[EventController]) {
       eventController.asInstanceOf[A]
+    } else if (controllerClass == classOf[TestOnlyController]) {
+      testOnlyController.asInstanceOf[A]
     } else {
       super.getControllerInstance(controllerClass)
     }
