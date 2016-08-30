@@ -1,5 +1,6 @@
 package uk.gov.hmrc.fileupload
 
+import play.api.libs.json._
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
 
 /**
@@ -24,7 +25,20 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions {
       envelopeResponse.status shouldBe OK
 
       And("the response body should contain the envelope details")
-      envelopeResponse.body shouldNot be(null)
+      val body: String = envelopeResponse.body
+      body shouldNot be(null)
+
+      val parsedBody: JsValue = Json.parse(body)
+      parsedBody \ "id" match {
+        case JsString(value) =>  value should fullyMatch regex "[A-z0-9-]+"
+        case _ => JsError("expectation failed")
+      }
+
+      parsedBody \ "status" match {
+        case JsString(value) =>  value should fullyMatch regex "OPEN"
+        case _ => JsError("expectation failed")
+      }
+
     }
 
     scenario("GET envelope using invalid ID") {
