@@ -94,7 +94,10 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
   lazy val find = EnvelopeService.find(getEnvelope) _
   lazy val updateFileStatusMongo = envelopeRepository.updateFileStatus _
-  lazy val updateFileStatus = EnvelopeService.updateFileStatus(getEnvelope, updateFileStatusMongo) _
+  lazy val updateFileStatus = EnvelopeService.updateFileStatus(updateFileStatusMongo) _
+
+  lazy val deleteFileRepo = envelopeRepository.deleteFile _
+  lazy val deleteFile = EnvelopeService.deleteFile(deleteFileRepo) _
 
   lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute) _
 
@@ -140,8 +143,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       retrieveFile = retrieveFile,
       withValidEnvelope = withValidEnvelope,
       uploadFile = uploadFile,
-      upsertFileMetadata = updateMetadata
-    )
+      upsertFileMetadata = updateMetadata,
+      deleteFileFromEnvelope = deleteFile)
   }
 
   override def onStart(app: Application): Unit = {

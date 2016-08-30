@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.fileupload.envelope
 
-import java.util.UUID
-
 import org.junit
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures

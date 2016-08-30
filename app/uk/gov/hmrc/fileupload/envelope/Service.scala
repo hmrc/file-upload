@@ -31,6 +31,7 @@ object Service {
   type FindResult = Xor[FindError, Envelope]
   type DeleteResult = Xor[DeleteError, Envelope]
   type UpsertFileResult = Xor[UpsertFileError, Envelope]
+  type DeleteFileResult = Xor[DeleteFileError, FileId]
 
   type UpdateMetadataResult = Xor[UpdateMetadataError, UpdateMetadataSuccess.type]
   case object UpdateMetadataSuccess
@@ -53,7 +54,6 @@ object Service {
   case object UpsertFileUpdatingEnvelopeFailed extends UpsertFileError
 
   sealed trait UpdateMetadataError
-  case object UpdateMetadataEnvelopeNotFoundError extends UpdateMetadataError
   case object UpdateMetadataNotSuccessfulError extends UpdateMetadataError
   case class UpdateMetadataServiceError(message: String) extends UpdateMetadataError
 
@@ -75,6 +75,10 @@ object Service {
                                   name: Option[String],
                                   contentType: Option[String],
                                   metadata: Option[JsObject])
+
+  sealed trait DeleteFileError
+  case object DeleteFileNotFoundError extends DeleteFileError
+  case class DeleteFileServiceError(message: String) extends DeleteFileError
 
   def create(add: Envelope => Future[Boolean])(envelope: Envelope)(implicit ex: ExecutionContext): Future[CreateResult] =
     add(envelope).map {
@@ -101,41 +105,41 @@ object Service {
 
   def uploadFile(upsertFile: (EnvelopeId, UploadedFileInfo) => Future[Boolean], publish: AnyRef => Unit)
                 (uploadedFileInfo: UploadedFileInfo)
-                (implicit ex: ExecutionContext): Future[UpsertFileToEnvelopeResult] = {
-
-      upsertFile(uploadedFileInfo.envelopeId, uploadedFileInfo).map {
-        case true =>
-          publish(FileUploadedAndAssigned(envelopeId = uploadedFileInfo.envelopeId, fileId = uploadedFileInfo.fileId))
-          Xor.right(UpsertFileSuccess)
-        case false => Xor.left(UpsertFileUpdatingEnvelopeFailed)
-      }.recover {
-        case NonFatal(e) => Xor.left(UpsertFileServiceError(e.getMessage))
-      }
-  }
+                (implicit ex: ExecutionContext): Future[UpsertFileToEnvelopeResult] =
+    upsertFile(uploadedFileInfo.envelopeId, uploadedFileInfo).map {
+      case true =>
+        publish(FileUploadedAndAssigned(envelopeId = uploadedFileInfo.envelopeId, fileId = uploadedFileInfo.fileId))
+        Xor.right(UpsertFileSuccess)
+      case false => Xor.left(UpsertFileUpdatingEnvelopeFailed)
+    }.recover {
+      case NonFatal(e) => Xor.left(UpsertFileServiceError(e.getMessage))
+    }
 
   def updateMetadata(upsertFileMetadata: UploadedFileMetadata => Future[Boolean])
                     (uploadedFileMetadata: UploadedFileMetadata)
-                    (implicit ex: ExecutionContext): Future[UpdateMetadataResult] = {
+                    (implicit ex: ExecutionContext): Future[UpdateMetadataResult] =
     upsertFileMetadata(uploadedFileMetadata).map {
       case true => Xor.right(UpdateMetadataSuccess)
       case false => Xor.left(UpdateMetadataNotSuccessfulError)
     }.recover {
       case NonFatal(e) => Xor.left(UpdateMetadataServiceError(e.getMessage))
     }
-  }
 
-  def updateFileStatus(getEnvelope: EnvelopeId => Future[Option[Envelope]],
-                       updateFileStatus: (EnvelopeId, FileId, FileStatus) => Future[Boolean])
+  def updateFileStatus(updateFileStatus: (EnvelopeId, FileId, FileStatus) => Future[Boolean])
                       (envelopeId: EnvelopeId, fileId: FileId, status: FileStatus)
-                      (implicit ex: ExecutionContext): Future[UpdateMetadataResult] = {
-    getEnvelope(envelopeId).flatMap {
-      case Some(envelope) => updateFileStatus(envelopeId, fileId, status).map {
-        case true =>  Xor.right(UpdateMetadataSuccess)
-        case false => Xor.left(UpdateMetadataNotSuccessfulError)
-      }
-      case None => Future.successful(Xor.left(UpdateMetadataEnvelopeNotFoundError))
+                      (implicit ex: ExecutionContext): Future[UpdateMetadataResult] =
+    updateFileStatus(envelopeId, fileId, status).map {
+      case true =>  Xor.right(UpdateMetadataSuccess)
+      case false => Xor.left(UpdateMetadataNotSuccessfulError)
     }.recover {
       case NonFatal(e) => Xor.left(UpdateMetadataServiceError(e.getMessage))
     }
-  }
+
+  def deleteFile(deleteFile: (EnvelopeId, FileId) => Future[Boolean])
+                (envelopeId: EnvelopeId, fileId: FileId)
+                (implicit ex: ExecutionContext): Future[DeleteFileResult] =
+    deleteFile(envelopeId, fileId).map {
+      case true => Xor.right(fileId)
+      case false => Xor.left(DeleteFileNotFoundError)
+    }.recover { case NonFatal(e) => Xor.left(DeleteFileServiceError(e.getMessage))}
 }

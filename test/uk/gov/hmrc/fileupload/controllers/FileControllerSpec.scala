@@ -60,12 +60,14 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
                     retrieveFile: (Envelope, FileId) => Future[GetFileResult] = (_,_) => failed,
                     withValidEnvelope: WithValidEnvelope = Support.envelopeAvailable(),
                     uploadFile: UploadedFileInfo => Future[UpsertFileToEnvelopeResult] = _ => failed,
-                    upsertFileMetadata: UploadedFileMetadata => Future[UpdateMetadataResult] = _ => failed) =
+                    upsertFileMetadata: UploadedFileMetadata => Future[UpdateMetadataResult] = _ => failed,
+                    deleteF: (EnvelopeId, FileId) => Future[DeleteFileResult] = (_, _) => failed) =
     new FileController(uploadBodyParser = uploadBodyParser,
       retrieveFile = retrieveFile,
       withValidEnvelope = withValidEnvelope,
       uploadFile = uploadFile,
-      upsertFileMetadata = upsertFileMetadata)
+      upsertFileMetadata = upsertFileMetadata,
+      deleteFileFromEnvelope = deleteF)
 
   "Upload a file" should {
     "return 200 after the file is added to the envelope" in {
@@ -179,6 +181,47 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
 
       status(result) shouldBe 404
       contentAsString(result) should include(s"Envelope with id: $nonexistentEnvelopeId not found")
+    }
+  }
+
+  "Delete file" should {
+    "be successful" in {
+      val fileId = FileId()
+      val envelopeId = EnvelopeId()
+      val deleteFile: (EnvelopeId, FileId) => Future[DeleteFileResult] = (_, _) => Future.successful(Xor.right(fileId))
+      val controller = newController(
+        deleteF = deleteFile
+      )
+
+      val result = controller.deleteFile(envelopeId, fileId)(FakeRequest()).futureValue
+
+      result.header.status shouldBe 200
+    }
+
+    "fail if file does not exist" in {
+      val fileId = FileId()
+      val envelopeId = EnvelopeId()
+      val deleteFile: (EnvelopeId, FileId) => Future[DeleteFileResult] = (_, _) => Future.successful(Xor.left(DeleteFileNotFoundError))
+      val controller = newController(
+        deleteF = deleteFile
+      )
+
+      val result = controller.deleteFile(envelopeId, fileId)(FakeRequest()).futureValue
+
+      result.header.status shouldBe NOT_FOUND
+    }
+
+    "respond with 500 INTERNAL SERVER ERROR status" in {
+      val fileId = FileId()
+      val envelopeId = EnvelopeId()
+      val deleteFile: (EnvelopeId, FileId) => Future[DeleteFileResult] = (_, _) => Future.successful(Xor.left(DeleteFileServiceError("error")))
+      val controller = newController(
+        deleteF = deleteFile
+      )
+
+      val result = controller.deleteFile(envelopeId, fileId)(FakeRequest()).futureValue
+
+      result.header.status shouldBe INTERNAL_SERVER_ERROR
     }
   }
 }

@@ -32,13 +32,18 @@ class FileController(uploadBodyParser: (EnvelopeId, FileId) => BodyParser[Future
                      retrieveFile: (Envelope, FileId) => Future[GetFileResult],
                      withValidEnvelope: WithValidEnvelope,
                      uploadFile: UploadedFileInfo => Future[UpsertFileToEnvelopeResult],
-                     upsertFileMetadata: UploadedFileMetadata => Future[UpdateMetadataResult])
+                     upsertFileMetadata: UploadedFileMetadata => Future[UpdateMetadataResult],
+                     deleteFileFromEnvelope: (EnvelopeId, FileId) => Future[DeleteFileResult])
                     (implicit executionContext: ExecutionContext) extends BaseController {
 
 
   def deleteFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { request =>
     withValidEnvelope(envelopeId) { envelope =>
-      Future.successful(Ok)
+      deleteFileFromEnvelope(envelopeId, fileId).map {
+        case Xor.Right(_) => Ok
+        case Xor.Left(DeleteFileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId")
+        case Xor.Left(DeleteFileServiceError(msg)) => ExceptionHandler(INTERNAL_SERVER_ERROR, msg)
+      }.recover { case e => ExceptionHandler(e) }
     }
   }
 
@@ -88,7 +93,6 @@ class FileController(uploadBodyParser: (EnvelopeId, FileId) => BodyParser[Future
       upsertFileMetadata(UploadedFileMetadata(envelopeId, fileId, report.name, report.contentType, report.metadata)).map {
         case Xor.Right(_) => Ok.withHeaders(LOCATION -> s"${ request.host }${ routes.FileController.retrieveMetadata(envelopeId, fileId) }")
         case Xor.Left(UpdateMetadataNotSuccessfulError) => ExceptionHandler(INTERNAL_SERVER_ERROR, "metadata not updated")
-        case Xor.Left(UpdateMetadataEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope $envelopeId not found")
         case Xor.Left(UpdateMetadataServiceError(message)) => ExceptionHandler(INTERNAL_SERVER_ERROR, message)
       }.recover { case e => ExceptionHandler(e) }
     }

@@ -117,6 +117,17 @@ class Repository(mongo: () => DB with DBMetaCommands)
     collection.update(selector, add).map(toBoolean)
   }
 
+  def deleteFile(envelopeId: EnvelopeId, fileId: FileId)
+                (implicit ex: ExecutionContext): Future[Boolean] = {
+    val selector = Json.obj(_Id -> envelopeId, "status" -> EnvelopeStatusOpen.name)
+    val delete = Json.obj("$pull" -> Json.obj(
+      "files" -> Json.obj(
+        "fileId" -> fileId
+      )
+    ))
+    collection.update(selector, delete).map(_.nModified == 1)
+  }
+
   def add(envelope: Envelope)(implicit ex: ExecutionContext): Future[Boolean] = {
     insert(envelope) map toBoolean
   }
