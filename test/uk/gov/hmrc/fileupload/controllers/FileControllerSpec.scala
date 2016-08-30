@@ -60,12 +60,12 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
                     retrieveFile: (Envelope, FileId) => Future[GetFileResult] = (_,_) => failed,
                     withValidEnvelope: WithValidEnvelope = Support.envelopeAvailable(),
                     uploadFile: UploadedFileInfo => Future[UpsertFileToEnvelopeResult] = _ => failed,
-                    updateMetadata: (EnvelopeId, FileId, Option[String], Option[String], Option[JsObject]) => Future[UpdateMetadataResult] = (_,_,_,_,_) => failed) =
+                    upsertFileMetadata: UploadedFileMetadata => Future[UpdateMetadataResult] = _ => failed) =
     new FileController(uploadBodyParser = uploadBodyParser,
       retrieveFile = retrieveFile,
       withValidEnvelope = withValidEnvelope,
       uploadFile = uploadFile,
-      updateMetadata = updateMetadata)
+      upsertFileMetadata = upsertFileMetadata)
 
   "Upload a file" should {
     "return 200 after the file is added to the envelope" in {

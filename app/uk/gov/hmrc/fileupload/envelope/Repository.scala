@@ -22,7 +22,8 @@ import play.api.mvc._
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.{DB, DBMetaCommands}
 import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.fileupload.envelope.Service.UploadedFileInfo
+import uk.gov.hmrc.fileupload.envelope.Service.{UploadedFileInfo, UploadedFileMetadata}
+import uk.gov.hmrc.fileupload.utils.JsonUtils.optional
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 import uk.gov.hmrc.mongo.ReactiveRepository
 
@@ -54,7 +55,7 @@ class Repository(mongo: () => DB with DBMetaCommands)
     }
   }
 
-  def updateFile(envelopeId: EnvelopeId, uploadedFileInfo: UploadedFileInfo)(implicit ex: ExecutionContext): Future[Boolean] = {
+  private def updateFile(envelopeId: EnvelopeId, uploadedFileInfo: UploadedFileInfo)(implicit ex: ExecutionContext): Future[Boolean] = {
     val selector = Json.obj(_Id -> envelopeId.value, "files.fileId" -> uploadedFileInfo.fileId)
     val update = Json.obj("$set" -> Json.obj(
       "files.$.length" -> uploadedFileInfo.length,
@@ -64,7 +65,7 @@ class Repository(mongo: () => DB with DBMetaCommands)
     collection.update(selector, update).map { _.nModified == 1 }
   }
 
-  def addFile(envelopeId: EnvelopeId, uploadedFileInfo: UploadedFileInfo)(implicit ex: ExecutionContext): Future[Boolean] = {
+  private def addFile(envelopeId: EnvelopeId, uploadedFileInfo: UploadedFileInfo)(implicit ex: ExecutionContext): Future[Boolean] = {
     val selector = Json.obj(_Id -> envelopeId)
     val add = Json.obj("$push" -> Json.obj(
       "files" -> Json.obj(
@@ -75,6 +76,44 @@ class Repository(mongo: () => DB with DBMetaCommands)
         "rel" -> "file"
       )
     ))
+    collection.update(selector, add).map(toBoolean)
+  }
+
+  // explanation: http://stackoverflow.com/questions/23470658/mongodb-upsert-sub-document
+  def upsertFileMetadata(uploadedFileMetadata: UploadedFileMetadata)(implicit ex: ExecutionContext): Future[Boolean] = {
+    updateFileMetadata(uploadedFileMetadata).flatMap {
+      case true => Future.successful(true)
+      case false => addMetadataToAFile(uploadedFileMetadata)
+    }
+  }
+
+  private def updateFileMetadata(uploadedFileMetadata: UploadedFileMetadata)(implicit ex: ExecutionContext): Future[Boolean] = {
+    import uploadedFileMetadata._
+    if (name.nonEmpty || contentType.nonEmpty || metadata.nonEmpty) {
+      val selector = Json.obj(_Id -> envelopeId, "files.fileId" -> fileId)
+      val update = Json.obj("$set" -> (
+          optional("files.$.name", name) ++
+          optional("files.$.contentType", contentType) ++
+          optional("files.$.metadata", metadata)
+        ))
+      collection.update(selector, update).map { _.nModified == 1 }
+    } else {
+      Future.successful(true) // nothing to update
+    }
+  }
+
+  private def addMetadataToAFile(uploadedFileMetadata: UploadedFileMetadata)(implicit ex: ExecutionContext): Future[Boolean] = {
+    import uploadedFileMetadata._
+    val selector = Json.obj(_Id -> envelopeId)
+    val add = Json.obj("$push" -> Json.obj(
+      "files" -> (
+          Json.obj("fileId" -> fileId) ++
+          optional("name", name) ++
+          optional("contentType", contentType) ++
+          optional("metadata", metadata)
+        )
+      )
+    )
     collection.update(selector, add).map(toBoolean)
   }
 

@@ -99,7 +99,7 @@ case class File(fileId: FileId,
                 uploadDate: Option[DateTime] = None,
                 revision: Option[Int] = None,
                 metadata: Option[JsObject] = None,
-                rel: String = "file")
+                rel: Option[String] = Some("file"))
 
 object Envelope {
 

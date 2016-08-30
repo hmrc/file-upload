@@ -18,9 +18,12 @@ package uk.gov.hmrc.fileupload.utils
 
 import play.api.libs.json._
 
-object JsonOFormatUtils {
+object JsonUtils {
   def oFormat[A](format: Format[A]): OFormat[A] = new OFormat[A] {
     def reads(json: JsValue): JsResult[A] = format.reads(json)
     def writes(o: A): JsObject = format.writes(o).as[JsObject]
   }
+
+  def optional[A : Writes](k: String, value: Option[A]): JsObject =
+    value.map(v => Json.obj(k -> v)).getOrElse(Json.obj())
 }

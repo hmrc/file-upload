@@ -32,7 +32,7 @@ class FileController(uploadBodyParser: (EnvelopeId, FileId) => BodyParser[Future
                      retrieveFile: (Envelope, FileId) => Future[GetFileResult],
                      withValidEnvelope: WithValidEnvelope,
                      uploadFile: UploadedFileInfo => Future[UpsertFileToEnvelopeResult],
-                     updateMetadata: (EnvelopeId, FileId, Option[String], Option[String], Option[JsObject]) => Future[UpdateMetadataResult])
+                     upsertFileMetadata: UploadedFileMetadata => Future[UpdateMetadataResult])
                     (implicit executionContext: ExecutionContext) extends BaseController {
 
 
@@ -79,17 +79,19 @@ class FileController(uploadBodyParser: (EnvelopeId, FileId) => BodyParser[Future
           ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId")
         )
       }
-    }.recover { case e => ExceptionHandler(e) } // todo delete this exception handler
+    }.recover { case e => ExceptionHandler(e) }
   }
 
   def metadata(envelopeId: EnvelopeId, fileId: FileId) = Action.async(FileMetadataParser) { request =>
-    val report = request.body
-    updateMetadata(envelopeId, fileId, report.name, report.contentType, report.metadata).map {
-      case Xor.Right(_) => Ok.withHeaders(LOCATION -> s"${ request.host }${ routes.FileController.retrieveMetadata(envelopeId, fileId) }")
-      case Xor.Left(UpdateMetadataNotSuccessfulError) => ExceptionHandler(INTERNAL_SERVER_ERROR, "metadata not updated")
-      case Xor.Left(UpdateMetadataEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope $envelopeId not found")
-      case Xor.Left(UpdateMetadataServiceError(message)) => ExceptionHandler(INTERNAL_SERVER_ERROR, message)
-    }.recover { case e => ExceptionHandler(e) }
+    withValidEnvelope(envelopeId) { envelope =>
+      val report = request.body
+      upsertFileMetadata(UploadedFileMetadata(envelopeId, fileId, report.name, report.contentType, report.metadata)).map {
+        case Xor.Right(_) => Ok.withHeaders(LOCATION -> s"${ request.host }${ routes.FileController.retrieveMetadata(envelopeId, fileId) }")
+        case Xor.Left(UpdateMetadataNotSuccessfulError) => ExceptionHandler(INTERNAL_SERVER_ERROR, "metadata not updated")
+        case Xor.Left(UpdateMetadataEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope $envelopeId not found")
+        case Xor.Left(UpdateMetadataServiceError(message)) => ExceptionHandler(INTERNAL_SERVER_ERROR, message)
+      }.recover { case e => ExceptionHandler(e) }
+    }
   }
 
 }

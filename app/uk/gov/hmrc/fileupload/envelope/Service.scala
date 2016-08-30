@@ -70,6 +70,12 @@ object Service {
     implicit val format = Json.format[UploadedFileInfo]
   }
 
+  case class UploadedFileMetadata(envelopeId: EnvelopeId,
+                                  fileId: FileId,
+                                  name: Option[String],
+                                  contentType: Option[String],
+                                  metadata: Option[JsObject])
+
   def create(add: Envelope => Future[Boolean])(envelope: Envelope)(implicit ex: ExecutionContext): Future[CreateResult] =
     add(envelope).map {
       case true => Xor.right(envelope)
@@ -107,18 +113,15 @@ object Service {
       }
   }
 
-  def updateMetadata(getEnvelope: EnvelopeId => Future[Option[Envelope]], updateEnvelope: Envelope => Future[Boolean])
-                    (envelopeId: EnvelopeId, fileId: FileId, name: Option[String], contentType: Option[String], metadata: Option[JsObject])
+  def updateMetadata(upsertFileMetadata: UploadedFileMetadata => Future[Boolean])
+                    (uploadedFileMetadata: UploadedFileMetadata)
                     (implicit ex: ExecutionContext): Future[UpdateMetadataResult] = {
-    getEnvelope(envelopeId).flatMap {
-      case Some(envelope) =>
-        val updatedEnvelope = envelope.addMetadataToAFile(fileId = fileId, name = name, contentType = contentType, metadata = metadata)
-        updateEnvelope(updatedEnvelope).map {
-          case true => Xor.right(UpdateMetadataSuccess)
-          case false => Xor.left(UpdateMetadataNotSuccessfulError)
-        }
-      case None => Future.successful(Xor.left(UpdateMetadataEnvelopeNotFoundError))
-    }.recover { case NonFatal(e) => Xor.left(UpdateMetadataServiceError(e.getMessage))}
+    upsertFileMetadata(uploadedFileMetadata).map {
+      case true => Xor.right(UpdateMetadataSuccess)
+      case false => Xor.left(UpdateMetadataNotSuccessfulError)
+    }.recover {
+      case NonFatal(e) => Xor.left(UpdateMetadataServiceError(e.getMessage))
+    }
   }
 
   def updateFileStatus(getEnvelope: EnvelopeId => Future[Option[Envelope]],

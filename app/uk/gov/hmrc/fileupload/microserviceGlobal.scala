@@ -130,16 +130,17 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     val getFileFromRepo = fileRepository.retrieveFile _
     val retrieveFile = FileService.retrieveFile(getFileFromRepo) _
     val upsertFile = envelopeRepository.upsertFile _
+    val upsertFileMetadata = envelopeRepository.upsertFileMetadata _
 
     val uploadFile = EnvelopeService.uploadFile(upsertFile, publish) _
 
-    val updateMetadata = EnvelopeService.updateMetadata(getEnvelope, updateEnvelope) _
+    val updateMetadata = EnvelopeService.updateMetadata(upsertFileMetadata) _
 
     new FileController(uploadBodyParser = uploadBodyParser,
       retrieveFile = retrieveFile,
       withValidEnvelope = withValidEnvelope,
       uploadFile = uploadFile,
-      updateMetadata = updateMetadata
+      upsertFileMetadata = updateMetadata
     )
   }
 
