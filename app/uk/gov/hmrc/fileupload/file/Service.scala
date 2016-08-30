@@ -18,8 +18,8 @@ package uk.gov.hmrc.fileupload.file
 
 import cats.data.Xor
 import play.api.libs.iteratee.Enumerator
-import uk.gov.hmrc.fileupload.envelope.{Envelope, File}
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
+import uk.gov.hmrc.fileupload.FileId
+import uk.gov.hmrc.fileupload.envelope.Envelope
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps

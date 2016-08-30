@@ -17,11 +17,9 @@
 package uk.gov.hmrc.fileupload.envelope
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import cats.data.Xor
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
-import uk.gov.hmrc.fileupload.envelope.Service.{FindResult, UpdateMetadataResult}
+import uk.gov.hmrc.fileupload.envelope.Service.UpdateMetadataResult
 import uk.gov.hmrc.fileupload.events._
-import uk.gov.hmrc.fileupload.notifier.NotifierRepository.{Notification, NotifyResult}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 import scala.concurrent.{ExecutionContext, Future}
 

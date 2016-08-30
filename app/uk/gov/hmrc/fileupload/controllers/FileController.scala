@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
-import play.api.libs.json.{JsObject, JsString, Json}
+import play.api.libs.json.{JsString, Json}
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.envelope.Service._
 import uk.gov.hmrc.fileupload.envelope.{Envelope, WithValidEnvelope}
