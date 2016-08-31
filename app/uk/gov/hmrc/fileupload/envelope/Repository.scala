@@ -151,7 +151,7 @@ class WithValidEnvelope(getEnvelope: EnvelopeId => Future[Option[Envelope]]) {
       getEnvelope(id).flatMap {
       case Some(e) => block(e) // eventually do other checks here, e.g. is envelope sealed?
       case None => Future.successful(
-        Results.NotFound(Json.toJson(Json.obj("message" -> s"Envelope with id: $id not found")))
+        Results.NotFound(Json.obj("message" -> s"Envelope with id: $id not found"))
       )
     }
   }
