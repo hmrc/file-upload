@@ -22,10 +22,10 @@ import uk.gov.hmrc.fileupload.file.Repository
 
 import scala.concurrent.ExecutionContext
 
-class TestOnlyController(quarantineRepo: Repository)(implicit executionContext: ExecutionContext) {
+class TestOnlyController(repo: Repository)(implicit executionContext: ExecutionContext) {
 
   def cleanup() = Action.async { request =>
-    quarantineRepo.removeAll().map { results =>
+    repo.removeAll().map { results =>
       if (results.forall(_.ok)) {
         Ok
       } else {
