@@ -24,6 +24,7 @@ import net.ceedubs.ficus.Ficus._
 import play.api.mvc.{EssentialFilter, RequestHeader, Result}
 import play.api.{Application, Configuration, Logger, Play}
 import uk.gov.hmrc.fileupload.controllers._
+import uk.gov.hmrc.fileupload.controllers.transfer.TransferController
 import uk.gov.hmrc.fileupload.envelope.{FileStatusHandlerActor, WithValidEnvelope, Service => EnvelopeService}
 import uk.gov.hmrc.fileupload.file.{Service => FileService}
 import uk.gov.hmrc.fileupload.infrastructure.{DefaultMongoConnection, PlayHttp}
@@ -147,6 +148,10 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       deleteFileFromEnvelope = deleteFile)
   }
 
+  lazy val transferController = {
+    new TransferController()
+  }
+
   lazy val testOnlyController = {
     val fileRepository = uk.gov.hmrc.fileupload.file.Repository.apply(db)
     new TestOnlyController(fileRepository)
@@ -182,6 +187,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       fileController.asInstanceOf[A]
     } else if (controllerClass == classOf[EventController]) {
       eventController.asInstanceOf[A]
+    } else if (controllerClass == classOf[TransferController]) {
+      transferController.asInstanceOf[A]
     } else if (controllerClass == classOf[TestOnlyController]) {
       testOnlyController.asInstanceOf[A]
     } else {
