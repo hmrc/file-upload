@@ -16,12 +16,9 @@
 
 package uk.gov.hmrc.fileupload.controllers.transfer
 
-import java.io.ByteArrayOutputStream
-import java.util.zip.{ZipEntry, ZipOutputStream}
-
-import play.api.libs.iteratee.Enumerator
+import controllers.Assets
 import play.api.libs.json.Json
-import play.api.mvc.Action
+import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
@@ -97,22 +94,8 @@ class TransferController()(implicit executionContext: ExecutionContext) extends 
     Future.successful(Ok(Json.parse(result)))
   }
 
-  def download(envelopeId: EnvelopeId) = Action.async { implicit request =>
-    val enumerator = Enumerator.outputStream { os =>
-      val zip = new ZipOutputStream(os)
-      zip.putNextEntry(new ZipEntry("file1.pdf"))
-      zip.closeEntry()
-      zip.putNextEntry(new ZipEntry("file2.jpg"))
-      zip.closeEntry()
-      zip.putNextEntry(new ZipEntry(".metadata"))
-      zip.write("will include metadata".getBytes)
-      zip.closeEntry()
-      zip.close()
-    }
-    Future.successful(Ok.feed(enumerator >>> Enumerator.eof).withHeaders(
-      "Content-Type" -> "application/zip",
-      "Content-Disposition" -> s"attachment; filename=$envelopeId.zip"))
-  }
+  def download(envelopeId: EnvelopeId): Action[AnyContent] =
+    Assets.at(path="/public", file="transfer/envelope.zip")
 
   def delete(envelopeId: EnvelopeId) = Action.async { implicit request =>
     Future.successful(Ok)
