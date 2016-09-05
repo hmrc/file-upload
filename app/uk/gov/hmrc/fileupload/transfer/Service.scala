@@ -37,7 +37,7 @@ object Service {
                 (envelopeId: EnvelopeId)
                 (implicit ex: ExecutionContext): Future[SoftDeleteResult] =
     delete(envelopeId).flatMap {
-      case true => Future { Xor.Right(envelopeId) }
+      case true => Future.successful(Xor.Right(envelopeId))
       case false => getEnvelope(envelopeId).map {
         case Xor.Right(e) => e.status match {
           case EnvelopeStatusDeleted => Xor.Left(SoftDeleteEnvelopeAlreadyDeleted)
