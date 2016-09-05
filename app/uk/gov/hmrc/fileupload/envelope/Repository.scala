@@ -128,6 +128,14 @@ class Repository(mongo: () => DB with DBMetaCommands)
     collection.update(selector, delete).map(_.nModified == 1)
   }
 
+  def updateStatus(conditionStatus: EnvelopeStatus, targetStatus: EnvelopeStatus)
+                  (envelopeId: EnvelopeId)
+                  (implicit ec: ExecutionContext): Future[Boolean] = {
+    val selector = Json.obj(_Id -> envelopeId.value, "status" -> conditionStatus.name)
+    val update = Json.obj("$set" -> Json.obj("status" -> targetStatus.name))
+    collection.update(selector, update).map { _.nModified == 1 }
+  }
+
   def add(envelope: Envelope)(implicit ex: ExecutionContext): Future[Boolean] = {
     insert(envelope) map toBoolean
   }

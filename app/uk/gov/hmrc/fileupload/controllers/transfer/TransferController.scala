@@ -100,4 +100,8 @@ class TransferController()(implicit executionContext: ExecutionContext) extends 
   def delete(envelopeId: EnvelopeId) = Action.async { implicit request =>
     Future.successful(Ok)
   }
+
+  def nonStubDelete(envelopeId: EnvelopeId) = Action.async { implicit request =>
+    Future.successful(Ok)
+  }
 }
