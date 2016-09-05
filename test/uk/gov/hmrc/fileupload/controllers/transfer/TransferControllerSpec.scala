@@ -39,7 +39,7 @@ class TransferControllerSpec extends UnitSpec with WithFakeApplication with Scal
   "Delete envelope" should {
     "return response with 200" in {
       val envelope = Support.envelope
-      val request = FakeRequest("DELETE", s"/envelopes/${envelope._id}")
+      val request = FakeRequest()
 
       val controller = newController(softDelete = _ => Future.successful(Xor.Right(envelope._id)))
       val result = controller.nonStubDelete(envelope._id)(request).futureValue
@@ -47,19 +47,19 @@ class TransferControllerSpec extends UnitSpec with WithFakeApplication with Scal
       result.header.status shouldBe Status.OK
     }
 
-    "return response with 400" in {
+    "return response with 500" in {
       val envelope = Support.envelope
-      val request = FakeRequest("DELETE", s"/envelopes/${envelope._id}")
+      val request = FakeRequest()
 
       val controller = newController(softDelete = _ => Future.successful(Xor.Left(SoftDeleteServiceError("not good"))))
       val result = controller.nonStubDelete(envelope._id)(request).futureValue
 
-      result.header.status shouldBe Status.BAD_REQUEST
+      result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
     }
 
     "return response with 404" in {
       val envelope = Support.envelope
-      val request = FakeRequest("DELETE", s"/envelopes/${envelope._id}")
+      val request = FakeRequest()
 
       val controller = newController(softDelete = _ => Future.successful(Xor.Left(SoftDeleteEnvelopeNotFound)))
       val result = controller.nonStubDelete(envelope._id)(request).futureValue
@@ -69,7 +69,7 @@ class TransferControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
     "return response with 410" in {
       val envelope = Support.envelope
-      val request = FakeRequest("DELETE", s"/envelopes/${envelope._id}")
+      val request = FakeRequest()
 
       val controller = newController(softDelete = _ => Future.successful(Xor.Left(SoftDeleteEnvelopeAlreadyDeleted)))
       val result = controller.nonStubDelete(envelope._id)(request).futureValue
@@ -79,7 +79,7 @@ class TransferControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
     "return response with 423" in {
       val envelope = Support.envelope
-      val request = FakeRequest("DELETE", s"/envelopes/${envelope._id}")
+      val request = FakeRequest()
 
       val controller = newController(softDelete = _ => Future.successful(Xor.Left(SoftDeleteEnvelopeInWrongState)))
       val result = controller.nonStubDelete(envelope._id)(request).futureValue
@@ -89,7 +89,7 @@ class TransferControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
     "return response with 503" in {
       val envelope = Support.envelope
-      val request = FakeRequest("DELETE", s"/envelopes/${envelope._id}")
+      val request = FakeRequest()
 
       val controller = newController(softDelete = _ => failed)
       val result = controller.nonStubDelete(envelope._id)(request).futureValue

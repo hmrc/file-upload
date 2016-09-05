@@ -108,7 +108,7 @@ class TransferController(softDelete: (EnvelopeId) => Future[SoftDeleteResult])
   def nonStubDelete(envelopeId: EnvelopeId) = Action.async { implicit request =>
     softDelete(envelopeId).map {
       case Xor.Right(_) => Ok
-      case Xor.Left(SoftDeleteServiceError(m)) => ExceptionHandler(BAD_REQUEST, m)
+      case Xor.Left(SoftDeleteServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
       case Xor.Left(SoftDeleteEnvelopeNotFound) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $envelopeId not found")
       case Xor.Left(SoftDeleteEnvelopeAlreadyDeleted) => ExceptionHandler(GONE, s"Envelope with id: $envelopeId already deleted")
       case Xor.Left(SoftDeleteEnvelopeInWrongState) => ExceptionHandler(LOCKED, s"Envelope with id: $envelopeId locked")
