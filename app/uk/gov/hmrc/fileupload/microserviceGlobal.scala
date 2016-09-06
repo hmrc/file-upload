@@ -25,7 +25,7 @@ import play.api.mvc.{EssentialFilter, RequestHeader, Result}
 import play.api.{Application, Configuration, Logger, Play}
 import uk.gov.hmrc.fileupload.controllers._
 import uk.gov.hmrc.fileupload.controllers.transfer.TransferController
-import uk.gov.hmrc.fileupload.envelope.{FileStatusHandlerActor, WithValidEnvelope, Service => EnvelopeService}
+import uk.gov.hmrc.fileupload.envelope.{Service => EnvelopeService, _}
 import uk.gov.hmrc.fileupload.file.{Service => FileService}
 import uk.gov.hmrc.fileupload.infrastructure.{DefaultMongoConnection, PlayHttp}
 import uk.gov.hmrc.fileupload.notifier.{NotifierActor, NotifierRepository}
@@ -149,7 +149,10 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   }
 
   lazy val transferController = {
-    new TransferController()
+    val softDeleteEnvelope = envelopeRepository.updateStatus(EnvelopeStatusClosed, EnvelopeStatusDeleted) _
+    val softDelete = transfer.Service.softDelete(softDeleteEnvelope, find) _
+
+    new TransferController(softDelete = softDelete)
   }
 
   lazy val testOnlyController = {
@@ -176,6 +179,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     eventController
     envelopeController
     fileController
+    transferController
     testOnlyController
   }
 

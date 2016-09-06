@@ -99,8 +99,8 @@ object Service {
         case true => Xor.right(envelope)
         case _ => Xor.left(DeleteEnvelopeNotSuccessfulError)
       }.recover { case e => Xor.left(DeleteServiceError(e.getMessage)) }
-      case Xor.Left(FindEnvelopeNotFoundError) => Future { Xor.left(DeleteEnvelopeNotFoundError) }
-      case Xor.Left(FindServiceError(m)) => Future { Xor.left(DeleteServiceError(m)) }
+      case Xor.Left(FindEnvelopeNotFoundError) => Future.successful(Xor.left(DeleteEnvelopeNotFoundError))
+      case Xor.Left(FindServiceError(m)) => Future.successful(Xor.left(DeleteServiceError(m)))
     }.recover { case e => Xor.left(DeleteServiceError(e.getMessage)) }
 
   def uploadFile(upsertFile: (EnvelopeId, UploadedFileInfo) => Future[Boolean], publish: AnyRef => Unit)
