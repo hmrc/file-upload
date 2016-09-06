@@ -77,5 +77,27 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 		  val result = repository.get(id).futureValue
       result shouldBe None
 	  }
+
+    "update the status of an envelope" in {
+      val envelope = Support.envelope.copy(status = EnvelopeStatusClosed)
+
+      repository.add(envelope).futureValue
+
+      val softDeleteEnvelope = repository.updateStatus(EnvelopeStatusClosed, EnvelopeStatusDeleted) _
+      val result: Boolean = softDeleteEnvelope(envelope._id).futureValue
+
+      junit.Assert.assertTrue(result)
+    }
+
+    "do not update the status of an envelope" in {
+      val envelope = Support.envelope.copy(status = EnvelopeStatusDeleted)
+
+      repository.add(envelope).futureValue
+
+      val softDeleteEnvelope = repository.updateStatus(EnvelopeStatusClosed, EnvelopeStatusDeleted) _
+      val result: Boolean = softDeleteEnvelope(envelope._id).futureValue
+
+      junit.Assert.assertFalse(result)
+    }
   }
 }

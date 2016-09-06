@@ -16,13 +16,11 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import java.util.UUID
-
 import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
-import play.api.libs.json.{JsString, Json}
-import play.api.mvc.{AnyContentAsJson, Result}
+import play.api.libs.json.Json
+import play.api.mvc.Result
 import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.fileupload.{EnvelopeId, Support}
 import uk.gov.hmrc.fileupload.envelope.Envelope

@@ -16,16 +16,20 @@
 
 package uk.gov.hmrc.fileupload.controllers.transfer
 
+import cats.data.Xor
 import controllers.Assets
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.fileupload.EnvelopeId
+import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
+import uk.gov.hmrc.fileupload.transfer.Service._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
-class TransferController()(implicit executionContext: ExecutionContext) extends BaseController {
+class TransferController(softDelete: (EnvelopeId) => Future[SoftDeleteResult])
+                        (implicit executionContext: ExecutionContext) extends BaseController {
 
   def list() = Action.async { implicit request =>
     val result =
@@ -99,5 +103,15 @@ class TransferController()(implicit executionContext: ExecutionContext) extends 
 
   def delete(envelopeId: EnvelopeId) = Action.async { implicit request =>
     Future.successful(Ok)
+  }
+
+  def nonStubDelete(envelopeId: EnvelopeId) = Action.async { implicit request =>
+    softDelete(envelopeId).map {
+      case Xor.Right(_) => Ok
+      case Xor.Left(SoftDeleteServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Xor.Left(SoftDeleteEnvelopeNotFound) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $envelopeId not found")
+      case Xor.Left(SoftDeleteEnvelopeAlreadyDeleted) => ExceptionHandler(GONE, s"Envelope with id: $envelopeId already deleted")
+      case Xor.Left(SoftDeleteEnvelopeInWrongState) => ExceptionHandler(LOCKED, s"Envelope with id: $envelopeId locked")
+    }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
   }
 }
