@@ -46,6 +46,7 @@ class InMemoryEventStore extends EventStore {
     println(s"saveEvent: $events")
     val currentEvents = allEvents.getOrElse(envelopeId, List.empty)
     allEvents = allEvents + (envelopeId -> currentEvents.++(events))
+    //TODO: publish events after successfully saved
   }
 
   override def eventsForAggregate(envelopeId: EnvelopeId): List[Event] = {
