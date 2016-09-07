@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.domain
 
 import uk.gov.hmrc.fileupload.EnvelopeId
 
-class Repository[T <: AggregateRoot](newInstance: (EnvelopeId) => T, storage: EventStore) {
+class Repository[T <: AggregateRoot[_]](newInstance: (EnvelopeId) => T, storage: EventStore) {
 
   def save(aggregate: T, expectedVersion: Version): Unit =
     storage.saveEvents(aggregate.id, aggregate.uncommitedChanges(), expectedVersion)

@@ -18,10 +18,9 @@ package uk.gov.hmrc.fileupload.example
 
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileReferenceId}
 import uk.gov.hmrc.fileupload.domain.{AggregateRoot, Event}
+import uk.gov.hmrc.fileupload.example.Envelope.{CleanedFile, QuarantinedFile, State}
 
-class Envelope(override val id: EnvelopeId) extends AggregateRoot {
-
-  var files = Map.empty[FileId, File]
+class Envelope(override val id: EnvelopeId) extends AggregateRoot[State] {
 
   def create(envelopeId: EnvelopeId) =
     applyChange(EnvelopeCreated(envelopeId))
@@ -30,34 +29,46 @@ class Envelope(override val id: EnvelopeId) extends AggregateRoot {
     applyChange(FileQuarantined(id, fileId, fileReferenceId))
 
   def cleanFile(fileId: FileId, fileReferenceId: FileReferenceId) =
-    files.get(fileId).foreach { file =>
-      if (file.isSame(fileReferenceId)) {
-        applyChange(FileCleaned(id, fileId, fileReferenceId))
-      }
+    if (state.canClean(fileId, fileReferenceId)) {
+      applyChange(FileCleaned(id, fileId, fileReferenceId))
     }
 
   def apply(event: Event) = {
     event.eventData match {
       case e: EnvelopeCreated =>
-
+        State(files = Map.empty)
       case e: FileQuarantined =>
-        files = files + (e.fileId -> QuarantinedFile(e.fileReferenceId, e.fileId))
+        state.copy(files = state.files + (e.fileId -> QuarantinedFile(e.fileReferenceId, e.fileId)))
       case e: FileCleaned =>
-        files = files + (e.fileId -> CleanedFile(e.fileReferenceId, e.fileId))
-      case _ => println("not implemented")
+        state.copy(files = state.files + (e.fileId -> CleanedFile(e.fileReferenceId, e.fileId)))
+      case _ =>
+        println("not implemented")
+        state.copy()
     }
   }
 }
 
-trait File {
-  def fileReferenceId: FileReferenceId
-  def fileId: FileId
+object Envelope {
 
-  def isSame(otherFileReferenceId: FileReferenceId) =
-    fileReferenceId == otherFileReferenceId
+  case class State(files: Map[FileId, File]) {
+
+    def canClean(fileId: FileId, fileReferenceId: FileReferenceId): Boolean =
+      files.get(fileId).exists(_.isSame(fileReferenceId))
+  }
+
+  trait File {
+    def fileReferenceId: FileReferenceId
+    def fileId: FileId
+
+    def isSame(otherFileReferenceId: FileReferenceId) =
+      fileReferenceId == otherFileReferenceId
+  }
+
+  case class QuarantinedFile(fileReferenceId: FileReferenceId, fileId: FileId) extends File
+  case class CleanedFile(fileReferenceId: FileReferenceId, fileId: FileId) extends File
+  case class InfectedFile(fileReferenceId: FileReferenceId, fileId: FileId) extends File
+  case class AvailableFile(fileReferenceId: FileReferenceId, fileId: FileId) extends File
+
 }
 
-case class QuarantinedFile(fileReferenceId: FileReferenceId, fileId: FileId) extends File
-case class CleanedFile(fileReferenceId: FileReferenceId, fileId: FileId) extends File
-case class InfectedFile(fileReferenceId: FileReferenceId, fileId: FileId) extends File
-case class AvailableFile(fileReferenceId: FileReferenceId, fileId: FileId) extends File
+

@@ -20,12 +20,16 @@ import uk.gov.hmrc.fileupload.EnvelopeId
 
 import scala.collection.mutable.ArrayBuffer
 
-trait AggregateRoot {
+trait AggregateRoot[S] {
 
   private val changes: ArrayBuffer[Event] = ArrayBuffer.empty
 
   def id: EnvelopeId
   def version: Version = ???
+
+  var s: Option[S] = None
+
+  def state: S = s.get
 
   def uncommitedChanges(): List[Event] =
     changes.toList
@@ -34,15 +38,17 @@ trait AggregateRoot {
     changes.clear()
 
   def loadsFromHistory(events: List[Event]): Unit =
-    events.foreach(apply)
+    events.foreach(event => {
+      s = Some(apply(event))
+    })
 
   def applyChange(eventData: AnyRef): Unit = {
     val event = Event(envelopeId = id,
       version = Version(1), created = Created(System.currentTimeMillis()),
-      eventType = EventType(eventData.getClass.getSimpleName), eventData = eventData)
-    apply(event)
+      eventType = EventType(eventData.getClass.getName), eventData = eventData)
+    s = Some(apply(event))
     changes.append(event)
   }
 
-  def apply(event: Event): Unit
+  def apply(event: Event): S
 }
