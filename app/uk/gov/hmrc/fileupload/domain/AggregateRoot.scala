@@ -27,9 +27,8 @@ trait AggregateRoot[S] {
   def id: EnvelopeId
   def version: Version = ???
 
-  var s: Option[S] = None
-
-  def state: S = s.get
+  def defaultState: () => S
+  var state: S = defaultState()
 
   def uncommitedChanges(): List[Event] =
     changes.toList
@@ -39,14 +38,14 @@ trait AggregateRoot[S] {
 
   def loadsFromHistory(events: List[Event]): Unit =
     events.foreach(event => {
-      s = Some(apply(event))
+      state = apply(event)
     })
 
   def applyChange(eventData: AnyRef): Unit = {
     val event = Event(envelopeId = id,
       version = Version(1), created = Created(System.currentTimeMillis()),
       eventType = EventType(eventData.getClass.getName), eventData = eventData)
-    s = Some(apply(event))
+    state = apply(event)
     changes.append(event)
   }
 

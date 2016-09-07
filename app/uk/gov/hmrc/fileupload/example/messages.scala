@@ -20,17 +20,21 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileReferenceId}
 
 //commands
 
-case class CreateEnvelope(id: EnvelopeId)
+sealed trait Command {
+  def id: EnvelopeId
+}
 
-case class QurantineFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId)
+case class CreateEnvelope(id: EnvelopeId) extends Command
 
-case class CleanFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId)
+case class QurantineFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId) extends Command
 
-case class InfectFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId)
+case class CleanFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId) extends Command
 
-case class StoreFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId)
+case class InfectFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId) extends Command
 
-case class SealEnvelope(id: EnvelopeId)
+case class StoreFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId) extends Command
+
+case class SealEnvelope(id: EnvelopeId) extends Command
 
 //events
 

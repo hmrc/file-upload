@@ -20,7 +20,8 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileReferenceId}
 import uk.gov.hmrc.fileupload.domain.{AggregateRoot, Event}
 import uk.gov.hmrc.fileupload.example.Envelope.{CleanedFile, QuarantinedFile, State}
 
-class Envelope(override val id: EnvelopeId) extends AggregateRoot[State] {
+class Envelope(override val id: EnvelopeId,
+               override val defaultState: () => State = () => State()) extends AggregateRoot[State] {
 
   def create(envelopeId: EnvelopeId) =
     applyChange(EnvelopeCreated(envelopeId))
@@ -36,7 +37,7 @@ class Envelope(override val id: EnvelopeId) extends AggregateRoot[State] {
   def apply(event: Event) = {
     event.eventData match {
       case e: EnvelopeCreated =>
-        State(files = Map.empty)
+        state.copy()
       case e: FileQuarantined =>
         state.copy(files = state.files + (e.fileId -> QuarantinedFile(e.fileReferenceId, e.fileId)))
       case e: FileCleaned =>
@@ -50,7 +51,7 @@ class Envelope(override val id: EnvelopeId) extends AggregateRoot[State] {
 
 object Envelope {
 
-  case class State(files: Map[FileId, File]) {
+  case class State(files: Map[FileId, File] = Map.empty) {
 
     def canClean(fileId: FileId, fileReferenceId: FileReferenceId): Boolean =
       files.get(fileId).exists(_.isSame(fileReferenceId))

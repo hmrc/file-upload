@@ -20,7 +20,7 @@ import uk.gov.hmrc.fileupload.domain.{Repository, Version}
 
 class EnvelopeCommandHandler(repository: Repository[Envelope]) {
 
-  def handle(command: AnyRef) = {
+  def handle(command: Command) = {
     println(s"Command $command received")
     command match {
       case c: CreateEnvelope =>
@@ -37,6 +37,8 @@ class EnvelopeCommandHandler(repository: Repository[Envelope]) {
         val envelope = repository.byId(c.id)
         envelope.cleanFile(c.fileId, c.fileReferenceId)
         repository.save(envelope, Version(1))
+
+      case _ => s"$command not implemented yet"
     }
   }
 }
