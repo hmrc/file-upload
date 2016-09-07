@@ -43,8 +43,7 @@ object NotifierRepository {
             (implicit executionContext: ExecutionContext): Future[NotifyResult] =
     httpCall(WS
       .url(s"$url")
-      .withBody(Json.stringify(Json.toJson(notification)))
-      .withHeaders("Content-Type" -> "application/json")
+      .withBody(Json.toJson(notification))
       .withMethod("POST")).map {
       case Xor.Left(error) => Xor.left(NotificationFailedError(notification.envelopeId, notification.fileId, error.message))
       case Xor.Right(response) => response.status match {

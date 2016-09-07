@@ -52,7 +52,7 @@ trait FakeConsumingService extends BeforeAndAfterAll with ScalaFutures {
   private def happyCallbackEvent(callbackPath: String, envelopeId: EnvelopeId, fileId: FileId, status: String): Unit = {
     server.verify(postRequestedFor(
       urlEqualTo(s"/$callbackPath"))
-      .withHeader("Content-Type", equalTo("application/json"))
+      .withHeader("Content-Type", containing("application/json"))
       .withRequestBody(equalToJson( s"""{"envelopeId": "$envelopeId", "fileId": "$fileId", "status": "$status"}""".stripMargin))
     )
   }
@@ -60,7 +60,7 @@ trait FakeConsumingService extends BeforeAndAfterAll with ScalaFutures {
   private def sadCallbackEvent(callbackPath: String, envelopeId: EnvelopeId, fileId: FileId, status: String, reason: String): Unit = {
     server.verify(postRequestedFor(
       urlEqualTo(s"/$callbackPath"))
-      .withHeader("Content-Type", equalTo("application/json"))
+      .withHeader("Content-Type", containing("application/json"))
       .withRequestBody(equalToJson(
         s"""
            |{"envelopeId": "$envelopeId", "fileId": "$fileId", "status": "$status", "reason": "$reason"}
