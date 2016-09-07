@@ -20,23 +20,22 @@ import uk.gov.hmrc.fileupload.domain.{Repository, Version}
 
 class EnvelopeCommandHandler(repository: Repository[Envelope]) {
 
-  def handle(command: AnyRef) = {
-    println(s"Command $command received")
-    command match {
-      case c: CreateEnvelope =>
-        val envelope = new Envelope(c.id)
-        envelope.create(c.id)
-        repository.save(envelope, Version(1))
-
-      case c: QurantineFile =>
-        val envelope = repository.byId(c.id)
-        envelope.quarantineFile(c.fileId, c.fileReferenceId)
-        repository.save(envelope, Version(1))
-
-      case c: CleanFile =>
-        val envelope = repository.byId(c.id)
-        envelope.cleanFile(c.fileId, c.fileReferenceId)
-        repository.save(envelope, Version(1))
-    }
+  def handle(c: CreateEnvelope): Unit = {
+    val envelope = new Envelope(c.id)
+    envelope.create(c.id)
+    repository.save(envelope, Version(1))
   }
+
+  def handle(c: QurantineFile): Unit = {
+    val envelope = repository.byId(c.id)
+    envelope.quarantineFile(c.fileId, c.fileReferenceId)
+    repository.save(envelope, Version(1))
+  }
+
+  def handle(c: CleanFile): Unit = {
+    val envelope = repository.byId(c.id)
+    envelope.cleanFile(c.fileId, c.fileReferenceId)
+    repository.save(envelope, Version(1))
+  }
+
 }
