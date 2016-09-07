@@ -37,4 +37,10 @@ trait FileActions extends ActionsSupport {
       .url(s"$url/envelope/$envelopeId/file/$fileId/metadata")
       .get()
       .futureValue
+
+  def downloadEnvelope(envelopeId: EnvelopeId): WSResponse =
+    WS
+      .url(s"$url/envelope/$envelopeId/zip")
+      .get()
+      .futureValue
 }

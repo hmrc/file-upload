@@ -17,11 +17,13 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
+import play.api.libs.iteratee.Enumerator
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.envelope.Envelope
 import uk.gov.hmrc.fileupload.envelope.Service.{DeleteEnvelopeNotFoundError, _}
+import uk.gov.hmrc.fileupload.file.zip.Utils._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -30,7 +32,9 @@ import scala.language.postfixOps
 class EnvelopeController(createEnvelope: Envelope => Future[Xor[CreateError, Envelope]],
                          nextId: () => EnvelopeId,
                          findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]],
-                         deleteEnvelope: EnvelopeId => Future[Xor[DeleteError, Envelope]])
+                         deleteEnvelope: EnvelopeId => Future[Xor[DeleteError, Envelope]],
+                         zipEnvelope: EnvelopeId => Future[Enumerator[Bytes]]
+                        )
                         (implicit executionContext: ExecutionContext) extends BaseController {
 
   def create() = Action.async(EnvelopeParser) { implicit request =>
@@ -65,4 +69,7 @@ class EnvelopeController(createEnvelope: Envelope => Future[Xor[CreateError, Env
     }.recover { case e => ExceptionHandler(e) }
   }
 
+  def download(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId) = Action.async {
+    zipEnvelope(envelopeId) map (stream =>  Ok.chunked(stream).withHeaders("content-type" -> "application/zip") )
+  }
 }

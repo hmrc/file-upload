@@ -41,7 +41,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
                     nextId: () => EnvelopeId = () => EnvelopeId("abc-def"),
                     findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]] = _ => failed,
                     deleteEnvelope: EnvelopeId => Future[Xor[DeleteError, Envelope]] = _ => failed) =
-    new EnvelopeController(createEnvelope, nextId, findEnvelope, deleteEnvelope)
+    new EnvelopeController(createEnvelope, nextId, findEnvelope, deleteEnvelope, null)
 
   "Create envelope with a request" should {
     "return response with OK status and a Location header specifying the envelope endpoint" in {

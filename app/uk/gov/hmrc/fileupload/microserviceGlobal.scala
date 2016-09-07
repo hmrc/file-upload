@@ -26,6 +26,7 @@ import play.api.{Application, Configuration, Logger, Play}
 import uk.gov.hmrc.fileupload.controllers._
 import uk.gov.hmrc.fileupload.controllers.transfer.TransferController
 import uk.gov.hmrc.fileupload.envelope.{Service => EnvelopeService, _}
+import uk.gov.hmrc.fileupload.file.zip.Zippy
 import uk.gov.hmrc.fileupload.file.{Service => FileService}
 import uk.gov.hmrc.fileupload.infrastructure.{DefaultMongoConnection, PlayHttp}
 import uk.gov.hmrc.fileupload.notifier.{NotifierActor, NotifierRepository}
@@ -102,6 +103,12 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
   lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute) _
 
+  lazy val fileRepository = uk.gov.hmrc.fileupload.file.Repository.apply(db)
+  val iterateeForUpload = fileRepository.iterateeForUpload _
+  val getFileFromRepo = fileRepository.retrieveFile _
+
+  lazy val retrieveFile = FileService.retrieveFile(getFileFromRepo) _
+
   lazy val envelopeController = {
     import play.api.libs.concurrent.Execution.Implicits._
 
@@ -113,10 +120,13 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     val del = envelopeRepository.delete _
     val delete = EnvelopeService.delete(del, find) _
 
+    val zipEnvelope = Zippy.zipEnvelope(find, retrieveFile) _
+
     new EnvelopeController(createEnvelope = create,
       nextId = nextId,
       findEnvelope = find,
-      deleteEnvelope = delete)
+      deleteEnvelope = delete,
+      zipEnvelope = zipEnvelope)
   }
 
   lazy val eventController = {
@@ -126,13 +136,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   lazy val fileController = {
     import play.api.libs.concurrent.Execution.Implicits._
 
-    val fileRepository = uk.gov.hmrc.fileupload.file.Repository.apply(db)
-
-    val iterateeForUpload = fileRepository.iterateeForUpload _
     val uploadBodyParser = UploadParser.parse(iterateeForUpload) _
 
-    val getFileFromRepo = fileRepository.retrieveFile _
-    val retrieveFile = FileService.retrieveFile(getFileFromRepo) _
     val upsertFile = envelopeRepository.upsertFile _
     val upsertFileMetadata = envelopeRepository.upsertFileMetadata _
 
