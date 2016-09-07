@@ -31,7 +31,7 @@ class Envelope(override val id: EnvelopeId) extends AggregateRoot {
 
   def cleanFile(fileId: FileId, fileReferenceId: FileReferenceId) =
     files.get(fileId).foreach { file =>
-      if (file.fileReferenceId == fileReferenceId) {
+      if (file.isSame(fileReferenceId)) {
         applyChange(FileCleaned(id, fileId, fileReferenceId))
       }
     }
@@ -52,6 +52,9 @@ class Envelope(override val id: EnvelopeId) extends AggregateRoot {
 trait File {
   def fileReferenceId: FileReferenceId
   def fileId: FileId
+
+  def isSame(otherFileReferenceId: FileReferenceId) =
+    fileReferenceId == otherFileReferenceId
 }
 
 case class QuarantinedFile(fileReferenceId: FileReferenceId, fileId: FileId) extends File
