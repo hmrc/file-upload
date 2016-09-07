@@ -63,3 +63,7 @@ object FileId {
 case class EventType(value: String) extends AnyVal {
   override def toString = value
 }
+
+case class FileReferenceId(value: String = UUID.randomUUID().toString) extends AnyVal {
+  override def toString = value
+}
