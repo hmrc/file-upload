@@ -16,9 +16,11 @@
 
 package uk.gov.hmrc.fileupload.domain
 
-import uk.gov.hmrc.fileupload.EnvelopeId
+case class Event(eventId: EventId, streamId: StreamId, version: Version, created: Created, eventType: EventType, eventData: EventData)
 
-case class Event(streamId: StreamId, version: Version, created: Created, eventType: EventType, eventData: EventData)
+case class EventId(value: String) extends AnyVal {
+  override def toString = value.toString
+}
 
 case class StreamId(value: String) extends AnyVal {
   override def toString = value.toString

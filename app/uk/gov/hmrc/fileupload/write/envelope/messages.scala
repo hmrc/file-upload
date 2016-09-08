@@ -16,9 +16,11 @@
 
 package uk.gov.hmrc.fileupload.write.envelope
 
-import play.api.libs.json.JsObject
-import uk.gov.hmrc.fileupload.domain.{Command, StreamId}
+import play.api.libs.json.{Format, JsObject, JsValue, Json}
+import uk.gov.hmrc.fileupload.domain.{Command, EventData, EventType, StreamId}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileReferenceId}
+
+import scala.util.Try
 
 //commands
 
@@ -55,3 +57,37 @@ case class FileInfected(id: EnvelopeId, fileId: FileId, fileReferenceId: FileRef
 case class FileStored(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId, length: Long)
 
 case class EnvelopeSealed(id: EnvelopeId)
+
+object Formatters {
+  implicit val envelopeCreatedFormat: Format[EnvelopeCreated] = Json.format[EnvelopeCreated]
+  implicit val fileQuarantinedFormat: Format[FileQuarantined] = Json.format[FileQuarantined]
+  implicit val fileCleanedFormat: Format[FileCleaned] = Json.format[FileCleaned]
+  implicit val fileInfectedFormat: Format[FileInfected] = Json.format[FileInfected]
+  implicit val fileStoredFormat: Format[FileStored] = Json.format[FileStored]
+  implicit val envelopeSealedFormat: Format[EnvelopeSealed] = Json.format[EnvelopeSealed]
+}
+
+object EventSerializer {
+
+  import Formatters._
+
+  def toEventData(eventType: EventType, value: JsValue): EventData =
+    eventType.value match {
+      case "uk.gov.hmrc.fileupload.write.envelope.EnvelopeCreated" => Json.fromJson[EnvelopeCreated](value).get
+      case "uk.gov.hmrc.fileupload.write.envelope.FileQuarantined"=> Json.fromJson[FileQuarantined](value).get
+      case "uk.gov.hmrc.fileupload.write.envelope.FileCleaned" => Json.fromJson[FileCleaned](value).get
+      case "uk.gov.hmrc.fileupload.write.envelope.FileInfected" => Json.fromJson[FileInfected](value).get
+      case "uk.gov.hmrc.fileupload.write.envelope.FileStored" => Json.fromJson[FileStored](value).get
+      case "uk.gov.hmrc.fileupload.write.envelope.EnvelopeSealed" => Json.fromJson[EnvelopeSealed](value).get
+    }
+
+  def fromEventData(eventData: EventData): JsValue =
+    eventData match {
+      case e: EnvelopeCreated => Json.toJson(e)
+      case e: FileQuarantined => Json.toJson(e)
+      case e: FileCleaned => Json.toJson(e)
+      case e: FileInfected => Json.toJson(e)
+      case e: FileStored => Json.toJson(e)
+      case e: EnvelopeSealed => Json.toJson(e)
+    }
+}

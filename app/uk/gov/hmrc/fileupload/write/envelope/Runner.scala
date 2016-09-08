@@ -19,11 +19,15 @@ package uk.gov.hmrc.fileupload.write.envelope
 import java.util.UUID
 
 import akka.actor.ActorSystem
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.Json
 import reactivemongo.api.MongoDriver
-import uk.gov.hmrc.fileupload.domain.InMemoryEventStore
+import uk.gov.hmrc.fileupload.domain.EventSerializer.{EventReader, EventWriter}
+import uk.gov.hmrc.fileupload.domain.MongoEventStore
 import uk.gov.hmrc.fileupload.read.envelope.{EventHandler, Repository}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileReferenceId}
+
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 object Runner extends App {
 
@@ -40,23 +44,32 @@ object Runner extends App {
   //create mongo driver
   val mongoDriver = new MongoDriver
   val connection = mongoDriver.connection(List("localhost"))
+  val repository = Repository(() => connection.db("eventsourcing"))
 
-  actorSystem.actorOf(EventHandler.props(subscribe, Repository(() => connection.db("eventsourcing"))), "envelopeReportEventHandler")
+  actorSystem.actorOf(EventHandler.props(subscribe, repository), "envelopeReportEventHandler")
 
   // write model
 
   //this we can create inside microserviceGlobal
-  implicit val eventStore = new InMemoryEventStore()
+//  implicit val eventStore = new InMemoryEventStore()
+
+  implicit val reader = new EventReader(EventSerializer.toEventData)
+  implicit val writer = new EventWriter(EventSerializer.fromEventData)
+
+  implicit val eventStore = new MongoEventStore(() => connection.db("eventsourcing"))
   val handle = CommandHandler.handleCommand _
 
   val serviceWhichCallsCommandFunc = serviceWhichCallsCommand(handle) _
   
-  val envelopeId = UUID.randomUUID().toString
+  val envelopeId = EnvelopeId(UUID.randomUUID().toString)
 
-  serviceWhichCallsCommandFunc(new CreateEnvelope(EnvelopeId(envelopeId)))
-  serviceWhichCallsCommandFunc(new QurantineFile(EnvelopeId(envelopeId), FileId("file-id-1"), FileReferenceId("file-reference-id-1"), "example.pdf", "application/pdf", Json.obj("name" -> "test")))
-  serviceWhichCallsCommandFunc(new CleanFile(EnvelopeId(envelopeId), FileId("file-id-1"), FileReferenceId("file-reference-id-1")))
+  serviceWhichCallsCommandFunc(new CreateEnvelope(envelopeId))
+  serviceWhichCallsCommandFunc(new QurantineFile(envelopeId, FileId("file-id-1"), FileReferenceId("file-reference-id-1"), "example.pdf", "application/pdf", Json.obj("name" -> "test")))
+  serviceWhichCallsCommandFunc(new CleanFile(envelopeId, FileId("file-id-1"), FileReferenceId("file-reference-id-1")))
 
+  //print read model
+  Thread.sleep(3000)
+  println(Await.result(repository.get(envelopeId), 5 seconds))
 
   def serviceWhichCallsCommand(handle: (EnvelopeCommand) => Unit)(command: EnvelopeCommand) =
     handle(command)

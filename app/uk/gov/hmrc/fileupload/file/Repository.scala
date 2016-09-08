@@ -39,7 +39,7 @@ object Repository {
 
 case class FileData(length: Long = 0, data: Enumerator[Array[Byte]] = null)
 
-class Repository(mongo: () => DB with DBMetaCommands) {
+class   Repository(mongo: () => DB with DBMetaCommands) {
 
   import reactivemongo.json.collection._
 

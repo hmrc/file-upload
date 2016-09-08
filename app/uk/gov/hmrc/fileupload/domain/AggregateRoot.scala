@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.fileupload.domain
 
+import java.util.UUID
+
 trait AggregateRoot[C <: Command, S] {
 
   def version: Version = ???
@@ -27,8 +29,8 @@ trait AggregateRoot[C <: Command, S] {
   def publish: AnyRef => Unit
 
   def createEvent(eventData: EventData, streamId: StreamId) =
-    Event(streamId = streamId,
-      version = Version(1), created = Created(System.currentTimeMillis()),
+    Event(eventId = EventId(UUID.randomUUID().toString),
+      streamId = streamId, version = Version(1), created = Created(System.currentTimeMillis()),
       eventType = EventType(eventData.getClass.getName), eventData = eventData)
 
   def apply: PartialFunction[(S, EventData), S]
@@ -41,6 +43,7 @@ trait AggregateRoot[C <: Command, S] {
   def handleCommand(command: C): Unit = {
     println(s"Handle Command $command")
     val historicalEvents = eventStore.eventsForAggregate(command.streamId)
+    println(s"historicalEvents $historicalEvents")
 
     val currentState = historicalEvents.foldLeft(defaultState()) { (state, event) =>
       applyEvent(state, event.eventData)
@@ -50,6 +53,7 @@ trait AggregateRoot[C <: Command, S] {
     val events = eventsData.map(ed => createEvent(ed, command.streamId))
 
     eventStore.saveEvents(command.streamId, events, Version(1))
+    println(s"events saved $events")
     //TODO: check if this has to be event or eventData
     eventsData.foreach(publish)
   }
