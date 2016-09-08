@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.fileupload.write.envelope
 
+import play.api.libs.json.JsObject
 import uk.gov.hmrc.fileupload.domain.{Command, StreamId}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileReferenceId}
 
@@ -29,13 +30,14 @@ sealed trait EnvelopeCommand extends Command {
 
 case class CreateEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
-case class QurantineFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId) extends EnvelopeCommand
+case class QurantineFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId,
+                         name: String, contentType: String, metadata: JsObject) extends EnvelopeCommand
 
 case class CleanFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId) extends EnvelopeCommand
 
 case class InfectFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId) extends EnvelopeCommand
 
-case class StoreFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId) extends EnvelopeCommand
+case class StoreFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId, length: Long) extends EnvelopeCommand
 
 case class SealEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
@@ -43,12 +45,13 @@ case class SealEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
 case class EnvelopeCreated(id: EnvelopeId)
 
-case class FileQuarantined(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId)
+case class FileQuarantined(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId,
+                           name: String, contentType: String, metadata: JsObject)
 
 case class FileCleaned(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId)
 
 case class FileInfected(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId)
 
-case class FileStored(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId)
+case class FileStored(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId, length: Long)
 
 case class EnvelopeSealed(id: EnvelopeId)

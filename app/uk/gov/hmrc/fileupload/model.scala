@@ -60,10 +60,24 @@ object FileId {
     new SimpleObjectBinder[FileId](FileId.apply, _.value)
 }
 
-case class EventType(value: String) extends AnyVal {
+case class FileReferenceId(value: String = UUID.randomUUID().toString) extends AnyVal {
   override def toString = value
 }
 
-case class FileReferenceId(value: String = UUID.randomUUID().toString) extends AnyVal {
+object FileReferenceId {
+  implicit val writes = new Writes[FileReferenceId] {
+    def writes(id: FileReferenceId): JsValue = JsString(id.value)
+  }
+  implicit val reads = new Reads[FileReferenceId] {
+    def reads(json: JsValue): JsResult[FileReferenceId] = json match {
+      case JsString(value) => JsSuccess(FileReferenceId(value))
+      case _ => JsError("invalid fileId")
+    }
+  }
+  implicit val binder: PathBindable[FileReferenceId] =
+    new SimpleObjectBinder[FileReferenceId](FileReferenceId.apply, _.value)
+}
+
+case class EventType(value: String) extends AnyVal {
   override def toString = value
 }

@@ -28,7 +28,9 @@ class Envelope(override val defaultState: () => State = () => State())
       List(EnvelopeCreated(command.id))
 
     case (command: QurantineFile, state: State) =>
-      List(FileQuarantined(command.id, command.fileId, command.fileReferenceId))
+      List(FileQuarantined(
+        id = command.id, fileId = command.fileId, fileReferenceId = command.fileReferenceId,
+        name = command.name, contentType = command.contentType, metadata = command.metadata))
 
     case (command: CleanFile, state: State) =>
       if (state.canClean(command.fileId, command.fileReferenceId)) {

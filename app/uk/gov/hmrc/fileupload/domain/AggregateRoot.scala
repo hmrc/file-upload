@@ -50,6 +50,7 @@ trait AggregateRoot[C <: Command, S] {
     val events = eventsData.map(ed => createEvent(ed, command.streamId))
 
     eventStore.saveEvents(command.streamId, events, Version(1))
-    events.foreach(publish)
+    //TODO: check if this has to be event or eventData
+    eventsData.foreach(publish)
   }
 }

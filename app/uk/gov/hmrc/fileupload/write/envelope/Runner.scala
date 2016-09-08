@@ -16,23 +16,46 @@
 
 package uk.gov.hmrc.fileupload.write.envelope
 
+import java.util.UUID
+
+import akka.actor.ActorSystem
+import play.api.libs.json.{JsObject, Json}
+import reactivemongo.api.MongoDriver
 import uk.gov.hmrc.fileupload.domain.InMemoryEventStore
+import uk.gov.hmrc.fileupload.read.envelope.{EventHandler, Repository}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileReferenceId}
 
 object Runner extends App {
 
+  import scala.concurrent.ExecutionContext.Implicits.global
+
+  //publish/subscribe for write/read communication
+  val actorSystem = ActorSystem()
+  val eventStream = actorSystem.eventStream
+  val subscribe = eventStream.subscribe _
+  implicit val publish = eventStream.publish _
+
+  // read model
+
+  //create mongo driver
+  val mongoDriver = new MongoDriver
+  val connection = mongoDriver.connection(List("localhost"))
+
+  actorSystem.actorOf(EventHandler.props(subscribe, Repository(() => connection.db("eventsourcing"))), "envelopeReportEventHandler")
+
+  // write model
+
   //this we can create inside microserviceGlobal
   implicit val eventStore = new InMemoryEventStore()
-  implicit val publish = (e: AnyRef) => {
-    println(s"$e published")
-  }
   val handle = CommandHandler.handleCommand _
 
   val serviceWhichCallsCommandFunc = serviceWhichCallsCommand(handle) _
+  
+  val envelopeId = UUID.randomUUID().toString
 
-  serviceWhichCallsCommandFunc(new CreateEnvelope(EnvelopeId("envelope-id-1")))
-  serviceWhichCallsCommandFunc(new QurantineFile(EnvelopeId("envelope-id-1"), FileId("file-id-1"), FileReferenceId("file-reference-id-1")))
-  serviceWhichCallsCommandFunc(new CleanFile(EnvelopeId("envelope-id-1"), FileId("file-id-1"), FileReferenceId("file-reference-id-1")))
+  serviceWhichCallsCommandFunc(new CreateEnvelope(EnvelopeId(envelopeId)))
+  serviceWhichCallsCommandFunc(new QurantineFile(EnvelopeId(envelopeId), FileId("file-id-1"), FileReferenceId("file-reference-id-1"), "example.pdf", "application/pdf", Json.obj("name" -> "test")))
+  serviceWhichCallsCommandFunc(new CleanFile(EnvelopeId(envelopeId), FileId("file-id-1"), FileReferenceId("file-reference-id-1")))
 
 
   def serviceWhichCallsCommand(handle: (EnvelopeCommand) => Unit)(command: EnvelopeCommand) =
