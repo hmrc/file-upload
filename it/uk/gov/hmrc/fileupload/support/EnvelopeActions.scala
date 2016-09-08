@@ -57,7 +57,7 @@ trait EnvelopeActions extends ActionsSupport with MongoSpecSupport {
     }
   }
 
-  def creteEnvelopeWithStatusAndDestination(status: EnvelopeStatus, destination: String): EnvelopeId = {
+  def createEnvelopeWithStatusAndDestination(status: EnvelopeStatus, destination: String): EnvelopeId = {
     val id = createEnvelope()
     val resultOfUpdating = repo.setStatusAndDestination(id.value, status, destination).futureValue
     if (resultOfUpdating) {

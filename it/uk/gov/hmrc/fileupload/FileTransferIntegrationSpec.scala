@@ -24,11 +24,11 @@ class FileTransferIntegrationSpec extends IntegrationSpec with FileActions with 
       val destination = "DMS"
 
       And("There exist CLOSED envelopes that match it")
-      creteEnvelopeWithStatusAndDestination(EnvelopeStatusClosed, destination)
+      createEnvelopeWithStatusAndDestination(EnvelopeStatusClosed, destination)
 
       And("There exist other envelopes with different statuses and destinations")
-      creteEnvelopeWithStatusAndDestination(EnvelopeStatusClosed, "not matching destination")
-      creteEnvelopeWithStatusAndDestination(EnvelopeStatusOpen, destination)
+      createEnvelopeWithStatusAndDestination(EnvelopeStatusClosed, "not matching destination")
+      createEnvelopeWithStatusAndDestination(EnvelopeStatusOpen, destination)
 
       When(s"I invoke GET /file-transfer/envelopes?destination=$destination")
       val response = getEnvelopesForDestination(Some(destination))
@@ -43,11 +43,11 @@ class FileTransferIntegrationSpec extends IntegrationSpec with FileActions with 
 
     scenario("List Envelopes without specifying destination") {
       Given("There exist CLOSED envelopes in the DB")
-      creteEnvelopeWithStatusAndDestination(EnvelopeStatusClosed, "dest1")
-      creteEnvelopeWithStatusAndDestination(EnvelopeStatusClosed, "dest2")
+      createEnvelopeWithStatusAndDestination(EnvelopeStatusClosed, "dest1")
+      createEnvelopeWithStatusAndDestination(EnvelopeStatusClosed, "dest2")
 
       And("There exist envelopes with other statuses")
-      creteEnvelopeWithStatusAndDestination(EnvelopeStatusOpen, "dest1")
+      createEnvelopeWithStatusAndDestination(EnvelopeStatusOpen, "dest1")
 
       When(s"I invoke GET /file-transfer/envelopes (without passing destination")
       val response = getEnvelopesForDestination(None)
