@@ -144,11 +144,11 @@ class Repository(mongo: () => DB with DBMetaCommands)
     find("_id" -> id).map(_.headOption)
   }
 
-  def envelopesByDestination(destination: Option[String])(implicit ec: ExecutionContext): Future[List[Envelope]] = {
-    destination.map { d =>
+  def getByDestination(maybeDestination: Option[String])(implicit ec: ExecutionContext): Future[List[Envelope]] = {
+    maybeDestination.map { d =>
       find("destination" -> d, "status" -> EnvelopeStatusClosed.name)
     } getOrElse {
-      find()
+      find("status" -> EnvelopeStatusClosed.name)
     }
   }
 

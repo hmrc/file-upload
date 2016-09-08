@@ -22,13 +22,15 @@ import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
+import uk.gov.hmrc.fileupload.envelope.{Envelope, OutputForTransfer}
 import uk.gov.hmrc.fileupload.transfer.Service._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
-class TransferController(softDelete: (EnvelopeId) => Future[SoftDeleteResult])
+class TransferController(softDelete: (EnvelopeId) => Future[SoftDeleteResult],
+                         getEnvelopesByDestination: Option[String] => Future[List[Envelope]])
                         (implicit executionContext: ExecutionContext) extends BaseController {
 
   def list() = Action.async { implicit request =>
@@ -113,5 +115,12 @@ class TransferController(softDelete: (EnvelopeId) => Future[SoftDeleteResult])
       case Xor.Left(SoftDeleteEnvelopeAlreadyDeleted) => ExceptionHandler(GONE, s"Envelope with id: $envelopeId already deleted")
       case Xor.Left(SoftDeleteEnvelopeInWrongState) => ExceptionHandler(LOCKED, s"Envelope with id: $envelopeId locked")
     }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
+  }
+
+  def nonStubList() = Action.async { implicit request =>
+    val maybeDestination = request.getQueryString("destination")
+    getEnvelopesByDestination(maybeDestination).map { envelopes =>
+      Ok(OutputForTransfer(envelopes))
+    }
   }
 }
