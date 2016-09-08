@@ -16,25 +16,28 @@
 
 package uk.gov.hmrc.fileupload.example
 
+import uk.gov.hmrc.fileupload.domain.{Command, StreamId}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileReferenceId}
 
 //commands
 
-sealed trait Command {
+sealed trait EnvelopeCommand extends Command {
   def id: EnvelopeId
+
+  def streamId: StreamId = StreamId(id.toString)
 }
 
-case class CreateEnvelope(id: EnvelopeId) extends Command
+case class CreateEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
-case class QurantineFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId) extends Command
+case class QurantineFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId) extends EnvelopeCommand
 
-case class CleanFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId) extends Command
+case class CleanFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId) extends EnvelopeCommand
 
-case class InfectFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId) extends Command
+case class InfectFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId) extends EnvelopeCommand
 
-case class StoreFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId) extends Command
+case class StoreFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId) extends EnvelopeCommand
 
-case class SealEnvelope(id: EnvelopeId) extends Command
+case class SealEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
 //events
 

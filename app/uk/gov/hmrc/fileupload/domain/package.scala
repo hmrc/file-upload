@@ -14,20 +14,9 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.domain
+package uk.gov.hmrc.fileupload
 
-import uk.gov.hmrc.fileupload.EnvelopeId
+package object domain {
 
-case class Event(envelopeId: EnvelopeId, version: Version, created: Created, eventType: EventType, eventData: AnyRef)
-
-case class Version(value: Int) extends AnyVal {
-  override def toString = value.toString
-}
-
-case class Created(value: Long) extends AnyVal {
-  override def toString = value.toString
-}
-
-case class EventType(value: String) extends AnyVal {
-  override def toString = value
+  type EventData = AnyRef
 }

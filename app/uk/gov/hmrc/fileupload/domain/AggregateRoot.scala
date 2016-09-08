@@ -16,38 +16,37 @@
 
 package uk.gov.hmrc.fileupload.domain
 
-import uk.gov.hmrc.fileupload.EnvelopeId
+trait AggregateRoot[C <: Command, S] {
 
-import scala.collection.mutable.ArrayBuffer
-
-trait AggregateRoot[S] {
-
-  private val changes: ArrayBuffer[Event] = ArrayBuffer.empty
-
-  def id: EnvelopeId
   def version: Version = ???
 
   def defaultState: () => S
-  var state: S = defaultState()
 
-  def uncommitedChanges(): List[Event] =
-    changes.toList
+  def eventStore: EventStore
 
-  def markChangesAsCommited(): Unit =
-    changes.clear()
-
-  def loadsFromHistory(events: List[Event]): Unit =
-    events.foreach(event => {
-      state = apply(event)
-    })
-
-  def applyChange(eventData: AnyRef): Unit = {
-    val event = Event(envelopeId = id,
+  def createEvent(eventData: EventData, streamId: StreamId) =
+    Event(streamId = streamId,
       version = Version(1), created = Created(System.currentTimeMillis()),
       eventType = EventType(eventData.getClass.getName), eventData = eventData)
-    state = apply(event)
-    changes.append(event)
-  }
 
-  def apply(event: Event): S
+  def apply: PartialFunction[(S, EventData), S]
+
+  def applyEvent(state: S, event: EventData): S =
+    apply.applyOrElse((state, event), (input: (S, EventData)) => state)
+
+  def handle: PartialFunction[(C, S), List[EventData]]
+
+  def handleCommand(command: C): Unit = {
+    println(s"Handle Command $command")
+    val historicalEvents = eventStore.eventsForAggregate(command.streamId)
+
+    val currentState = historicalEvents.foldLeft(defaultState()) { (state, event) =>
+      applyEvent(state, event.eventData)
+    }
+
+    val eventsData = handle.applyOrElse((command, currentState), (input: (C, S)) => List.empty)
+    val events = eventsData.map(ed => createEvent(ed, command.streamId))
+
+    eventStore.saveEvents(command.streamId, events, Version(1))
+  }
 }

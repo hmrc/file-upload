@@ -17,15 +17,21 @@
 package uk.gov.hmrc.fileupload.example
 
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileReferenceId}
-import uk.gov.hmrc.fileupload.domain.{InMemoryEventStore, Repository}
+import uk.gov.hmrc.fileupload.domain.{InMemoryEventStore}
 
 object Runner extends App {
 
-  val repository = new Repository[Envelope]((envelopeId: EnvelopeId) => new Envelope(envelopeId), new InMemoryEventStore())
+  //this we can create inside microserviceGlobal
+  implicit val eventStore = new InMemoryEventStore()
+  val handle = CommandHandler.handleCommand _
 
-  val envelopeCommandHandler = new EnvelopeCommandHandler(repository)
+  val serviceWhichCallsCommandFunc = serviceWhichCallsCommand(handle) _
 
-  envelopeCommandHandler.handle(new CreateEnvelope(EnvelopeId("envelope-id-1")))
-  envelopeCommandHandler.handle(new QurantineFile(EnvelopeId("envelope-id-1"), FileId("file-id-1"), FileReferenceId("file-reference-id-1")))
-  envelopeCommandHandler.handle(new CleanFile(EnvelopeId("envelope-id-1"), FileId("file-id-1"), FileReferenceId("file-reference-id-1")))
+  serviceWhichCallsCommandFunc(new CreateEnvelope(EnvelopeId("envelope-id-1")))
+  serviceWhichCallsCommandFunc(new QurantineFile(EnvelopeId("envelope-id-1"), FileId("file-id-1"), FileReferenceId("file-reference-id-1")))
+  serviceWhichCallsCommandFunc(new CleanFile(EnvelopeId("envelope-id-1"), FileId("file-id-1"), FileReferenceId("file-reference-id-1")))
+
+
+  def serviceWhichCallsCommand(handle: (EnvelopeCommand) => Unit)(command: EnvelopeCommand) =
+    handle(command)
 }

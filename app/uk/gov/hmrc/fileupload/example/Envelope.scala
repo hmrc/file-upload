@@ -16,36 +16,37 @@
 
 package uk.gov.hmrc.fileupload.example
 
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileReferenceId}
-import uk.gov.hmrc.fileupload.domain.{AggregateRoot, Event}
+import uk.gov.hmrc.fileupload.{FileId, FileReferenceId}
+import uk.gov.hmrc.fileupload.domain._
 import uk.gov.hmrc.fileupload.example.Envelope.{CleanedFile, QuarantinedFile, State}
 
-class Envelope(override val id: EnvelopeId,
-               override val defaultState: () => State = () => State()) extends AggregateRoot[State] {
+class Envelope(override val defaultState: () => State = () => State())
+              (implicit val eventStore: EventStore) extends AggregateRoot[EnvelopeCommand, State] {
 
-  def create(envelopeId: EnvelopeId) =
-    applyChange(EnvelopeCreated(envelopeId))
+  override def handle = {
+    case (command: CreateEnvelope, state: State) =>
+      List(EnvelopeCreated(command.id))
 
-  def quarantineFile(fileId: FileId, fileReferenceId: FileReferenceId) =
-    applyChange(FileQuarantined(id, fileId, fileReferenceId))
+    case (command: QurantineFile, state: State) =>
+      List(FileQuarantined(command.id, command.fileId, command.fileReferenceId))
 
-  def cleanFile(fileId: FileId, fileReferenceId: FileReferenceId) =
-    if (state.canClean(fileId, fileReferenceId)) {
-      applyChange(FileCleaned(id, fileId, fileReferenceId))
-    }
+    case (command: CleanFile, state: State) =>
+      if (state.canClean(command.fileId, command.fileReferenceId)) {
+        List(FileCleaned(command.id, command.fileId, command.fileReferenceId))
+      } else {
+        List.empty
+      }
+  }
 
-  def apply(event: Event) = {
-    event.eventData match {
-      case e: EnvelopeCreated =>
+  def apply = {
+      case (state: State, e: EnvelopeCreated) =>
         state.copy()
-      case e: FileQuarantined =>
+
+      case (state: State, e: FileQuarantined) =>
         state.copy(files = state.files + (e.fileId -> QuarantinedFile(e.fileReferenceId, e.fileId)))
-      case e: FileCleaned =>
+
+      case (state: State, e: FileCleaned) =>
         state.copy(files = state.files + (e.fileId -> CleanedFile(e.fileReferenceId, e.fileId)))
-      case _ =>
-        println("not implemented")
-        state.copy()
-    }
   }
 }
 
