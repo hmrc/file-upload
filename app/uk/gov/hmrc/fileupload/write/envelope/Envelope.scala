@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.example
+package uk.gov.hmrc.fileupload.write.envelope
 
-import uk.gov.hmrc.fileupload.{FileId, FileReferenceId}
 import uk.gov.hmrc.fileupload.domain._
-import uk.gov.hmrc.fileupload.example.Envelope.{CleanedFile, QuarantinedFile, State}
+import uk.gov.hmrc.fileupload.write.envelope.Envelope.{CleanedFile, QuarantinedFile, State}
+import uk.gov.hmrc.fileupload.{FileId, FileReferenceId}
 
 class Envelope(override val defaultState: () => State = () => State())
-              (implicit val eventStore: EventStore) extends AggregateRoot[EnvelopeCommand, State] {
+              (implicit val eventStore: EventStore, implicit val publish: AnyRef => Unit) extends AggregateRoot[EnvelopeCommand, State] {
 
   override def handle = {
     case (command: CreateEnvelope, state: State) =>

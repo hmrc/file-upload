@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.example
+package uk.gov.hmrc.fileupload.write.envelope
 
 import uk.gov.hmrc.fileupload.domain.{Command, StreamId}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileReferenceId}

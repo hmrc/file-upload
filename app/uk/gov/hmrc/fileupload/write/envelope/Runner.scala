@@ -14,15 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.example
+package uk.gov.hmrc.fileupload.write.envelope
 
+import uk.gov.hmrc.fileupload.domain.InMemoryEventStore
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileReferenceId}
-import uk.gov.hmrc.fileupload.domain.{InMemoryEventStore}
 
 object Runner extends App {
 
   //this we can create inside microserviceGlobal
   implicit val eventStore = new InMemoryEventStore()
+  implicit val publish = (e: AnyRef) => {
+    println(s"$e published")
+  }
   val handle = CommandHandler.handleCommand _
 
   val serviceWhichCallsCommandFunc = serviceWhichCallsCommand(handle) _

@@ -24,6 +24,8 @@ trait AggregateRoot[C <: Command, S] {
 
   def eventStore: EventStore
 
+  def publish: AnyRef => Unit
+
   def createEvent(eventData: EventData, streamId: StreamId) =
     Event(streamId = streamId,
       version = Version(1), created = Created(System.currentTimeMillis()),
@@ -48,5 +50,6 @@ trait AggregateRoot[C <: Command, S] {
     val events = eventsData.map(ed => createEvent(ed, command.streamId))
 
     eventStore.saveEvents(command.streamId, events, Version(1))
+    events.foreach(publish)
   }
 }
