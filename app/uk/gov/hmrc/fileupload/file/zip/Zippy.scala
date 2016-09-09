@@ -31,9 +31,15 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object Zippy {
 
+  type ZipResult = Xor[ZipEnvelopeError, Enumerator[Bytes]]
+  sealed trait ZipEnvelopeError
+  case object EnvelopeNotFoundError extends ZipEnvelopeError
+  case object EmptyEnvelopeError extends ZipEnvelopeError
+
+
   def zipEnvelope(getEnvelope: (EnvelopeId) => Future[FindResult], retrieveFile: (Envelope, FileId) => Future[GetFileResult])
                  (envelopeId: EnvelopeId)
-                 (implicit ex: ExecutionContext): Future[Enumerator[Bytes]] = {
+                 (implicit ex: ExecutionContext): Future[ZipResult] = {
 
     getEnvelope(envelopeId) map {
       case Xor.Right(e@Envelope(_, _, _, _, _, _, Some(files))) =>
@@ -42,11 +48,16 @@ object Zippy {
           case f =>
             val fileName: String = f.name.getOrElse(UUID.randomUUID().toString)
             ZipFileInfo(s"$envelopeId/$fileName", isDir = false, new java.util.Date(), Some(() => retrieveFile(e, f.fileId).map {
-            case Xor.Right(FileFound(name, length, data)) => data
-          }))
+              case Xor.Right(FileFound(name, length, data)) => data
+              case Xor.Left(error) => throw new Exception(s"File $envelopeId ${f.fileId} not found in repo" )
+            }))
         }
-        mainFolder+:zipFiles
-    } map (zipFileInfos => ZipStreamEnumerator(zipFileInfos))
+        val infoes: Seq[ZipFileInfo] = mainFolder+:zipFiles
+        Xor.right( ZipStreamEnumerator(infoes))
+
+      case Xor.Left(FindEnvelopeNotFoundError) => Xor.left(EnvelopeNotFoundError)
+      case Xor.Right(e@Envelope(_, _, _, _, _, _, None)) => Xor.left(EmptyEnvelopeError)
+    }
 
   }
 

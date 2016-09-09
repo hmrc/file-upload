@@ -29,6 +29,8 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with FileActions w
 
       And("response should be chunked")
       response.header("Transfer-Encoding") shouldBe Some("chunked")
+
+      // TODO unzip
     }
 
   }
