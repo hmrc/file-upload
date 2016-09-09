@@ -151,8 +151,9 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   lazy val transferController = {
     val softDeleteEnvelope = envelopeRepository.updateStatus(EnvelopeStatusClosed, EnvelopeStatusDeleted) _
     val softDelete = transfer.Service.softDelete(softDeleteEnvelope, find) _
+    val getEnvelopesByDestination = envelopeRepository.getByDestination _
 
-    new TransferController(softDelete = softDelete)
+    new TransferController(softDelete = softDelete, getEnvelopesByDestination)
   }
 
   lazy val testOnlyController = {
