@@ -32,9 +32,9 @@ class Envelope(override val defaultState: () => State = () => State())
         id = command.id, fileId = command.fileId, fileReferenceId = command.fileReferenceId,
         name = command.name, contentType = command.contentType, metadata = command.metadata))
 
-    case (command: CleanFile, state: State) =>
-      if (state.canClean(command.fileId, command.fileReferenceId)) {
-        List(FileCleaned(command.id, command.fileId, command.fileReferenceId))
+    case (command: MarkFileAsClean, state: State) =>
+      if (state.sameFileReferenceId(command.fileId, command.fileReferenceId)) {
+        List(NoVirusDetected(command.id, command.fileId, command.fileReferenceId))
       } else {
         List.empty
       }
@@ -47,7 +47,7 @@ class Envelope(override val defaultState: () => State = () => State())
       case (state: State, e: FileQuarantined) =>
         state.copy(files = state.files + (e.fileId -> QuarantinedFile(e.fileReferenceId, e.fileId)))
 
-      case (state: State, e: FileCleaned) =>
+      case (state: State, e: NoVirusDetected) =>
         state.copy(files = state.files + (e.fileId -> CleanedFile(e.fileReferenceId, e.fileId)))
   }
 }
@@ -56,7 +56,7 @@ object Envelope {
 
   case class State(files: Map[FileId, File] = Map.empty) {
 
-    def canClean(fileId: FileId, fileReferenceId: FileReferenceId): Boolean =
+    def sameFileReferenceId(fileId: FileId, fileReferenceId: FileReferenceId): Boolean =
       files.get(fileId).exists(_.isSame(fileReferenceId))
   }
 

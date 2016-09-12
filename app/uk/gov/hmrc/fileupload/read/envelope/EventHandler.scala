@@ -27,9 +27,9 @@ class EventHandler(subscribe: (ActorRef, Class[_]) => Boolean, repository: Repos
   override def preStart = {
     subscribe(self, classOf[EnvelopeCreated])
     subscribe(self, classOf[FileQuarantined])
-    subscribe(self, classOf[FileCleaned])
+    subscribe(self, classOf[NoVirusDetected])
     subscribe(self, classOf[FileStored])
-    subscribe(self, classOf[FileInfected])
+    subscribe(self, classOf[VirusDetected])
     subscribe(self, classOf[EnvelopeSealed])
   }
 
@@ -42,12 +42,12 @@ class EventHandler(subscribe: (ActorRef, Class[_]) => Boolean, repository: Repos
       val file = File(fileId = e.fileId, fileReferenceId = e.fileReferenceId, status = FileStatusQuarantined, name = Some(e.name), contentType = Some(e.contentType), metadata = Some(e.metadata))
       repository.upsertFileMetadata(e.id, file)
 
-    case e: FileCleaned =>
+    case e: NoVirusDetected =>
       repository.updateFileStatus(e.id, e.fileId, FileStatusCleaned)
 
     case e: FileStored =>
       log.info(s"$e not yet implemented")
-    case e: FileInfected =>
+    case e: VirusDetected =>
       log.info(s"$e not yet implemented")
     case e: EnvelopeSealed =>
       log.info(s"$e not yet implemented")

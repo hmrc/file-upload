@@ -66,7 +66,7 @@ object Runner extends App {
   serviceWhichCallsCommandFunc(new CreateEnvelope(envelopeId))
   serviceWhichCallsCommandFunc(new QurantineFile(envelopeId, FileId("file-id-1"), FileReferenceId("file-reference-id-1"), "example.pdf", "application/pdf", Json.obj("name" -> "test")))
   Thread.sleep(1000)
-  serviceWhichCallsCommandFunc(new CleanFile(envelopeId, FileId("file-id-1"), FileReferenceId("file-reference-id-1")))
+  serviceWhichCallsCommandFunc(new MarkFileAsClean(envelopeId, FileId("file-id-1"), FileReferenceId("file-reference-id-1")))
 
   //print read model
   Thread.sleep(3000)
