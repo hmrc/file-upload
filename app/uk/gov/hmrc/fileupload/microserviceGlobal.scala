@@ -120,13 +120,10 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     val del = envelopeRepository.delete _
     val delete = EnvelopeService.delete(del, find) _
 
-    val zipEnvelope = Zippy.zipEnvelope(find, retrieveFile) _
-
     new EnvelopeController(createEnvelope = create,
       nextId = nextId,
       findEnvelope = find,
-      deleteEnvelope = delete,
-      zipEnvelope = zipEnvelope)
+      deleteEnvelope = delete)
   }
 
   lazy val eventController = {
@@ -156,8 +153,10 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   lazy val transferController = {
     val softDeleteEnvelope = envelopeRepository.updateStatus(EnvelopeStatusClosed, EnvelopeStatusDeleted) _
     val softDelete = transfer.Service.softDelete(softDeleteEnvelope, find) _
+    val getEnvelopesByDestination = envelopeRepository.getByDestination _
 
-    new TransferController(softDelete = softDelete)
+    val zipEnvelope = Zippy.zipEnvelope(find, retrieveFile) _
+    new TransferController(softDelete = softDelete, getEnvelopesByDestination, zipEnvelope = zipEnvelope)
   }
 
   lazy val testOnlyController = {

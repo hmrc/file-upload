@@ -31,8 +31,7 @@ import scala.language.postfixOps
 class EnvelopeController(createEnvelope: Envelope => Future[Xor[CreateError, Envelope]],
                          nextId: () => EnvelopeId,
                          findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]],
-                         deleteEnvelope: EnvelopeId => Future[Xor[DeleteError, Envelope]],
-                         zipEnvelope: EnvelopeId => Future[ZipResult]
+                         deleteEnvelope: EnvelopeId => Future[Xor[DeleteError, Envelope]]
                         )
                         (implicit executionContext: ExecutionContext) extends BaseController {
 
@@ -68,12 +67,4 @@ class EnvelopeController(createEnvelope: Envelope => Future[Xor[CreateError, Env
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  def download(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId) = Action.async {
-    zipEnvelope(envelopeId) map {
-      case Xor.Right(stream) => Ok.chunked(stream).withHeaders(
-        CONTENT_TYPE -> "application/zip",
-        CONTENT_DISPOSITION -> s"""attachment; filename="$envelopeId.zip""""
-      )
-    }
-  }
 }

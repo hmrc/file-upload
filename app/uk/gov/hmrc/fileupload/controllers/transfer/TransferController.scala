@@ -22,13 +22,17 @@ import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
+import uk.gov.hmrc.fileupload.envelope.{Envelope, OutputForTransfer}
+import uk.gov.hmrc.fileupload.file.zip.Zippy._
 import uk.gov.hmrc.fileupload.transfer.Service._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
-class TransferController(softDelete: (EnvelopeId) => Future[SoftDeleteResult])
+class TransferController(softDelete: (EnvelopeId) => Future[SoftDeleteResult],
+                         getEnvelopesByDestination: Option[String] => Future[List[Envelope]],
+                         zipEnvelope: EnvelopeId => Future[ZipResult])
                         (implicit executionContext: ExecutionContext) extends BaseController {
 
   def list() = Action.async { implicit request =>
@@ -98,8 +102,14 @@ class TransferController(softDelete: (EnvelopeId) => Future[SoftDeleteResult])
     Future.successful(Ok(Json.parse(result)))
   }
 
-  def download(envelopeId: EnvelopeId): Action[AnyContent] =
-    Assets.at(path="/public", file="transfer/envelope.zip")
+  def download(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId) = Action.async { implicit request =>
+    zipEnvelope(envelopeId) map {
+      case Xor.Right(stream) => Ok.chunked(stream).withHeaders(
+        CONTENT_TYPE -> "application/zip",
+        CONTENT_DISPOSITION -> s"""attachment; filename="$envelopeId.zip""""
+      )
+    }
+  }
 
   def delete(envelopeId: EnvelopeId) = Action.async { implicit request =>
     Future.successful(Ok)
@@ -113,5 +123,12 @@ class TransferController(softDelete: (EnvelopeId) => Future[SoftDeleteResult])
       case Xor.Left(SoftDeleteEnvelopeAlreadyDeleted) => ExceptionHandler(GONE, s"Envelope with id: $envelopeId already deleted")
       case Xor.Left(SoftDeleteEnvelopeInWrongState) => ExceptionHandler(LOCKED, s"Envelope with id: $envelopeId locked")
     }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
+  }
+
+  def nonStubList() = Action.async { implicit request =>
+    val maybeDestination = request.getQueryString("destination")
+    getEnvelopesByDestination(maybeDestination).map { envelopes =>
+      Ok(OutputForTransfer(envelopes))
+    }
   }
 }

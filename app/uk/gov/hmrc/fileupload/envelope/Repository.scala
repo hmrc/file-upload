@@ -144,6 +144,14 @@ class Repository(mongo: () => DB with DBMetaCommands)
     find("_id" -> id).map(_.headOption)
   }
 
+  def getByDestination(maybeDestination: Option[String])(implicit ec: ExecutionContext): Future[List[Envelope]] = {
+    maybeDestination.map { d =>
+      find("destination" -> d, "status" -> EnvelopeStatusClosed.name)
+    } getOrElse {
+      find("status" -> EnvelopeStatusClosed.name)
+    }
+  }
+
   def delete(id: EnvelopeId)(implicit ec: ExecutionContext): Future[Boolean] = {
     remove("_id" -> id) map toBoolean
   }

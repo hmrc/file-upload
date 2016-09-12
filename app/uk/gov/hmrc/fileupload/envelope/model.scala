@@ -24,8 +24,12 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 case class Envelope(_id: EnvelopeId = EnvelopeId(),
                     status: EnvelopeStatus = EnvelopeStatusOpen,
                     constraints: Option[Constraints] = None,
-                    callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None,
-                    metadata: Option[Map[String, JsValue]] = None, files: Option[Seq[File]] = None) {
+                    callbackUrl: Option[String] = None,
+                    expiryDate: Option[DateTime] = None,
+                    metadata: Option[Map[String, JsValue]] = None,
+                    files: Option[Seq[File]] = None,
+                    destination: Option[String] = None,
+                    application: Option[String] = None) {
 
   require(!isExpired, "expiry date cannot be in the past")
 

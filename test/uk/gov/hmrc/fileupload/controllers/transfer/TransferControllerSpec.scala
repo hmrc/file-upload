@@ -20,6 +20,7 @@ import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
 import play.api.test.FakeRequest
+import uk.gov.hmrc.fileupload.envelope.Envelope
 import uk.gov.hmrc.fileupload.transfer.Service._
 import uk.gov.hmrc.fileupload.{EnvelopeId, Support}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
@@ -32,8 +33,9 @@ class TransferControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
   val failed = Future.failed(new Exception("not good"))
 
-  def newController(softDelete: EnvelopeId => Future[SoftDeleteResult] = _ => failed) =
-    new TransferController(softDelete)
+  def newController(softDelete: EnvelopeId => Future[SoftDeleteResult] = _ => failed,
+                   getEnvelopesByDestination: Option[String] => Future[List[Envelope]] = _ => failed) =
+    new TransferController(softDelete, getEnvelopesByDestination, null)
 
 
   "Delete envelope" should {

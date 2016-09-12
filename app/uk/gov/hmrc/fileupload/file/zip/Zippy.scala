@@ -42,21 +42,25 @@ object Zippy {
                  (implicit ex: ExecutionContext): Future[ZipResult] = {
 
     getEnvelope(envelopeId) map {
-      case Xor.Right(e@Envelope(_, _, _, _, _, _, Some(files))) =>
-        val mainFolder = ZipFileInfo(envelopeId.toString, isDir = true, new java.util.Date(), None)
+      case Xor.Right(e@Envelope(_, _, _, _, _, _, Some(files), _, _)) =>
+        val mainFolderPath = envelopeId.toString
+        val envelopeFolderPath = s"$mainFolderPath/${envelopeId.toString}"
+        val mainFolder = ZipFileInfo(mainFolderPath, isDir = true, new java.util.Date(), None)
+        val envelopeFolder = ZipFileInfo(envelopeFolderPath, isDir = true, new java.util.Date(), None)
+
         val zipFiles = files.collect {
           case f =>
             val fileName: String = f.name.getOrElse(UUID.randomUUID().toString)
-            ZipFileInfo(s"$envelopeId/$fileName", isDir = false, new java.util.Date(), Some(() => retrieveFile(e, f.fileId).map {
+            ZipFileInfo(s"$envelopeFolderPath/$fileName", isDir = false, new java.util.Date(), Some(() => retrieveFile(e, f.fileId).map {
               case Xor.Right(FileFound(name, length, data)) => data
               case Xor.Left(error) => throw new Exception(s"File $envelopeId ${f.fileId} not found in repo" )
             }))
         }
-        val infoes: Seq[ZipFileInfo] = mainFolder+:zipFiles
+        val infoes: Seq[ZipFileInfo] = mainFolder+:envelopeFolder+:zipFiles
         Xor.right( ZipStreamEnumerator(infoes))
 
       case Xor.Left(FindEnvelopeNotFoundError) => Xor.left(EnvelopeNotFoundError)
-      case Xor.Right(e@Envelope(_, _, _, _, _, _, None)) => Xor.left(EmptyEnvelopeError)
+      case Xor.Right(e@Envelope(_, _, _, _, _, _, None, _, _)) => Xor.left(EmptyEnvelopeError)
     }
 
   }

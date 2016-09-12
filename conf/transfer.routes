@@ -6,3 +6,4 @@ DELETE     /envelopes/:envelopeId             @uk.gov.hmrc.fileupload.controller
 
 
 DELETE     /non-stub/envelopes/:envelopeId    @uk.gov.hmrc.fileupload.controllers.transfer.TransferController.nonStubDelete(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)
+GET        /non-stub/envelopes                @uk.gov.hmrc.fileupload.controllers.transfer.TransferController.nonStubList

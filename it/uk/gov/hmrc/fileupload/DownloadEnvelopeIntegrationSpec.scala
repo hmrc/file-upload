@@ -18,7 +18,7 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with FileActions w
       val fileId = FileId(s"fileId-${nextId()}")
       upload(data.getBytes, envelopeId, fileId)
 
-      When(s"I invoke GET envelope/$envelopeId/zip")
+      When(s"I invoke GET file-transfer/envelope/$envelopeId")
       val response: WSResponse = downloadEnvelope(envelopeId)
 
       Then("I will receive a 200 OK response")
@@ -29,8 +29,6 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with FileActions w
 
       And("response should be chunked")
       response.header("Transfer-Encoding") shouldBe Some("chunked")
-
-      // TODO unzip
     }
 
   }
