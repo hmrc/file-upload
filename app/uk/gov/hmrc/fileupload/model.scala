@@ -60,22 +60,22 @@ object FileId {
     new SimpleObjectBinder[FileId](FileId.apply, _.value)
 }
 
-case class FileReferenceId(value: String = UUID.randomUUID().toString) extends AnyVal {
+case class FileRefId(value: String = UUID.randomUUID().toString) extends AnyVal {
   override def toString = value
 }
 
-object FileReferenceId {
-  implicit val writes = new Writes[FileReferenceId] {
-    def writes(id: FileReferenceId): JsValue = JsString(id.value)
+object FileRefId {
+  implicit val writes = new Writes[FileRefId] {
+    def writes(id: FileRefId): JsValue = JsString(id.value)
   }
-  implicit val reads = new Reads[FileReferenceId] {
-    def reads(json: JsValue): JsResult[FileReferenceId] = json match {
-      case JsString(value) => JsSuccess(FileReferenceId(value))
+  implicit val reads = new Reads[FileRefId] {
+    def reads(json: JsValue): JsResult[FileRefId] = json match {
+      case JsString(value) => JsSuccess(FileRefId(value))
       case _ => JsError("invalid fileId")
     }
   }
-  implicit val binder: PathBindable[FileReferenceId] =
-    new SimpleObjectBinder[FileReferenceId](FileReferenceId.apply, _.value)
+  implicit val binder: PathBindable[FileRefId] =
+    new SimpleObjectBinder[FileRefId](FileRefId.apply, _.value)
 }
 
 case class EventType(value: String) extends AnyVal {

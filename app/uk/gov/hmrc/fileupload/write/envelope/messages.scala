@@ -18,9 +18,9 @@ package uk.gov.hmrc.fileupload.write.envelope
 
 import play.api.libs.json.{Format, JsObject, JsValue, Json}
 import uk.gov.hmrc.fileupload.domain.{Command, EventData, EventType, StreamId}
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileReferenceId}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
-//commands
+// commands
 
 sealed trait EnvelopeCommand extends Command {
   def id: EnvelopeId
@@ -30,37 +30,37 @@ sealed trait EnvelopeCommand extends Command {
 
 case class CreateEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
-case class QurantineFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId,
-                         name: String, contentType: String, metadata: JsObject) extends EnvelopeCommand
+case class QuarantineFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
+                          name: String, contentType: String, metadata: JsObject) extends EnvelopeCommand
 
-case class MarkFileAsClean(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId) extends EnvelopeCommand
+case class MarkFileAsClean(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) extends EnvelopeCommand
 
-case class MarkFileAsInfected(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId) extends EnvelopeCommand
+case class MarkFileAsInfected(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) extends EnvelopeCommand
 
 case class DeleteFile(id: EnvelopeId, fileId: FileId) extends EnvelopeCommand
 
-case class StoreFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId, length: Long) extends EnvelopeCommand
+case class StoreFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileRefId, length: Long) extends EnvelopeCommand
 
 case class DeleteEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
 case class ArchiveEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
-case class SealEnvelope(id: EnvelopeId) extends EnvelopeCommand
+case class SealEnvelope(id: EnvelopeId, destination: String, packageType: String) extends EnvelopeCommand
 
-//events
+// events
 
 case class EnvelopeCreated(id: EnvelopeId)
 
-case class FileQuarantined(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId,
+case class FileQuarantined(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
                            name: String, contentType: String, metadata: JsObject)
 
-case class NoVirusDetected(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId)
+case class NoVirusDetected(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId)
 
-case class VirusDetected(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId)
+case class VirusDetected(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId)
 
 case class FileDeleted(id: EnvelopeId, fileId: FileId)
 
-case class FileStored(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId, length: Long)
+case class FileStored(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, length: Long)
 
 case class EnvelopeDeleted(id: EnvelopeId)
 

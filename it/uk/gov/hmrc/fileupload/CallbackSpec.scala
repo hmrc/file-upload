@@ -15,6 +15,7 @@ class CallbackSpec extends IntegrationSpec with EnvelopeActions with Eventually 
   val today = new DateTime().plusMinutes(10)
 
   feature("Event Callbacks") {
+    pending
     scenario("When novirusdetected event is received then the consuming service is notified at the callback specified in the envelope") {
 
       val callbackPath = "mycallbackpath"

@@ -19,8 +19,7 @@ package uk.gov.hmrc.fileupload.controllers
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.Json
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.events.EventFormatters._
-import uk.gov.hmrc.fileupload.events._
+import uk.gov.hmrc.fileupload.controllers.EventFormatters._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -48,11 +47,8 @@ object EventParser extends BodyParser[Event] {
       val triedEvent: Try[Event] = request.uri match {
         case pattern(eventType) =>
           eventType.toLowerCase match  {
-            case "novirusdetected" => Try(Json.fromJson[NoVirusDetected](parsedData).get)
-            case "quarantined" => Try(Json.fromJson[Quarantined](parsedData).get)
-            case "totransientmoved" => Try(Json.fromJson[ToTransientMoved](parsedData).get)
-            case "movingtotransientfailed" => Try(Json.fromJson[MovingToTransientFailed](parsedData).get)
-            case "virusdetected" => Try(Json.fromJson[VirusDetected](parsedData).get)
+            case "filescanned" => Try(Json.fromJson[FileScanned](parsedData).get)
+            case "fileinquarantinestored" => Try(Json.fromJson[FileInQuarantineStored](parsedData).get)
             case _ => Failure(new InvalidEventException(s"$eventType is not a valid event"))
           }
 

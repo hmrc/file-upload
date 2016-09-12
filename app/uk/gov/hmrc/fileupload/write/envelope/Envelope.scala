@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.write.envelope
 
 import uk.gov.hmrc.fileupload.domain._
 import uk.gov.hmrc.fileupload.write.envelope.Envelope.{CleanedFile, QuarantinedFile, State}
-import uk.gov.hmrc.fileupload.{FileId, FileReferenceId}
+import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 
 class Envelope(override val defaultState: () => State = () => State())
               (implicit val eventStore: EventStore, implicit val publish: AnyRef => Unit) extends AggregateRoot[EnvelopeCommand, State] {
@@ -27,14 +27,14 @@ class Envelope(override val defaultState: () => State = () => State())
     case (command: CreateEnvelope, state: State) =>
       List(EnvelopeCreated(command.id))
 
-    case (command: QurantineFile, state: State) =>
+    case (command: QuarantineFile, state: State) =>
       List(FileQuarantined(
-        id = command.id, fileId = command.fileId, fileReferenceId = command.fileReferenceId,
+        id = command.id, fileId = command.fileId, fileRefId = command.fileRefId,
         name = command.name, contentType = command.contentType, metadata = command.metadata))
 
     case (command: MarkFileAsClean, state: State) =>
-      if (state.sameFileReferenceId(command.fileId, command.fileReferenceId)) {
-        List(NoVirusDetected(command.id, command.fileId, command.fileReferenceId))
+      if (state.sameFileReferenceId(command.fileId, command.fileRefId)) {
+        List(NoVirusDetected(command.id, command.fileId, command.fileRefId))
       } else {
         List.empty
       }
@@ -45,10 +45,10 @@ class Envelope(override val defaultState: () => State = () => State())
         state.copy()
 
       case (state: State, e: FileQuarantined) =>
-        state.copy(files = state.files + (e.fileId -> QuarantinedFile(e.fileReferenceId, e.fileId)))
+        state.copy(files = state.files + (e.fileId -> QuarantinedFile(e.fileRefId, e.fileId)))
 
       case (state: State, e: NoVirusDetected) =>
-        state.copy(files = state.files + (e.fileId -> CleanedFile(e.fileReferenceId, e.fileId)))
+        state.copy(files = state.files + (e.fileId -> CleanedFile(e.fileRefId, e.fileId)))
   }
 }
 
@@ -56,22 +56,22 @@ object Envelope {
 
   case class State(files: Map[FileId, File] = Map.empty) {
 
-    def sameFileReferenceId(fileId: FileId, fileReferenceId: FileReferenceId): Boolean =
+    def sameFileReferenceId(fileId: FileId, fileReferenceId: FileRefId): Boolean =
       files.get(fileId).exists(_.isSame(fileReferenceId))
   }
 
   trait File {
-    def fileReferenceId: FileReferenceId
+    def fileReferenceId: FileRefId
     def fileId: FileId
 
-    def isSame(otherFileReferenceId: FileReferenceId) =
+    def isSame(otherFileReferenceId: FileRefId) =
       fileReferenceId == otherFileReferenceId
   }
 
-  case class QuarantinedFile(fileReferenceId: FileReferenceId, fileId: FileId) extends File
-  case class CleanedFile(fileReferenceId: FileReferenceId, fileId: FileId) extends File
-  case class InfectedFile(fileReferenceId: FileReferenceId, fileId: FileId) extends File
-  case class AvailableFile(fileReferenceId: FileReferenceId, fileId: FileId) extends File
+  case class QuarantinedFile(fileReferenceId: FileRefId, fileId: FileId) extends File
+  case class CleanedFile(fileReferenceId: FileRefId, fileId: FileId) extends File
+  case class InfectedFile(fileReferenceId: FileRefId, fileId: FileId) extends File
+  case class AvailableFile(fileReferenceId: FileRefId, fileId: FileId) extends File
 
 }
 

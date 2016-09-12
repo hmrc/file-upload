@@ -39,7 +39,7 @@ class EventHandler(subscribe: (ActorRef, Class[_]) => Boolean, repository: Repos
       repository.add(envelope)
 
     case e: FileQuarantined =>
-      val file = File(fileId = e.fileId, fileReferenceId = e.fileReferenceId, status = FileStatusQuarantined, name = Some(e.name), contentType = Some(e.contentType), metadata = Some(e.metadata))
+      val file = File(fileId = e.fileId, fileReferenceId = e.fileRefId, status = FileStatusQuarantined, name = Some(e.name), contentType = Some(e.contentType), metadata = Some(e.metadata))
       repository.upsertFileMetadata(e.id, file)
 
     case e: NoVirusDetected =>

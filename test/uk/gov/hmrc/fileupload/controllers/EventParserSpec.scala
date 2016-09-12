@@ -19,10 +19,10 @@ package uk.gov.hmrc.fileupload.controllers
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.iteratee.{Enumerator, Iteratee}
+import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Result
 import play.api.test.FakeRequest
-import uk.gov.hmrc.fileupload.events._
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 import uk.gov.hmrc.play.test.UnitSpec
 
 class EventParserSpec extends UnitSpec with ScalaFutures {
@@ -31,53 +31,23 @@ class EventParserSpec extends UnitSpec with ScalaFutures {
   "event parser" should {
 
     "should parse a quarantined event" in {
-      val request = FakeRequest("POST", "/file-upload/events/quarantined")
-      val body = """{"envelopeId":"env1","fileId":"file1"}""".getBytes
+      val request = FakeRequest("POST", "/file-upload/events/fileinquarantinestored")
+      val body = """{"envelopeId":"env1","fileId":"file1","fileRefId":"fileRef1","name":"test.pdf","contentType":"pdf","metadata":{}}""".getBytes
 
       val parserIteratee: Iteratee[Array[Byte], Either[Result, Event]] = EventParser(request)
       val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee).futureValue
 
-      futureValue shouldBe Right(Quarantined(EnvelopeId("env1"), FileId("file1")))
-    }
-
-    "should parse a to transient moved event" in {
-      val request = FakeRequest("POST", "/file-upload/events/ToTransientMoved")
-      val body = """{"envelopeId":"env1","fileId":"file1"}""".getBytes
-
-      val parserIteratee: Iteratee[Array[Byte], Either[Result, Event]] = EventParser(request)
-      val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee).futureValue
-
-      futureValue shouldBe Right(ToTransientMoved(EnvelopeId("env1"), FileId("file1")))
-    }
-
-    "should parse a moving to transient failed event" in {
-      val request = FakeRequest("POST", "/file-upload/events/MovingToTransientFailed")
-      val body = """{"envelopeId":"env1","fileId":"file1", "reason": "something not good"}""".getBytes
-
-      val parserIteratee: Iteratee[Array[Byte], Either[Result, Event]] = EventParser(request)
-      val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee).futureValue
-
-      futureValue shouldBe Right(MovingToTransientFailed(EnvelopeId("env1"), FileId("file1"), "something not good"))
+      futureValue shouldBe Right(FileInQuarantineStored(EnvelopeId("env1"), FileId("file1"), FileRefId("fileRef1"), "test.pdf", "pdf", Json.obj()))
     }
 
     "should parse a no virus detected event" in {
-      val request = FakeRequest("POST", "/file-upload/events/novirusdetected")
-      val body = """{"envelopeId":"env1","fileId":"file1"}""".getBytes
+      val request = FakeRequest("POST", "/file-upload/events/filescanned")
+      val body = """{"envelopeId":"env1","fileId":"file1","fileRefId":"fileRef1","hasVirus":true}""".getBytes
 
       val parserIteratee: Iteratee[Array[Byte], Either[Result, Event]] = EventParser(request)
       val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee).futureValue
 
-      futureValue shouldBe Right(NoVirusDetected(EnvelopeId("env1"), FileId("file1")))
-    }
-
-    "should parse a virus detected event" in {
-      val request = FakeRequest("POST", "/file-upload/events/virusdetected")
-      val body = """{"envelopeId":"env1","fileId":"file1", "reason": "something not good"}""".getBytes
-
-      val parserIteratee: Iteratee[Array[Byte], Either[Result, Event]] = EventParser(request)
-      val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee).futureValue
-
-      futureValue shouldBe Right(VirusDetected(EnvelopeId("env1"), FileId("file1"), "something not good"))
+      futureValue shouldBe Right(FileScanned(EnvelopeId("env1"), FileId("file1"), FileRefId("fileRef1"), hasVirus = true))
     }
 
     "should respond with a Failure when an unexpected event type is given" in {

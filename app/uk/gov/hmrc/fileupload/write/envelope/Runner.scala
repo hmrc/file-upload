@@ -24,7 +24,7 @@ import reactivemongo.api.MongoDriver
 import uk.gov.hmrc.fileupload.domain.EventSerializer.{EventReader, EventWriter}
 import uk.gov.hmrc.fileupload.domain.MongoEventStore
 import uk.gov.hmrc.fileupload.read.envelope.{EventHandler, Repository}
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileReferenceId}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -64,9 +64,9 @@ object Runner extends App {
   val envelopeId = EnvelopeId(UUID.randomUUID().toString)
 
   serviceWhichCallsCommandFunc(new CreateEnvelope(envelopeId))
-  serviceWhichCallsCommandFunc(new QurantineFile(envelopeId, FileId("file-id-1"), FileReferenceId("file-reference-id-1"), "example.pdf", "application/pdf", Json.obj("name" -> "test")))
+  serviceWhichCallsCommandFunc(new QuarantineFile(envelopeId, FileId("file-id-1"), FileRefId("file-reference-id-1"), "example.pdf", "application/pdf", Json.obj("name" -> "test")))
   Thread.sleep(1000)
-  serviceWhichCallsCommandFunc(new MarkFileAsClean(envelopeId, FileId("file-id-1"), FileReferenceId("file-reference-id-1")))
+  serviceWhichCallsCommandFunc(new MarkFileAsClean(envelopeId, FileId("file-id-1"), FileRefId("file-reference-id-1")))
 
   //print read model
   Thread.sleep(3000)
