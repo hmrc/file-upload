@@ -20,8 +20,6 @@ import play.api.libs.json.{Format, JsObject, JsValue, Json}
 import uk.gov.hmrc.fileupload.domain.{Command, EventData, EventType, StreamId}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileReferenceId}
 
-import scala.util.Try
-
 //commands
 
 sealed trait EnvelopeCommand extends Command {
@@ -39,9 +37,13 @@ case class MarkFileAsClean(id: EnvelopeId, fileId: FileId, fileReferenceId: File
 
 case class MarkFileAsInfected(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId) extends EnvelopeCommand
 
-case class DeleteFile(id: EnvelopeId, fileId: FileId)
+case class DeleteFile(id: EnvelopeId, fileId: FileId) extends EnvelopeCommand
 
 case class StoreFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId, length: Long) extends EnvelopeCommand
+
+case class DeleteEnvelope(id: EnvelopeId) extends EnvelopeCommand
+
+case class ArchiveEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
 case class SealEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
@@ -60,29 +62,57 @@ case class FileDeleted(id: EnvelopeId, fileId: FileId)
 
 case class FileStored(id: EnvelopeId, fileId: FileId, fileReferenceId: FileReferenceId, length: Long)
 
+case class EnvelopeDeleted(id: EnvelopeId)
+
+case class EnvelopeArchived(id: EnvelopeId)
+
 case class EnvelopeSealed(id: EnvelopeId)
+
+case class EnvelopeRouted(id: EnvelopeId)
 
 object Formatters {
   implicit val envelopeCreatedFormat: Format[EnvelopeCreated] = Json.format[EnvelopeCreated]
   implicit val fileQuarantinedFormat: Format[FileQuarantined] = Json.format[FileQuarantined]
-  implicit val fileCleanedFormat: Format[NoVirusDetected] = Json.format[NoVirusDetected]
-  implicit val fileInfectedFormat: Format[VirusDetected] = Json.format[VirusDetected]
+  implicit val fileNoVirusDetectedFormat: Format[NoVirusDetected] = Json.format[NoVirusDetected]
+  implicit val fileVirusDetectedFormat: Format[VirusDetected] = Json.format[VirusDetected]
+  implicit val fileDeletedFormat: Format[FileDeleted] = Json.format[FileDeleted]
   implicit val fileStoredFormat: Format[FileStored] = Json.format[FileStored]
+  implicit val envelopeDeletedFormat: Format[EnvelopeDeleted] = Json.format[EnvelopeDeleted]
+  implicit val envelopeArchivedFormat: Format[EnvelopeArchived] = Json.format[EnvelopeArchived]
   implicit val envelopeSealedFormat: Format[EnvelopeSealed] = Json.format[EnvelopeSealed]
+  implicit val envelopeRoutedFormat: Format[EnvelopeRouted] = Json.format[EnvelopeRouted]
 }
 
 object EventSerializer {
 
   import Formatters._
 
+  private val envelopeCreated = nameOf(EnvelopeCreated.getClass)
+  private val fileQuarantined = nameOf(FileQuarantined.getClass)
+  private val noVirusDetected = nameOf(NoVirusDetected.getClass)
+  private val virusDetected = nameOf(VirusDetected.getClass)
+  private val fileDeleted = nameOf(FileDeleted.getClass)
+  private val fileStored = nameOf(FileStored.getClass)
+  private val envelopeDeleted = nameOf(EnvelopeDeleted.getClass)
+  private val envelopeArchived = nameOf(EnvelopeArchived.getClass)
+  private val envelopeSealed = nameOf(EnvelopeSealed.getClass)
+  private val envelopeRouted = nameOf(EnvelopeRouted.getClass)
+
+  private def nameOf(clazz: Class[_]) =
+    clazz.getName.replace("$", "")
+
   def toEventData(eventType: EventType, value: JsValue): EventData =
     eventType.value match {
-      case "uk.gov.hmrc.fileupload.write.envelope.EnvelopeCreated" => Json.fromJson[EnvelopeCreated](value).get
-      case "uk.gov.hmrc.fileupload.write.envelope.FileQuarantined"=> Json.fromJson[FileQuarantined](value).get
-      case "uk.gov.hmrc.fileupload.write.envelope.FileCleaned" => Json.fromJson[NoVirusDetected](value).get
-      case "uk.gov.hmrc.fileupload.write.envelope.FileInfected" => Json.fromJson[VirusDetected](value).get
-      case "uk.gov.hmrc.fileupload.write.envelope.FileStored" => Json.fromJson[FileStored](value).get
-      case "uk.gov.hmrc.fileupload.write.envelope.EnvelopeSealed" => Json.fromJson[EnvelopeSealed](value).get
+      case `envelopeCreated` => Json.fromJson[EnvelopeCreated](value).get
+      case `fileQuarantined` => Json.fromJson[FileQuarantined](value).get
+      case `noVirusDetected` => Json.fromJson[NoVirusDetected](value).get
+      case `virusDetected` => Json.fromJson[VirusDetected](value).get
+      case `fileDeleted` => Json.fromJson[FileDeleted](value).get
+      case `fileStored` => Json.fromJson[FileStored](value).get
+      case `envelopeDeleted` => Json.fromJson[EnvelopeDeleted](value).get
+      case `envelopeArchived`  => Json.fromJson[EnvelopeArchived](value).get
+      case `envelopeSealed` => Json.fromJson[EnvelopeSealed](value).get
+      case `envelopeRouted` => Json.fromJson[EnvelopeRouted](value).get
     }
 
   def fromEventData(eventData: EventData): JsValue =
@@ -91,7 +121,11 @@ object EventSerializer {
       case e: FileQuarantined => Json.toJson(e)
       case e: NoVirusDetected => Json.toJson(e)
       case e: VirusDetected => Json.toJson(e)
+      case e: FileDeleted => Json.toJson(e)
       case e: FileStored => Json.toJson(e)
+      case e: EnvelopeDeleted => Json.toJson(e)
+      case e: EnvelopeArchived => Json.toJson(e)
       case e: EnvelopeSealed => Json.toJson(e)
+      case e: EnvelopeRouted => Json.toJson(e)
     }
 }
