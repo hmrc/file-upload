@@ -21,7 +21,7 @@ import play.api.libs.iteratee.Iteratee
 import play.api.libs.json._
 import play.api.mvc.{BodyParser, _}
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.envelope.File
+import uk.gov.hmrc.fileupload.read.envelope.File
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -56,7 +56,7 @@ object GetFileMetadataReport {
   def fromFile(envelopeId: EnvelopeId, file: File): GetFileMetadataReport =
     GetFileMetadataReport(
       id = file.fileId,
-      status = file.status.map(_.name),
+      status = Some(file.status.name),
       name = file.name,
       contentType = file.contentType,
       length = file.length,
@@ -82,10 +82,10 @@ object FileMetadataParser extends BodyParser[UpdateFileMetadataReport] {
 
 object UploadParser {
 
-  def parse(uploadFile: (EnvelopeId, FileId) => Iteratee[ByteStream, Future[JSONReadFile]])
-           (envelopeId: EnvelopeId, fileId: FileId)
+  def parse(uploadFile: (EnvelopeId, FileId, FileRefId) => Iteratee[ByteStream, Future[JSONReadFile]])
+           (envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId)
            (implicit ex: ExecutionContext): BodyParser[Future[JSONReadFile]] = BodyParser { _ =>
 
-    uploadFile(envelopeId, fileId) map (Right(_)) recover { case NonFatal(e) => Left(ExceptionHandler(e)) }
+    uploadFile(envelopeId, fileId, fileRefId) map (Right(_)) recover { case NonFatal(e) => Left(ExceptionHandler(e)) }
   }
 }

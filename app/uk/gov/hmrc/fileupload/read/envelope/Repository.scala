@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 import play.api.libs.json.Json
+import play.api.mvc.{Result, Results}
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.{DB, DBMetaCommands}
 import reactivemongo.bson.BSONObjectID
@@ -45,8 +46,27 @@ class Repository(mongo: () => DB with DBMetaCommands)
     remove("_id" -> id) map toBoolean
   }
 
+  def getByDestination(maybeDestination: Option[String])(implicit ec: ExecutionContext): Future[List[Envelope]] = {
+    maybeDestination.map { d =>
+      find("destination" -> d, "status" -> EnvelopeStatusClosed.name)
+    } getOrElse {
+      find("status" -> EnvelopeStatusClosed.name)
+    }
+  }
+
   def toBoolean(wr: WriteResult): Boolean = wr match {
     case r if r.ok && r.n > 0 => true
     case _ => false
+  }
+}
+
+class WithValidEnvelope(getEnvelope: EnvelopeId => Future[Option[Envelope]]) {
+  def apply(id: EnvelopeId)(block: Envelope => Future[Result])(implicit ec: ExecutionContext): Future[Result] = {
+    getEnvelope(id).flatMap {
+      case Some(e) => block(e) // eventually do other checks here, e.g. is envelope sealed?
+      case None => Future.successful(
+        Results.NotFound(Json.obj("message" -> s"Envelope with id: $id not found"))
+      )
+    }
   }
 }

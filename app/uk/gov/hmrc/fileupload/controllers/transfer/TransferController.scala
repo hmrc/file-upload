@@ -16,21 +16,20 @@
 
 package uk.gov.hmrc.fileupload.controllers.transfer
 
-import cats.data.Xor
 import controllers.Assets
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
-import uk.gov.hmrc.fileupload.envelope.{Envelope, OutputForTransfer}
-import uk.gov.hmrc.fileupload.transfer.Service._
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, OutputForTransfer}
+import uk.gov.hmrc.fileupload.write.envelope.{ArchiveEnvelope, EnvelopeCommand}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
-class TransferController(softDelete: (EnvelopeId) => Future[SoftDeleteResult],
-                         getEnvelopesByDestination: Option[String] => Future[List[Envelope]])
+class TransferController(getEnvelopesByDestination: Option[String] => Future[List[Envelope]],
+                         handleCommand: (EnvelopeCommand) => Future[Boolean])
                         (implicit executionContext: ExecutionContext) extends BaseController {
 
   def list() = Action.async { implicit request =>
@@ -108,13 +107,20 @@ class TransferController(softDelete: (EnvelopeId) => Future[SoftDeleteResult],
   }
 
   def nonStubDelete(envelopeId: EnvelopeId) = Action.async { implicit request =>
-    softDelete(envelopeId).map {
-      case Xor.Right(_) => Ok
-      case Xor.Left(SoftDeleteServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Left(SoftDeleteEnvelopeNotFound) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $envelopeId not found")
-      case Xor.Left(SoftDeleteEnvelopeAlreadyDeleted) => ExceptionHandler(GONE, s"Envelope with id: $envelopeId already deleted")
-      case Xor.Left(SoftDeleteEnvelopeInWrongState) => ExceptionHandler(LOCKED, s"Envelope with id: $envelopeId locked")
+    val command = ArchiveEnvelope(envelopeId)
+
+    handleCommand(command).map {
+      case true => Ok
+      case false => ExceptionHandler(INTERNAL_SERVER_ERROR, s"Envelope with id: $envelopeId not deleted")
     }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
+
+//    softDelete(envelopeId).map {
+//      case Xor.Right(_) => Ok
+//      case Xor.Left(SoftDeleteServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+//      case Xor.Left(SoftDeleteEnvelopeNotFound) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $envelopeId not found")
+//      case Xor.Left(SoftDeleteEnvelopeAlreadyDeleted) => ExceptionHandler(GONE, s"Envelope with id: $envelopeId already deleted")
+//      case Xor.Left(SoftDeleteEnvelopeInWrongState) => ExceptionHandler(LOCKED, s"Envelope with id: $envelopeId locked")
+//    }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
   }
 
   def nonStubList() = Action.async { implicit request =>

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.notifier
+package uk.gov.hmrc.fileupload.read.notifier
 
 import cats.data.Xor
 import play.api.Play.current

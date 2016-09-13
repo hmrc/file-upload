@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.notifier
+package uk.gov.hmrc.fileupload.read.notifier
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import cats.data.Xor
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.envelope.Service.FindResult
-import uk.gov.hmrc.fileupload.events._
-import uk.gov.hmrc.fileupload.notifier.NotifierRepository.{Notification, NotifyResult}
+import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
+import uk.gov.hmrc.fileupload.read.notifier.NotifierRepository.{Notification, NotifyResult}
+import uk.gov.hmrc.fileupload.write.envelope.{FileQuarantined, FileStored, NoVirusDetected, VirusDetected}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -31,32 +31,25 @@ class NotifierActor(subscribe: (ActorRef, Class[_]) => Boolean,
                    (implicit executionContext: ExecutionContext) extends Actor with ActorLogging {
 
   override def preStart = {
-    subscribe(self, classOf[Quarantined])
+    subscribe(self, classOf[FileQuarantined])
     subscribe(self, classOf[NoVirusDetected])
     subscribe(self, classOf[VirusDetected])
-    subscribe(self, classOf[ToTransientMoved])
-    subscribe(self, classOf[MovingToTransientFailed])
-    subscribe(self, classOf[FileUploadedAndAssigned])
+    subscribe(self, classOf[FileStored])
   }
 
   def receive = {
-    case e: Quarantined =>
-      log.info("Quarantined event received for {} and {}", e.envelopeId, e.fileId)
-      notifyEnvelopeCallback(Notification(e.envelopeId, e.fileId, "QUARANTINED", None))
+    case e: FileQuarantined =>
+      log.info("Quarantined event received for {} and {}", e.id, e.fileId)
+      notifyEnvelopeCallback(Notification(e.id, e.fileId, "QUARANTINED", None))
     case e: NoVirusDetected =>
-      log.info("NoVirusDetected event received for {} and {}", e.envelopeId, e.fileId)
-      notifyEnvelopeCallback(Notification(e.envelopeId, e.fileId, "CLEANED", None))
+      log.info("NoVirusDetected event received for {} and {}", e.id, e.fileId)
+      notifyEnvelopeCallback(Notification(e.id, e.fileId, "CLEANED", None))
     case e: VirusDetected =>
-      log.info("VirusDetected event received for {} and {} and reason = {}", e.envelopeId, e.fileId, e.reason)
-      notifyEnvelopeCallback(Notification(e.envelopeId, e.fileId, "ERROR", Some("VirusDetected")))
-    case e: ToTransientMoved =>
-      log.info("ToTransientMoved event received for {} and {}", e.envelopeId, e.fileId)
-    case e: MovingToTransientFailed =>
-      log.info("MovingToTransientFailed event received for {} and {} and {}", e.envelopeId, e.fileId, e.reason)
-      notifyEnvelopeCallback(Notification(e.envelopeId, e.fileId, "ERROR", Some("MovingToTransientFailed")))
-    case e: FileUploadedAndAssigned =>
-      log.info("FileUploadedAndAssigned event received for {} and {}", e.envelopeId, e.fileId)
-      notifyEnvelopeCallback(Notification(e.envelopeId, e.fileId, "AVAILABLE", None))
+      log.info("VirusDetected event received for {} and {} and reason = {}", e.id, e.fileId)
+      notifyEnvelopeCallback(Notification(e.id, e.fileId, "ERROR", Some("VirusDetected")))
+    case e: FileStored =>
+      log.info("FileStored event received for {} and {}", e.id, e.fileId)
+      notifyEnvelopeCallback(Notification(e.id, e.fileId, "AVAILABLE", None))
   }
 
   def notifyEnvelopeCallback(notification: Notification) =

@@ -18,8 +18,8 @@ package uk.gov.hmrc.fileupload.read.infrastructure
 
 import akka.actor.{Actor, ActorRef, Props}
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.domain.Event
 import uk.gov.hmrc.fileupload.write.envelope._
+import uk.gov.hmrc.fileupload.write.infrastructure.Event
 
 class CoordinatorActor(childProps: (EnvelopeId) => Props, subscribeTo: Set[Class[_]], subscribe: (ActorRef, Class[_]) => Boolean) extends Actor {
 

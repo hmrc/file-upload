@@ -16,16 +16,16 @@
 
 package uk.gov.hmrc.fileupload.write.envelope
 
-import uk.gov.hmrc.fileupload.domain._
+import uk.gov.hmrc.fileupload.write.infrastructure.AggregateRoot._
+import uk.gov.hmrc.fileupload.write.infrastructure.{AggregateRoot, EventStore}
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
-import AggregateRoot._
 
 class EnvelopeAggregate(override val defaultState: () => Envelope = () => Envelope())
                        (implicit val eventStore: EventStore, implicit val publish: AnyRef => Unit) extends AggregateRoot[EnvelopeCommand, Envelope] {
 
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
-      EnvelopeCreated(command.id)
+      EnvelopeCreated(command.id, command.callbackUrl)
 
     case (command: QuarantineFile, envelope: Envelope) =>
       if (envelope.canQuarantine) {
@@ -85,7 +85,7 @@ class EnvelopeAggregate(override val defaultState: () => Envelope = () => Envelo
 
     case (command: SealEnvelope, envelope: Envelope) =>
       if (envelope.canSeal) {
-        EnvelopeSealed(command.id)
+        EnvelopeSealed(command.id, command.destination, command.packageType)
       } else {
         "not the right status"
       }
@@ -176,9 +176,7 @@ object Open extends State {
     !files.exists(!_.hasError)
 }
 
-object Deleted extends State {
-
-}
+object Deleted extends State
 
 object Sealed extends State {
 
@@ -191,9 +189,7 @@ object Routed extends State {
   override def canArchive: Boolean = true
 }
 
-object Archived extends State {
-
-}
+object Archived extends State
 
 trait File {
   def fileRefId: FileRefId

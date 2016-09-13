@@ -18,9 +18,9 @@ package uk.gov.hmrc.fileupload.read.envelope
 
 import akka.actor.{ActorLogging, Props}
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.domain.EventData
 import uk.gov.hmrc.fileupload.read.infrastructure.ReportActor
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCreated, FileQuarantined, NoVirusDetected, VirusDetected}
+import uk.gov.hmrc.fileupload.write.infrastructure.EventData
 
 import scala.concurrent.Future
 
@@ -31,7 +31,7 @@ class EnvelopeReportActor(override val id: EnvelopeId,
 
   override def apply = {
     case (s: Envelope, e: EnvelopeCreated) =>
-      s.copy(version = eventVersion)
+      s.copy(version = eventVersion, callbackUrl = e.callbackUrl)
     case (s: Envelope, e: FileQuarantined) =>
       val file = File(fileId = e.fileId, fileRefId = e.fileRefId, status = FileStatusQuarantined, name = Some(e.name), contentType = Some(e.contentType), metadata = Some(e.metadata))
       s.copy(version = eventVersion, files = s.files.orElse(Some(List.empty[File])).map(_.:+(file)))

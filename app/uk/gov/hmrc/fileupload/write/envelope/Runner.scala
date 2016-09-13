@@ -21,14 +21,13 @@ import java.util.UUID
 import akka.actor.ActorSystem
 import play.api.libs.json.Json
 import reactivemongo.api.MongoDriver
-import uk.gov.hmrc.fileupload.domain.EventSerializer.{EventReader, EventWriter}
-import uk.gov.hmrc.fileupload.domain.MongoEventStore
-import uk.gov.hmrc.fileupload.domain.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
 import uk.gov.hmrc.fileupload.read.envelope.{EnvelopeReportActor, Repository}
 import uk.gov.hmrc.fileupload.read.infrastructure.CoordinatorActor
+import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
+import uk.gov.hmrc.fileupload.write.infrastructure.MongoEventStore
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 object Runner extends App {
@@ -65,14 +64,14 @@ object Runner extends App {
   implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
   implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
 
-  implicit val eventStore = new MongoEventStore(() => connection.db("eventsourcing"))
-  val handle = CommandHandler.handleCommand _
+  val eventStore = new MongoEventStore(() => connection.db("eventsourcing"))
+  val handle = CommandHandler.handleCommand(eventStore, publish) _
 
   val serviceWhichCallsCommandFunc = serviceWhichCallsCommand(handle) _
   
   val envelopeId = EnvelopeId(UUID.randomUUID().toString)
 
-  serviceWhichCallsCommandFunc(new CreateEnvelope(envelopeId))
+  serviceWhichCallsCommandFunc(new CreateEnvelope(envelopeId, Some("http://test.com")))
   serviceWhichCallsCommandFunc(new QuarantineFile(envelopeId, FileId("file-id-1"), FileRefId("file-reference-id-1"), "example.pdf", "application/pdf", Json.obj("name" -> "test")))
   Thread.sleep(1000)
   serviceWhichCallsCommandFunc(new MarkFileAsClean(envelopeId, FileId("file-id-1"), FileRefId("file-reference-id-1")))
@@ -81,6 +80,6 @@ object Runner extends App {
   Thread.sleep(3000)
   println(Await.result(repository.get(envelopeId), 5 seconds))
 
-  def serviceWhichCallsCommand(handle: (EnvelopeCommand) => Unit)(command: EnvelopeCommand) =
+  def serviceWhichCallsCommand(handle: (EnvelopeCommand) => Future[Boolean])(command: EnvelopeCommand) =
     handle(command)
 }

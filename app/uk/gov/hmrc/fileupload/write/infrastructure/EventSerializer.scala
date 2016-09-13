@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.domain
+package uk.gov.hmrc.fileupload.write.infrastructure
 
 import play.api.libs.json.JsValue
 import reactivemongo.bson.{BSONArray, BSONDocument, BSONDocumentReader, BSONDocumentWriter}

@@ -18,15 +18,24 @@ package uk.gov.hmrc.fileupload.read.envelope
 
 import org.joda.time.DateTime
 import play.api.libs.json.{Format, JsObject, _}
-import uk.gov.hmrc.fileupload.domain.Version
+import uk.gov.hmrc.fileupload.write.infrastructure.Version
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
 case class Envelope(_id: EnvelopeId = EnvelopeId(),
                     version: Version = Version(0),
                     status: EnvelopeStatus = EnvelopeStatusOpen,
                     constraints: Option[Constraints] = None,
-                    callbackUrl: Option[String] = None, expiryDate: Option[DateTime] = None,
-                    metadata: Option[Map[String, JsValue]] = None, files: Option[Seq[File]] = None)
+                    callbackUrl: Option[String] = None,
+                    expiryDate: Option[DateTime] = None,
+                    metadata: Option[Map[String, JsValue]] = None,
+                    files: Option[Seq[File]] = None,
+                    destination: Option[String] = None,
+                    application: Option[String] = None) {
+
+  def getFileById(fileId: FileId): Option[File] = {
+    files.flatMap { _.find { file => file.fileId == fileId }}
+  }
+}
 
 case class Constraints(contentTypes: Option[Seq[String]] = None,
                        maxItems: Option[Int] = None,

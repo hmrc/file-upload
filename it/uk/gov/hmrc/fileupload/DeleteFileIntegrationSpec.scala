@@ -22,8 +22,11 @@ class DeleteFileIntegrationSpec extends IntegrationSpec with FileActions with En
       And("I have a valid file-id")
       val fileId = FileId(s"fileId-${nextId()}")
 
+      And("I have a valid file-ref-id")
+      val fileRefId = FileRefId(s"fileRefId-${nextId()}")
+
       And("I uploaded a file")
-      upload("abc".getBytes(), envelopeId, fileId)
+      upload("abc".getBytes(), envelopeId, fileId, fileRefId)
 
       When(s"I invoke DELETE envelope/$envelopeId/file/$fileId")
       val response: WSResponse = delete(envelopeId, fileId)

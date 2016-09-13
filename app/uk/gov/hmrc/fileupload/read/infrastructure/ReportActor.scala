@@ -16,11 +16,10 @@
 
 package uk.gov.hmrc.fileupload.read.infrastructure
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging}
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.domain._
-import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import uk.gov.hmrc.fileupload.write.envelope._
+import uk.gov.hmrc.fileupload.write.infrastructure.{Created, Event, EventData, Version}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -51,25 +50,5 @@ trait ReportActor[S <: AnyRef] extends Actor with ActorLogging {
   }
 
   def apply: PartialFunction[(S, EventData), S]
-
-//  def receive = {
-//    case EnvelopeCreated =>
-//      state = Envelope(_id = e.id, version = e.)
-//
-//    case e: FileQuarantined =>
-//      val file = File(fileId = e.fileId, fileReferenceId = e.fileRefId, status = FileStatusQuarantined, name = Some(e.name), contentType = Some(e.contentType), metadata = Some(e.metadata))
-//
-//    case e: NoVirusDetected =>
-//
-//    case e: FileStored =>
-//      log.info(s"$e not yet implemented")
-//    case e: VirusDetected =>
-//      log.info(s"$e not yet implemented")
-//    case e: EnvelopeSealed =>
-//      log.info(s"$e not yet implemented")
-//    case a: AnyRef => {
-//      println(a)
-//    }
-//  }
 
 }

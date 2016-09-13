@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.file
+package uk.gov.hmrc.fileupload.read.file
 
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
@@ -45,14 +45,15 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 
 			val envelopeId = Support.envelope._id
 			val fileId = FileId()
+			val fileRefId = FileRefId()
 
-			val sink = repository.iterateeForUpload(envelopeId, fileId)
+			val sink = repository.iterateeForUpload(envelopeId, fileId, fileRefId)
 			val fsId = contents.run[Future[JSONReadFile]](sink).futureValue.id match {
 				case JsString(v) => FileId(v)
 				case _ => fail("expected JsString here")
 			}
 
-			val fileResult = repository.retrieveFile(fsId).futureValue.get
+			val fileResult = repository.retrieveFile(fileRefId).futureValue.get
 
       fileResult.length shouldBe text.getBytes.length
 			val resultAsString = {
@@ -63,7 +64,7 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 		}
 
 		"returns a fileNotFound error" in {
-			val nonexistentId = FileId()
+			val nonexistentId = FileRefId()
 
 			val fileResult = repository.retrieveFile(nonexistentId).futureValue
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.envelope
+package uk.gov.hmrc.fileupload.read.envelope
 
 import org.joda.time.DateTime
 import play.api.libs.json._
@@ -98,12 +98,12 @@ object OutputForTransfer {
     }
 
     def fileUri(envelopeId: EnvelopeId, fileId: FileId): String = {
-      fileRoutes.deleteFile(envelopeId, fileId).url
+      envelopeRoutes.deleteFile(envelopeId, fileId).url
     }
 
     def fileRelativeToEnvelope(file: File, envelopeId: EnvelopeId): String = {
       val envelopeUrl =  envelopeRoutes.show(envelopeId).url
-      fileRoutes.deleteFile(envelopeId, file.fileId).url.stripPrefix(envelopeUrl)
+      envelopeRoutes.deleteFile(envelopeId, file.fileId).url.stripPrefix(envelopeUrl)
     }
   }
 

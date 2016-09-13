@@ -21,7 +21,7 @@ import play.api.libs.iteratee.Iteratee
 import play.api.libs.json._
 import play.api.mvc.{BodyParser, RequestHeader, Result}
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.envelope._
+import uk.gov.hmrc.fileupload.read.envelope._
 
 import scala.concurrent.ExecutionContext
 import scala.util.control.NonFatal

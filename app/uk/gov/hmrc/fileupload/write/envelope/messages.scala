@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.write.envelope
 
 import play.api.libs.json.{Format, JsObject, JsValue, Json}
-import uk.gov.hmrc.fileupload.domain.{Command, EventData, EventType, StreamId}
+import uk.gov.hmrc.fileupload.write.infrastructure.{Command, EventData, EventType, StreamId}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
 // commands
@@ -28,7 +28,7 @@ sealed trait EnvelopeCommand extends Command {
   def streamId: StreamId = StreamId(id.value)
 }
 
-case class CreateEnvelope(id: EnvelopeId) extends EnvelopeCommand
+case class CreateEnvelope(id: EnvelopeId, callbackUrl: Option[String]) extends EnvelopeCommand
 
 case class QuarantineFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
                           name: String, contentType: String, metadata: JsObject) extends EnvelopeCommand
@@ -55,7 +55,7 @@ sealed trait EnvelopeEvent extends EventData {
   def streamId: StreamId = StreamId(id.value)
 }
 
-case class EnvelopeCreated(id: EnvelopeId) extends EnvelopeEvent
+case class EnvelopeCreated(id: EnvelopeId, callbackUrl: Option[String]) extends EnvelopeEvent
 
 case class FileQuarantined(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
                            name: String, contentType: String, metadata: JsObject) extends EnvelopeEvent
@@ -70,7 +70,7 @@ case class FileStored(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, leng
 
 case class EnvelopeDeleted(id: EnvelopeId) extends EnvelopeEvent
 
-case class EnvelopeSealed(id: EnvelopeId) extends EnvelopeEvent
+case class EnvelopeSealed(id: EnvelopeId, destination: String, packageType: String) extends EnvelopeEvent
 
 case class EnvelopeRouted(id: EnvelopeId) extends EnvelopeEvent
 

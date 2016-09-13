@@ -16,12 +16,14 @@
 
 package uk.gov.hmrc.fileupload.write.envelope
 
-import uk.gov.hmrc.fileupload.domain.EventStore
+import uk.gov.hmrc.fileupload.write.infrastructure.EventStore
+
+import scala.concurrent.Future
 
 object CommandHandler {
 
-  def handleCommand(command: EnvelopeCommand)
-                   (implicit eventStore: EventStore, publish: AnyRef => Unit): Unit = {
+  def handleCommand(eventStore: EventStore, publish: AnyRef => Unit)
+                   (command: EnvelopeCommand): Future[Boolean] = {
     val aggregate = new EnvelopeAggregate()(eventStore, publish)
     aggregate.handleCommand(command)
   }

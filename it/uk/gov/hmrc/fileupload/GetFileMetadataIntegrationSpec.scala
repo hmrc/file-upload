@@ -13,6 +13,8 @@ class GetFileMetadataIntegrationSpec extends IntegrationSpec with FileActions wi
 
   feature("Retrieve Metadata") {
 
+    pending
+
     scenario("GET metadata with valid envelope id") {
       Given("I have a valid envelope ID")
       val envelopeId = createEnvelope()

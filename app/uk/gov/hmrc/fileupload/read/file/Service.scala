@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.file
+package uk.gov.hmrc.fileupload.read.file
 
 import cats.data.Xor
 import play.api.libs.iteratee.Enumerator
-import uk.gov.hmrc.fileupload.FileId
-import uk.gov.hmrc.fileupload.envelope.Envelope
+import uk.gov.hmrc.fileupload.{FileId, FileRefId}
+import uk.gov.hmrc.fileupload.read.envelope.Envelope
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -31,18 +31,16 @@ object Service {
   sealed trait GetFileError
   case object GetFileNotFoundError extends GetFileError
 
-  def retrieveFile(getFileFromRepo: FileId => Future[Option[FileData]])
+  def retrieveFile(getFileFromRepo: FileRefId => Future[Option[FileData]])
                   (envelope: Envelope, fileId: FileId)
-                  (implicit ex: ExecutionContext): Future[GetFileResult] = {
-      (for {
-        file <- envelope.getFileById(fileId)
-        fsReference <- file.fsReference
-      } yield {
-        getFileFromRepo(fsReference).map { maybeData =>
-          val fileWithClientProvidedName = maybeData.map { d => FileFound(file.name, d.length, d.data) }
-          Xor.fromOption(fileWithClientProvidedName, ifNone = GetFileNotFoundError)
-        }
-      }).getOrElse(Future.successful(Xor.left(GetFileNotFoundError)))
-  }
+                  (implicit ex: ExecutionContext): Future[GetFileResult] =
+    (for {
+      file <- envelope.getFileById(fileId)
+    } yield {
+      getFileFromRepo(file.fileRefId).map { maybeData =>
+        val fileWithClientProvidedName = maybeData.map { d => FileFound(file.name, d.length, d.data) }
+        Xor.fromOption(fileWithClientProvidedName, ifNone = GetFileNotFoundError)
+      }
+    }).getOrElse(Future.successful(Xor.left(GetFileNotFoundError)))
 
 }

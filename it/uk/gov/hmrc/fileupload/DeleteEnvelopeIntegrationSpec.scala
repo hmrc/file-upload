@@ -29,6 +29,7 @@ class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
     }
 
     scenario("Delete Envelope - invalid ID") {
+      pending
       Given("I have an invalid envelope id")
       val invalidEnvelopeId = EnvelopeId()
 
