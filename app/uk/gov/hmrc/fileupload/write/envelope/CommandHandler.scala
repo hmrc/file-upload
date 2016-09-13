@@ -22,7 +22,7 @@ object CommandHandler {
 
   def handleCommand(command: EnvelopeCommand)
                    (implicit eventStore: EventStore, publish: AnyRef => Unit): Unit = {
-    val aggregate = new Envelope()(eventStore, publish)
+    val aggregate = new EnvelopeAggregate()(eventStore, publish)
     aggregate.handleCommand(command)
   }
 

@@ -83,3 +83,15 @@ trait AggregateRoot[C <: Command, S] {
     }
   }
 }
+
+object AggregateRoot {
+
+  implicit def EventDataToXorRight(event: EventData): Xor[String, List[EventData]] =
+    Xor.Right(List(event))
+
+  implicit def EventsDataToXorRight(events: List[EventData]): Xor[String, List[EventData]] =
+    Xor.Right(events)
+
+  implicit def StringToXorLeft(reason: String): Xor[String, List[EventData]] =
+    Xor.Left(reason)
+}
