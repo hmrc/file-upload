@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.fileupload.write.envelope
 
+import cats.data.Xor
 import uk.gov.hmrc.fileupload.domain._
 import uk.gov.hmrc.fileupload.write.envelope.Envelope.{CleanedFile, QuarantinedFile, State}
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
@@ -25,22 +26,22 @@ class Envelope(override val defaultState: () => State = () => State())
 
   override def handle = {
     case (command: CreateEnvelope, state: State) =>
-      List(EnvelopeCreated(command.id))
+      Xor.Right(List(EnvelopeCreated(command.id)))
 
     case (command: QuarantineFile, state: State) =>
-      List(FileQuarantined(
+      Xor.Right(List(FileQuarantined(
         id = command.id, fileId = command.fileId, fileRefId = command.fileRefId,
-        name = command.name, contentType = command.contentType, metadata = command.metadata))
+        name = command.name, contentType = command.contentType, metadata = command.metadata)))
 
     case (command: MarkFileAsClean, state: State) =>
       if (state.sameFileReferenceId(command.fileId, command.fileRefId)) {
-        List(NoVirusDetected(command.id, command.fileId, command.fileRefId))
+        Xor.Right(List(NoVirusDetected(command.id, command.fileId, command.fileRefId)))
       } else {
-        List.empty
+        Xor.Left("not the right file")
       }
   }
 
-  def apply = {
+  override def apply = {
       case (state: State, e: EnvelopeCreated) =>
         state.copy()
 

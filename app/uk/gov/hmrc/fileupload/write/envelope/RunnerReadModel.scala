@@ -22,8 +22,7 @@ import akka.actor.ActorSystem
 import play.api.libs.json.Json
 import reactivemongo.api.MongoDriver
 import uk.gov.hmrc.fileupload.domain.EventSerializer.{EventReader, EventWriter}
-import uk.gov.hmrc.fileupload.domain.MongoEventStore
-import uk.gov.hmrc.fileupload.domain.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
+import uk.gov.hmrc.fileupload.domain._
 import uk.gov.hmrc.fileupload.read.envelope.{EnvelopeReportActor, Repository}
 import uk.gov.hmrc.fileupload.read.infrastructure.CoordinatorActor
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
@@ -31,7 +30,7 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-object Runner extends App {
+object RunnerReadModel extends App {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -57,30 +56,24 @@ object Runner extends App {
       Set(classOf[EnvelopeCreated], classOf[FileQuarantined], classOf[NoVirusDetected]),
       subscribe), "envelopeReportEventHandler")
 
-  // write model
+  // publish events
 
-  //this we can create inside microserviceGlobal
-//  implicit val eventStore = new InMemoryEventStore()
-
-  implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
-  implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
-
-  implicit val eventStore = new MongoEventStore(() => connection.db("eventsourcing"))
-  val handle = CommandHandler.handleCommand _
-
-  val serviceWhichCallsCommandFunc = serviceWhichCallsCommand(handle) _
-  
-  val envelopeId = EnvelopeId(UUID.randomUUID().toString)
-
-  serviceWhichCallsCommandFunc(new CreateEnvelope(envelopeId))
-  serviceWhichCallsCommandFunc(new QuarantineFile(envelopeId, FileId("file-id-1"), FileRefId("file-reference-id-1"), "example.pdf", "application/pdf", Json.obj("name" -> "test")))
-  Thread.sleep(1000)
-  serviceWhichCallsCommandFunc(new MarkFileAsClean(envelopeId, FileId("file-id-1"), FileRefId("file-reference-id-1")))
-
-  //print read model
   Thread.sleep(3000)
-  println(Await.result(repository.get(envelopeId), 5 seconds))
 
-  def serviceWhichCallsCommand(handle: (EnvelopeCommand) => Unit)(command: EnvelopeCommand) =
-    handle(command)
+  val envelopeId = EnvelopeId("e-4")
+
+  publishEvent(EnvelopeCreated(envelopeId), Version(1))
+  publishEvent(FileQuarantined(envelopeId, FileId("file-1"), FileRefId("a"), "test.pdf", "pdf", Json.obj()), Version(2))
+  publishEvent(NoVirusDetected(envelopeId, FileId("file-1"), FileRefId("a")), Version(3))
+
+  def publishEvent(envelopeEvent: EnvelopeEvent, version: Version) =
+    publish(
+      Event(
+        EventId(UUID.randomUUID().toString),
+        StreamId(envelopeEvent.id.value),
+        version,
+        Created(System.currentTimeMillis()),
+        EventType(envelopeEvent.getClass.getName),
+        envelopeEvent))
+
 }

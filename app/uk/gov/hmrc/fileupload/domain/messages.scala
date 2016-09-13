@@ -16,6 +16,10 @@
 
 package uk.gov.hmrc.fileupload.domain
 
+import play.api.libs.json.{JsError, JsSuccess, _}
+
+case class UnitOfWork(streamId: StreamId, version: Version, created: Created, events: Seq[Event])
+
 case class Event(eventId: EventId, streamId: StreamId, version: Version, created: Created, eventType: EventType, eventData: EventData)
 
 case class EventId(value: String) extends AnyVal {
@@ -28,6 +32,21 @@ case class StreamId(value: String) extends AnyVal {
 
 case class Version(value: Int) extends AnyVal {
   override def toString = value.toString
+
+  def nextVersion() =
+    Version(value + 1)
+}
+
+object Version {
+  implicit val writes = new Writes[Version] {
+    def writes(id: Version): JsValue = JsNumber(id.value)
+  }
+  implicit val reads = new Reads[Version] {
+    def reads(json: JsValue): JsResult[Version] = json match {
+      case JsNumber(value) => JsSuccess(Version(value.toInt))
+      case _ => JsError("invalid envelopeId")
+    }
+  }
 }
 
 case class Created(value: Long) extends AnyVal {
@@ -36,6 +55,10 @@ case class Created(value: Long) extends AnyVal {
 
 case class EventType(value: String) extends AnyVal {
   override def toString = value
+}
+
+trait EventData {
+  def streamId: StreamId
 }
 
 trait Command {

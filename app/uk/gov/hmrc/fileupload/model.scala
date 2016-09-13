@@ -40,8 +40,6 @@ object EnvelopeId {
     new SimpleObjectBinder[EnvelopeId](EnvelopeId.apply, _.value)
 }
 
-
-
 case class FileId(value: String = UUID.randomUUID().toString) extends AnyVal {
   override def toString = value
 }

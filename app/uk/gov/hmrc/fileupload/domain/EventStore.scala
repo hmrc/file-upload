@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.domain
 
 import reactivemongo.api.collections.bson.BSONCollection
+import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{DB, DBMetaCommands}
 import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 
@@ -26,45 +27,45 @@ import scala.language.postfixOps
 
 trait EventStore {
 
-  def saveEvents(streamId: StreamId, events: List[Event], expectedVersion: Version)
+  def saveUnitOfWork(streamId: StreamId, unitOfWork: UnitOfWork)
 
-  def eventsForAggregate(streamId: StreamId): List[Event]
+  def unitsOfWorkForAggregate(streamId: StreamId): List[UnitOfWork]
 }
 
-class InMemoryEventStore extends EventStore {
-
-  var allEvents = Map.empty[StreamId, List[Event]]
-
-  override def saveEvents(streamId: StreamId, events: List[Event], expectedVersion: Version): Unit = {
-    println(s"saveEvent: $events")
-    val currentEvents = allEvents.getOrElse(streamId, List.empty)
-    allEvents = allEvents + (streamId -> currentEvents.++(events))
-    //TODO: publish events after successfully saved
-  }
-
-  override def eventsForAggregate(streamId: StreamId): List[Event] = {
-    val events = allEvents.getOrElse(streamId, List.empty)
-    println(s"eventsForAggregate: $events")
-    events
-  }
-}
+//class InMemoryEventStore extends EventStore {
+//
+//  var allEvents = Map.empty[StreamId, List[Event]]
+//
+//  override def saveEvents(streamId: StreamId, unitOfWork: UnitOfWork, expectedVersion: Version): Unit = {
+//    println(s"saveEvent: $events")
+//    val currentEvents = allEvents.getOrElse(streamId, List.empty)
+//    allEvents = allEvents + (streamId -> currentEvents.++(events))
+//    //TODO: publish events after successfully saved
+//  }
+//
+//  override def eventsForAggregate(streamId: StreamId): List[Event] = {
+//    val events = allEvents.getOrElse(streamId, List.empty)
+//    println(s"eventsForAggregate: $events")
+//    events
+//  }
+//}
 
 class MongoEventStore(mongo: () => DB with DBMetaCommands)
                      (implicit ec: ExecutionContext,
-                      reader: BSONDocumentReader[Event],
-                      writer: BSONDocumentWriter[Event]) extends EventStore {
+                      reader: BSONDocumentReader[UnitOfWork],
+                      writer: BSONDocumentWriter[UnitOfWork]) extends EventStore {
 
   val collection = mongo().collection[BSONCollection]("events")
 
-  override def saveEvents(streamId: StreamId, events: List[Event], expectedVersion: Version): Unit = {
-    val bulkDocs = events.map(implicitly[collection.ImplicitlyDocumentProducer](_))
-    val result = collection.bulkInsert(ordered = true)(bulkDocs: _*)
+  collection.indexesManager.ensure(Index(List("streamId" -> IndexType.Text)))
 
+  override def saveUnitOfWork(streamId: StreamId, unitOfWork: UnitOfWork): Unit = {
+    val result = collection.insert(unitOfWork)
     Await.result(result.map(r => r.ok), 5 seconds)
   }
 
-  override def eventsForAggregate(streamId: StreamId): List[Event] = {
-    val result = collection.find(BSONDocument("streamId" -> streamId.value)).cursor[Event]().collect[List]()
+  override def unitsOfWorkForAggregate(streamId: StreamId): List[UnitOfWork] = {
+    val result = collection.find(BSONDocument("streamId" -> streamId.value)).cursor[UnitOfWork]().collect[List]()
     Await.result(result, 5 seconds)
   }
 }

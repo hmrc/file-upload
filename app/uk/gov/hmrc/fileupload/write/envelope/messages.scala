@@ -25,7 +25,7 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 sealed trait EnvelopeCommand extends Command {
   def id: EnvelopeId
 
-  def streamId: StreamId = StreamId(id.toString)
+  def streamId: StreamId = StreamId(id.value)
 }
 
 case class CreateEnvelope(id: EnvelopeId) extends EnvelopeCommand
@@ -49,26 +49,32 @@ case class SealEnvelope(id: EnvelopeId, destination: String, packageType: String
 
 // events
 
-case class EnvelopeCreated(id: EnvelopeId)
+sealed trait EnvelopeEvent extends EventData {
+  def id: EnvelopeId
+
+  def streamId: StreamId = StreamId(id.value)
+}
+
+case class EnvelopeCreated(id: EnvelopeId) extends EnvelopeEvent
 
 case class FileQuarantined(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
-                           name: String, contentType: String, metadata: JsObject)
+                           name: String, contentType: String, metadata: JsObject) extends EnvelopeEvent
 
-case class NoVirusDetected(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId)
+case class NoVirusDetected(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) extends EnvelopeEvent
 
-case class VirusDetected(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId)
+case class VirusDetected(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) extends EnvelopeEvent
 
-case class FileDeleted(id: EnvelopeId, fileId: FileId)
+case class FileDeleted(id: EnvelopeId, fileId: FileId) extends EnvelopeEvent
 
-case class FileStored(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, length: Long)
+case class FileStored(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, length: Long) extends EnvelopeEvent
 
-case class EnvelopeDeleted(id: EnvelopeId)
+case class EnvelopeDeleted(id: EnvelopeId) extends EnvelopeEvent
 
-case class EnvelopeArchived(id: EnvelopeId)
+case class EnvelopeArchived(id: EnvelopeId) extends EnvelopeEvent
 
-case class EnvelopeSealed(id: EnvelopeId)
+case class EnvelopeSealed(id: EnvelopeId) extends EnvelopeEvent
 
-case class EnvelopeRouted(id: EnvelopeId)
+case class EnvelopeRouted(id: EnvelopeId) extends EnvelopeEvent
 
 object Formatters {
   implicit val envelopeCreatedFormat: Format[EnvelopeCreated] = Json.format[EnvelopeCreated]

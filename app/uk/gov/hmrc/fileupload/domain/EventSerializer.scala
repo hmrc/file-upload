@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.domain
 
 import play.api.libs.json.JsValue
-import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter, BSONObjectID}
+import reactivemongo.bson.{BSONArray, BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 import reactivemongo.json.BSONFormats
 
 object EventSerializer {
@@ -46,4 +46,40 @@ object EventSerializer {
     )
   }
 
+}
+
+object UnitOfWorkSerializer {
+
+  class UnitOfWorkReader(toEventData: (EventType, JsValue) => EventData) extends BSONDocumentReader[UnitOfWork] {
+    def read(doc: BSONDocument): UnitOfWork = {
+      val idAsJson = BSONFormats.toJSON(doc.get("_id").get)
+      val streamId = StreamId((idAsJson \ "streamId").as[String])
+      val version = Version((idAsJson \ "version").as[Int])
+      val created = Created(doc.getAs[Long]("created").get)
+
+      val events = doc.getAs[BSONArray]("events").get.values.map { event =>
+        val eventAsJson = BSONFormats.toJSON(event)
+        val eventId = EventId((eventAsJson \ "id").as[String])
+        val eventType = EventType((eventAsJson \ "eventType").as[String])
+        val eventData = toEventData(eventType, eventAsJson \ "eventData")
+        Event(eventId, streamId, version, created, eventType, eventData)
+      }
+
+      UnitOfWork(streamId, version, created, events)
+    }
+  }
+
+  class UnitOfWorkWriter(fromEventData: EventData => JsValue) extends BSONDocumentWriter[UnitOfWork] {
+    override def write(t: UnitOfWork): BSONDocument = BSONDocument(
+      "_id" -> BSONDocument("streamId" -> t.streamId.value, "version" -> t.version.value),
+      "streamId" -> t.streamId.value,
+      "created" -> t.created.value,
+      "events" -> BSONArray(t.events.map(event => {
+        BSONDocument(
+          "id" -> event.eventId.value,
+          "eventType" -> event.eventType.value,
+          "eventData" -> BSONFormats.toBSON(fromEventData(event.eventData)).get)
+      }))
+    )
+  }
 }
