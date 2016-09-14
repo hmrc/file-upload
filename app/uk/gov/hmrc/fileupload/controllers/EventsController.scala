@@ -51,7 +51,6 @@ class EventController(handleCommand: (EnvelopeCommand) => Future[Boolean])
         }
     }
   }
-
 }
 
 object EventParser extends BodyParser[Event] {
@@ -69,7 +68,6 @@ object EventParser extends BodyParser[Event] {
             case "fileinquarantinestored" => Try(Json.fromJson[FileInQuarantineStored](parsedData).get)
             case _ => Failure(new InvalidEventException(s"$eventType is not a valid event"))
           }
-
       }
 
       triedEvent match {
