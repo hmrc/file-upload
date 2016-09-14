@@ -64,3 +64,7 @@ trait EventData {
 trait Command {
   def streamId: StreamId
 }
+
+object CommandAccepted
+
+trait CommandNotAccepted

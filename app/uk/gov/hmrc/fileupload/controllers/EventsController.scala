@@ -16,11 +16,13 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import cats.data.Xor
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.Json
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.controllers.EventFormatters._
 import uk.gov.hmrc.fileupload.write.envelope._
+import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -28,7 +30,7 @@ import scala.language.postfixOps
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
-class EventController(handleCommand: (EnvelopeCommand) => Future[Boolean])
+class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
                      (implicit executionContext: ExecutionContext) extends BaseController {
 
   def collect(eventType: String) = Action.async(EventParser) { implicit request =>
@@ -36,8 +38,8 @@ class EventController(handleCommand: (EnvelopeCommand) => Future[Boolean])
       case e: FileInQuarantineStored =>
         val command = QuarantineFile(e.envelopeId, e.fileId, e.fileRefId, e.created, e.name, e.contentType, e.metadata)
         handleCommand(command).map {
-          case true => Ok
-          case false => BadRequest
+          case Xor.Right(_) => Ok
+          case Xor.Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
         }
       case e: FileScanned =>
         val command = if (e.hasVirus) {
@@ -46,8 +48,8 @@ class EventController(handleCommand: (EnvelopeCommand) => Future[Boolean])
           MarkFileAsClean(e.envelopeId, e.fileId, e.fileRefId)
         }
         handleCommand(command).map {
-          case true => Ok
-          case false => BadRequest
+          case Xor.Right(_) => Ok
+          case Xor.Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
         }
     }
   }

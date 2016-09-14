@@ -15,6 +15,8 @@ class DeleteFileIntegrationSpec extends IntegrationSpec with FileActions with En
 
   feature("Delete file") {
 
+    pending
+
     scenario("Delete an existing file") {
       Given("I have a valid envelope-id")
       val envelopeId = createEnvelope()

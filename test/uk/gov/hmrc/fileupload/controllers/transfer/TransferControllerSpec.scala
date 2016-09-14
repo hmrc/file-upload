@@ -22,6 +22,7 @@ import play.api.http.Status
 import play.api.test.FakeRequest
 import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import uk.gov.hmrc.fileupload.write.envelope.{ArchiveEnvelope, EnvelopeCommand}
+import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.fileupload.{EnvelopeId, Support}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
@@ -34,7 +35,7 @@ class TransferControllerSpec extends UnitSpec with WithFakeApplication with Scal
   val failed = Future.failed(new Exception("not good"))
 
   def newController(getEnvelopesByDestination: Option[String] => Future[List[Envelope]] = _ => failed,
-                    handleCommand: EnvelopeCommand => Future[Boolean] = _ => failed) =
+                    handleCommand: EnvelopeCommand => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed) =
     new TransferController(getEnvelopesByDestination, handleCommand)
 
 
@@ -43,7 +44,7 @@ class TransferControllerSpec extends UnitSpec with WithFakeApplication with Scal
       val envelope = Support.envelope
       val request = FakeRequest()
 
-      val controller = newController(handleCommand = _ => Future.successful(true))
+      val controller = newController(handleCommand = _ => Future.successful(Xor.Right(CommandAccepted)))
       val result = controller.nonStubDelete(envelope._id)(request).futureValue
 
       result.header.status shouldBe Status.OK

@@ -19,12 +19,13 @@ package uk.gov.hmrc.fileupload.write.envelope
 import java.util.UUID
 
 import akka.actor.ActorSystem
+import cats.data.Xor
 import play.api.libs.json.Json
 import reactivemongo.api.MongoDriver
 import uk.gov.hmrc.fileupload.read.envelope.{EnvelopeReportActor, Repository}
 import uk.gov.hmrc.fileupload.read.infrastructure.CoordinatorActor
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
-import uk.gov.hmrc.fileupload.write.infrastructure.MongoEventStore
+import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, MongoEventStore}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
 import scala.concurrent.{Await, Future}
@@ -76,10 +77,15 @@ object Runner extends App {
   Thread.sleep(1000)
   serviceWhichCallsCommandFunc(new MarkFileAsClean(envelopeId, FileId("file-id-1"), FileRefId("file-reference-id-1")))
 
+  serviceWhichCallsCommandFunc(new QuarantineFile(envelopeId, FileId("file-id-1"), FileRefId("file-reference-id-2"), 0, "example.pdf", "application/pdf", Json.obj("name" -> "test")))
+  serviceWhichCallsCommandFunc(new QuarantineFile(envelopeId, FileId("file-id-2"), FileRefId("file-reference-id-21"), 0, "example.pdf", "application/pdf", Json.obj("name" -> "test")))
+
   //print read model
   Thread.sleep(3000)
   println(Await.result(repository.get(envelopeId), 5 seconds))
 
-  def serviceWhichCallsCommand(handle: (EnvelopeCommand) => Future[Boolean])(command: EnvelopeCommand) =
-    handle(command)
+  def serviceWhichCallsCommand(handle: (EnvelopeCommand) => Future[Xor[EnvelopeCommandNotAccepted, CommandAccepted.type]])(command: EnvelopeCommand) = {
+    val result = Await.result(handle(command), 5 seconds)
+    println(result)
+  }
 }

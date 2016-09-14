@@ -22,15 +22,24 @@ import cats.data.Xor
 
 import scala.concurrent.Future
 
-trait AggregateRoot[C <: Command, S] {
+trait AggregateRoot[C <: Command, S, E <: CommandNotAccepted] {
+
+  type CommandResult = Xor[E, CommandAccepted.type]
+
+  val commandAcceptedResult = Xor.Right(CommandAccepted)
 
   def version: Version = ???
 
   def defaultState: () => S
 
+  def commonError: String => E
+
   def eventStore: EventStore
 
   def publish: AnyRef => Unit
+
+  def toError(e: E): Xor[E, Unit] =
+    Xor.Left(e)
 
   def createUnitOfWork(streamId: StreamId, eventsData: List[EventData], version: Version) = {
     val created = Created(System.currentTimeMillis())
@@ -56,9 +65,9 @@ trait AggregateRoot[C <: Command, S] {
   def applyEvent(state: S, event: EventData): S =
     apply.applyOrElse((state, event), (input: (S, EventData)) => state)
 
-  def handle: PartialFunction[(C, S), Xor[String, List[EventData]]]
+  def handle: PartialFunction[(C, S), Xor[E, List[EventData]]]
 
-  def handleCommand(command: C): Future[Boolean] = {
+  def handleCommand(command: C): Future[CommandResult] = {
     println(s"Handle Command $command")
     val historicalUnitsOfWork = eventStore.unitsOfWorkForAggregate(command.streamId)
     val lastVersion = historicalUnitsOfWork.reverse.headOption.map(_.version).getOrElse(Version(0))
@@ -69,29 +78,30 @@ trait AggregateRoot[C <: Command, S] {
       applyEvent(state, event.eventData)
     }
 
-    val xorEventsData = handle.applyOrElse((command, currentState), (input: (C, S)) => Xor.Left("no handler"))
+    val xorEventsData = handle.applyOrElse((command, currentState), (input: (C, S)) => Xor.Right(List.empty))
 
-    xorEventsData match {
-      case Xor.Left(_) => Future.successful(false)
-      case Xor.Right(eventsData) =>
+    xorEventsData.foreach(eventsData => {
+      if (eventsData.nonEmpty) {
         val unitOfWork = createUnitOfWork(command.streamId, eventsData, lastVersion.nextVersion())
 
         eventStore.saveUnitOfWork(command.streamId, unitOfWork)
         println(s"events saved $unitOfWork")
         unitOfWork.events.foreach(publish)
-        Future.successful(true)
+      }
+    })
+
+    xorEventsData match {
+      case Xor.Left(e) => Future.successful(Xor.Left(e))
+      case Xor.Right(eventsData) => Future.successful(commandAcceptedResult)
     }
   }
-}
 
-object AggregateRoot {
-
-  implicit def EventDataToXorRight(event: EventData): Xor[String, List[EventData]] =
+  implicit def EventDataToXorRight(event: EventData): Xor[E, List[EventData]] =
     Xor.Right(List(event))
 
-  implicit def EventsDataToXorRight(events: List[EventData]): Xor[String, List[EventData]] =
+  implicit def EventsDataToXorRight(events: List[EventData]): Xor[E, List[EventData]] =
     Xor.Right(events)
 
-  implicit def StringToXorLeft(reason: String): Xor[String, List[EventData]] =
-    Xor.Left(reason)
+  implicit def CommandNotAcceptedToXorLeft(error: E): Xor[E, List[EventData]] =
+    Xor.Left(error)
 }

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.write.envelope
 
 import play.api.libs.json.{Format, JsObject, JsValue, Json}
-import uk.gov.hmrc.fileupload.write.infrastructure.{Command, EventData, EventType, StreamId}
+import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
 // commands
@@ -135,3 +135,18 @@ object EventSerializer {
       case e: EnvelopeArchived => Json.toJson(e)
     }
 }
+
+// error
+
+sealed trait EnvelopeCommandNotAccepted extends CommandNotAccepted
+
+object NoCommandHandlerError extends EnvelopeCommandNotAccepted
+object EnvelopeNotFoundError extends EnvelopeCommandNotAccepted
+object EnvelopeSealedError extends EnvelopeCommandNotAccepted
+case class FilesWithError(fileIds: Seq[FileId]) extends EnvelopeCommandNotAccepted
+case class FilesNotAvailableError(fileIds: Seq[FileId]) extends EnvelopeCommandNotAccepted
+case class FileNameDuplicateError(fileId: FileId) extends EnvelopeCommandNotAccepted
+object FileNotFoundError extends EnvelopeCommandNotAccepted
+object EnvelopeAlreadyArchivedError extends EnvelopeCommandNotAccepted
+case class EnvelopeCommandError(message: String) extends EnvelopeCommandNotAccepted
+

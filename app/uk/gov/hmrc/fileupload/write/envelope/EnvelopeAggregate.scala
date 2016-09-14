@@ -16,106 +16,92 @@
 
 package uk.gov.hmrc.fileupload.write.envelope
 
-import uk.gov.hmrc.fileupload.write.infrastructure.AggregateRoot._
+import cats.data.Xor
+import uk.gov.hmrc.fileupload.write.envelope.Envelope.CanResult
 import uk.gov.hmrc.fileupload.write.infrastructure.{AggregateRoot, EventStore}
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 
-class EnvelopeAggregate(override val defaultState: () => Envelope = () => Envelope())
-                       (implicit val eventStore: EventStore, implicit val publish: AnyRef => Unit) extends AggregateRoot[EnvelopeCommand, Envelope] {
+class EnvelopeAggregate(override val defaultState: () => Envelope = () => Envelope(),
+                        override val commonError: String => EnvelopeCommandNotAccepted = (msg) => EnvelopeCommandError(msg))
+                       (implicit val eventStore: EventStore, implicit val publish: AnyRef => Unit) extends AggregateRoot[EnvelopeCommand, Envelope, EnvelopeCommandNotAccepted] {
 
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
       EnvelopeCreated(command.id, command.callbackUrl)
 
     case (command: QuarantineFile, envelope: Envelope) =>
-      if (envelope.canQuarantine) {
+      envelope.canQuarantine(command.fileId, command.name).map(_ => List(
         FileQuarantined(
           id = command.id, fileId = command.fileId, fileRefId = command.fileRefId,
           created = command.created, name = command.name, contentType = command.contentType, metadata = command.metadata)
-      } else {
-        "not the right status"
-      }
+      ))
 
     case (command: MarkFileAsClean, envelope: Envelope) =>
       if (envelope.sameFileReferenceId(command.fileId, command.fileRefId)) {
         NoVirusDetected(command.id, command.fileId, command.fileRefId)
       } else {
-        "not the right file"
+        FileNotFoundError
       }
 
     case (command: MarkFileAsInfected, envelope: Envelope) =>
       if (envelope.sameFileReferenceId(command.fileId, command.fileRefId)) {
         VirusDetected(command.id, command.fileId, command.fileRefId)
       } else {
-        "not the right file"
+        FileNotFoundError
       }
 
     case (command: StoreFile, envelope: Envelope) =>
       if (envelope.sameFileReferenceId(command.fileId, command.fileReferenceId)) {
         val fileStored = FileStored(command.id, command.fileId, command.fileReferenceId, command.length)
 
-        if (envelope.canRoute) {
+        if (envelope.canRoute.isRight) {
           List(fileStored, EnvelopeRouted(command.id))
         } else {
           fileStored
         }
       } else {
-        "not the right file"
+        FileNotFoundError
       }
 
     case (command: DeleteFile, envelope: Envelope) =>
-      if (envelope.canDeleteFile) {
+      envelope.canDeleteFile(command.fileId).map { _ =>
         val fileDeleted = FileDeleted(command.id, command.fileId)
 
-        if (envelope.canRoute) {
+        if (envelope.canRoute.isRight) {
           List(fileDeleted, EnvelopeRouted(command.id))
         } else {
-          fileDeleted
+          List(fileDeleted)
         }
-      } else {
-        "not the right status"
       }
 
     case (command: DeleteEnvelope, envelope: Envelope) =>
-      if (envelope.canDelete) {
-        EnvelopeDeleted(command.id)
-      } else {
-        "not the right status"
-      }
+      envelope.canDelete.map(_ => List(EnvelopeDeleted(command.id)))
 
     case (command: SealEnvelope, envelope: Envelope) =>
-      if (envelope.canSeal) {
-        EnvelopeSealed(command.id, command.destination, command.packageType)
-      } else {
-        "not the right status"
-      }
+      envelope.canSeal.map(_ => List(EnvelopeSealed(command.id, command.destination, command.packageType)))
 
     case (command: ArchiveEnvelope, envelope: Envelope) =>
-      if (envelope.canArchive) {
-        EnvelopeArchived(command.id)
-      } else {
-        "not the right status"
-      }
+      envelope.canArchive.map(_ => List(EnvelopeArchived(command.id)))
   }
 
   override def apply = {
       case (envelope: Envelope, e: EnvelopeCreated) =>
-        envelope.copy()
+        envelope.copy(state = Open)
 
       case (envelope: Envelope, e: FileQuarantined) =>
-        envelope.copy(files = envelope.files + (e.fileId -> QuarantinedFile(e.fileRefId, e.fileId)))
+        envelope.copy(files = envelope.files + (e.fileId -> QuarantinedFile(e.fileRefId, e.fileId, e.name)))
 
       case (envelope: Envelope, e: NoVirusDetected) =>
-        envelope.copy(files = envelope.files + (e.fileId -> CleanedFile(e.fileRefId, e.fileId)))
+        envelope.copy(files = envelope.files + (e.fileId -> CleanedFile(e.fileRefId, e.fileId, envelope.files(e.fileId).name)))
 
       case (envelope: Envelope, e: VirusDetected) =>
-        envelope.copy(files = envelope.files + (e.fileId -> InfectedFile(e.fileRefId, e.fileId)))
+        envelope.copy(files = envelope.files + (e.fileId -> InfectedFile(e.fileRefId, e.fileId, envelope.files(e.fileId).name)))
 
       case (envelope: Envelope, e: FileDeleted) =>
         envelope.copy(files = envelope.files - e.fileId)
 
       case (envelope: Envelope, e: FileStored) =>
-        envelope.copy(files = envelope.files + (e.fileId -> StoredFile(e.fileRefId, e.fileId)))
+        envelope.copy(files = envelope.files + (e.fileId -> StoredFile(e.fileRefId, e.fileId, envelope.files(e.fileId).name)))
 
       case (envelope: Envelope, e: EnvelopeDeleted) =>
         envelope.copy(state = Deleted)
@@ -131,69 +117,106 @@ class EnvelopeAggregate(override val defaultState: () => Envelope = () => Envelo
   }
 }
 
-case class Envelope(files: Map[FileId, File] = Map.empty, state: State = Open) {
+object Envelope {
+
+  type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type ]
+}
+
+case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated) {
 
   def sameFileReferenceId(fileId: FileId, fileReferenceId: FileRefId): Boolean =
     files.get(fileId).exists(_.isSame(fileReferenceId))
 
-  def canDeleteFile: Boolean = state.canDeleteFile
+  def canDeleteFile(fileId: FileId): CanResult = state.canDeleteFile(fileId, files)
 
-  def canQuarantine: Boolean = state.canQuarantine
+  def canQuarantine(fileId: FileId, name: String): CanResult = state.canQuarantine(fileId, name, files.values.toSeq)
 
-  def canSeal: Boolean = state.canSeal(files.values.toSeq)
+  def canSeal: CanResult = state.canSeal(files.values.toSeq)
 
-  def canDelete: Boolean = state.canDelete
+  def canDelete: CanResult = state.canDelete
 
-  def canRoute: Boolean = state.canRoute(files.values.toSeq)
+  def canRoute: CanResult = state.canRoute(files.values.toSeq)
 
-  def canArchive: Boolean = state.canArchive
+  def canArchive: CanResult = state.canArchive
 }
 
 sealed trait State {
 
-  def canDeleteFile: Boolean = false
+  val successResult = Xor.Right(Unit)
+  val envelopeNotFoundError = Xor.Left(EnvelopeNotFoundError)
+  val fileNotFoundError = Xor.Left(FileNotFoundError)
+  val envelopeSealedError = Xor.Left(EnvelopeSealedError)
+  val envelopeAlreadyArchivedError = Xor.Left(EnvelopeAlreadyArchivedError)
 
-  def canQuarantine: Boolean = false
+  def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult = genericError
 
-  def canSeal(files: Seq[File]): Boolean = false
+  def canQuarantine(fileId: FileId, name: String, files: Seq[File]): CanResult = genericError
 
-  def canDelete: Boolean = false
+  def canSeal(files: Seq[File]): CanResult = genericError
 
-  def canRoute(files: Seq[File]): Boolean = false
+  def canDelete: CanResult = genericError
 
-  def canArchive: Boolean = false
+  def canRoute(files: Seq[File]): CanResult = genericError
+
+  def canArchive: CanResult = genericError
+
+  def genericError: CanResult = envelopeNotFoundError
 }
+
+object NotCreated extends State
 
 object Open extends State {
 
-  override def canDeleteFile: Boolean = true
+  override def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult =
+    files.get(fileId).map(f => successResult).getOrElse(envelopeNotFoundError)
 
-  override def canQuarantine: Boolean = true
+  override def canQuarantine(fileId: FileId, name: String, files: Seq[File]): CanResult =
+    files.find(f => f.fileId != fileId && f.name == name).map(f => Xor.Left(FileNameDuplicateError(f.fileId))).getOrElse(successResult)
 
-  override def canDelete: Boolean = true
+  override def canDelete: CanResult = successResult
 
-  override def canSeal(files: Seq[File]): Boolean =
-    !files.exists(!_.hasError)
+  override def canSeal(files: Seq[File]): CanResult = {
+    val filesWithError = files.filter(_.hasError)
+    if (filesWithError.isEmpty) {
+      successResult
+    } else {
+      Xor.Left(FilesWithError(filesWithError.map(_.fileId)))
+    }
+  }
 }
 
 object Deleted extends State
 
 object Sealed extends State {
 
-  override def canRoute(files: Seq[File]) =
-    !files.exists(!_.isAvailable)
+  override def canRoute(files: Seq[File]): CanResult = {
+    val filesNotAvailable = files.filter(!_.isAvailable)
+    if (filesNotAvailable.isEmpty) {
+      successResult
+    } else {
+      Xor.Left(FilesNotAvailableError(filesNotAvailable.map(_.fileId)))
+    }
+  }
+
+  override def genericError: CanResult = envelopeSealedError
 }
 
 object Routed extends State {
 
-  override def canArchive: Boolean = true
+  override def canArchive: CanResult = successResult
+
+  override def genericError: CanResult = envelopeSealedError
 }
 
-object Archived extends State
+object Archived extends State {
+
+  override def genericError: CanResult = envelopeAlreadyArchivedError
+}
 
 trait File {
   def fileRefId: FileRefId
   def fileId: FileId
+  def name: String
 
   def isSame(otherFileRefId: FileRefId) =
     fileRefId == otherFileRefId
@@ -203,15 +226,15 @@ trait File {
   def isAvailable: Boolean = false
 }
 
-case class QuarantinedFile(fileRefId: FileRefId, fileId: FileId) extends File
+case class QuarantinedFile(fileRefId: FileRefId, fileId: FileId, name: String) extends File
 
-case class CleanedFile(fileRefId: FileRefId, fileId: FileId) extends File
+case class CleanedFile(fileRefId: FileRefId, fileId: FileId, name: String) extends File
 
-case class InfectedFile(fileRefId: FileRefId, fileId: FileId) extends File {
+case class InfectedFile(fileRefId: FileRefId, fileId: FileId, name: String) extends File {
   override def hasError: Boolean = true
 }
 
-case class StoredFile(fileRefId: FileRefId, fileId: FileId) extends File {
+case class StoredFile(fileRefId: FileRefId, fileId: FileId, name: String) extends File {
   override def isAvailable: Boolean = true
 }
 
