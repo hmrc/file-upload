@@ -30,6 +30,10 @@ trait AggregateRoot[C <: Command, S, E <: CommandNotAccepted] {
 
   def version: Version = ???
 
+  def nextEventId: () => EventId
+
+  def toCreated: () => Created
+
   def defaultState: () => S
 
   def commonError: String => E
@@ -42,7 +46,7 @@ trait AggregateRoot[C <: Command, S, E <: CommandNotAccepted] {
     Xor.Left(e)
 
   def createUnitOfWork(streamId: StreamId, eventsData: List[EventData], version: Version) = {
-    val created = Created(System.currentTimeMillis())
+    val created = toCreated()
 
     UnitOfWork(streamId = streamId, version = version, created = created, events = eventsData.map { eventData =>
       Event(
@@ -54,11 +58,6 @@ trait AggregateRoot[C <: Command, S, E <: CommandNotAccepted] {
         eventData = eventData)
     })
   }
-
-  def createEvent(eventData: EventData, streamId: StreamId) =
-    Event(eventId = EventId(UUID.randomUUID().toString),
-      streamId = streamId, version = Version(1), created = Created(System.currentTimeMillis()),
-      eventType = EventType(eventData.getClass.getName), eventData = eventData)
 
   def apply: PartialFunction[(S, EventData), S]
 

@@ -16,12 +16,16 @@
 
 package uk.gov.hmrc.fileupload.write.envelope
 
+import java.util.UUID
+
 import cats.data.Xor
 import uk.gov.hmrc.fileupload.write.envelope.Envelope.CanResult
-import uk.gov.hmrc.fileupload.write.infrastructure.{AggregateRoot, EventStore}
+import uk.gov.hmrc.fileupload.write.infrastructure.{AggregateRoot, Created, EventId, EventStore}
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 
-class EnvelopeAggregate(override val defaultState: () => Envelope = () => Envelope(),
+class EnvelopeAggregate(override val nextEventId: () => EventId = () => EventId(UUID.randomUUID().toString),
+                        override val toCreated: () => Created = () => Created(System.currentTimeMillis()),
+                        override val defaultState: () => Envelope = () => Envelope(),
                         override val commonError: String => EnvelopeCommandNotAccepted = (msg) => EnvelopeCommandError(msg))
                        (implicit val eventStore: EventStore, implicit val publish: AnyRef => Unit) extends AggregateRoot[EnvelopeCommand, Envelope, EnvelopeCommandNotAccepted] {
 
