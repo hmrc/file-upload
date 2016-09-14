@@ -37,24 +37,24 @@ object Envelope {
       ))
 
     case (command: MarkFileAsClean, envelope: Envelope) =>
-      if (envelope.sameFileReferenceId(command.fileId, command.fileRefId)) {
+      if (envelope.hasFileRefId(command.fileId, command.fileRefId)) {
         NoVirusDetected(command.id, command.fileId, command.fileRefId)
       } else {
         FileNotFoundError
       }
 
     case (command: MarkFileAsInfected, envelope: Envelope) =>
-      if (envelope.sameFileReferenceId(command.fileId, command.fileRefId)) {
+      if (envelope.hasFileRefId(command.fileId, command.fileRefId)) {
         VirusDetected(command.id, command.fileId, command.fileRefId)
       } else {
         FileNotFoundError
       }
 
     case (command: StoreFile, envelope: Envelope) =>
-      if (envelope.sameFileReferenceId(command.fileId, command.fileReferenceId)) {
-        val fileStored = FileStored(command.id, command.fileId, command.fileReferenceId, command.length)
+      if (envelope.hasFileRefId(command.fileId, command.fileRefId)) {
+        val fileStored = FileStored(command.id, command.fileId, command.fileRefId, command.length)
 
-        if (envelope.canRoute.isRight) {
+        if (withEvent(envelope, fileStored).canRoute.isRight) {
           List(fileStored, EnvelopeRouted(command.id))
         } else {
           fileStored
@@ -67,7 +67,7 @@ object Envelope {
       envelope.canDeleteFile(command.fileId).map { _ =>
         val fileDeleted = FileDeleted(command.id, command.fileId)
 
-        if (envelope.canRoute.isRight) {
+        if (withEvent(envelope, fileDeleted).canRoute.isRight) {
           List(fileDeleted, EnvelopeRouted(command.id))
         } else {
           List(fileDeleted)
@@ -116,6 +116,9 @@ object Envelope {
         envelope.copy(state = Archived)
   }
 
+  private def withEvent(envelope: Envelope, envelopeEvent: EnvelopeEvent): Envelope =
+    on.applyOrElse((envelope, envelopeEvent), (input: (Envelope, EventData)) => envelope)
+
   implicit def EventDataToXorRight(event: EventData): Xor[EnvelopeCommandNotAccepted, List[EventData]] =
     Xor.Right(List(event))
 
@@ -128,7 +131,7 @@ object Envelope {
 
 case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated) {
 
-  def sameFileReferenceId(fileId: FileId, fileReferenceId: FileRefId): Boolean =
+  def hasFileRefId(fileId: FileId, fileReferenceId: FileRefId): Boolean =
     files.get(fileId).exists(_.isSame(fileReferenceId))
 
   def canDeleteFile(fileId: FileId): CanResult = state.canDeleteFile(fileId, files)

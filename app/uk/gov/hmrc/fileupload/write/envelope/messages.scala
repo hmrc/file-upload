@@ -39,7 +39,7 @@ case class MarkFileAsInfected(id: EnvelopeId, fileId: FileId, fileRefId: FileRef
 
 case class DeleteFile(id: EnvelopeId, fileId: FileId) extends EnvelopeCommand
 
-case class StoreFile(id: EnvelopeId, fileId: FileId, fileReferenceId: FileRefId, length: Long) extends EnvelopeCommand
+case class StoreFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, length: Long) extends EnvelopeCommand
 
 case class DeleteEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
