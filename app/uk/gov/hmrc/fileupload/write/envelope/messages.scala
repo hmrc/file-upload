@@ -31,7 +31,7 @@ sealed trait EnvelopeCommand extends Command {
 case class CreateEnvelope(id: EnvelopeId, callbackUrl: Option[String]) extends EnvelopeCommand
 
 case class QuarantineFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
-                          name: String, contentType: String, metadata: JsObject) extends EnvelopeCommand
+                          created: Long, name: String, contentType: String, metadata: JsObject) extends EnvelopeCommand
 
 case class MarkFileAsClean(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) extends EnvelopeCommand
 
@@ -58,7 +58,7 @@ sealed trait EnvelopeEvent extends EventData {
 case class EnvelopeCreated(id: EnvelopeId, callbackUrl: Option[String]) extends EnvelopeEvent
 
 case class FileQuarantined(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
-                           name: String, contentType: String, metadata: JsObject) extends EnvelopeEvent
+                           created: Long, name: String, contentType: String, metadata: JsObject) extends EnvelopeEvent
 
 case class NoVirusDetected(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) extends EnvelopeEvent
 

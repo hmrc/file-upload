@@ -34,7 +34,7 @@ class EventController(handleCommand: (EnvelopeCommand) => Future[Boolean])
   def collect(eventType: String) = Action.async(EventParser) { implicit request =>
     request.body match {
       case e: FileInQuarantineStored =>
-        val command = QuarantineFile(e.envelopeId, e.fileId, e.fileRefId, e.name, e.contentType, e.metadata)
+        val command = QuarantineFile(e.envelopeId, e.fileId, e.fileRefId, e.created, e.name, e.contentType, e.metadata)
         handleCommand(command).map {
           case true => Ok
           case false => BadRequest

@@ -31,7 +31,7 @@ class EnvelopeAggregate(override val defaultState: () => Envelope = () => Envelo
       if (envelope.canQuarantine) {
         FileQuarantined(
           id = command.id, fileId = command.fileId, fileRefId = command.fileRefId,
-          name = command.name, contentType = command.contentType, metadata = command.metadata)
+          created = command.created, name = command.name, contentType = command.contentType, metadata = command.metadata)
       } else {
         "not the right status"
       }
