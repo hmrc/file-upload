@@ -22,28 +22,18 @@ import cats.data.Xor
 
 import scala.concurrent.Future
 
-trait AggregateRoot[C <: Command, S, E <: CommandNotAccepted] {
+case class Aggregate[C <: Command, S, E <: CommandNotAccepted](handle: PartialFunction[(C, S), Xor[E, List[EventData]]],
+                                                               on: PartialFunction[(S, EventData), S],
+                                                               defaultState: () => S,
+                                                               commonError: String => E,
+                                                               publish: AnyRef => Unit,
+                                                               nextEventId: () => EventId = () => EventId(UUID.randomUUID().toString),
+                                                               toCreated: () => Created = () => Created(System.currentTimeMillis()))
+                                                               (implicit eventStore: EventStore) {
 
   type CommandResult = Xor[E, CommandAccepted.type]
 
   val commandAcceptedResult = Xor.Right(CommandAccepted)
-
-  def version: Version = ???
-
-  def nextEventId: () => EventId
-
-  def toCreated: () => Created
-
-  def defaultState: () => S
-
-  def commonError: String => E
-
-  def eventStore: EventStore
-
-  def publish: AnyRef => Unit
-
-  def toError(e: E): Xor[E, Unit] =
-    Xor.Left(e)
 
   def createUnitOfWork(streamId: StreamId, eventsData: List[EventData], version: Version) = {
     val created = toCreated()
@@ -59,12 +49,8 @@ trait AggregateRoot[C <: Command, S, E <: CommandNotAccepted] {
     })
   }
 
-  def apply: PartialFunction[(S, EventData), S]
-
   def applyEvent(state: S, event: EventData): S =
-    apply.applyOrElse((state, event), (input: (S, EventData)) => state)
-
-  def handle: PartialFunction[(C, S), Xor[E, List[EventData]]]
+    on.applyOrElse((state, event), (input: (S, EventData)) => state)
 
   def handleCommand(command: C): Future[CommandResult] = {
     println(s"Handle Command $command")
@@ -94,13 +80,4 @@ trait AggregateRoot[C <: Command, S, E <: CommandNotAccepted] {
       case Xor.Right(eventsData) => Future.successful(commandAcceptedResult)
     }
   }
-
-  implicit def EventDataToXorRight(event: EventData): Xor[E, List[EventData]] =
-    Xor.Right(List(event))
-
-  implicit def EventsDataToXorRight(events: List[EventData]): Xor[E, List[EventData]] =
-    Xor.Right(events)
-
-  implicit def CommandNotAcceptedToXorLeft(error: E): Xor[E, List[EventData]] =
-    Xor.Left(error)
 }

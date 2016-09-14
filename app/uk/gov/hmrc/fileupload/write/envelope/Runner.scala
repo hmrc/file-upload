@@ -25,7 +25,7 @@ import reactivemongo.api.MongoDriver
 import uk.gov.hmrc.fileupload.read.envelope.{EnvelopeReportActor, Repository}
 import uk.gov.hmrc.fileupload.read.infrastructure.CoordinatorActor
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
-import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, MongoEventStore}
+import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, CommandAccepted, MongoEventStore}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
 import scala.concurrent.{Await, Future}
@@ -65,8 +65,11 @@ object Runner extends App {
   implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
   implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
 
-  val eventStore = new MongoEventStore(() => connection.db("eventsourcing"))
-  val handle = CommandHandler.handleCommand(eventStore, publish) _
+  implicit val eventStore = new MongoEventStore(() => connection.db("eventsourcing"))
+
+  val handle = (command: EnvelopeCommand) => Aggregate(
+    Envelope.handle, Envelope.on, () => Envelope(), (msg) => EnvelopeCommandError(msg), publish)
+    .handleCommand(command)
 
   val serviceWhichCallsCommandFunc = serviceWhichCallsCommand(handle) _
   

@@ -31,8 +31,8 @@ import uk.gov.hmrc.fileupload.infrastructure.{DefaultMongoConnection, PlayHttp}
 import uk.gov.hmrc.fileupload.read.envelope.WithValidEnvelope
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
 import uk.gov.hmrc.fileupload.testonly.TestOnlyController
-import uk.gov.hmrc.fileupload.write.envelope.{CommandHandler, EventSerializer}
-import uk.gov.hmrc.fileupload.write.infrastructure.MongoEventStore
+import uk.gov.hmrc.fileupload.write.envelope._
+import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, MongoEventStore}
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
@@ -149,8 +149,12 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
     implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
 
-    val eventStore = new MongoEventStore(db)
-    CommandHandler.handleCommand(eventStore, publish) _
+    implicit val eventStore = new MongoEventStore(db)
+
+    (command: EnvelopeCommand) =>
+      Aggregate[EnvelopeCommand, write.envelope.Envelope, EnvelopeCommandNotAccepted](
+        write.envelope.Envelope.handle, write.envelope.Envelope.on, () => write.envelope.Envelope(), (msg) => EnvelopeCommandError(msg), publish)
+        .handleCommand(command)
   }
 
   override def onStart(app: Application): Unit = {

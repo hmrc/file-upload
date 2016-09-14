@@ -16,20 +16,16 @@
 
 package uk.gov.hmrc.fileupload.write.envelope
 
-import java.util.UUID
-
 import cats.data.Xor
 import uk.gov.hmrc.fileupload.write.envelope.Envelope.CanResult
-import uk.gov.hmrc.fileupload.write.infrastructure.{AggregateRoot, Created, EventId, EventStore}
+import uk.gov.hmrc.fileupload.write.infrastructure.EventData
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 
-class EnvelopeAggregate(override val nextEventId: () => EventId = () => EventId(UUID.randomUUID().toString),
-                        override val toCreated: () => Created = () => Created(System.currentTimeMillis()),
-                        override val defaultState: () => Envelope = () => Envelope(),
-                        override val commonError: String => EnvelopeCommandNotAccepted = (msg) => EnvelopeCommandError(msg))
-                       (implicit val eventStore: EventStore, implicit val publish: AnyRef => Unit) extends AggregateRoot[EnvelopeCommand, Envelope, EnvelopeCommandNotAccepted] {
+object Envelope {
 
-  override def handle = {
+  type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
+
+  def handle: PartialFunction[(EnvelopeCommand, Envelope), Xor[EnvelopeCommandNotAccepted, List[EventData]]] = {
     case (command: CreateEnvelope, envelope: Envelope) =>
       EnvelopeCreated(command.id, command.callbackUrl)
 
@@ -88,7 +84,7 @@ class EnvelopeAggregate(override val nextEventId: () => EventId = () => EventId(
       envelope.canArchive.map(_ => List(EnvelopeArchived(command.id)))
   }
 
-  override def apply = {
+  def on: PartialFunction[(Envelope, EventData), Envelope] = {
       case (envelope: Envelope, e: EnvelopeCreated) =>
         envelope.copy(state = Open)
 
@@ -119,11 +115,15 @@ class EnvelopeAggregate(override val nextEventId: () => EventId = () => EventId(
       case (envelope: Envelope, e: EnvelopeArchived) =>
         envelope.copy(state = Archived)
   }
-}
 
-object Envelope {
+  implicit def EventDataToXorRight(event: EventData): Xor[EnvelopeCommandNotAccepted, List[EventData]] =
+    Xor.Right(List(event))
 
-  type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type ]
+  implicit def EventsDataToXorRight(events: List[EventData]): Xor[EnvelopeCommandNotAccepted, List[EventData]] =
+    Xor.Right(events)
+
+  implicit def CommandNotAcceptedToXorLeft(error: EnvelopeCommandNotAccepted): Xor[EnvelopeCommandNotAccepted, List[EventData]] =
+    Xor.Left(error)
 }
 
 case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated) {
