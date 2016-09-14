@@ -119,13 +119,18 @@ sealed trait FileStatus {
   def name: String
 }
 case object FileStatusQuarantined extends FileStatus {
-  override val name: String = "QUARANTINED"
+  override val name = "QUARANTINED"
 }
 case object FileStatusCleaned extends FileStatus {
-  override val name: String = "CLEANED"
+  override val name = "CLEANED"
 }
 case object FileStatusAvailable extends FileStatus {
-  override val name: String = "AVAILABLE"
+  override val name = "AVAILABLE"
+}
+
+// todo this needs reason as well
+case object FileStatusError extends FileStatus {
+  override val name = "ERROR"
 }
 
 object FileStatusWrites extends Writes[FileStatus] {
@@ -133,6 +138,7 @@ object FileStatusWrites extends Writes[FileStatus] {
     case FileStatusQuarantined => Json.toJson(FileStatusQuarantined.name)
     case FileStatusCleaned => Json.toJson(FileStatusCleaned.name)
     case FileStatusAvailable => Json.toJson(FileStatusAvailable.name)
+    case FileStatusError => Json.toJson(FileStatusError.name)
   }
 }
 
@@ -141,5 +147,6 @@ object FileStatusReads extends Reads[FileStatus] {
     case FileStatusQuarantined.name => JsSuccess(FileStatusQuarantined)
     case FileStatusCleaned.name => JsSuccess(FileStatusCleaned)
     case FileStatusAvailable.name => JsSuccess(FileStatusAvailable)
+    case FileStatusError.name => JsSuccess(FileStatusError)
   }
 }

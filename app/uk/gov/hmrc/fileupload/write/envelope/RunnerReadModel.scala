@@ -48,6 +48,7 @@ object RunnerReadModel extends App {
       EnvelopeReportActor.props(
         repository.get,
         repository.update,
+        repository.delete,
         defaultState = (id: EnvelopeId) => uk.gov.hmrc.fileupload.read.envelope.Envelope(id)),
       Set(classOf[EnvelopeCreated], classOf[FileQuarantined], classOf[NoVirusDetected]),
       subscribe), "envelopeReportEventHandler")

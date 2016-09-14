@@ -31,6 +31,7 @@ trait ReportActor[S <: AnyRef] extends Actor with ActorLogging {
   def id: EnvelopeId
   def get: (EnvelopeId) => Future[Option[S]]
   def save: (S) => Future[Boolean]
+  def delete: EnvelopeId => Future[Boolean]
   def defaultState: (EnvelopeId) => S
 
   var currentState: S = defaultState(id)
@@ -41,12 +42,18 @@ trait ReportActor[S <: AnyRef] extends Actor with ActorLogging {
     currentState = Await.result(get(id).map(_.getOrElse(currentState)), 5.seconds)
   }
 
+  // todo verify correct version was used
   def receive = {
-    case Event(eventId, streamId, v: Version, created, eventType, eventData: EnvelopeEvent) =>
+    case Event(eventId, streamId, v: Version, eventDate, eventType, eventData: EnvelopeDeleted) =>
       eventVersion = v
+      created = eventDate
+      Await.result(delete(eventData.id), 5.seconds)
+
+    case Event(eventId, streamId, v: Version, eventDate, eventType, eventData: EnvelopeEvent) =>
+      eventVersion = v
+      created = eventDate
       currentState = apply.applyOrElse((currentState, eventData), (input: (S, EventData)) => currentState)
       Await.result(save(currentState), 5 seconds)
-    case _ => log.info("not implemented")
   }
 
   def apply: PartialFunction[(S, EventData), S]

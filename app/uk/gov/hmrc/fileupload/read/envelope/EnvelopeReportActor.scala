@@ -17,34 +17,75 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 import akka.actor.{ActorLogging, Props}
-import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.infrastructure.ReportActor
-import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCreated, FileQuarantined, NoVirusDetected, VirusDetected}
-import uk.gov.hmrc.fileupload.write.infrastructure.EventData
+import uk.gov.hmrc.fileupload.write.envelope._
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 import scala.concurrent.Future
 
 class EnvelopeReportActor(override val id: EnvelopeId,
                           override val get: (EnvelopeId) => Future[Option[Envelope]],
                           override val save: (Envelope) => Future[Boolean],
+                          override val delete: (EnvelopeId) => Future[Boolean],
                           override val defaultState: (EnvelopeId) => Envelope) extends ReportActor[Envelope] with ActorLogging {
 
   override def apply = {
-    case (s: Envelope, e: EnvelopeCreated) =>
-      s.copy(version = eventVersion, callbackUrl = e.callbackUrl)
-    case (s: Envelope, e: FileQuarantined) =>
-      val file = File(fileId = e.fileId, fileRefId = e.fileRefId, status = FileStatusQuarantined, name = Some(e.name), contentType = Some(e.contentType), metadata = Some(e.metadata))
-      s.copy(version = eventVersion, files = s.files.orElse(Some(List.empty[File])).map(_.:+(file)))
-    case (s: Envelope, e: NoVirusDetected) =>
-      s.copy(version = eventVersion, files = s.files.map(f => f.map(f => if (f.fileRefId == e.fileRefId) f.copy(status = FileStatusCleaned) else f)))
-    case (s: Envelope, e: VirusDetected) => s.copy(version = eventVersion)
+    case (s: Envelope, e: EnvelopeCreated) => withUpdatedVersion {
+      s.copy(callbackUrl = e.callbackUrl)
+    }
+
+    case (s: Envelope, e: FileQuarantined) => withUpdatedVersion {
+      val file = File(fileId = e.fileId, fileRefId = e.fileRefId, status = FileStatusQuarantined, name = Some(e.name),
+        contentType = Some(e.contentType), metadata = Some(e.metadata), uploadDate = None /* todo: add create date here */ )
+      s.copy(files = s.files.orElse(Some(List.empty[File])).map(replaceOrAddFile(_,file)))
+    }
+
+    case (s: Envelope, e: NoVirusDetected) => withUpdatedVersion {
+      s.copy(files = fileStatusLens(s, e.fileId, FileStatusCleaned))
+    }
+
+    case (s: Envelope, e: VirusDetected) => withUpdatedVersion {
+      s.copy(files = fileStatusLens(s, e.fileId, FileStatusError))
+    }
+
+    case (s: Envelope, e: EnvelopeSealed) => withUpdatedVersion {
+      s.copy(destination = Some(e.destination))
+    }
+
+    case (s: Envelope, e: EnvelopeRouted) => withUpdatedVersion {
+      s.copy(status = EnvelopeStatusClosed)
+    }
+
+    case (s: Envelope, e: EnvelopeArchived) => withUpdatedVersion {
+      s.copy(status = EnvelopeStatusDeleted)
+    }
+  }
+
+  def withUpdatedVersion(e: Envelope) = e.copy(version = eventVersion)
+
+  def replaceOrAddFile(allFiles: Seq[File], newFile: File): Seq[File] = {
+    val filteredFiles = allFiles.filterNot(f => f.fileId == newFile.fileId)
+    filteredFiles :+ newFile
+  }
+
+  def fileStatusLens(envelope: Envelope, fileId: FileId, targetStatus: FileStatus) = {
+    envelope.files.map { files =>
+      files.map { f =>
+        if (f.fileId == fileId) {
+          f.copy(status = targetStatus)
+        } else {
+          f
+        }
+      }
+    }
   }
 
 }
 
 object EnvelopeReportActor {
 
-  def props(get: (EnvelopeId) => Future[Option[Envelope]], save: (Envelope) => Future[Boolean], defaultState: (EnvelopeId) => Envelope)
+  def props(get: (EnvelopeId) => Future[Option[Envelope]], save: (Envelope) => Future[Boolean],
+            delete: EnvelopeId => Future[Boolean], defaultState: (EnvelopeId) => Envelope)
            (id: EnvelopeId) =
-    Props(new EnvelopeReportActor(id = id, get = get, save = save, defaultState = defaultState))
+    Props(new EnvelopeReportActor(id, get, save, delete, defaultState))
 }
