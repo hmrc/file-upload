@@ -4,7 +4,7 @@ POST       /envelope                                        @uk.gov.hmrc.fileupl
 GET        /envelope/:envelopeId                            @uk.gov.hmrc.fileupload.controllers.EnvelopeController.show(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)
 DELETE     /envelope/:envelopeId                            @uk.gov.hmrc.fileupload.controllers.EnvelopeController.delete(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)
 DELETE     /envelope/:envelopeId/file/:fileId               @uk.gov.hmrc.fileupload.controllers.EnvelopeController.deleteFile(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId)
-PUT        /envelope/:envelopeId/file/:fileId/:fileRefId      @uk.gov.hmrc.fileupload.controllers.FileController.upsertFile(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId, fileRefId: uk.gov.hmrc.fileupload.FileRefId)
+PUT        /envelope/:envelopeId/file/:fileId/:fileRefId    @uk.gov.hmrc.fileupload.controllers.FileController.upsertFile(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId, fileRefId: uk.gov.hmrc.fileupload.FileRefId)
 GET        /envelope/:envelopeId/file/:fileId/content       @uk.gov.hmrc.fileupload.controllers.FileController.downloadFile(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId)
 GET        /envelope/:envelopeId/file/:fileId/metadata      @uk.gov.hmrc.fileupload.controllers.FileController.retrieveMetadata(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId)
 POST       /events/:eventType                               @uk.gov.hmrc.fileupload.controllers.EventController.collect(eventType: String)

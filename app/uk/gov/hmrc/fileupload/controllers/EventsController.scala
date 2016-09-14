@@ -20,6 +20,7 @@ import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.Json
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.controllers.EventFormatters._
+import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -27,11 +28,28 @@ import scala.language.postfixOps
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
-class EventController(publish: (AnyRef) => Unit )(implicit executionContext: ExecutionContext) extends BaseController {
+class EventController(handleCommand: (EnvelopeCommand) => Future[Boolean])
+                     (implicit executionContext: ExecutionContext) extends BaseController {
 
   def collect(eventType: String) = Action.async(EventParser) { implicit request =>
-    publish(request.body)
-    Future.successful(Ok)
+    request.body match {
+      case e: FileInQuarantineStored =>
+        val command = QuarantineFile(e.envelopeId, e.fileId, e.fileRefId, e.name, e.contentType, e.metadata)
+        handleCommand(command).map {
+          case true => Ok
+          case false => BadRequest
+        }
+      case e: FileScanned =>
+        val command = if (e.hasVirus) {
+          MarkFileAsInfected(e.envelopeId, e.fileId, e.fileRefId)
+        } else {
+          MarkFileAsClean(e.envelopeId, e.fileId, e.fileRefId)
+        }
+        handleCommand(command).map {
+          case true => Ok
+          case false => BadRequest
+        }
+    }
   }
 
 }
