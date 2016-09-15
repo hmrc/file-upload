@@ -30,7 +30,6 @@ case class Aggregate[C <: Command, S, E <: CommandNotAccepted](handle: PartialFu
                                                                nextEventId: () => EventId = () => EventId(UUID.randomUUID().toString),
                                                                toCreated: () => Created = () => Created(System.currentTimeMillis()))
                                                                (implicit eventStore: EventStore) {
-
   type CommandResult = Xor[E, CommandAccepted.type]
 
   val commandAcceptedResult = Xor.Right(CommandAccepted)

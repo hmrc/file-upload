@@ -32,24 +32,6 @@ trait EventStore {
   def unitsOfWorkForAggregate(streamId: StreamId): List[UnitOfWork]
 }
 
-//class InMemoryEventStore extends EventStore {
-//
-//  var allEvents = Map.empty[StreamId, List[Event]]
-//
-//  override def saveEvents(streamId: StreamId, unitOfWork: UnitOfWork, expectedVersion: Version): Unit = {
-//    println(s"saveEvent: $events")
-//    val currentEvents = allEvents.getOrElse(streamId, List.empty)
-//    allEvents = allEvents + (streamId -> currentEvents.++(events))
-//    //TODO: publish events after successfully saved
-//  }
-//
-//  override def eventsForAggregate(streamId: StreamId): List[Event] = {
-//    val events = allEvents.getOrElse(streamId, List.empty)
-//    println(s"eventsForAggregate: $events")
-//    events
-//  }
-//}
-
 class MongoEventStore(mongo: () => DB with DBMetaCommands)
                      (implicit ec: ExecutionContext,
                       reader: BSONDocumentReader[UnitOfWork],

@@ -448,8 +448,4 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
       )
     }
   }
-
-
-
-
 }
