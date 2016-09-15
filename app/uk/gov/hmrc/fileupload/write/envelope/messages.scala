@@ -43,7 +43,7 @@ case class StoreFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, lengt
 
 case class DeleteEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
-case class SealEnvelope(id: EnvelopeId, destination: String, packageType: String) extends EnvelopeCommand
+case class SealEnvelope(id: EnvelopeId, destination: String) extends EnvelopeCommand
 
 case class ArchiveEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
@@ -70,7 +70,7 @@ case class FileStored(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, leng
 
 case class EnvelopeDeleted(id: EnvelopeId) extends EnvelopeEvent
 
-case class EnvelopeSealed(id: EnvelopeId, destination: String, packageType: String) extends EnvelopeEvent
+case class EnvelopeSealed(id: EnvelopeId, destination: String) extends EnvelopeEvent
 
 case class EnvelopeRouted(id: EnvelopeId) extends EnvelopeEvent
 
@@ -146,6 +146,6 @@ case class FilesWithError(fileIds: Seq[FileId]) extends EnvelopeCommandNotAccept
 case class FilesNotAvailableError(fileIds: Seq[FileId]) extends EnvelopeCommandNotAccepted
 case class FileNameDuplicateError(fileId: FileId) extends EnvelopeCommandNotAccepted
 object FileNotFoundError extends EnvelopeCommandNotAccepted
-object EnvelopeAlreadyArchivedError extends EnvelopeCommandNotAccepted
+object EnvelopeArchivedError extends EnvelopeCommandNotAccepted
 case class EnvelopeCommandError(message: String) extends EnvelopeCommandNotAccepted
 

@@ -113,7 +113,7 @@ class TransferController(getEnvelopesByDestination: Option[String] => Future[Lis
       case Xor.Right(_) => Ok
       case Xor.Left(EnvelopeCommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
       case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $envelopeId not found")
-      case Xor.Left(EnvelopeAlreadyArchivedError) => ExceptionHandler(GONE, s"Envelope with id: $envelopeId already deleted")
+      case Xor.Left(EnvelopeArchivedError) => ExceptionHandler(GONE, s"Envelope with id: $envelopeId already deleted")
       case Xor.Left(_) => ExceptionHandler(LOCKED, s"Envelope with id: $envelopeId locked")
     }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
   }

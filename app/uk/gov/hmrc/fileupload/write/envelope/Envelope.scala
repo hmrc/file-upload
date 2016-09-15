@@ -51,6 +51,7 @@ object Envelope {
       }
 
     case (command: StoreFile, envelope: Envelope) =>
+      // TODO: allow only if file has no virus
       if (envelope.hasFileRefId(command.fileId, command.fileRefId)) {
         val fileStored = FileStored(command.id, command.fileId, command.fileRefId, command.length)
 
@@ -64,21 +65,13 @@ object Envelope {
       }
 
     case (command: DeleteFile, envelope: Envelope) =>
-      envelope.canDeleteFile(command.fileId).map { _ =>
-        val fileDeleted = FileDeleted(command.id, command.fileId)
-
-        if (withEvent(envelope, fileDeleted).canRoute.isRight) {
-          List(fileDeleted, EnvelopeRouted(command.id))
-        } else {
-          List(fileDeleted)
-        }
-      }
+      envelope.canDeleteFile(command.fileId).map (_ => List(FileDeleted(command.id, command.fileId)))
 
     case (command: DeleteEnvelope, envelope: Envelope) =>
       envelope.canDelete.map(_ => List(EnvelopeDeleted(command.id)))
 
     case (command: SealEnvelope, envelope: Envelope) =>
-      envelope.canSeal.map(_ => List(EnvelopeSealed(command.id, command.destination, command.packageType)))
+      envelope.canSeal.map(_ => List(EnvelopeSealed(command.id, command.destination)))
 
     case (command: ArchiveEnvelope, envelope: Envelope) =>
       envelope.canArchive.map(_ => List(EnvelopeArchived(command.id)))
@@ -119,6 +112,8 @@ object Envelope {
   private def withEvent(envelope: Envelope, envelopeEvent: EnvelopeEvent): Envelope =
     on.applyOrElse((envelope, envelopeEvent), (input: (Envelope, EventData)) => envelope)
 
+  import scala.language.implicitConversions
+
   implicit def EventDataToXorRight(event: EventData): Xor[EnvelopeCommandNotAccepted, List[EventData]] =
     Xor.Right(List(event))
 
@@ -153,7 +148,7 @@ sealed trait State {
   val envelopeNotFoundError = Xor.Left(EnvelopeNotFoundError)
   val fileNotFoundError = Xor.Left(FileNotFoundError)
   val envelopeSealedError = Xor.Left(EnvelopeSealedError)
-  val envelopeAlreadyArchivedError = Xor.Left(EnvelopeAlreadyArchivedError)
+  val envelopeAlreadyArchivedError = Xor.Left(EnvelopeArchivedError)
 
   def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult = genericError
 
@@ -175,10 +170,12 @@ object NotCreated extends State
 object Open extends State {
 
   override def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult =
-    files.get(fileId).map(f => successResult).getOrElse(envelopeNotFoundError)
+    files.get(fileId).map(f => successResult).getOrElse(fileNotFoundError)
 
-  override def canQuarantine(fileId: FileId, name: String, files: Seq[File]): CanResult =
-    files.find(f => f.fileId != fileId && f.name == name).map(f => Xor.Left(FileNameDuplicateError(f.fileId))).getOrElse(successResult)
+  // Could be useful in the future (should we check for name duplicates):
+  // files.find(f => f.fileId != fileId && f.name == name).map(f => Xor.Left(FileNameDuplicateError(f.fileId))).getOrElse(successResult)
+  override def canQuarantine(fileId: FileId, name: String, files: Seq[File]): CanResult = successResult
+
 
   override def canDelete: CanResult = successResult
 
