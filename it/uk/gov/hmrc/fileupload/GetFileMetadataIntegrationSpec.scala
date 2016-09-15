@@ -1,37 +1,42 @@
 package uk.gov.hmrc.fileupload
 
+import org.scalatest.concurrent.Eventually
+import play.api.libs.json.{JsObject, Json}
+import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
 import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport.prettify
 import uk.gov.hmrc.fileupload.support.FileMetadataReportSupport._
-import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FileActions, IntegrationSpec}
+import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActions, IntegrationSpec}
 
 /**
   * Integration tests for FILE-100
   * Update FileMetadata
   *
   */
-class GetFileMetadataIntegrationSpec extends IntegrationSpec with FileActions with EnvelopeActions {
+class GetFileMetadataIntegrationSpec extends IntegrationSpec with Eventually with FileActions with EnvelopeActions with EventsActions {
 
   feature("Retrieve Metadata") {
-
-    pending
 
     scenario("GET metadata with valid envelope id") {
       Given("I have a valid envelope ID")
       val envelopeId = createEnvelope()
       val fileId = FileId(s"fileId-${nextId()}")
+      val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
-      And("I have a file with metadata already set")
-      val json = requestBody()
-      updateFileMetadata(json, envelopeId, fileId)
+      And("FileInQuarantineStored")
+      val json = (requestBodyAsJson() \ "metadata").as[JsObject]
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.jpg", "application/pdf", json))
 
-      When(s"I invoke GET envelope/$envelopeId/file/$fileId/metadata")
-      val response = getFileMetadataFor(envelopeId, fileId)
+      eventually {
 
-      Then("I will receive a 200 Ok response")
-      response.status shouldBe OK
+        When(s"I invoke GET envelope/$envelopeId/file/$fileId/metadata")
+        val response = getFileMetadataFor(envelopeId, fileId)
 
-      And("the response body should contain the file reference details")
-      prettify(response.body) shouldBe responseBody(envelopeId, fileId)
+        Then("I will receive a 200 Ok response")
+        response.status shouldBe OK
+
+        And("the response body should contain the file reference details")
+        prettify(response.body) shouldBe responseBody(envelopeId, fileId)
+      }
     }
 
     scenario("GET metadata with invalid envelope id") {

@@ -19,6 +19,7 @@ class FileTransferIntegrationSpec extends IntegrationSpec with FileActions with 
 
   feature("File Transfer") {
 
+    // todo use direct way
     pending
 
     scenario("List Envelopes for a given destination") {
