@@ -29,6 +29,7 @@ import uk.gov.hmrc.fileupload.read.envelope.{Service => EnvelopeService, _}
 import uk.gov.hmrc.fileupload.read.file.{Service => FileService}
 import uk.gov.hmrc.fileupload.infrastructure.{DefaultMongoConnection, PlayHttp}
 import uk.gov.hmrc.fileupload.read.envelope.WithValidEnvelope
+import uk.gov.hmrc.fileupload.read.infrastructure.CoordinatorActor
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
 import uk.gov.hmrc.fileupload.testonly.TestOnlyController
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -169,6 +170,17 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
     // notifier
     Akka.system.actorOf(NotifierActor.props(subscribe, find, sendNotification), "notifierActor")
+
+    // envelope read model
+    val crateReportActor = EnvelopeReportActor.props(
+      envelopeRepository.get,
+      envelopeRepository.update,
+      envelopeRepository.delete,
+      defaultState = (id: EnvelopeId) => uk.gov.hmrc.fileupload.read.envelope.Envelope(id)) _
+
+    Akka.system.actorOf(CoordinatorActor.props(
+      crateReportActor, Set(classOf[EnvelopeEvent]), subscribe), "envelopeReadModelCoordinator")
+
 
     eventController
     envelopeController

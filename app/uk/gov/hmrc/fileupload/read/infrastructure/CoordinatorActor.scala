@@ -18,25 +18,24 @@ package uk.gov.hmrc.fileupload.read.infrastructure
 
 import akka.actor.{Actor, ActorRef, Props}
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.Event
 
-class CoordinatorActor(childProps: (EnvelopeId) => Props, subscribeTo: Set[Class[_]], subscribe: (ActorRef, Class[_]) => Boolean) extends Actor {
+class CoordinatorActor(childProps: (EnvelopeId) => Props, subscribedEventTypes: Set[Class[_]], subscribe: (ActorRef, Class[_]) => Boolean) extends Actor {
 
   override def preStart = {
     subscribe(self, classOf[Event])
   }
 
   override def receive = {
-    case e: Event =>
-      if (subscribeTo.contains(e.eventData.getClass)) {
-        val child = context.child(e.streamId.value).getOrElse(context.actorOf(childProps(EnvelopeId(e.streamId.value)), e.streamId.value))
-        child ! e
-      } else {
-        println(s"not subscribedTo ${e.eventData.getClass}")
-      }
-    case _ =>
+    case e: Event if isOneOfSubscribedEventTypes(e) =>
+      val child = context.child(e.streamId.value).getOrElse(context.actorOf(childProps(EnvelopeId(e.streamId.value)), e.streamId.value))
+      child ! e
+
+    case unhandledEvent: Event => println(s"not subscribedTo ${unhandledEvent.eventData.getClass}")
   }
+
+  private def isOneOfSubscribedEventTypes(e: Event) =
+    subscribedEventTypes.exists(_.isAssignableFrom(e.eventData.getClass))
 }
 
 object CoordinatorActor {

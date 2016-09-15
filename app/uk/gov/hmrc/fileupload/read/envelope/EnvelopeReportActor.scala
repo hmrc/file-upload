@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 import akka.actor.{ActorLogging, Props}
+import org.joda.time.DateTime
 import uk.gov.hmrc.fileupload.read.infrastructure.ReportActor
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
@@ -27,17 +28,18 @@ class EnvelopeReportActor(override val id: EnvelopeId,
                           override val get: (EnvelopeId) => Future[Option[Envelope]],
                           override val save: (Envelope) => Future[Boolean],
                           override val delete: (EnvelopeId) => Future[Boolean],
-                          override val defaultState: (EnvelopeId) => Envelope) extends ReportActor[Envelope] with ActorLogging {
+                          override val defaultState: (EnvelopeId) => Envelope) extends ReportActor with ActorLogging {
 
   override def apply = {
+
     case (s: Envelope, e: EnvelopeCreated) => withUpdatedVersion {
       s.copy(callbackUrl = e.callbackUrl)
     }
 
     case (s: Envelope, e: FileQuarantined) => withUpdatedVersion {
       val file = File(fileId = e.fileId, fileRefId = e.fileRefId, status = FileStatusQuarantined, name = Some(e.name),
-        contentType = Some(e.contentType), metadata = Some(e.metadata), uploadDate = None /* todo: add create date here */ )
-      s.copy(files = s.files.orElse(Some(List.empty[File])).map(replaceOrAddFile(_,file)))
+        contentType = Some(e.contentType), metadata = Some(e.metadata), uploadDate = Some(new DateTime(e.created)) )
+      s.copy(files = s.files.orElse(Some(List.empty[File])).map(replaceOrAddFile(_, file)))
     }
 
     case (s: Envelope, e: NoVirusDetected) => withUpdatedVersion {
@@ -59,13 +61,28 @@ class EnvelopeReportActor(override val id: EnvelopeId,
     case (s: Envelope, e: EnvelopeArchived) => withUpdatedVersion {
       s.copy(status = EnvelopeStatusDeleted)
     }
+
+    case (s: Envelope, e: FileDeleted) => withUpdatedVersion {
+      s.copy(files = s.files.orElse(Some(List.empty[File])).map(filterOutFile(_, e.fileId)))
+    }
+
+    case (s: Envelope, e: FileStored) => withUpdatedVersion {
+      s.copy(files = fileStatusLens(s, e.fileId, FileStatusAvailable))
+    }
+
+    case (s: Envelope, e: EnvelopeDeleted) => None
   }
 
-  def withUpdatedVersion(e: Envelope) = e.copy(version = eventVersion)
+  // todo: version handling will be moved to parent trait
+  def withUpdatedVersion(e: Envelope) = Some(e.copy(version = eventVersion))
 
   def replaceOrAddFile(allFiles: Seq[File], newFile: File): Seq[File] = {
-    val filteredFiles = allFiles.filterNot(f => f.fileId == newFile.fileId)
+    val filteredFiles = filterOutFile(allFiles, newFile.fileId)
     filteredFiles :+ newFile
+  }
+
+  def filterOutFile(allFiles: Seq[File], fileToBeRemoved: FileId): Seq[File] = {
+    allFiles.filterNot(f => f.fileId == fileToBeRemoved)
   }
 
   def fileStatusLens(envelope: Envelope, fileId: FileId, targetStatus: FileStatus) = {

@@ -16,46 +16,50 @@
 
 package uk.gov.hmrc.fileupload.read.infrastructure
 
-import akka.actor.{Actor, ActorLogging}
+import akka.actor.{Actor, ActorLogging, PoisonPill, ReceiveTimeout}
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.write.envelope._
+import uk.gov.hmrc.fileupload.read.envelope.Envelope
+import uk.gov.hmrc.fileupload.write.envelope.EnvelopeEvent
 import uk.gov.hmrc.fileupload.write.infrastructure.{Created, Event, EventData, Version}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-trait ReportActor[S <: AnyRef] extends Actor with ActorLogging {
+trait ReportActor extends Actor with ActorLogging {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
   def id: EnvelopeId
-  def get: (EnvelopeId) => Future[Option[S]]
-  def save: (S) => Future[Boolean]
+  def get: EnvelopeId => Future[Option[Envelope]]
+  def save: Envelope => Future[Boolean]
   def delete: EnvelopeId => Future[Boolean]
-  def defaultState: (EnvelopeId) => S
+  def defaultState: EnvelopeId => Envelope
 
-  var currentState: S = defaultState(id)
+  var currentState: Envelope = defaultState(id)
   var eventVersion: Version = Version(0)
   var created: Created = Created(0)
 
   override def preStart = {
     currentState = Await.result(get(id).map(_.getOrElse(currentState)), 5.seconds)
+    context.setReceiveTimeout(1.seconds)
   }
 
   // todo verify correct version was used
   def receive = {
-    case Event(eventId, streamId, v: Version, eventDate, eventType, eventData: EnvelopeDeleted) =>
-      eventVersion = v
-      created = eventDate
-      Await.result(delete(eventData.id), 5.seconds)
-
     case Event(eventId, streamId, v: Version, eventDate, eventType, eventData: EnvelopeEvent) =>
       eventVersion = v
       created = eventDate
-      currentState = apply.applyOrElse((currentState, eventData), (input: (S, EventData)) => currentState)
-      Await.result(save(currentState), 5 seconds)
+      apply(currentState -> eventData) match {
+        case Some(envelope) =>
+          currentState = envelope
+          Await.result(save(currentState), 5.seconds)
+        case None =>
+          currentState = defaultState(id)
+          Await.result(delete(eventData.id), 5.seconds)
+      }
+    case ReceiveTimeout => self ! PoisonPill
   }
 
-  def apply: PartialFunction[(S, EventData), S]
+  def apply: PartialFunction[(Envelope, EventData), Option[Envelope]]
 
 }
