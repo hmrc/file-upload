@@ -28,7 +28,7 @@ class EnvelopeReportActor(override val id: EnvelopeId,
                           override val get: (EnvelopeId) => Future[Option[Envelope]],
                           override val save: (Envelope) => Future[Boolean],
                           override val delete: (EnvelopeId) => Future[Boolean],
-                          override val defaultState: (EnvelopeId) => Envelope) extends ReportActor with ActorLogging {
+                          override val defaultState: (EnvelopeId) => Envelope) extends ReportActor[Envelope, EnvelopeId] with ActorLogging {
 
   override def apply = {
 

@@ -172,14 +172,14 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     Akka.system.actorOf(NotifierActor.props(subscribe, find, sendNotification), "notifierActor")
 
     // envelope read model
-    val crateReportActor = EnvelopeReportActor.props(
+    val createReportActor = EnvelopeReportActor.props(
       envelopeRepository.get,
       envelopeRepository.update,
       envelopeRepository.delete,
       defaultState = (id: EnvelopeId) => uk.gov.hmrc.fileupload.read.envelope.Envelope(id)) _
 
     Akka.system.actorOf(CoordinatorActor.props(
-      crateReportActor, Set(classOf[EnvelopeEvent]), subscribe), "envelopeReadModelCoordinator")
+      createReportActor, Set(classOf[EnvelopeEvent]), subscribe), "envelopeReadModelCoordinator")
 
 
     eventController
