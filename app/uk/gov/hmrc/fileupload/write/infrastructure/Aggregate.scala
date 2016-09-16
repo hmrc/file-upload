@@ -22,8 +22,7 @@ import cats.data.Xor
 
 import scala.concurrent.Future
 
-case class Aggregate[C <: Command, S, E <: CommandNotAccepted](handle: PartialFunction[(C, S), Xor[E, List[EventData]]],
-                                                               on: PartialFunction[(S, EventData), S],
+case class Aggregate[C <: Command, S, E <: CommandNotAccepted](handler: Handler[C, S, E],
                                                                defaultState: () => S,
                                                                commonError: String => E,
                                                                publish: AnyRef => Unit,
@@ -49,7 +48,7 @@ case class Aggregate[C <: Command, S, E <: CommandNotAccepted](handle: PartialFu
   }
 
   def applyEvent(state: S, event: EventData): S =
-    on.applyOrElse((state, event), (input: (S, EventData)) => state)
+    handler.on.applyOrElse((state, event), (input: (S, EventData)) => state)
 
   def handleCommand(command: C): Future[CommandResult] = {
     println(s"Handle Command $command")
@@ -62,7 +61,7 @@ case class Aggregate[C <: Command, S, E <: CommandNotAccepted](handle: PartialFu
       applyEvent(state, event.eventData)
     }
 
-    val xorEventsData = handle.applyOrElse((command, currentState), (input: (C, S)) => Xor.Right(List.empty))
+    val xorEventsData = handler.handle.applyOrElse((command, currentState), (input: (C, S)) => Xor.Right(List.empty))
 
     xorEventsData.foreach(eventsData => {
       if (eventsData.nonEmpty) {

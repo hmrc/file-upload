@@ -156,8 +156,10 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
     (command: EnvelopeCommand) =>
       Aggregate[EnvelopeCommand, write.envelope.Envelope, EnvelopeCommandNotAccepted](
-        write.envelope.Envelope.handle, write.envelope.Envelope.on, () => write.envelope.Envelope(), (msg) => EnvelopeCommandError(msg), publish)
-        .handleCommand(command)
+        handler = write.envelope.Envelope,
+        defaultState = () => write.envelope.Envelope(),
+        commonError = (msg) => EnvelopeCommandError(msg),
+        publish = publish).handleCommand(command)
   }
 
   override def onStart(app: Application): Unit = {

@@ -18,14 +18,14 @@ package uk.gov.hmrc.fileupload.write.envelope
 
 import cats.data.Xor
 import uk.gov.hmrc.fileupload.write.envelope.Envelope.CanResult
-import uk.gov.hmrc.fileupload.write.infrastructure.EventData
+import uk.gov.hmrc.fileupload.write.infrastructure.{EventData, Handler}
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 
-object Envelope {
+object Envelope extends Handler[EnvelopeCommand, Envelope, EnvelopeCommandNotAccepted] {
 
   type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
 
-  def handle: PartialFunction[(EnvelopeCommand, Envelope), Xor[EnvelopeCommandNotAccepted, List[EventData]]] = {
+  override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
       EnvelopeCreated(command.id, command.callbackUrl)
 
@@ -77,7 +77,7 @@ object Envelope {
       envelope.canArchive.map(_ => List(EnvelopeArchived(command.id)))
   }
 
-  def on: PartialFunction[(Envelope, EventData), Envelope] = {
+  override def on = {
       case (envelope: Envelope, e: EnvelopeCreated) =>
         envelope.copy(state = Open)
 

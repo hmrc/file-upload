@@ -18,13 +18,11 @@ package uk.gov.hmrc.fileupload
 
 import cats.data.Xor
 import org.scalatest.{FeatureSpec, Matchers}
-import uk.gov.hmrc.fileupload.write.infrastructure.{Command, CommandNotAccepted, EventData}
+import uk.gov.hmrc.fileupload.write.infrastructure.{Command, CommandNotAccepted, EventData, Handler}
 
-trait EventBasedGWTSpec[C <: Command, S] extends FeatureSpec with Matchers {
+trait EventBasedGWTSpec[C <: Command, S, E <: CommandNotAccepted] extends FeatureSpec with Matchers {
 
-  def handleCommand: PartialFunction[(C, S), Xor[CommandNotAccepted, List[EventData]]]
-
-  def onEvent: PartialFunction[(S, EventData), S]
+  def handler: Handler[C, S, E]
 
   def defaultStatus: S
 
@@ -32,14 +30,14 @@ trait EventBasedGWTSpec[C <: Command, S] extends FeatureSpec with Matchers {
 
   case class When(command: C)
 
-  case class Then(result: Xor[CommandNotAccepted, List[EventData]])
+  case class Then(result: Xor[E, List[EventData]])
 
   def givenWhenThen(given: Given, when: When, expected: Then): Unit = {
     info(given.toString)
     info(when.toString)
     info(expected.toString)
-    val result = handleCommand.apply((when.command, given.events.foldLeft(defaultStatus) { (state, event) =>
-      onEvent.apply((state, event))
+    val result = handler.handle.apply((when.command, given.events.foldLeft(defaultStatus) { (state, event) =>
+      handler.on.apply((state, event))
     }))
     result shouldBe expected.result
   }
@@ -63,7 +61,7 @@ trait EventBasedGWTSpec[C <: Command, S] extends FeatureSpec with Matchers {
   implicit def EventsData2Then(eventsData: List[EventData]): Then =
     Then(Xor.Right(eventsData))
 
-  implicit def CommandNotAccepted2Then(e: CommandNotAccepted): Then =
+  implicit def CommandNotAccepted2Then(e: E): Then =
     Then(Xor.Left(e))
 
   implicit class AddEventDataToList(item: EventData) {

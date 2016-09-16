@@ -69,7 +69,7 @@ object Runner extends App {
   implicit val eventStore = new MongoEventStore(() => connection.db("eventsourcing"))
 
   val handle = (command: EnvelopeCommand) => Aggregate(
-    Envelope.handle, Envelope.on, () => Envelope(), (msg) => EnvelopeCommandError(msg), publish)
+    Envelope, () => Envelope(), (msg) => EnvelopeCommandError(msg), publish)
     .handleCommand(command)
 
   val serviceWhichCallsCommandFunc = serviceWhichCallsCommand(handle) _

@@ -16,16 +16,12 @@
 
 package uk.gov.hmrc.fileupload.write.envelope
 
-import cats.data.Xor
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.{EnvelopeId, EventBasedGWTSpec, FileId, FileRefId}
-import uk.gov.hmrc.fileupload.write.infrastructure.{CommandNotAccepted, EventData}
 
-class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
+class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, EnvelopeCommandNotAccepted] {
 
-  override val handleCommand: PartialFunction[(EnvelopeCommand, Envelope), Xor[CommandNotAccepted, List[EventData]]] = Envelope.handle
-
-  override val onEvent: PartialFunction[(Envelope, EventData), Envelope] = Envelope.on
+  override val handler = Envelope
 
   override val defaultStatus: Envelope = Envelope()
 
