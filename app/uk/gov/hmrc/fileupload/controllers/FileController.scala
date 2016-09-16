@@ -21,7 +21,7 @@ import play.api.libs.json.Json
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.read.file.Service._
-import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, StoreFile}
+import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError, FileNotFoundError, StoreFile}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId, JSONReadFile}
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -37,13 +37,13 @@ class FileController(uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyPa
 
 
   def upsertFile(envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId) = Action.async(uploadBodyParser(envelopeId, fileId, fileRefId)) { request =>
-    withValidEnvelope(envelopeId) { envelope =>
-      request.body.flatMap { jsonReadFile =>
-        handleCommand(StoreFile(envelopeId, fileId, fileRefId, jsonReadFile.length)).map {
-          case Xor.Right(_) => Ok
-          case Xor.Left(_) => ExceptionHandler(INTERNAL_SERVER_ERROR, "File not added to envelope")
-        }.recover { case e => ExceptionHandler(e) }
-      }
+    request.body.flatMap { jsonReadFile =>
+      handleCommand(StoreFile(envelopeId, fileId, fileRefId, jsonReadFile.length)).map {
+        case Xor.Right(_) => Ok
+        case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $envelopeId not found")
+        case Xor.Left(FileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found")
+        case Xor.Left(_) => ExceptionHandler(INTERNAL_SERVER_ERROR, "File not added to envelope")
+      }.recover { case e => ExceptionHandler(e) }
     }
   }
 
