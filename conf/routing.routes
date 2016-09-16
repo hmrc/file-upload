@@ -1,0 +1,4 @@
+# microservice specific routes
+
+POST       /requests                          @uk.gov.hmrc.fileupload.controllers.routing.RoutingController.route()
+GET        /requests                          @uk.gov.hmrc.fileupload.controllers.routing.RoutingController.routingStatus(id: String)

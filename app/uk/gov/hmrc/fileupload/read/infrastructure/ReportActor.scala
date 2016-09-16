@@ -32,13 +32,16 @@ trait ReportActor[T, Id] extends Actor with ActorLogging {
   def delete: Id => Future[Boolean]
   def defaultState: Id => T
 
+  def awaitTimeout: Duration = 5.seconds
+  def receiveTimeout: Duration = 1.seconds
+
   var currentState: T = defaultState(id)
   var eventVersion: Version = Version(0)
   var created: Created = Created(0)
 
   override def preStart = {
-    currentState = Await.result(get(id).map(_.getOrElse(currentState)), 5.seconds)
-    context.setReceiveTimeout(1.seconds)
+    currentState = Await.result(get(id).map(_.getOrElse(currentState)), awaitTimeout)
+    context.setReceiveTimeout(receiveTimeout)
   }
 
   // todo verify correct version was used once we have a unit of work instead of single events
@@ -49,10 +52,10 @@ trait ReportActor[T, Id] extends Actor with ActorLogging {
       apply(currentState -> eventData) match {
         case Some(entity) =>
           currentState = entity
-          Await.result(save(currentState), 5.seconds)
+          Await.result(save(currentState), awaitTimeout)
         case None =>
           currentState = defaultState(id)
-          Await.result(delete(id), 5.seconds)
+          Await.result(delete(id), awaitTimeout)
       }
     case ReceiveTimeout => self ! PoisonPill // current state will become stale sooner or later
   }
