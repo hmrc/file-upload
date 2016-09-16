@@ -22,6 +22,7 @@ import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
 import uk.gov.hmrc.fileupload.read.notifier.NotifierRepository.{Notification, NotifyResult}
 import uk.gov.hmrc.fileupload.write.envelope.{FileQuarantined, FileStored, NoVirusDetected, VirusDetected}
+import uk.gov.hmrc.fileupload.write.infrastructure.{Event, EventData}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -31,25 +32,26 @@ class NotifierActor(subscribe: (ActorRef, Class[_]) => Boolean,
                    (implicit executionContext: ExecutionContext) extends Actor with ActorLogging {
 
   override def preStart = {
-    subscribe(self, classOf[FileQuarantined])
-    subscribe(self, classOf[NoVirusDetected])
-    subscribe(self, classOf[VirusDetected])
-    subscribe(self, classOf[FileStored])
+    subscribe(self, classOf[Event])
   }
 
   def receive = {
-    case e: FileQuarantined =>
-      log.info("Quarantined event received for {} and {}", e.id, e.fileId)
-      notifyEnvelopeCallback(Notification(e.id, e.fileId, "QUARANTINED", None))
-    case e: NoVirusDetected =>
-      log.info("NoVirusDetected event received for {} and {}", e.id, e.fileId)
-      notifyEnvelopeCallback(Notification(e.id, e.fileId, "CLEANED", None))
-    case e: VirusDetected =>
-      log.info("VirusDetected event received for {} and {} and reason = {}", e.id, e.fileId)
-      notifyEnvelopeCallback(Notification(e.id, e.fileId, "ERROR", Some("VirusDetected")))
-    case e: FileStored =>
-      log.info("FileStored event received for {} and {}", e.id, e.fileId)
-      notifyEnvelopeCallback(Notification(e.id, e.fileId, "AVAILABLE", None))
+    case event: Event => event.eventData match {
+      case e: FileQuarantined =>
+        log.info("Quarantined event received for {} and {}", e.id, e.fileId)
+        notifyEnvelopeCallback(Notification(e.id, e.fileId, "QUARANTINED", None))
+      case e: NoVirusDetected =>
+        log.info("NoVirusDetected event received for {} and {}", e.id, e.fileId)
+        notifyEnvelopeCallback(Notification(e.id, e.fileId, "CLEANED", None))
+      case e: VirusDetected =>
+        log.info("VirusDetected event received for {} and {} and reason = {}", e.id, e.fileId)
+        notifyEnvelopeCallback(Notification(e.id, e.fileId, "ERROR", Some("VirusDetected")))
+      case e: FileStored =>
+        log.info("FileStored event received for {} and {}", e.id, e.fileId)
+        notifyEnvelopeCallback(Notification(e.id, e.fileId, "AVAILABLE", None))
+      case e: EventData =>
+        log.info("Not notifying for {}", e.getClass.getName)
+    }
   }
 
   def notifyEnvelopeCallback(notification: Notification) =

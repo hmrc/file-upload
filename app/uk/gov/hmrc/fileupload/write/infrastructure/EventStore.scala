@@ -39,7 +39,7 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands)
 
   val collection = mongo().collection[BSONCollection]("events")
 
-  collection.indexesManager.ensure(Index(List("streamId" -> IndexType.Text)))
+  collection.indexesManager.ensure(Index(List("streamId" -> IndexType.Hashed)))
 
   override def saveUnitOfWork(streamId: StreamId, unitOfWork: UnitOfWork): Unit = {
     val result = collection.insert(unitOfWork)

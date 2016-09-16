@@ -24,7 +24,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
     info("So that I can persist it in the the database")
 
     scenario("Add file to envelope (valid)") {
-      pending
+
       Given("I have a valid envelope-id")
       stubCallback()
 
@@ -37,6 +37,9 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
 
       And("I have a valid file-ref-id")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
+
+      And("FileInQuarantineStored")
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
 
       And("I have a valid file attached to the request body")
       val data = "{}".getBytes
