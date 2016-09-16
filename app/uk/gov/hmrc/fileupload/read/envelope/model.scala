@@ -69,13 +69,9 @@ object Envelope {
     def writes(o: Envelope): JsObject = envelopeFormat.writes(o).as[JsObject]
   }
 
-  def fromJson(json: JsValue, _id: EnvelopeId, maxTTL: Int): Envelope = {
+  def fromJson(json: JsValue, _id: EnvelopeId): Envelope = {
     val rawData = json.asInstanceOf[JsObject] ++ Json.obj("_id" -> _id)
-    val envelope = Json.fromJson[Envelope](rawData).get
-    val maxExpiryDate: DateTime = DateTime.now().plusDays(maxTTL)
-
-    val expiryDate = envelope.expiryDate.map(d => if (d.isBefore(maxExpiryDate)) d else maxExpiryDate)
-    envelope.copy(expiryDate = expiryDate)
+    Json.fromJson[Envelope](rawData).get
   }
 }
 

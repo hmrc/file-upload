@@ -21,9 +21,9 @@ import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
 import play.api.test.FakeRequest
 import uk.gov.hmrc.fileupload.read.envelope.Envelope
-import uk.gov.hmrc.fileupload.write.envelope.{ArchiveEnvelope, EnvelopeCommand}
+import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.fileupload.{EnvelopeId, Support}
+import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -50,55 +50,54 @@ class TransferControllerSpec extends UnitSpec with WithFakeApplication with Scal
       result.header.status shouldBe Status.OK
     }
 
-//    "return response with 500" in {
-//      val envelope = Support.envelope
-//      val request = FakeRequest()
-//
-//      val controller = newController(softDelete = _ => Future.successful(Xor.Left(SoftDeleteServiceError("not good"))))
-//      val result = controller.nonStubDelete(envelope._id)(request).futureValue
-//
-//      result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
-//    }
-//
-//    "return response with 404" in {
-//      val envelope = Support.envelope
-//      val request = FakeRequest()
-//
-//      val controller = newController(softDelete = _ => Future.successful(Xor.Left(SoftDeleteEnvelopeNotFound)))
-//      val result = controller.nonStubDelete(envelope._id)(request).futureValue
-//
-//      result.header.status shouldBe Status.NOT_FOUND
-//    }
-//
-//    "return response with 410" in {
-//      val envelope = Support.envelope
-//      val request = FakeRequest()
-//
-//      val controller = newController(softDelete = _ => Future.successful(Xor.Left(SoftDeleteEnvelopeAlreadyDeleted)))
-//      val result = controller.nonStubDelete(envelope._id)(request).futureValue
-//
-//      result.header.status shouldBe Status.GONE
-//    }
-//
-//    "return response with 423" in {
-//      val envelope = Support.envelope
-//      val request = FakeRequest()
-//
-//      val controller = newController(softDelete = _ => Future.successful(Xor.Left(SoftDeleteEnvelopeInWrongState)))
-//      val result = controller.nonStubDelete(envelope._id)(request).futureValue
-//
-//      result.header.status shouldBe Status.LOCKED
-//    }
-//
-//    "return response with 503" in {
-//      val envelope = Support.envelope
-//      val request = FakeRequest()
-//
-//      val controller = newController(softDelete = _ => failed)
-//      val result = controller.nonStubDelete(envelope._id)(request).futureValue
-//
-//      result.header.status shouldBe Status.SERVICE_UNAVAILABLE
-//    }
-  }
+    "return response with 500" in {
+      val envelope = Support.envelope
+      val request = FakeRequest()
 
+      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(EnvelopeCommandError("not good"))))
+      val result = controller.nonStubDelete(envelope._id)(request).futureValue
+
+      result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
+    }
+
+    "return response with 404" in {
+      val envelope = Support.envelope
+      val request = FakeRequest()
+
+      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(EnvelopeNotFoundError)))
+      val result = controller.nonStubDelete(envelope._id)(request).futureValue
+
+      result.header.status shouldBe Status.NOT_FOUND
+    }
+
+    "return response with 410" in {
+      val envelope = Support.envelope
+      val request = FakeRequest()
+
+      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(EnvelopeArchivedError)))
+      val result = controller.nonStubDelete(envelope._id)(request).futureValue
+
+      result.header.status shouldBe Status.GONE
+    }
+
+    "return response with 423" in {
+      val envelope = Support.envelope
+      val request = FakeRequest()
+
+      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(EnvelopeSealedError)))
+      val result = controller.nonStubDelete(envelope._id)(request).futureValue
+
+      result.header.status shouldBe Status.LOCKED
+    }
+
+    "return response with 503" in {
+      val envelope = Support.envelope
+      val request = FakeRequest()
+
+      val controller = newController(handleCommand = _ => failed)
+      val result = controller.nonStubDelete(envelope._id)(request).futureValue
+
+      result.header.status shouldBe Status.SERVICE_UNAVAILABLE
+    }
+  }
 }
