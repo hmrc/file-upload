@@ -51,7 +51,7 @@ class EnvelopeController(nextId: () => EnvelopeId,
   def delete(id: EnvelopeId) = Action.async {
     handleCommand(DeleteEnvelope(id)).map {
       case Xor.Right(_) => Accepted
-      case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
+      case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
       case Xor.Left(EnvelopeCommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
       case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not deleted")
     }.recover { case e => ExceptionHandler(e) }
@@ -71,7 +71,7 @@ class EnvelopeController(nextId: () => EnvelopeId,
 
     findEnvelope(id).map {
       case Xor.Right(e) => Ok(Json.toJson(fromEnvelope(e)))
-      case Xor.Left(FindEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
+      case Xor.Left(FindEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
       case Xor.Left(FindServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
     }.recover { case e => ExceptionHandler(e) }
   }
@@ -81,7 +81,7 @@ class EnvelopeController(nextId: () => EnvelopeId,
 
     findMetadata(id, fileId).map {
       case Xor.Right(f) => Ok(Json.toJson(fromFile(id, f)))
-      case Xor.Left(FindMetadataEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
+      case Xor.Left(FindMetadataEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
       case Xor.Left(FindMetadataFileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
       case Xor.Left(FindMetadataServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
     }.recover { case e => ExceptionHandler(e) }
