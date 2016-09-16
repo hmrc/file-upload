@@ -36,7 +36,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
   val fileStored = FileStored(envelopeId, fileId, fileRefId, 100)
   val fileDeleted = FileDeleted(envelopeId, fileId)
   val envelopeDeleted = EnvelopeDeleted(envelopeId)
-  val envelopeSealed = EnvelopeSealed(envelopeId, "testDestination")
+  val envelopeSealed = EnvelopeSealed(envelopeId, "testRoutingRequestId", "testDestination", "testApplication")
   val envelopeRouted = EnvelopeRouted(envelopeId)
   val envelopeArchived = EnvelopeArchived(envelopeId)
 
@@ -310,7 +310,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         envelopeCreated,
-        SealEnvelope(envelopeId, "testDestination"),
+        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
         envelopeSealed
       )
     }
@@ -319,7 +319,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         envelopeCreated And fileQuarantined,
-        SealEnvelope(envelopeId, "testDestination"),
+        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
         envelopeSealed
       )
     }
@@ -328,7 +328,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         envelopeCreated And fileQuarantined And noVirusDetected,
-        SealEnvelope(envelopeId, "testDestination"),
+        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
         envelopeSealed
       )
     }
@@ -337,7 +337,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         envelopeCreated And fileQuarantined And virusDetected,
-        SealEnvelope(envelopeId, "testDestination"),
+        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
         FilesWithError(List(virusDetected.fileId))
       )
     }
@@ -346,7 +346,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         envelopeCreated And fileQuarantined And fileStored,
-        SealEnvelope(envelopeId, "testDestination"),
+        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
         envelopeSealed
       )
     }
@@ -355,7 +355,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         --,
-        SealEnvelope(envelopeId, "testDestination"),
+        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
         EnvelopeNotFoundError
       )
     }
@@ -364,7 +364,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         envelopeCreated And envelopeDeleted,
-        SealEnvelope(envelopeId, "testDestination"),
+        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
         EnvelopeNotFoundError
       )
     }
@@ -373,7 +373,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         envelopeCreated And envelopeSealed,
-        SealEnvelope(envelopeId, "testDestination"),
+        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
         EnvelopeSealedError
       )
     }
@@ -382,7 +382,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         envelopeCreated And envelopeRouted,
-        SealEnvelope(envelopeId, "testDestination"),
+        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
         EnvelopeSealedError
       )
     }
@@ -391,7 +391,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         envelopeCreated And envelopeArchived,
-        SealEnvelope(envelopeId, "testDestination"),
+        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
         EnvelopeArchivedError
       )
     }

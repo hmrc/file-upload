@@ -71,7 +71,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope, EnvelopeCommandNotAcc
       envelope.canDelete.map(_ => List(EnvelopeDeleted(command.id)))
 
     case (command: SealEnvelope, envelope: Envelope) =>
-      envelope.canSeal.map(_ => List(EnvelopeSealed(command.id, command.destination)))
+      envelope.canSeal.map(_ => List(EnvelopeSealed(command.id, command.routingRequestId, command.destination, command.application)))
 
     case (command: ArchiveEnvelope, envelope: Envelope) =>
       envelope.canArchive.map(_ => List(EnvelopeArchived(command.id)))

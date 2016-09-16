@@ -35,18 +35,33 @@ class RoutingControllerSpec extends UnitSpec with WithFakeApplication with Scala
 
   val failed = Future.failed(new Exception("not good"))
 
-  def newController(handleCommand: EnvelopeCommand => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed) =
-    new RoutingController(handleCommand)
+  def newController(handleCommand: EnvelopeCommand => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
+                    newId: () => String = () => "testId") =
+    new RoutingController(handleCommand, newId)
 
   val validRequest = FakeRequest().withBody(Json.toJson(RouteEnvelopeRequest(EnvelopeId(), "application", "destination")))
 
   "Create Routing Request" should {
     "return 201 response (happy path)" in {
-      val controller = newController(handleCommand = _ => Future.successful(Xor.Right(CommandAccepted)))
-      val result = controller.route()(validRequest).futureValue
+      val routingRequestId = "foo"
+      val controller = newController(handleCommand = _ => Future.successful(Xor.Right(CommandAccepted)),
+        newId = () => routingRequestId)
+
+      val result = controller.createRoutingRequest()(validRequest).futureValue
 
       result.header.status shouldBe Status.CREATED
-      result.header.headers.get(LOCATION) shouldBe 'defined
+      result.header.headers(LOCATION) shouldBe routes.RoutingController.routingStatus(routingRequestId).url
+    }
+    "return 400 bad request if sealing was not possible" in {
+      val errorMsg = "errorMsg"
+      val controller = newController(handleCommand = _ => Future.successful(
+        Xor.Left(new CommandNotAccepted {override def toString = errorMsg })
+      ))
+
+      val result = controller.createRoutingRequest()(validRequest).futureValue
+
+      result.header.status shouldBe Status.BAD_REQUEST
+      bodyOf(result) should include(errorMsg)
     }
   }
 

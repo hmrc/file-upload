@@ -24,6 +24,7 @@ import net.ceedubs.ficus.Ficus._
 import play.api.mvc.{EssentialFilter, RequestHeader, Result}
 import play.api.{Application, Configuration, Logger, Play}
 import uk.gov.hmrc.fileupload.controllers._
+import uk.gov.hmrc.fileupload.controllers.routing.RoutingController
 import uk.gov.hmrc.fileupload.controllers.transfer.TransferController
 import uk.gov.hmrc.fileupload.read.envelope.{Service => EnvelopeService, _}
 import uk.gov.hmrc.fileupload.read.file.{Service => FileService}
@@ -162,6 +163,10 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
         publish = publish).handleCommand(command)
   }
 
+  lazy val routingController = {
+    new RoutingController(envelopeCommandHandler)
+  }
+
   override def onStart(app: Application): Unit = {
     super.onStart(app)
 
@@ -191,6 +196,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     fileController
     transferController
     testOnlyController
+    routingController
   }
 
   override def getControllerInstance[A](controllerClass: Class[A]): A = {
@@ -205,6 +211,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       transferController.asInstanceOf[A]
     } else if (controllerClass == classOf[TestOnlyController]) {
       testOnlyController.asInstanceOf[A]
+    } else if (controllerClass == classOf[RoutingController]) {
+      routingController.asInstanceOf[A]
     } else {
       super.getControllerInstance(controllerClass)
     }

@@ -34,9 +34,9 @@ object ExceptionHandler {
     case e: Throwable => DefaultExceptionHandler(e)
   }
 
-  def apply(responseHeader: Int, responseMessage: String): Result = {
+  def apply(statusCode: Int, responseMessage: String): Result = {
     val response: JsObject = JsObject(Seq("error" -> Json.obj("msg" -> responseMessage)))
-    Result(ResponseHeader(responseHeader), Enumerator(Json.stringify(response).getBytes))
+    Result(ResponseHeader(statusCode), Enumerator(Json.stringify(response).getBytes))
   }
 }
 

@@ -89,7 +89,7 @@ class EnvelopeReportActorSpec extends TestKit(ActorSystem("envelope-report")) wi
     }
     // todo EnvelopeSealed needs 'application' as well
     "seal envelope" in new UpdateEnvelopeFixture {
-      val event = EnvelopeSealed(initialState._id, "destination")
+      val event = EnvelopeSealed(initialState._id, "testRoutingReqId", "testDestination", "testApplication")
 
       sendEvent()
 

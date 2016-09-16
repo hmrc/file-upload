@@ -19,7 +19,9 @@ package uk.gov.hmrc.fileupload.controllers.routing
 import java.util.UUID
 
 import cats.data.Xor
+import play.api.Logger
 import play.api.mvc.Action
+import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, SealEnvelope}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -30,17 +32,22 @@ class RoutingController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNo
                         newId: () => String = () => UUID.randomUUID().toString)
                        (implicit executionContext: ExecutionContext) extends BaseController {
 
-  def route() = Action.async(parse.json) { implicit request =>
+  def createRoutingRequest() = Action.async(parse.json) { implicit request =>
     withJsonBody[RouteEnvelopeRequest] { requestParams =>
       import requestParams._
-      handleCommand(SealEnvelope(envelope, destination, application)).map {
-        case Xor.Right(_) => Created.withHeaders(LOCATION -> routes.RoutingController.routingStatus("foo").url)
-        case Xor.Left(_) => InternalServerError
-      }
+      val requestId = newId()
+      handleCommand(SealEnvelope(envelope, requestId, destination, application)).map {
+        case Xor.Right(_) => Created.withHeaders(LOCATION -> routes.RoutingController.routingStatus(requestId).url)
+        case Xor.Left(error) =>
+          Logger.warn(error.toString)
+          ExceptionHandler(BAD_REQUEST, error.toString)
+      }.recover { case e => ExceptionHandler(e) }
     }
   }
 
-  def routingStatus(id: String) = Action { NotImplemented("Not implemented as part of MVP") }
+  def routingStatus(id: String) = Action {
+    ExceptionHandler(NOT_IMPLEMENTED, "Not implemented as part of MVP")
+  }
 
 }
 
