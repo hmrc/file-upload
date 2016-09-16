@@ -115,13 +115,13 @@ object Envelope {
   import scala.language.implicitConversions
 
   implicit def EventDataToXorRight(event: EventData): Xor[EnvelopeCommandNotAccepted, List[EventData]] =
-    Xor.Right(List(event))
+    Xor.right(List(event))
 
   implicit def EventsDataToXorRight(events: List[EventData]): Xor[EnvelopeCommandNotAccepted, List[EventData]] =
-    Xor.Right(events)
+    Xor.right(events)
 
   implicit def CommandNotAcceptedToXorLeft(error: EnvelopeCommandNotAccepted): Xor[EnvelopeCommandNotAccepted, List[EventData]] =
-    Xor.Left(error)
+    Xor.left(error)
 }
 
 case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated) {

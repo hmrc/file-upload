@@ -78,7 +78,7 @@ class CallbackSpec extends IntegrationSpec with EnvelopeActions with EventsActio
       val locationHeader = createEnvelopeResponse.header("Location").get
       val envelopeId = EnvelopeId(locationHeader.substring(locationHeader.lastIndexOf('/') + 1))
       val fileId = FileId("1")
-      val fileRefId = FileRefId("1")
+      val fileRefId = FileRefId()
 
       sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
       sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))

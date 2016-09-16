@@ -36,19 +36,19 @@ class FileController(uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyPa
                     (implicit executionContext: ExecutionContext) extends BaseController {
 
 
-  def upsertFile(envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId) = Action.async(uploadBodyParser(envelopeId, fileId, fileRefId)) { request =>
+  def upsertFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) = Action.async(uploadBodyParser(id, fileId, fileRefId)) { request =>
     request.body.flatMap { jsonReadFile =>
-      handleCommand(StoreFile(envelopeId, fileId, fileRefId, jsonReadFile.length)).map {
+      handleCommand(StoreFile(id, fileId, fileRefId, jsonReadFile.length)).map {
         case Xor.Right(_) => Ok
-        case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $envelopeId not found")
+        case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
         case Xor.Left(FileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found")
         case Xor.Left(_) => ExceptionHandler(INTERNAL_SERVER_ERROR, "File not added to envelope")
       }.recover { case e => ExceptionHandler(e) }
     }
   }
 
-  def downloadFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { request =>
-    withValidEnvelope(envelopeId) { envelope =>
+  def downloadFile(id: EnvelopeId, fileId: FileId) = Action.async { request =>
+    withValidEnvelope(id) { envelope =>
       retrieveFile(envelope, fileId).map {
         case Xor.Right(FileFound(filename, length, data)) =>
           Ok.feed(data).withHeaders(
@@ -56,19 +56,8 @@ class FileController(uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyPa
             CONTENT_DISPOSITION -> s"""attachment; filename="${ filename.getOrElse("data") }""""
           )
         case Xor.Left(GetFileNotFoundError) =>
-          ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId")
+          ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
       }
     }
-  }
-
-  def retrieveMetadata(envelopeId: EnvelopeId, fileId: FileId) = Action.async { request =>
-    withValidEnvelope(envelopeId) { envelope =>
-      envelope.getFileById(fileId).map(GetFileMetadataReport.fromFile(envelopeId, _)) match {
-        case Some(report) => Future.successful(Ok(Json.toJson(report)))
-        case None => Future.successful(
-          ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId")
-        )
-      }
-    }.recover { case e => ExceptionHandler(e) }
   }
 }

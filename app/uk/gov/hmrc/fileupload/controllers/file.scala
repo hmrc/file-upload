@@ -16,69 +16,12 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import org.joda.time.DateTime
 import play.api.libs.iteratee.Iteratee
-import play.api.libs.json._
-import play.api.mvc.{BodyParser, _}
+import play.api.mvc.BodyParser
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.read.envelope.File
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
-import scala.util.{Failure, Success, Try}
-
-case class UpdateFileMetadataReport(name: Option[String] = None,
-                                    contentType: Option[String] = None,
-                                    revision: Option[Int] = None,
-                                    metadata: Option[JsObject] = None)
-
-object UpdateFileMetadataReport {
-  implicit val updateFileMetaDataReportFormat: Format[UpdateFileMetadataReport] = Json.format[UpdateFileMetadataReport]
-}
-
-case class GetFileMetadataReport(id: FileId,
-                                 status: Option[String] = None,
-                                 name: Option[String] = None,
-                                 contentType: Option[String] = None,
-                                 length: Option[Long] = None,
-                                 created: Option[DateTime] = None,
-                                 revision: Option[Int] = None,
-                                 metadata: Option[JsObject] = None,
-                                 href: Option[String] = None)
-
-object GetFileMetadataReport {
-  implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  implicit val getFileMetaDataReportFormat: Format[GetFileMetadataReport] = Json.format[GetFileMetadataReport]
-
-  def href(envelopeId: EnvelopeId, fileId: FileId) = routes.FileController.downloadFile(envelopeId, fileId).url
-
-  def fromFile(envelopeId: EnvelopeId, file: File): GetFileMetadataReport =
-    GetFileMetadataReport(
-      id = file.fileId,
-      status = Some(file.status.name),
-      name = file.name,
-      contentType = file.contentType,
-      length = file.length,
-      created = file.uploadDate,
-      metadata = file.metadata,
-      href = Some(href(envelopeId, file.fileId))
-    )
-}
-
-object FileMetadataParser extends BodyParser[UpdateFileMetadataReport] {
-
-  def apply(request: RequestHeader): Iteratee[Array[Byte], Either[Result, UpdateFileMetadataReport]] = {
-    import UpdateFileMetadataReport._
-
-    Iteratee.consume[Array[Byte]]().map { data =>
-      Try(Json.fromJson[UpdateFileMetadataReport](Json.parse(data)).get) match {
-        case Success(report) => Right(report)
-        case Failure(NonFatal(e)) => Left(ExceptionHandler(e))
-      }
-    }(ExecutionContext.global)
-  }
-}
 
 object UploadParser {
 

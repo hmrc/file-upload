@@ -75,7 +75,7 @@ case class Aggregate[C <: Command, S, E <: CommandNotAccepted](handle: PartialFu
     })
 
     xorEventsData match {
-      case Xor.Left(e) => Future.successful(Xor.Left(e))
+      case Xor.Left(e) => Future.successful(Xor.left(e))
       case Xor.Right(eventsData) => Future.successful(commandAcceptedResult)
     }
   }

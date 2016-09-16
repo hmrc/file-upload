@@ -20,7 +20,7 @@ import org.joda.time.DateTime
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.json._
 import play.api.mvc.{BodyParser, RequestHeader, Result}
-import uk.gov.hmrc.fileupload.EnvelopeId
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 import uk.gov.hmrc.fileupload.read.envelope._
 
 import scala.concurrent.ExecutionContext
@@ -99,3 +99,32 @@ object EnvelopeParser extends BodyParser[EnvelopeReport] {
   }
 }
 
+case class GetFileMetadataReport(id: FileId,
+                                 status: Option[String] = None,
+                                 name: Option[String] = None,
+                                 contentType: Option[String] = None,
+                                 length: Option[Long] = None,
+                                 created: Option[DateTime] = None,
+                                 revision: Option[Int] = None,
+                                 metadata: Option[JsObject] = None,
+                                 href: Option[String] = None)
+
+object GetFileMetadataReport {
+  implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val getFileMetaDataReportFormat: Format[GetFileMetadataReport] = Json.format[GetFileMetadataReport]
+
+  def href(envelopeId: EnvelopeId, fileId: FileId) = routes.FileController.downloadFile(envelopeId, fileId).url
+
+  def fromFile(envelopeId: EnvelopeId, file: File): GetFileMetadataReport =
+    GetFileMetadataReport(
+      id = file.fileId,
+      status = Some(file.status.name),
+      name = file.name,
+      contentType = file.contentType,
+      length = file.length,
+      created = file.uploadDate,
+      metadata = file.metadata,
+      href = Some(href(envelopeId, file.fileId))
+    )
+}

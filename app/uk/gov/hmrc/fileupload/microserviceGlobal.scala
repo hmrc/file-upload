@@ -98,6 +98,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   lazy val withValidEnvelope = new WithValidEnvelope(getEnvelope)
 
   lazy val find = EnvelopeService.find(getEnvelope) _
+  lazy val findMetadata = EnvelopeService.findMetadata(find) _
 
   lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute) _
 
@@ -111,7 +112,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     new EnvelopeController(
       nextId = nextId,
       handleCommand = envelopeCommandHandler,
-      findEnvelope = find)
+      findEnvelope = find,
+      findMetadata = findMetadata)
   }
 
   lazy val eventController = {

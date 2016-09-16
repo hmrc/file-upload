@@ -21,7 +21,8 @@ import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 import uk.gov.hmrc.fileupload.read.envelope.Envelope
-import uk.gov.hmrc.fileupload.read.envelope.Service.{FindEnvelopeNotFoundError, FindError, FindServiceError}
+import uk.gov.hmrc.fileupload.read.envelope.Service._
+import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -31,7 +32,8 @@ import scala.language.postfixOps
 
 class EnvelopeController(nextId: () => EnvelopeId,
                          handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
-                         findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]])
+                         findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]],
+                         findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]])
                         (implicit executionContext: ExecutionContext) extends BaseController {
 
   def create() = Action.async(EnvelopeParser) { implicit request =>
@@ -55,23 +57,33 @@ class EnvelopeController(nextId: () => EnvelopeId,
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  def deleteFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { request =>
-    handleCommand(DeleteFile(envelopeId, fileId)).map {
+  def deleteFile(id: EnvelopeId, fileId: FileId) = Action.async { request =>
+    handleCommand(DeleteFile(id, fileId)).map {
       case Xor.Right(_) => Ok
-      case Xor.Left(FileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId")
+      case Xor.Left(FileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
       case Xor.Left(EnvelopeCommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
       case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "File not deleted")
     }.recover { case e => ExceptionHandler(e) }
   }
 
   def show(id: EnvelopeId) = Action.async {
-
     import EnvelopeReport._
 
     findEnvelope(id).map {
+      case Xor.Right(e) => Ok(Json.toJson(fromEnvelope(e)))
       case Xor.Left(FindEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
       case Xor.Left(FindServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Right(e) => Ok(Json.toJson(EnvelopeReport.fromEnvelope(e)))
+    }.recover { case e => ExceptionHandler(e) }
+  }
+
+  def retrieveMetadata(id: EnvelopeId, fileId: FileId) = Action.async { request =>
+    import GetFileMetadataReport._
+
+    findMetadata(id, fileId).map {
+      case Xor.Right(f) => Ok(Json.toJson(fromFile(id, f)))
+      case Xor.Left(FindMetadataEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope $id not found")
+      case Xor.Left(FindMetadataFileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
+      case Xor.Left(FindMetadataServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
     }.recover { case e => ExceptionHandler(e) }
   }
 }
