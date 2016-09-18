@@ -9,7 +9,7 @@ description: Upload files to the Tax Platform
 
 /envelope:
   post:
-    description: Create an envelope
+    description: Create an envelope. Body must have an empty json object in order to pass
     body:
       application/json:
         example: {}
@@ -20,6 +20,8 @@ description: Upload files to the Tax Platform
           Location:
             description: URI for the resource for showing this envelope
             example: www-dev.tax.service.gov.uk/file-upload/envelope/1234567890
+      500:
+        description: Internal Server Error. Occurs when not parse a json object.
 
   /{envelopeId}:
     uriParameters:
@@ -85,6 +87,16 @@ description: Upload files to the Tax Platform
           responses:
             200:
               description: The files body
+                application/json:
+                  example: |
+                    {
+                       "fileId": "fileId-fc2dda4c-a0f1-40a9-8ea5-854cb6850f7a",
+                       "fsReference":"2f2993ae-d7c4-4c95-8f7f-7647b39eab27",
+                       "length":2,
+                       "uploadDate":1473088189142,
+                       "rel":"file",
+                       "status":"AVAILABLE"
+                    }
             404:
               description: File not found
               body:
