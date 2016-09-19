@@ -1,12 +1,13 @@
 package uk.gov.hmrc.fileupload
 
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.concurrent.Eventually
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeApplication
-import uk.gov.hmrc.fileupload.read.envelope.{EnvelopeStatusClosed, EnvelopeStatusOpen, Repository}
+import uk.gov.hmrc.fileupload.read.envelope.Repository
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FileActions, IntegrationSpec}
 
-class FileTransferIntegrationSpec extends IntegrationSpec with FileActions with EnvelopeActions with BeforeAndAfterEach {
+class FileTransferIntegrationSpec extends IntegrationSpec with FileActions with EnvelopeActions with BeforeAndAfterEach with Eventually {
 
   override implicit lazy val app = FakeApplication(
     additionalConfiguration = Map(
@@ -19,48 +20,51 @@ class FileTransferIntegrationSpec extends IntegrationSpec with FileActions with 
 
   feature("File Transfer") {
 
-    // todo use direct way
-    pending
-
     scenario("List Envelopes for a given destination") {
       Given("I know a destination for envelopes")
       val destination = "DMS"
 
       And("There exist CLOSED envelopes that match it")
-      createEnvelopeWithStatusAndDestination(EnvelopeStatusClosed, destination)
+      submitRoutingRequest(createEnvelope(), destination)
 
-      And("There exist other envelopes with different statuses and destinations")
-      createEnvelopeWithStatusAndDestination(EnvelopeStatusClosed, "not matching destination")
-      createEnvelopeWithStatusAndDestination(EnvelopeStatusOpen, destination)
+      And("There exist other envelopes with different statuses")
+      createEnvelope()
 
-      When(s"I invoke GET /file-transfer/envelopes?destination=$destination")
-      val response = getEnvelopesForDestination(Some(destination))
+      eventually {
+        When(s"I invoke GET /file-transfer/envelopes?destination=$destination")
+        val response = getEnvelopesForDestination(Some(destination))
 
-      Then("I will receive a 200 Ok response")
-      response.status shouldBe OK
+        Then("I will receive a 200 Ok response")
+        response.status shouldBe OK
 
-      And("The response will contain expected number of envelopes")
-      val body = Json.parse(response.body)
-      (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe 1
+        And("The response will contain expected number of envelopes")
+        val body = Json.parse(response.body)
+        (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe 1
+      }
     }
 
     scenario("List Envelopes without specifying destination") {
       Given("There exist CLOSED envelopes in the DB")
-      createEnvelopeWithStatusAndDestination(EnvelopeStatusClosed, "dest1")
-      createEnvelopeWithStatusAndDestination(EnvelopeStatusClosed, "dest2")
+
+      val expectedNumberOfEnvelopes = 2
+      (1 to expectedNumberOfEnvelopes).foreach { _ =>
+        submitRoutingRequest(createEnvelope(), "DMS")
+      }
 
       And("There exist envelopes with other statuses")
-      createEnvelopeWithStatusAndDestination(EnvelopeStatusOpen, "dest1")
+      createEnvelope()
 
-      When(s"I invoke GET /file-transfer/envelopes (without passing destination")
-      val response = getEnvelopesForDestination(None)
+      eventually {
+        When(s"I invoke GET /file-transfer/envelopes (without passing destination")
+        val response = getEnvelopesForDestination(None)
 
-      Then("I will receive a 200 Ok response")
-      response.status shouldBe OK
+        Then("I will receive a 200 Ok response")
+        response.status shouldBe OK
 
-      And("The response will contain all envelopes with a CLOSED status")
-      val body = Json.parse(response.body)
-      (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe 2
+        And("The response will contain all envelopes with a CLOSED status")
+        val body = Json.parse(response.body)
+        (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe expectedNumberOfEnvelopes
+      }
     }
 
   }

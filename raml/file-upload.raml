@@ -30,7 +30,6 @@ description: Upload files to the Tax Platform
                     "msg":"Internal Server Error"
                     }
                 }
-
   /{envelopeId}:
     uriParameters:
       envelopeId:
@@ -69,7 +68,11 @@ description: Upload files to the Tax Platform
                   "msg": "Envelope 4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa not found"
                   }
                 }
+<<<<<<< HEAD
     /file/{fileId}/fileRefId:
+=======
+    /files/{fileId}:
+>>>>>>> master
       uriParameters:
         fileId:
           displayName: File ID
@@ -166,7 +169,7 @@ description: Upload files to the Tax Platform
                           "service" : "some-service-identifier/v1.2.33"
                         }
                       },
-                      "href" : "/file-upload/envelope/d16ea92c-2345-4552-a6b8-f80144671352/file/fileId-b690e15e-87cc-47bb-af9c-58c2482f11c4/content"
+                      "href" : "/file-upload/envelopes/d16ea92c-2345-4552-a6b8-f80144671352/files/fileId-b690e15e-87cc-47bb-af9c-58c2482f11c4/content"
                     }
             404:
               description: File not found

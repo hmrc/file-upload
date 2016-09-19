@@ -20,14 +20,14 @@ trait EnvelopeActions extends ActionsSupport with MongoSpecSupport {
 
   def createEnvelope(data: Array[Byte]): WSResponse =
     WS
-      .url(s"$url/envelope")
+      .url(s"$url/envelopes")
       .withHeaders("Content-Type" -> "application/json")
       .post(data)
       .futureValue
 
   def getEnvelopeFor(id: EnvelopeId): WSResponse =
     WS
-      .url(s"$url/envelope/$id")
+      .url(s"$url/envelopes/$id")
       .get()
       .futureValue
 
@@ -44,27 +44,19 @@ trait EnvelopeActions extends ActionsSupport with MongoSpecSupport {
 
   def deleteEnvelopFor(id: EnvelopeId): WSResponse =
     WS
-      .url(s"$url/envelope/$id")
+      .url(s"$url/envelopes/$id")
       .delete()
       .futureValue
 
-  // todo (konrad) to be deleted after we have a direct way to change status and destination of an envelope
-  val repo = new Repository(mongo) {
-    def setStatusAndDestination(envelopeId: String, status: EnvelopeStatus, destination: String): Future[Boolean] = {
-      val selector = Json.obj(_Id -> envelopeId)
-      val update = Json.obj("$set" -> Json.obj("status" -> status.name, "destination" -> destination))
-      collection.update(selector, update).map { _.nModified == 1 }
-    }
-  }
-
-  def createEnvelopeWithStatusAndDestination(status: EnvelopeStatus, destination: String): EnvelopeId = {
-    val id = createEnvelope()
-    val resultOfUpdating = repo.setStatusAndDestination(id.value, status, destination).futureValue
-    if (resultOfUpdating) {
-      id
-    } else {
-      throw new Exception("failed to update envelope")
-    }
+  def submitRoutingRequest(envelopeId: EnvelopeId, destination: String, application: String = "testApplication"): WSResponse = {
+    val payload = Json.obj(
+      "envelope" -> envelopeId,
+      "destination" -> destination,
+      "application" -> application
+    )
+    WS.url(s"$fileRoutingUrl/requests")
+      .post(payload)
+      .futureValue
   }
 
   def getEnvelopesForDestination(destination: Option[String]): WSResponse = {

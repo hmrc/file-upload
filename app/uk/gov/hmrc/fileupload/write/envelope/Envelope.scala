@@ -30,11 +30,11 @@ object Envelope extends Handler[EnvelopeCommand, Envelope, EnvelopeCommandNotAcc
       EnvelopeCreated(command.id, command.callbackUrl)
 
     case (command: QuarantineFile, envelope: Envelope) =>
-      envelope.canQuarantine(command.fileId, command.name).map(_ => List(
+      envelope.canQuarantine(command.fileId, command.name).map(_ =>
         FileQuarantined(
           id = command.id, fileId = command.fileId, fileRefId = command.fileRefId,
           created = command.created, name = command.name, contentType = command.contentType, metadata = command.metadata)
-      ))
+      )
 
     case (command: MarkFileAsClean, envelope: Envelope) =>
       if (envelope.hasFileRefId(command.fileId, command.fileRefId)) {
@@ -56,7 +56,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope, EnvelopeCommandNotAcc
         val fileStored = FileStored(command.id, command.fileId, command.fileRefId, command.length)
 
         if (withEvent(envelope, fileStored).canRoute.isRight) {
-          List(fileStored, EnvelopeRouted(command.id))
+          fileStored And EnvelopeRouted(command.id)
         } else {
           fileStored
         }
@@ -65,16 +65,24 @@ object Envelope extends Handler[EnvelopeCommand, Envelope, EnvelopeCommandNotAcc
       }
 
     case (command: DeleteFile, envelope: Envelope) =>
-      envelope.canDeleteFile(command.fileId).map (_ => List(FileDeleted(command.id, command.fileId)))
+      envelope.canDeleteFile(command.fileId).map (_ => FileDeleted(command.id, command.fileId))
 
     case (command: DeleteEnvelope, envelope: Envelope) =>
-      envelope.canDelete.map(_ => List(EnvelopeDeleted(command.id)))
+      envelope.canDelete.map(_ => EnvelopeDeleted(command.id))
 
     case (command: SealEnvelope, envelope: Envelope) =>
-      envelope.canSeal.map(_ => List(EnvelopeSealed(command.id, command.routingRequestId, command.destination, command.application)))
+      envelope.canSeal(command.destination).map(_ => {
+        val envelopeSealed = EnvelopeSealed(command.id, command.routingRequestId, command.destination, command.application)
+
+        if (withEvent(envelope, envelopeSealed).canRoute.isRight) {
+          envelopeSealed And EnvelopeRouted(command.id)
+        } else {
+          envelopeSealed
+        }
+      })
 
     case (command: ArchiveEnvelope, envelope: Envelope) =>
-      envelope.canArchive.map(_ => List(EnvelopeArchived(command.id)))
+      envelope.canArchive.map(_ => EnvelopeArchived(command.id))
   }
 
   override def on = {
@@ -114,6 +122,9 @@ object Envelope extends Handler[EnvelopeCommand, Envelope, EnvelopeCommandNotAcc
 
   import scala.language.implicitConversions
 
+  implicit def EventDataToListEventData(event: EventData): List[EventData] =
+    List(event)
+
   implicit def EventDataToXorRight(event: EventData): Xor[EnvelopeCommandNotAccepted, List[EventData]] =
     Xor.right(List(event))
 
@@ -122,6 +133,14 @@ object Envelope extends Handler[EnvelopeCommand, Envelope, EnvelopeCommandNotAcc
 
   implicit def CommandNotAcceptedToXorLeft(error: EnvelopeCommandNotAccepted): Xor[EnvelopeCommandNotAccepted, List[EventData]] =
     Xor.left(error)
+
+  implicit class AddEventDataToList(item: EventData) {
+    def And(another: EventData) = List(item, another)
+  }
+
+  implicit class AddEventDataListToList(items: List[EventData]) {
+    def And(another: EventData) = items :+ another
+  }
 }
 
 case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated) {
@@ -133,7 +152,7 @@ case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCrea
 
   def canQuarantine(fileId: FileId, name: String): CanResult = state.canQuarantine(fileId, name, files.values.toSeq)
 
-  def canSeal: CanResult = state.canSeal(files.values.toSeq)
+  def canSeal(destination: String): CanResult = state.canSeal(files.values.toSeq, destination)
 
   def canDelete: CanResult = state.canDelete
 
@@ -148,13 +167,14 @@ sealed trait State {
   val envelopeNotFoundError = Xor.Left(EnvelopeNotFoundError)
   val fileNotFoundError = Xor.Left(FileNotFoundError)
   val envelopeSealedError = Xor.Left(EnvelopeSealedError)
+  val envelopeSealDestinationNotAllowedError = Xor.Left(SealEnvelopeDestinationNotAllowedError)
   val envelopeAlreadyArchivedError = Xor.Left(EnvelopeArchivedError)
 
   def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult = genericError
 
   def canQuarantine(fileId: FileId, name: String, files: Seq[File]): CanResult = genericError
 
-  def canSeal(files: Seq[File]): CanResult = genericError
+  def canSeal(files: Seq[File], destination: String): CanResult = genericError
 
   def canDelete: CanResult = genericError
 
@@ -179,12 +199,16 @@ object Open extends State {
 
   override def canDelete: CanResult = successResult
 
-  override def canSeal(files: Seq[File]): CanResult = {
-    val filesWithError = files.filter(_.hasError)
-    if (filesWithError.isEmpty) {
-      successResult
+  override def canSeal(files: Seq[File], destination: String): CanResult = {
+    if (destination.toLowerCase != "dms") {
+      envelopeSealDestinationNotAllowedError
     } else {
-      Xor.Left(FilesWithError(filesWithError.map(_.fileId)))
+      val filesWithError = files.filter(_.hasError)
+      if (filesWithError.isEmpty) {
+        successResult
+      } else {
+        Xor.Left(FilesWithError(filesWithError.map(_.fileId)))
+      }
     }
   }
 }

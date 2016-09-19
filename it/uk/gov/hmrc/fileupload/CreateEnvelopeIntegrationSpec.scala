@@ -22,7 +22,7 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       Given("I have an empty JSON request")
       val json = "{}"
 
-      When("I invoke POST /file/upload/envelope")
+      When("I invoke POST /file-upload/envelopes")
       val response: WSResponse = createEnvelope(json)
 
       Then("I will receive a 201 Created response")
@@ -32,7 +32,7 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
 
       And("the Envelope ID will be returned in the location header")
       val locationHeader = response.header("Location").get
-      locationHeader should fullyMatch regex ".*/file-upload/envelope/[A-z0-9-]+$"
+      locationHeader should fullyMatch regex ".*/file-upload/envelopes/[A-z0-9-]+$"
     }
 
     scenario("Create a new Envelope using basic sample") {
@@ -41,7 +41,7 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       Given("I have the following JSON")
       val json = requestBody(Map("formattedExpiryDate" -> formattedExpiryDate))
 
-      When("I invoke POST /file/upload/envelope")
+      When("I invoke POST /file-upload/envelopes")
       val response: WSResponse = createEnvelope(json)
 
       Then("I will receive a 201 Created response")
@@ -51,7 +51,7 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
 
       And("the Envelope ID will be returned in the location header")
       val locationHeader = response.header("Location").get
-      locationHeader should fullyMatch regex ".*/file-upload/envelope/[A-z0-9-]+$"
+      locationHeader should fullyMatch regex ".*/file-upload/envelopes/[A-z0-9-]+$"
     }
   }
 }

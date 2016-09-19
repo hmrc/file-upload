@@ -23,7 +23,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope",
+						"url": "{{url}}/file-upload/envelopes",
 						"method": "POST",
 						"header": [
 							{
@@ -41,7 +41,7 @@
 							"mode": "raw",
 							"raw": "{}"
 						},
-						"description": "Scenario: Create a new Envelope with empty body\nGiven I have an empty JSON request (ie \"{}\")\nWhen I invoke POST /file/upload/envelope\nThen I will receive a 201 Created response\nAnd a new Envelope record with no attributes will be created\nAnd the Envelope ID will be returned in the location header"
+						"description": "Scenario: Create a new Envelope with empty body\nGiven I have an empty JSON request (ie \"{}\")\nWhen I invoke POST /files/upload/envelopes\nThen I will receive a 201 Created response\nAnd a new Envelope record with no attributes will be created\nAnd the Envelope ID will be returned in the location header"
 					},
 					"response": []
 				},
@@ -57,7 +57,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{emptyEnvelopeId}}",
+						"url": "{{url}}/file-upload/envelopes/{{emptyEnvelopeId}}",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -70,7 +70,7 @@
 						{
 							"name": "Success",
 							"originalRequest": {
-								"url": "{{url}}/file-upload/envelope/{{locationHeader}}",
+								"url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
 								"method": "GET",
 								"header": [],
 								"body": {
@@ -114,7 +114,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope",
+						"url": "{{url}}/file-upload/envelopes",
 						"method": "POST",
 						"header": [
 							{
@@ -132,7 +132,7 @@
 							"mode": "raw",
 							"raw": "{\n  \"constraints\" : {\n    \"contentTypes\" : [\n        \"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\n        \"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\n        \"application/vnd.oasis.opendocument.spreadsheet\"\n    ],\n    \"maxItems\" : 100,\n    \"maxSize\" : \"12GB\",\n    \"maxSizePerItem\" : \"10MB\"\n  },\n  \"processing\" : {\n    \"antiVirus\" : \"block|remove\",\n    \"nonRepudiation\" : \"none|weak|strong\",\n    \"package\" : \"none|zip\",\n    \"activeContent\": \"none|block|remove\"\n  },\n  \"callbackUrl\" : \"http://absolute.callback.url\",\n  \"securityClassification\" : \"official|official-sensitive\",\n  \"expiryDate\": \"2016-08-07T13:15:30Z\",\n  \"destination\" : \"DMS\",\n  \"metadata\" : {\n      \"anything\": \"the caller wants to add to the envelope\"\n  }\n}"
 						},
-						"description": "Scenario: Create a new Envelope using basic sample\nGiven I have a basic sample JSON request\nWhen I invoke POST /file/upload/envelope\nThen I will receive a 201 Created response\nAnd a new Envelope record will be created\nAnd the Envelope ID will be returned in the location header"
+						"description": "Scenario: Create a new Envelope using basic sample\nGiven I have a basic sample JSON request\nWhen I invoke POST /files/upload/envelopes\nThen I will receive a 201 Created response\nAnd a new Envelope record will be created\nAnd the Envelope ID will be returned in the location header"
 					},
 					"response": []
 				},
@@ -148,7 +148,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeId}}",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -161,7 +161,7 @@
 						{
 							"name": "Success",
 							"originalRequest": {
-								"url": "{{url}}/file-upload/envelope/{{locationHeader}}",
+								"url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
 								"method": "GET",
 								"header": [],
 								"body": {
@@ -211,7 +211,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope",
+						"url": "{{url}}/file-upload/envelopes",
 						"method": "POST",
 						"header": [
 							{
@@ -229,7 +229,7 @@
 							"mode": "raw",
 							"raw": "{\n  \"constraints\" : {\n    \"contentTypes\" : [\n        \"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\n        \"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\n        \"application/vnd.oasis.opendocument.spreadsheet\"\n    ],\n    \"maxItems\" : 100,\n    \"maxSize\" : \"12GB\",\n    \"maxSizePerItem\" : \"10MB\"\n  },\n  \"processing\" : {\n    \"antiVirus\" : \"block|remove\",\n    \"nonRepudiation\" : \"none|weak|strong\",\n    \"package\" : \"none|zip\",\n    \"activeContent\": \"none|block|remove\"\n  },\n  \"callbackUrl\" : \"http://absolute.callback.url\",\n  \"securityClassification\" : \"official|official-sensitive\",\n  \"expiryDate\": \"2016-08-07T13:15:30Z\",\n  \"destination\" : \"DMS\",\n  \"metadata\" : {\n      \"anything\": \"the caller wants to add to the envelope\"\n  }\n}"
 						},
-						"description": "Submits a POST request to the /file/upload/ resource providing a basic sample JSON request\n\nThis does not include any authorisation headers.\n\nVerifies that an 201 Created response is received and that the Envelope ID of the created resource is provided within the Location header"
+						"description": "Submits a POST request to the /files/upload/ resource providing a basic sample JSON request\n\nThis does not include any authorisation headers.\n\nVerifies that an 201 Created response is received and that the Envelope ID of the created resource is provided within the Location header"
 					},
 					"response": []
 				},
@@ -245,14 +245,14 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeId}}",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}",
 						"method": "DELETE",
 						"header": [],
 						"body": {
 							"mode": "formdata",
 							"formdata": []
 						},
-						"description": "Given I have a valid envelope id\nWhen I call DELETE /file-upload/envelope/:envelope-id\nThen I should receive a 202 Accepted\nAnd The envelope should be deleted"
+						"description": "Given I have a valid envelope id\nWhen I call DELETE /file-upload/envelopes/:envelope-id\nThen I should receive a 202 Accepted\nAnd The envelope should be deleted"
 					},
 					"response": []
 				},
@@ -268,7 +268,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeId}}",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -281,7 +281,7 @@
 						{
 							"name": "Success",
 							"originalRequest": {
-								"url": "{{url}}/file-upload/envelope/{{locationHeader}}",
+								"url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
 								"method": "GET",
 								"header": [],
 								"body": {
@@ -325,14 +325,14 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/123456789",
+						"url": "{{url}}/file-upload/envelopes/123456789",
 						"method": "DELETE",
 						"header": [],
 						"body": {
 							"mode": "formdata",
 							"formdata": []
 						},
-						"description": "Given I have an invalid envelope id\nWhen I call DELETE /file-upload/envelope/:envelope-id\nThen I should receive a 404 not found response"
+						"description": "Given I have an invalid envelope id\nWhen I call DELETE /file-upload/envelopes/:envelope-id\nThen I should receive a 404 not found response"
 					},
 					"response": []
 				},
@@ -348,7 +348,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope",
+						"url": "{{url}}/file-upload/envelopes",
 						"method": "POST",
 						"header": [
 							{
@@ -366,7 +366,7 @@
 							"mode": "raw",
 							"raw": "{\n  \"constraints\" : {\n    \"contentTypes\" : [\n        \"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\n        \"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\n        \"application/vnd.oasis.opendocument.spreadsheet\"\n    ],\n    \"maxItems\" : 100,\n    \"maxSize\" : \"12GB\",\n    \"maxSizePerItem\" : \"10MB\"\n  },\n  \"processing\" : {\n    \"antiVirus\" : \"block|remove\",\n    \"nonRepudiation\" : \"none|weak|strong\",\n    \"package\" : \"none|zip\",\n    \"activeContent\": \"none|block|remove\"\n  },\n  \"callbackUrl\" : \"http://absolute.callback.url\",\n  \"securityClassification\" : \"official|official-sensitive\",\n  \"expiryDate\": \"2016-08-07T13:15:30Z\",\n  \"destination\" : \"DMS\",\n  \"metadata\" : {\n      \"anything\": \"the caller wants to add to the envelope\"\n  }\n}"
 						},
-						"description": "Submits a POST request to the /file/upload/ resource providing a basic sample JSON request\n\nThis does not include any authorisation headers.\n\nVerifies that an 201 Created response is received and that the Envelope ID of the created resource is provided within the Location header"
+						"description": "Submits a POST request to the /files/upload/ resource providing a basic sample JSON request\n\nThis does not include any authorisation headers.\n\nVerifies that an 201 Created response is received and that the Envelope ID of the created resource is provided within the Location header"
 					},
 					"response": []
 				},
@@ -389,7 +389,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeIdWithFile}}/file/{{fileId}}/content",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeIdWithFile}}/files/{{fileId}}/content",
 						"method": "PUT",
 						"header": [],
 						"body": {
@@ -412,7 +412,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeIdWithFile}}",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeIdWithFile}}",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -425,7 +425,7 @@
 						{
 							"name": "Success",
 							"originalRequest": {
-								"url": "{{url}}/file-upload/envelope/{{locationHeader}}",
+								"url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
 								"method": "GET",
 								"header": [],
 								"body": {
@@ -469,7 +469,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeIdWithFile}}",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeIdWithFile}}",
 						"method": "DELETE",
 						"header": [],
 						"body": {
@@ -492,7 +492,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeIdWithFile}}",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeIdWithFile}}",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -505,7 +505,7 @@
 						{
 							"name": "Success",
 							"originalRequest": {
-								"url": "{{url}}/file-upload/envelope/{{locationHeader}}",
+								"url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
 								"method": "GET",
 								"header": [],
 								"body": {
@@ -555,7 +555,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope",
+						"url": "{{url}}/file-upload/envelopes",
 						"method": "POST",
 						"header": [
 							{
@@ -573,7 +573,7 @@
 							"mode": "raw",
 							"raw": "{\n  \"constraints\" : {\n    \"contentTypes\" : [\n        \"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\n        \"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\n        \"application/vnd.oasis.opendocument.spreadsheet\"\n    ],\n    \"maxItems\" : 100,\n    \"maxSize\" : \"12GB\",\n    \"maxSizePerItem\" : \"10MB\"\n  },\n  \"processing\" : {\n    \"antiVirus\" : \"block|remove\",\n    \"nonRepudiation\" : \"none|weak|strong\",\n    \"package\" : \"none|zip\",\n    \"activeContent\": \"none|block|remove\"\n  },\n  \"callbackUrl\" : \"http://absolute.callback.url\",\n  \"securityClassification\" : \"official|official-sensitive\",\n  \"expiryDate\": \"2016-08-07T13:15:30Z\",\n  \"destination\" : \"DMS\",\n  \"metadata\" : {\n      \"anything\": \"the caller wants to add to the envelope\"\n  }\n}"
 						},
-						"description": "Submits a POST request to the /file/upload/ resource providing a basic sample JSON request\n\nThis does not include any authorisation headers.\n\nVerifies that an 201 Created response is received and that the Envelope ID of the created resource is provided within the Location header"
+						"description": "Submits a POST request to the /files/upload/ resource providing a basic sample JSON request\n\nThis does not include any authorisation headers.\n\nVerifies that an 201 Created response is received and that the Envelope ID of the created resource is provided within the Location header"
 					},
 					"response": []
 				},
@@ -589,20 +589,20 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeId}}",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}",
 						"method": "GET",
 						"header": [],
 						"body": {
 							"mode": "formdata",
 							"formdata": []
 						},
-						"description": "Given I have a valid envelope id\nWhen I call GET /file-upload/envelope/:envelope-id\nThen I should receive a 200 OK response\nAnd the response body should contain the envelope details"
+						"description": "Given I have a valid envelope id\nWhen I call GET /file-upload/envelopes/:envelope-id\nThen I should receive a 200 OK response\nAnd the response body should contain the envelope details"
 					},
 					"response": [
 						{
 							"name": "Success",
 							"originalRequest": {
-								"url": "{{url}}/file-upload/envelope/{{locationHeader}}",
+								"url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
 								"method": "GET",
 								"header": [],
 								"body": {
@@ -646,20 +646,20 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/123456789",
+						"url": "{{url}}/file-upload/envelopes/123456789",
 						"method": "GET",
 						"header": [],
 						"body": {
 							"mode": "formdata",
 							"formdata": []
 						},
-						"description": "Given I have an invalid envelope id\nWhen I call GET /file-upload/envelope/:envelope-id\nThen I should receive a 404 not found response\n"
+						"description": "Given I have an invalid envelope id\nWhen I call GET /file-upload/envelopes/:envelope-id\nThen I should receive a 404 not found response\n"
 					},
 					"response": [
 						{
 							"name": "Success",
 							"originalRequest": {
-								"url": "{{url}}/file-upload/envelope/{{locationHeader}}",
+								"url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
 								"method": "GET",
 								"header": [],
 								"body": {
@@ -727,7 +727,7 @@
 							"mode": "raw",
 							"raw": "{\n  \"constraints\" : {\n    \"contentTypes\" : [\n        \"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\n        \"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\n        \"application/vnd.oasis.opendocument.spreadsheet\"\n    ],\n    \"maxItems\" : 100,\n    \"maxSize\" : \"12GB\",\n    \"maxSizePerItem\" : \"10MB\"\n  },\n  \"processing\" : {\n    \"antiVirus\" : \"block|remove\",\n    \"nonRepudiation\" : \"none|weak|strong\",\n    \"package\" : \"none|zip\",\n    \"activeContent\": \"none|block|remove\"\n  },\n  \"callbackUrl\" : \"http://absolute.callback.url\",\n  \"securityClassification\" : \"official|official-sensitive\",\n  \"expiryDate\": \"2016-08-07T13:15:30Z\",\n  \"destination\" : \"DMS\",\n  \"metadata\" : {\n      \"anything\": \"the caller wants to add to the envelope\"\n  }\n}"
 						},
-						"description": "Submits a POST request to the /file/upload/ resource providing a basic sample JSON request\n\nThis does not include any authorisation headers.\n\nVerifies that an 201 Created response is received and that the Envelope ID of the created resource is provided within the Location header"
+						"description": "Submits a POST request to the /files/upload/ resource providing a basic sample JSON request\n\nThis does not include any authorisation headers.\n\nVerifies that an 201 Created response is received and that the Envelope ID of the created resource is provided within the Location header"
 					},
 					"response": []
 				},
@@ -750,14 +750,14 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeIdWithFile}}/file/{{fileId}}/content",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeIdWithFile}}/files/{{fileId}}/content",
 						"method": "PUT",
 						"header": [],
 						"body": {
 							"mode": "raw",
 							"raw": ""
 						},
-						"description": "Scenario: Add valid file to envelope\nGiven I have a valid envelope-id\nAnd I have a valid file-id\nAnd I have a valid file attached to the request body\nWhen I call the PUT /file-upload/envelope/:envelope-id/file/:file-id/content\nThen I should receive a 200 Created response \nAnd the file should be uploaded to the DB successfully"
+						"description": "Scenario: Add valid file to envelope\nGiven I have a valid envelope-id\nAnd I have a valid file-id\nAnd I have a valid file attached to the request body\nWhen I call the PUT /file-upload/envelopes/:envelope-id/files/:file-id/content\nThen I should receive a 200 Created response \nAnd the file should be uploaded to the DB successfully"
 					},
 					"response": []
 				},
@@ -773,7 +773,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeIdWithFile}}",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeIdWithFile}}",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -786,7 +786,7 @@
 						{
 							"name": "Success",
 							"originalRequest": {
-								"url": "{{url}}/file-upload/envelope/{{locationHeader}}",
+								"url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
 								"method": "GET",
 								"header": [],
 								"body": {
@@ -830,7 +830,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeIdWithFile}}/file/{{fileId}}/content",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeIdWithFile}}/files/{{fileId}}/content",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -843,7 +843,7 @@
 						{
 							"name": "data3",
 							"originalRequest": {
-								"url": "{{url}}/file-upload/envelope/{{envelopeIdWithFile}}/file/{{fileId}}/content",
+								"url": "{{url}}/file-upload/envelopes/{{envelopeIdWithFile}}/files/{{fileId}}/content",
 								"method": "GET",
 								"header": [],
 								"body": {
@@ -894,7 +894,7 @@
 						{
 							"name": "testresponse.txt",
 							"originalRequest": {
-								"url": "{{url}}/file-upload/envelope/{{envelopeIdWithFile}}/file/{{fileId}}/content",
+								"url": "{{url}}/file-upload/envelopes/{{envelopeIdWithFile}}/files/{{fileId}}/content",
 								"method": "GET",
 								"header": [],
 								"body": {
@@ -963,14 +963,14 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/123456/file/{{fileId}}/content",
+						"url": "{{url}}/file-upload/envelopes/123456/files/{{fileId}}/content",
 						"method": "PUT",
 						"header": [],
 						"body": {
 							"mode": "raw",
 							"raw": ""
 						},
-						"description": "Scenario: PUT File Invalid Envelope ID\nGiven I have a invalid envelope-id\nAnd I have a valid file-id\nAnd I have a valid file attached to the request body\nWhen I call the PUT /file-upload/envelope/:envelope-id/file/:file-id/content\nThen I should receive a 404 Not Found response"
+						"description": "Scenario: PUT File Invalid Envelope ID\nGiven I have a invalid envelope-id\nAnd I have a valid file-id\nAnd I have a valid file attached to the request body\nWhen I call the PUT /file-upload/envelopes/:envelope-id/files/:file-id/content\nThen I should receive a 404 Not Found response"
 					},
 					"response": []
 				}
@@ -1033,7 +1033,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeId}}/file/{{fileId}}/metadata",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/metadata",
 						"method": "PUT",
 						"header": [
 							{
@@ -1046,7 +1046,7 @@
 							"mode": "raw",
 							"raw": "{\n  \"name\" : \"original-file-name-on-disk.docx\",\n  \"contentType\" : \"application/vnd.oasis.opendocument.spreadsheet\",\n  \"revision\" : 1,\n  \"metadata\" : {\n        \"id\" : \"1234567890\",\n        \"origin\" : {\n            \"nino\" : \"AB123456Z\",\n            \"token\": \"48729348729348732894\",\n            \"session\": \"cd30f8ec-d866-4ae0-82a0-1bc720f1cb09\",\n            \"agent\" : \"292929292\",\n            \"trustedHelper\" : \"8984293480239480\",\n            \"ipAddress\" : \"1.2.3.4\"\n        },\n        \"sender\" : {\n            \"service\" : \"some-service-identifier/v1.2.33\"\n        }\n    }\n}"
 						},
-						"description": "Scenario: Create File Metadata for envelope with no file attachment\nGiven I have a valid envelope ID and a valid file ID\nAnd I have no file attached to the envelope \nAnd I have a JSON body with an example PUT File Metadata request\nWhen I call PUT /file-upload/envelope/:envelope-id/file/:file-id/metadata\nThen I should receive a 200 OK response"
+						"description": "Scenario: Create File Metadata for envelope with no file attachment\nGiven I have a valid envelope ID and a valid file ID\nAnd I have no file attached to the envelope \nAnd I have a JSON body with an example PUT File Metadata request\nWhen I call PUT /file-upload/envelopes/:envelope-id/files/:file-id/metadata\nThen I should receive a 200 OK response"
 					},
 					"response": []
 				},
@@ -1062,7 +1062,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeId}}/file/{{fileId}}/content",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/content",
 						"method": "PUT",
 						"header": [],
 						"body": {
@@ -1085,7 +1085,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeId}}",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -1098,7 +1098,7 @@
 						{
 							"name": "Success",
 							"originalRequest": {
-								"url": "{{url}}/file-upload/envelope/{{locationHeader}}",
+								"url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
 								"method": "GET",
 								"header": [],
 								"body": {
@@ -1142,7 +1142,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeId}}/file/{{fileId}}/metadata",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/metadata",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -1165,7 +1165,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeId}}/file/{{fileId}}/content",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/content",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -1178,7 +1178,7 @@
 						{
 							"name": "data3",
 							"originalRequest": {
-								"url": "{{url}}/file-upload/envelope/{{envelopeIdWithFile}}/file/{{fileId}}/content",
+								"url": "{{url}}/file-upload/envelopes/{{envelopeIdWithFile}}/files/{{fileId}}/content",
 								"method": "GET",
 								"header": [],
 								"body": {
@@ -1229,7 +1229,7 @@
 						{
 							"name": "testresponse.txt",
 							"originalRequest": {
-								"url": "{{url}}/file-upload/envelope/{{envelopeIdWithFile}}/file/{{fileId}}/content",
+								"url": "{{url}}/file-upload/envelopes/{{envelopeIdWithFile}}/files/{{fileId}}/content",
 								"method": "GET",
 								"header": [],
 								"body": {
@@ -1338,7 +1338,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeId}}/file/{{fileId}}/metadata",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/metadata",
 						"method": "PUT",
 						"header": [
 							{
@@ -1351,7 +1351,7 @@
 							"mode": "raw",
 							"raw": "{\n  \"name\" : \"original-file-name-on-disk.docx\",\n  \"contentType\" : \"application/vnd.oasis.opendocument.spreadsheet\",\n  \"revision\" : 1,\n  \"metadata\" : {\n        \"id\" : \"1234567890\",\n        \"origin\" : {\n            \"nino\" : \"AB123456Z\",\n            \"token\": \"48729348729348732894\",\n            \"session\": \"cd30f8ec-d866-4ae0-82a0-1bc720f1cb09\",\n            \"agent\" : \"292929292\",\n            \"trustedHelper\" : \"8984293480239480\",\n            \"ipAddress\" : \"1.2.3.4\"\n        },\n        \"sender\" : {\n            \"service\" : \"some-service-identifier/v1.2.33\"\n        }\n    }\n}"
 						},
-						"description": "Scenario: Create File Metadata for envelope with no file attachment\nGiven I have a valid envelope ID and a valid file ID\nAnd I have no file attached to the envelope \nAnd I have a JSON body with an example PUT File Metadata request\nWhen I call PUT /file-upload/envelope/:envelope-id/file/:file-id/metadata\nThen I should receive a 200 OK response"
+						"description": "Scenario: Create File Metadata for envelope with no file attachment\nGiven I have a valid envelope ID and a valid file ID\nAnd I have no file attached to the envelope \nAnd I have a JSON body with an example PUT File Metadata request\nWhen I call PUT /file-upload/envelopes/:envelope-id/files/:file-id/metadata\nThen I should receive a 200 OK response"
 					},
 					"response": []
 				},
@@ -1367,7 +1367,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeId}}",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -1380,7 +1380,7 @@
 						{
 							"name": "Success",
 							"originalRequest": {
-								"url": "{{url}}/file-upload/envelope/{{locationHeader}}",
+								"url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
 								"method": "GET",
 								"header": [],
 								"body": {
@@ -1424,7 +1424,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeId}}/file/{{fileId}}/metadata",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/metadata",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -1447,7 +1447,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeId}}/file/{{fileId}}/metadata",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/metadata",
 						"method": "PUT",
 						"header": [
 							{
@@ -1476,7 +1476,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope/{{envelopeId}}/file/{{fileId}}/metadata",
+						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/metadata",
 						"method": "GET",
 						"header": [],
 						"body": {

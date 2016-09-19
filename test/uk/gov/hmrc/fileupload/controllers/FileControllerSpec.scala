@@ -67,7 +67,7 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
 
   "Upload a file" should {
     "return 200 after the file is added to the envelope" in {
-      val fakeRequest = new FakeRequest[Future[JSONReadFile]]("PUT", "/envelope", FakeHeaders(), body = Future.successful(TestJsonReadFile()))
+      val fakeRequest = new FakeRequest[Future[JSONReadFile]]("PUT", "/envelopes", FakeHeaders(), body = Future.successful(TestJsonReadFile()))
 
       val envelope = Support.envelope
 
@@ -78,7 +78,7 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
     }
 
     "return 404 if envelope does not exist" in {
-      val fakeRequest = new FakeRequest[Future[JSONReadFile]]("PUT", "/envelope", FakeHeaders(), body = Future.successful(TestJsonReadFile()))
+      val fakeRequest = new FakeRequest[Future[JSONReadFile]]("PUT", "/envelopes", FakeHeaders(), body = Future.successful(TestJsonReadFile()))
 
       val envelopeId = EnvelopeId()
 
@@ -114,7 +114,7 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
     "respond with 404 when a file is not found" in {
       val envelopeId = EnvelopeId()
       val fileId = FileId("myFileId")
-      val fakeRequest = new FakeRequest[AnyContentAsJson]("GET", s"/envelope/$envelopeId/file/$fileId/content", FakeHeaders(), body = null)
+      val fakeRequest = new FakeRequest[AnyContentAsJson]("GET", s"/envelopes/$envelopeId/files/$fileId/content", FakeHeaders(), body = null)
 
       val fileFound: GetFileResult = Xor.Left(GetFileNotFoundError)
       val controller = newController(

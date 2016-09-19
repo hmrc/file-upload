@@ -44,7 +44,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
       And("I have a valid file attached to the request body")
       val data = "{}".getBytes
 
-      When(s"I invoke PUT envelope/$envelopeId/file/$fileId/$fileRefId")
+      When(s"I invoke PUT envelope/$envelopeId/files/$fileId/$fileRefId")
       val response: WSResponse = upload(data, envelopeId, fileId, fileRefId)
 
       Then("I will receive a 200 OK response")
@@ -72,7 +72,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
       val data = new Array[Byte](file.length().toInt)
       file.readFully(data)
 
-      When(s"I invoke PUT envelope/$envelopeId/file/$fileId/$fileRefId")
+      When(s"I invoke PUT envelope/$envelopeId/files/$fileId/$fileRefId")
       val response: WSResponse = upload(data, envelopeId, fileId, fileRefId)
 
       Then("I will receive a 200 OK response")
@@ -97,7 +97,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
       And("FileInQuarantineStored")
       sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
 
-      When(s"I invoke PUT envelope/$envelopeId/file/$fileId/$fileRefId")
+      When(s"I invoke PUT envelope/$envelopeId/files/$fileId/$fileRefId")
       val response = upload(data, envelopeId, fileId, fileRefId)
 
       Then("I will receive a 200 OK response")
@@ -124,7 +124,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
       And("I have a valid file attached to the request body")
       val data = "{}".getBytes
 
-      When(s"I invoke PUT envelope/$envelopeId/file/$fileId/$fileRefId")
+      When(s"I invoke PUT envelope/$envelopeId/files/$fileId/$fileRefId")
       val response: WSResponse = upload(data, envelopeId, fileId, fileRefId)
 
       Then("I will receive a 404 Not Found response")
@@ -147,7 +147,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
       And("I have no file attached to the request body")
       val data = "".getBytes
 
-      When(s"I invoke PUT envelope/$envelopeId/file/$fileId/$fileRefId")
+      When(s"I invoke PUT envelope/$envelopeId/files/$fileId/$fileRefId")
       val response: WSResponse = upload(data, envelopeId, fileId, fileRefId)
 
       Then("I will receive a 200 OK response")
