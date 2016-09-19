@@ -40,7 +40,7 @@ class TransferController(getEnvelopesByDestination: Option[String] => Future[Lis
          |{
          |  "_links": {
          |    "self": {
-         |      "href": "http://full.url.com/file-routing/envelope?destination=DMS"
+         |      "href": "http://full.url.com/file-transfer/envelopes?destination=DMS"
          |    }
          |  },
          |  "_embedded": {
@@ -52,26 +52,26 @@ class TransferController(getEnvelopesByDestination: Option[String] => Future[Lis
          |        "_embedded": {
          |          "files": [
          |            {
-         |              "href": "/file-upload/envelope/b215e97-11d4-4006-91db-c067e74fc653/file/1/content",
+         |              "href": "/file-upload/envelopes/b215e97-11d4-4006-91db-c067e74fc653/files/1/content",
          |              "name": "original-file-name-on-disk.docx",
          |              "contentType": "application/vnd.oasis.opendocument.spreadsheet",
          |              "length": 1231222,
          |              "created": "2016-03-31T12:33:45Z",
          |              "_links": {
          |                "self": {
-         |                  "href": "/file-upload/envelope/b215e97-11d4-4006-91db-c067e74fc653/file/1"
+         |                  "href": "/file-upload/envelopes/b215e97-11d4-4006-91db-c067e74fc653/files/1"
          |                }
          |              }
          |            },
          |            {
-         |              "href": "/file-upload/envelope/b215e97-11d4-4006-91db-c067e74fc653/file/2/content",
+         |              "href": "/file-upload/envelopes/b215e97-11d4-4006-91db-c067e74fc653/files/2/content",
          |              "name": "another-file-name-on-disk.docx",
          |              "contentType": "application/vnd.oasis.opendocument.spreadsheet",
          |              "length": 112221,
          |              "created": "2016-03-31T12:33:45Z",
          |              "_links": {
          |                "self": {
-         |                  "href": "/file-upload/envelope/b215e97-11d4-4006-91db-c067e74fc653/file/2"
+         |                  "href": "/file-upload/envelopes/b215e97-11d4-4006-91db-c067e74fc653/files/2"
          |                }
          |              }
          |            }
@@ -87,8 +87,8 @@ class TransferController(getEnvelopesByDestination: Option[String] => Future[Lis
          |          },
          |          "files": [
          |            {
-         |              "href": "/file/1",
-         |              "href": "/file/2"
+         |              "href": "/files/1",
+         |              "href": "/files/2"
          |            }
          |          ]
          |        }

@@ -20,7 +20,7 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with Eventually with En
       createResponse.status should equal(CREATED)
       val envelopeId = envelopeIdFromHeader(createResponse)
 
-      When("I call GET /file-upload/envelope/:envelope-id")
+      When("I call GET /file-upload/envelopes/:envelope-id")
       val envelopeResponse = getEnvelopeFor(envelopeId)
 
       Then("I will receive a 200 Ok response")
@@ -54,7 +54,7 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with Eventually with En
 
       eventually {
 
-        When("I call GET /file-upload/envelope/:envelope-id")
+        When("I call GET /file-upload/envelopes/:envelope-id")
         val envelopeResponse = getEnvelopeFor(envelopeId)
 
         Then("I will receive a 200 Ok response")
@@ -88,7 +88,7 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with Eventually with En
       Given("I have an invalid envelope id")
       val envelopeId = EnvelopeId()
 
-      When("I call GET /file-upload/envelope/:envelope-id")
+      When("I call GET /file-upload/envelopes/:envelope-id")
       val envelopeResponse = getEnvelopeFor(envelopeId)
 
       Then("I should receive a 404 not found response")

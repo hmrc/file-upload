@@ -28,7 +28,7 @@ class GetFileMetadataIntegrationSpec extends IntegrationSpec with Eventually wit
 
       eventually {
 
-        When(s"I invoke GET envelope/$envelopeId/file/$fileId/metadata")
+        When(s"I invoke GET envelopes/$envelopeId/files/$fileId/metadata")
         val response = getFileMetadataFor(envelopeId, fileId)
 
         Then("I will receive a 200 Ok response")
@@ -45,7 +45,7 @@ class GetFileMetadataIntegrationSpec extends IntegrationSpec with Eventually wit
       val envelopeId = EnvelopeId("invalidEnvelopeId")
       val fileId = FileId("invalidFileID")
 
-      When(s"I invoke GET envelope/$envelopeId/file/$fileId/metadata")
+      When(s"I invoke GET envelopes/$envelopeId/files/$fileId/metadata")
       val response = getFileMetadataFor(envelopeId, fileId)
 
       Then("I will receive a 404 Not Found response")

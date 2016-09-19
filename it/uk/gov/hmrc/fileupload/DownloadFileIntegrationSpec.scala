@@ -35,7 +35,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with FileActions with 
       val data = "{'name':'pete'}"
       upload(data.getBytes, envelopeId, fileId, fileRefId)
 
-      When(s"I invoke GET envelope/$envelopeId/file/$fileId/content")
+      When(s"I invoke GET envelope/$envelopeId/files/$fileId/content")
       val response: WSResponse = download(envelopeId, fileId)
 
       Then("I will receive a 200 OK response")
@@ -58,7 +58,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with FileActions with 
       And("I have an invalid file id")
       val fileId = FileId(s"fileId-${nextId()}")
 
-      When(s"I invoke GET envelope/$envelopeId/file/$fileId/content")
+      When(s"I invoke GET envelope/$envelopeId/files/$fileId/content")
       val response: WSResponse = download(envelopeId, fileId)
 
       Then("I will receive a 404 Not Found response")
@@ -90,7 +90,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with FileActions with 
       md.update(data)
       val sourceDigest = md.digest()
 
-      When("I call GET /file-upload/envelope/:envelope-id/file/:file-id/content")
+      When("I call GET /file-upload/envelopes/:envelope-id/files/:file-id/content")
       val getFileResponse : WSResponse = download(envelopeId, fileId)
 
       Then("I will receive a 200 OK response")

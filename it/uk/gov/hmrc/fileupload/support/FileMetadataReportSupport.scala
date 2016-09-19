@@ -52,7 +52,7 @@ object FileMetadataReportSupport extends Support {
     |      "service":"${args.getOrElse("metadata.sender.service", "some-service-identifier/v1.2.33")}"
     |    }
     |  },
-    |  "href" : "/file-upload/envelope/$envelopeId/file/$fileId/content"
+    |  "href" : "/file-upload/envelopes/$envelopeId/files/$fileId/content"
     |}
 		 """.stripMargin)
 

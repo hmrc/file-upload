@@ -44,14 +44,14 @@ class OutputForTransferSpec extends UnitSpec with WithFakeApplication {
       val expectedJson = withRemovedWhitespace {
         s"""
              {
-               "href": "/file-upload/envelope/${envelope._id}/file/${f.fileId}/content",
+               "href": "/file-upload/envelopes/${envelope._id}/files/${f.fileId}/content",
                "name": "${f.name.get}",
                "contentType": "${f.contentType.get}",
                "length": ${f.length.get},
                "created": "$dateAsText",
                "_links": {
                  "self": {
-                   "href": "/file-upload/envelope/${envelope._id}/file/${f.fileId}"
+                   "href": "/file-upload/envelopes/${envelope._id}/files/${f.fileId}"
                  }
                }
              }
@@ -81,14 +81,14 @@ class OutputForTransferSpec extends UnitSpec with WithFakeApplication {
       val expectedJson = withRemovedWhitespace {
         s"""
              {
-               "href": "/file-upload/envelope/${envelope._id}/file/${f.fileId}/content",
+               "href": "/file-upload/envelopes/${envelope._id}/files/${f.fileId}/content",
                "name": null,
                "contentType": null,
                "length": null,
                "created": null,
                "_links": {
                  "self": {
-                   "href": "/file-upload/envelope/${envelope._id}/file/${f.fileId}"
+                   "href": "/file-upload/envelopes/${envelope._id}/files/${f.fileId}"
                  }
                }
              }
@@ -146,14 +146,14 @@ class OutputForTransferSpec extends UnitSpec with WithFakeApplication {
                    "_embedded": {
                      "files": [
                        {
-                         "href": "/file-upload/envelope/${envelope._id}/file/${file.fileId}/content",
+                         "href": "/file-upload/envelopes/${envelope._id}/files/${file.fileId}/content",
                          "name": "${file.name.get}",
                          "contentType": "${file.contentType.get}",
                          "length": ${file.length.get},
                          "created": "$dateAsText",
                          "_links": {
                            "self": {
-                             "href": "/file-upload/envelope/${envelope._id}/file/${file.fileId}"
+                             "href": "/file-upload/envelopes/${envelope._id}/files/${file.fileId}"
                            }
                          }
                        }
@@ -169,7 +169,7 @@ class OutputForTransferSpec extends UnitSpec with WithFakeApplication {
                      },
                      "files": [
                        {
-                         "href": "/file/${file.fileId}"
+                         "href": "/files/${file.fileId}"
                        }
                      ]
                    }

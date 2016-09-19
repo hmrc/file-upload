@@ -20,14 +20,14 @@ trait EnvelopeActions extends ActionsSupport with MongoSpecSupport {
 
   def createEnvelope(data: Array[Byte]): WSResponse =
     WS
-      .url(s"$url/envelope")
+      .url(s"$url/envelopes")
       .withHeaders("Content-Type" -> "application/json")
       .post(data)
       .futureValue
 
   def getEnvelopeFor(id: EnvelopeId): WSResponse =
     WS
-      .url(s"$url/envelope/$id")
+      .url(s"$url/envelopes/$id")
       .get()
       .futureValue
 
@@ -44,7 +44,7 @@ trait EnvelopeActions extends ActionsSupport with MongoSpecSupport {
 
   def deleteEnvelopFor(id: EnvelopeId): WSResponse =
     WS
-      .url(s"$url/envelope/$id")
+      .url(s"$url/envelopes/$id")
       .delete()
       .futureValue
 

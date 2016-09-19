@@ -49,7 +49,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
     "return response with OK status and a Location header specifying the envelope endpoint" in {
 	    val serverUrl = "http://production.com:8000"
 
-	    val fakeRequest = new FakeRequest[EnvelopeReport]("POST", "/envelope", FakeHeaders(), body = envelopeReport){
+	    val fakeRequest = new FakeRequest[EnvelopeReport]("POST", "/envelopes", FakeHeaders(), body = envelopeReport){
 		    override lazy val host = serverUrl
 	    }
 
@@ -66,7 +66,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
     "return response with OK status and a Location header specifying the envelope endpoint" in {
       val serverUrl = "http://production.com:8000"
 
-      val fakeRequest = new FakeRequest[EnvelopeReport]("POST", "/envelope", FakeHeaders(), body = EnvelopeReport()) {
+      val fakeRequest = new FakeRequest[EnvelopeReport]("POST", "/envelopes", FakeHeaders(), body = EnvelopeReport()) {
         override lazy val host = serverUrl
       }
 
@@ -82,7 +82,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 	"Delete Envelope" should {
 		"respond with 202 ACCEPTED status" in {
 			val envelope = Support.envelope
-			val request = FakeRequest("DELETE", s"/envelope/${envelope._id}")
+			val request = FakeRequest("DELETE", s"/envelopes/${envelope._id}")
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
 			val result = controller.delete(envelope._id)(request).futureValue

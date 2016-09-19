@@ -18,7 +18,7 @@ class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with Eventually with
       createResponse.status should equal(CREATED)
       val envelopeId = envelopeIdFromHeader(createResponse)
 
-      When("I call DELETE /file-upload/envelope/:envelope-id")
+      When("I call DELETE /file-upload/envelopes/:envelope-id")
       val envelopeResponse = deleteEnvelopFor(envelopeId)
 
       Then("I will receive a 202 Accpeted response")
@@ -35,7 +35,7 @@ class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with Eventually with
       Given("I have an invalid envelope id")
       val invalidEnvelopeId = EnvelopeId()
 
-      When("I call DELETE /file-upload/envelope/:envelope-id")
+      When("I call DELETE /file-upload/envelopes/:envelope-id")
       val envelopeResponse = deleteEnvelopFor(invalidEnvelopeId)
 
       Then("I should receive a 404 not found response")

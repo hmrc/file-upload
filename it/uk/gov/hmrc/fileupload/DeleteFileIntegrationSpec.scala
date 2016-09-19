@@ -33,7 +33,7 @@ class DeleteFileIntegrationSpec extends IntegrationSpec with FileActions with En
       And("I uploaded a file")
       upload("abc".getBytes(), envelopeId, fileId, fileRefId)
 
-      When(s"I invoke DELETE envelope/$envelopeId/file/$fileId")
+      When(s"I invoke DELETE envelope/$envelopeId/files/$fileId")
       val response: WSResponse = delete(envelopeId, fileId)
 
       Then("I will receive a 200 OK response")
