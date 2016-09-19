@@ -19,15 +19,23 @@ description: Upload files to the Tax Platform
         headers:
           Location:
             description: URI for the resource for showing this envelope
-            example: www-dev.tax.service.gov.uk/file-upload/envelope/fe5013eb-7a80-4e84-aa3a-98101d83f7f5
+            example: www-dev.tax.service.gov.uk/file-upload/envelopes/ff86f4d2-ed32-4313-b42c-e9c9013486f9
       500:
         description: Internal Server Error. Occurs when not parse a json object.
+        body:
+            application/json:
+                example: |
+                {
+                    "error":{
+                    "msg":"Internal Server Error"
+                    }
+                }
 
   /{envelopeId}:
     uriParameters:
       envelopeId:
         displayName: Envelope ID
-        example: "fe5013eb-7a80-4e84-aa3a-98101d83f7f5"
+        example: "ff86f4d2-ed32-4313-b42c-e9c9013486f9"
     get:
       description: Check the existence of an Envelope
       responses:
@@ -35,7 +43,7 @@ description: Upload files to the Tax Platform
           description: Envelope exists
           body:
             application/json:
-              example: { "id": "fe5013eb-7a80-4e84-aa3a-98101d83f7f5" }
+              example: { "id": "ff86f4d2-ed32-4313-b42c-e9c9013486f9" }
         404:
           description: Envelope with specified ID not found
           body:
@@ -61,11 +69,14 @@ description: Upload files to the Tax Platform
                   "msg": "Envelope 4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa not found"
                   }
                 }
-    /file/{fileId}:
+    /file/{fileId}/fileRefId:
       uriParameters:
         fileId:
           displayName: File ID
-          example: "fileId-1af94972-476f-4be5-9369-c53a8838075e"
+          example: "fileId-61c98b66-81a9-4361-ac71-66c05bc470e1"
+        fileRefId:
+          displayName: File Reference ID
+          example: "fileRefId-2868d524-2387-400b-b5a8-e1be3078d0b7"
       /content:
         put:
           description: Upload a file to an envelope
@@ -89,14 +100,14 @@ description: Upload files to the Tax Platform
               description: The files body
                 application/json:
                   example: |
-                    {
-                       "fileId": "fileId-fc2dda4c-a0f1-40a9-8ea5-854cb6850f7a",
-                       "fsReference":"2f2993ae-d7c4-4c95-8f7f-7647b39eab27",
-                       "length":2,
-                       "uploadDate":1473088189142,
-                       "rel":"file",
-                       "status":"AVAILABLE"
-                    }
+                  {
+                    "fileId": "fileId-fc2dda4c-a0f1-40a9-8ea5-854cb6850f7a",
+                    "fsReference":"2f2993ae-d7c4-4c95-8f7f-7647b39eab27",
+                    "length":2,
+                    "uploadDate":1473088189142,
+                    "rel":"file",
+                    "status":"AVAILABLE"
+                  }
             404:
               description: File not found
               body:

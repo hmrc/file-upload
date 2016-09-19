@@ -22,12 +22,22 @@ description: Upload files to the Tax Platform
             example: www-dev.tax.service.gov.uk/file-upload/envelope/fe5013eb-7a80-4e84-aa3a-98101d83f7f5
       500:
         description: Internal Server Error. Occurs when not parse a json object.
-
+        body:
+            application/json:
+                example: |
+                {
+                    "error":{
+                    "msg":"Internal Server Error"
+                    }
+                }
   /file/{fileId}:
     uriParameters:
       fileId:
         displayName: File ID
         example: "fileId-1af94972-476f-4be5-9369-c53a8838075e"
+      fileRefId:
+        displayName: File Reference ID
+        example: "fileRefId-2868d524-2387-400b-b5a8-e1be3078d0b7"
     /content:
       put:
         description: Upload a file to an envelope
