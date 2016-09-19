@@ -20,25 +20,27 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with Eventually with En
       createResponse.status should equal(CREATED)
       val envelopeId = envelopeIdFromHeader(createResponse)
 
-      When("I call GET /file-upload/envelopes/:envelope-id")
-      val envelopeResponse = getEnvelopeFor(envelopeId)
+      eventually {
+        When("I call GET /file-upload/envelopes/:envelope-id")
+        val envelopeResponse = getEnvelopeFor(envelopeId)
 
-      Then("I will receive a 200 Ok response")
-      envelopeResponse.status shouldBe OK
+        Then("I will receive a 200 Ok response")
+        envelopeResponse.status shouldBe OK
 
-      And("the response body should contain the envelope details")
-      val body: String = envelopeResponse.body
-      body shouldNot be(null)
+        And("the response body should contain the envelope details")
+        val body: String = envelopeResponse.body
+        body shouldNot be(null)
 
-      val parsedBody: JsValue = Json.parse(body)
-      parsedBody \ "id" match {
-        case JsString(value) =>  value should fullyMatch regex "[A-z0-9-]+"
-        case _ => JsError("expectation failed")
-      }
+        val parsedBody: JsValue = Json.parse(body)
+        parsedBody \ "id" match {
+          case JsString(value) =>  value should fullyMatch regex "[A-z0-9-]+"
+          case _ => JsError("expectation failed")
+        }
 
-      parsedBody \ "status" match {
-        case JsString(value) =>  value should fullyMatch regex "OPEN"
-        case _ => JsError("expectation failed")
+        parsedBody \ "status" match {
+          case JsString(value) =>  value should fullyMatch regex "OPEN"
+          case _ => JsError("expectation failed")
+        }
       }
 
     }
@@ -53,7 +55,6 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with Eventually with En
       sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
 
       eventually {
-
         When("I call GET /file-upload/envelopes/:envelope-id")
         val envelopeResponse = getEnvelopeFor(envelopeId)
 

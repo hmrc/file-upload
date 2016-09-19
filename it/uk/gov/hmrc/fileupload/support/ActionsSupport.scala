@@ -12,5 +12,6 @@ trait ActionsSupport extends ScalaFutures with Status {
 
   val url = "http://localhost:9000/file-upload"
   val fileTransferUrl = "http://localhost:9000/file-transfer"
+  val fileRoutingUrl = "http://localhost:9000/file-routing"
   implicit val ec = ExecutionContext.global
 }
