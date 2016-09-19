@@ -65,6 +65,6 @@ trait Command {
   def streamId: StreamId
 }
 
-object CommandAccepted
+case object CommandAccepted
 
 trait CommandNotAccepted
