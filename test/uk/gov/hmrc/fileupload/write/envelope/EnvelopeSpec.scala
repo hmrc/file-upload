@@ -36,7 +36,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
   val fileStored = FileStored(envelopeId, fileId, fileRefId, 100)
   val fileDeleted = FileDeleted(envelopeId, fileId)
   val envelopeDeleted = EnvelopeDeleted(envelopeId)
-  val envelopeSealed = EnvelopeSealed(envelopeId, "testRoutingRequestId", "testDestination", "testApplication")
+  val envelopeSealed = EnvelopeSealed(envelopeId, "testRoutingRequestId", "DMS", "testApplication")
   val envelopeRouted = EnvelopeRouted(envelopeId)
   val envelopeArchived = EnvelopeArchived(envelopeId)
 
@@ -310,8 +310,8 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         envelopeCreated,
-        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
-        envelopeSealed
+        SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
+        envelopeSealed And envelopeRouted
       )
     }
 
@@ -319,7 +319,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         envelopeCreated And fileQuarantined,
-        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
+        SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
         envelopeSealed
       )
     }
@@ -328,7 +328,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         envelopeCreated And fileQuarantined And noVirusDetected,
-        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
+        SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
         envelopeSealed
       )
     }
@@ -337,7 +337,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         envelopeCreated And fileQuarantined And virusDetected,
-        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
+        SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
         FilesWithError(List(virusDetected.fileId))
       )
     }
@@ -346,8 +346,26 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         envelopeCreated And fileQuarantined And fileStored,
-        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
-        envelopeSealed
+        SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
+        envelopeSealed And envelopeRouted
+      )
+    }
+
+    scenario("Seal envelope with no files") {
+
+      givenWhenThen(
+        envelopeCreated,
+        SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
+        envelopeSealed And envelopeRouted
+      )
+    }
+
+    scenario("Seal envelope with unsupported destination") {
+
+      givenWhenThen(
+        envelopeCreated,
+        SealEnvelope(envelopeId, "testRoutingRequestId", "DESTINATION_X", "testApplication"),
+        SealEnvelopeDestinationNotAllowedError
       )
     }
 
@@ -355,7 +373,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         --,
-        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
+        SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
         EnvelopeNotFoundError
       )
     }
@@ -364,7 +382,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         envelopeCreated And envelopeDeleted,
-        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
+        SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
         EnvelopeNotFoundError
       )
     }
@@ -373,7 +391,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         envelopeCreated And envelopeSealed,
-        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
+        SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
         EnvelopeSealedError
       )
     }
@@ -382,7 +400,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         envelopeCreated And envelopeRouted,
-        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
+        SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
         EnvelopeSealedError
       )
     }
@@ -391,7 +409,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         envelopeCreated And envelopeArchived,
-        SealEnvelope(envelopeId, "testRoutingRequestId", "testDestination", "testApplication"),
+        SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
         EnvelopeArchivedError
       )
     }
