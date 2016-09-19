@@ -33,6 +33,7 @@ import uk.gov.hmrc.fileupload.read.envelope.WithValidEnvelope
 import uk.gov.hmrc.fileupload.read.infrastructure.CoordinatorActor
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
 import uk.gov.hmrc.fileupload.testonly.TestOnlyController
+import uk.gov.hmrc.fileupload.utils.Contexts
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, MongoEventStore}
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
@@ -182,9 +183,9 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
     // envelope read model
     val createReportActor = EnvelopeReportActor.props(
-      envelopeRepository.get,
-      envelopeRepository.update,
-      envelopeRepository.delete,
+      envelopeRepository.get(_)(Contexts.blockingDb),
+      envelopeRepository.update(_)(Contexts.blockingDb),
+      envelopeRepository.delete(_)(Contexts.blockingDb),
       defaultState = (id: EnvelopeId) => uk.gov.hmrc.fileupload.read.envelope.Envelope(id)) _
 
     Akka.system.actorOf(CoordinatorActor.props(

@@ -17,14 +17,13 @@
 package uk.gov.hmrc.fileupload.read.infrastructure
 
 import akka.actor.{Actor, ActorLogging, PoisonPill, ReceiveTimeout}
+import uk.gov.hmrc.fileupload.utils.Contexts
 import uk.gov.hmrc.fileupload.write.infrastructure.{Created, Event, EventData, Version}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
 trait ReportActor[T, Id] extends Actor with ActorLogging {
-
-  import scala.concurrent.ExecutionContext.Implicits.global
 
   def id: Id
   def get: Id => Future[Option[T]]
@@ -40,7 +39,7 @@ trait ReportActor[T, Id] extends Actor with ActorLogging {
   var created: Created = Created(0)
 
   override def preStart = {
-    currentState = Await.result(get(id).map(_.getOrElse(currentState)), awaitTimeout)
+    currentState = Await.result(get(id).map(_.getOrElse(currentState))(Contexts.blockingDb), awaitTimeout)
     context.setReceiveTimeout(receiveTimeout)
   }
 
