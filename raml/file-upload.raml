@@ -19,7 +19,7 @@ description: Upload files to the Tax Platform
         headers:
           Location:
             description: URI for the resource for showing this envelope
-            example: www-dev.tax.service.gov.uk/file-upload/envelope/1234567890
+            example: www-dev.tax.service.gov.uk/file-upload/envelope/fe5013eb-7a80-4e84-aa3a-98101d83f7f5
       500:
         description: Internal Server Error. Occurs when not parse a json object.
 
@@ -27,7 +27,7 @@ description: Upload files to the Tax Platform
     uriParameters:
       envelopeId:
         displayName: Envelope ID
-        example: "4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa"
+        example: "fe5013eb-7a80-4e84-aa3a-98101d83f7f5"
     get:
       description: Check the existence of an Envelope
       responses:
@@ -35,7 +35,7 @@ description: Upload files to the Tax Platform
           description: Envelope exists
           body:
             application/json:
-              example: { "id": "4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa" }
+              example: { "id": "fe5013eb-7a80-4e84-aa3a-98101d83f7f5" }
         404:
           description: Envelope with specified ID not found
           body:
@@ -65,7 +65,7 @@ description: Upload files to the Tax Platform
       uriParameters:
         fileId:
           displayName: File ID
-          example: "1234567890"
+          example: "fileId-1af94972-476f-4be5-9369-c53a8838075e"
       /content:
         put:
           description: Upload a file to an envelope
