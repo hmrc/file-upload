@@ -6,7 +6,7 @@ import play.api.Play.current
 import play.api.libs.json.Json
 import play.api.libs.ws.{WS, WSResponse}
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.envelope.{EnvelopeStatus, Repository}
+import uk.gov.hmrc.fileupload.read.envelope.{EnvelopeStatus, Repository}
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
 import scala.concurrent.Future

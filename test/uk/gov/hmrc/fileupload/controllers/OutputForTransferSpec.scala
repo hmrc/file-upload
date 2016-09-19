@@ -20,8 +20,8 @@ import org.joda.time.DateTime
 import play.api.http.HeaderNames
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import uk.gov.hmrc.fileupload.envelope._
-import uk.gov.hmrc.fileupload.{FileId, Support}
+import uk.gov.hmrc.fileupload.read.envelope._
+import uk.gov.hmrc.fileupload.{FileId, FileRefId, Support}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 class OutputForTransferSpec extends UnitSpec with WithFakeApplication {
@@ -32,6 +32,8 @@ class OutputForTransferSpec extends UnitSpec with WithFakeApplication {
       val dateAsText = "2016-03-31T12:33:45Z"
       val f = File(
         fileId = FileId(),
+        fileRefId = FileRefId(),
+        status = FileStatusAvailable,
         name = Some("original-file-name-on-disk.docx"),
         contentType = Some("application/vnd.oasis.opendocument.spreadsheet"),
         length = Some(1231222),
@@ -67,6 +69,8 @@ class OutputForTransferSpec extends UnitSpec with WithFakeApplication {
     "keep keys for [name, contentType, length, created] even if values are not available" in {
       val f = File(
         fileId = FileId(),
+        fileRefId = FileRefId(),
+        status = FileStatusAvailable,
         name = None,
         contentType = None,
         length = None,
@@ -107,6 +111,8 @@ class OutputForTransferSpec extends UnitSpec with WithFakeApplication {
       val dateAsText = "2016-03-31T12:33:45Z"
       val file = File(
         fileId = FileId(),
+        fileRefId = FileRefId(),
+        status = FileStatusAvailable,
         name = Some("original-file-name-on-disk.docx"),
         contentType = Some("application/vnd.oasis.opendocument.spreadsheet"),
         length = Some(1231222),

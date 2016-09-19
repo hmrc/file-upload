@@ -21,7 +21,7 @@ import play.api.http.Status._
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{ResponseHeader, Result}
-import uk.gov.hmrc.fileupload.envelope.ValidationException
+import uk.gov.hmrc.fileupload.read.envelope.ValidationException
 import uk.gov.hmrc.play.http.BadRequestException
 
 object ExceptionHandler {
@@ -34,9 +34,9 @@ object ExceptionHandler {
     case e: Throwable => DefaultExceptionHandler(e)
   }
 
-  def apply(responseHeader: Int, responseMessage: String): Result = {
+  def apply(statusCode: Int, responseMessage: String): Result = {
     val response: JsObject = JsObject(Seq("error" -> Json.obj("msg" -> responseMessage)))
-    Result(ResponseHeader(responseHeader), Enumerator(Json.stringify(response).getBytes))
+    Result(ResponseHeader(statusCode), Enumerator(Json.stringify(response).getBytes))
   }
 }
 

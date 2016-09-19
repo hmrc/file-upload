@@ -1,14 +1,16 @@
 package uk.gov.hmrc.fileupload
 
+import org.scalatest.concurrent.Eventually
 import play.api.libs.json._
-import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FileActions, IntegrationSpec}
+import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
+import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, IntegrationSpec}
 
 /**
   * Integration tests for FILE-63 & FILE-64
   * Create Envelope and Get Envelope
   *
   */
-class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions {
+class GetEnvelopeIntegrationSpec extends IntegrationSpec with Eventually with EnvelopeActions with EventsActions {
 
   feature("Retrieve Envelope") {
 
@@ -47,33 +49,37 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       createResponse.status should equal(CREATED)
       val envelopeId = envelopeIdFromHeader(createResponse)
       val fileId = FileId("myfileid")
-      upload("my file content".getBytes(), envelopeId, fileId)
+      val fileRefId = FileRefId(s"fileRefId-${nextId()}")
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
 
-      When("I call GET /file-upload/envelope/:envelope-id")
-      val envelopeResponse = getEnvelopeFor(envelopeId)
+      eventually {
 
-      Then("I will receive a 200 Ok response")
-      envelopeResponse.status shouldBe OK
+        When("I call GET /file-upload/envelope/:envelope-id")
+        val envelopeResponse = getEnvelopeFor(envelopeId)
 
-      And("the response body should contain the envelope details")
-      val body: String = envelopeResponse.body
-      body shouldNot be(null)
+        Then("I will receive a 200 Ok response")
+        envelopeResponse.status shouldBe OK
 
-      val parsedBody: JsValue = Json.parse(body)
-      parsedBody \ "id" match {
-        case JsString(value) =>  value should fullyMatch regex "[A-z0-9-]+"
-        case _ => JsError("expectation failed")
-      }
+        And("the response body should contain the envelope details")
+        val body: String = envelopeResponse.body
+        body shouldNot be(null)
 
-      parsedBody \ "status" match {
-        case JsString(value) =>  value should fullyMatch regex "OPEN"
-        case _ => JsError("expectation failed")
-      }
+        val parsedBody: JsValue = Json.parse(body)
+        parsedBody \ "id" match {
+          case JsString(value) => value should fullyMatch regex "[A-z0-9-]+"
+          case _ => JsError("expectation failed")
+        }
 
-      (parsedBody \ "files").asInstanceOf[JsArray].value.head \ "id" match {
-        case JsObject(value) =>
-          value shouldBe fileId
-        case _ => JsError("expectation failed")
+        parsedBody \ "status" match {
+          case JsString(value) => value should fullyMatch regex "OPEN"
+          case _ => JsError("expectation failed")
+        }
+
+        (parsedBody \ "files").asInstanceOf[JsArray].value.head \ "id" match {
+          case JsObject(value) =>
+            value shouldBe fileId
+          case _ => JsError("expectation failed")
+        }
       }
 
     }

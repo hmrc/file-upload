@@ -21,12 +21,11 @@ import akka.testkit.TestActorRef
 import org.joda.time.DateTime
 import play.api.libs.iteratee.{Enumerator, Iteratee}
 import play.api.libs.json.{JsString, Json}
-import play.api.mvc.{Result, Results}
 import reactivemongo.api.DBMetaCommands
 import reactivemongo.api.commands.DefaultWriteResult
 import uk.gov.hmrc.fileupload.controllers.EnvelopeReport
-import uk.gov.hmrc.fileupload.envelope.{Constraints, Envelope, File, WithValidEnvelope}
-import uk.gov.hmrc.fileupload.file.Repository
+import uk.gov.hmrc.fileupload.read.envelope._
+import uk.gov.hmrc.fileupload.read.file.Repository
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -63,7 +62,7 @@ object Support {
     application = Some("application")
   )
 
-  def envelopeWithAFile(fileId: FileId) = envelope.copy(files = Some(List(File(fileId, fsReference = Some(FileId("ref"))))))
+  def envelopeWithAFile(fileId: FileId) = envelope.copy(files = Some(List(File(fileId, fileRefId = FileRefId("ref"), status = FileStatusQuarantined))))
 
   val envelopeBody = Json.toJson[Envelope](envelope)
 
@@ -100,6 +99,6 @@ object Support {
   }
 
   class FileRepositoryStub(var data: Map[String, Envelope] = Map(), val iteratee: Iteratee[ByteStream, Future[JSONReadFile]]) extends Repository(() => new DBStub) {
-    override def iterateeForUpload(envelopeId: EnvelopeId, fileId: FileId)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = iteratee
+    override def iterateeForUpload(envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = iteratee
   }
 }

@@ -21,17 +21,17 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.http.Status
 import play.api.libs.iteratee.Enumerator
-import play.api.libs.json.{JsObject, JsString, JsValue}
+import play.api.libs.json.{JsString, JsValue}
 import play.api.mvc._
 import play.api.test.{FakeHeaders, FakeRequest}
 import reactivemongo.json.JSONSerializationPack
 import reactivemongo.json.JSONSerializationPack.Document
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.envelope.Service._
-import uk.gov.hmrc.fileupload.envelope.{Envelope, File, WithValidEnvelope}
-import uk.gov.hmrc.fileupload.file.Service._
+import uk.gov.hmrc.fileupload.read.file.Service._
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
-import play.api.test.Helpers._
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
+import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError}
+import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -56,18 +56,14 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
 
   def parse = UploadParser.parse(null) _
 
-  def newController(uploadBodyParser: (EnvelopeId, FileId) => BodyParser[Future[JSONReadFile]] = parse,
-                    retrieveFile: (Envelope, FileId) => Future[GetFileResult] = (_,_) => failed,
+  def newController(uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]] = parse,
+                    retrieveFile: (Envelope, FileId) => Future[GetFileResult] = (_, _) => failed,
                     withValidEnvelope: WithValidEnvelope = Support.envelopeAvailable(),
-                    uploadFile: UploadedFileInfo => Future[UpsertFileToEnvelopeResult] = _ => failed,
-                    upsertFileMetadata: UploadedFileMetadata => Future[UpdateMetadataResult] = _ => failed,
-                    deleteF: (EnvelopeId, FileId) => Future[DeleteFileResult] = (_, _) => failed) =
+                    handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed) =
     new FileController(uploadBodyParser = uploadBodyParser,
       retrieveFile = retrieveFile,
       withValidEnvelope = withValidEnvelope,
-      uploadFile = uploadFile,
-      upsertFileMetadata = upsertFileMetadata,
-      deleteFileFromEnvelope = deleteF)
+      handleCommand = handleCommand)
 
   "Upload a file" should {
     "return 200 after the file is added to the envelope" in {
@@ -75,8 +71,8 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
 
       val envelope = Support.envelope
 
-      val controller = newController(uploadFile = _ => Future.successful(Xor.right(UpsertFileSuccess)))
-      val result = controller.upsertFile(envelope._id, FileId())(fakeRequest).futureValue
+      val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
+      val result = controller.upsertFile(envelope._id, FileId(), FileRefId())(fakeRequest).futureValue
 
       result.header.status shouldBe Status.OK
     }
@@ -86,10 +82,8 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
 
       val envelopeId = EnvelopeId()
 
-      val controller = newController(
-        withValidEnvelope = Support.envelopeNotFound
-      )
-      val result: Result = controller.upsertFile(envelopeId, FileId())(fakeRequest).futureValue
+      val controller = newController(handleCommand = _ => Future.successful(Xor.left(EnvelopeNotFoundError)))
+      val result: Result = controller.upsertFile(envelopeId, FileId(), FileRefId())(fakeRequest).futureValue
 
       result.header.status shouldBe Status.NOT_FOUND
     }
@@ -142,86 +136,6 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
       val result: Result = controller.downloadFile(envelopeId, fileId)(FakeRequest()).futureValue
 
       result.header.status shouldBe Status.NOT_FOUND
-    }
-  }
-
-  "Retrieve metadata" should {
-    "be successful if metadata exists" in {
-      val fileId = FileId()
-      val file = File(fileId = fileId)
-      val envelope = Support.envelope.copy(files = Some(List(file)))
-      val envelopeAvailable = Support.envelopeAvailable(envelope)
-      val controller = newController(
-        withValidEnvelope = envelopeAvailable
-      )
-
-      val result = controller.retrieveMetadata(envelope._id, fileId)(FakeRequest()).futureValue
-
-      result.header.status shouldBe 200
-    }
-
-    "fail if metadata does not exist" in {
-      val fileId = FileId("nonexistent")
-      val envelope = Support.envelope
-      val controller = newController()
-
-      val result = controller.retrieveMetadata(envelope._id, fileId)(FakeRequest()).futureValue
-
-      status(result) shouldBe 404
-      contentAsString(result) should include(s"File with id: $fileId not found in envelope: ${envelope._id}")
-    }
-
-    "fail if envelope does not exist" in {
-      val controller = newController(
-        withValidEnvelope = Support.envelopeNotFound
-      )
-      val nonexistentEnvelopeId = EnvelopeId("nonexistent")
-
-      val result = controller.retrieveMetadata(nonexistentEnvelopeId, FileId())(FakeRequest()).futureValue
-
-      status(result) shouldBe 404
-      contentAsString(result) should include(s"Envelope with id: $nonexistentEnvelopeId not found")
-    }
-  }
-
-  "Delete file" should {
-    "be successful" in {
-      val fileId = FileId()
-      val envelopeId = EnvelopeId()
-      val deleteFile: (EnvelopeId, FileId) => Future[DeleteFileResult] = (_, _) => Future.successful(Xor.right(fileId))
-      val controller = newController(
-        deleteF = deleteFile
-      )
-
-      val result = controller.deleteFile(envelopeId, fileId)(FakeRequest()).futureValue
-
-      result.header.status shouldBe 200
-    }
-
-    "fail if file does not exist" in {
-      val fileId = FileId()
-      val envelopeId = EnvelopeId()
-      val deleteFile: (EnvelopeId, FileId) => Future[DeleteFileResult] = (_, _) => Future.successful(Xor.left(DeleteFileNotFoundError))
-      val controller = newController(
-        deleteF = deleteFile
-      )
-
-      val result = controller.deleteFile(envelopeId, fileId)(FakeRequest()).futureValue
-
-      result.header.status shouldBe NOT_FOUND
-    }
-
-    "respond with 500 INTERNAL SERVER ERROR status" in {
-      val fileId = FileId()
-      val envelopeId = EnvelopeId()
-      val deleteFile: (EnvelopeId, FileId) => Future[DeleteFileResult] = (_, _) => Future.successful(Xor.left(DeleteFileServiceError("error")))
-      val controller = newController(
-        deleteF = deleteFile
-      )
-
-      val result = controller.deleteFile(envelopeId, fileId)(FakeRequest()).futureValue
-
-      result.header.status shouldBe INTERNAL_SERVER_ERROR
     }
   }
 }
