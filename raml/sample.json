@@ -1,0 +1,40 @@
+{
+    "_id" : "fe5013eb-7a80-4e84-aa3a-98101d83f7f5",
+    "status" : "OPEN",
+    "constraints" : {
+        "contentTypes" : [
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.oasis.opendocument.spreadsheet"
+        ],
+        "maxItems" : 100,
+        "maxSize" : "12GB",
+        "maxSizePerItem" : "10MB"
+    },
+    "callbackUrl" : "http://bbc.co.uk",
+    "expiryDate" : "2099-07-14T10:28:18Z",
+    "metadata" : {
+        "anything" : "the caller wants to add to the envelope"
+    },
+    "files" : [
+        {
+            "fileId" : "fileId-6dd9b2c9-0894-4e54-93a0-51831d249faa",
+            "name" : "test.jpg",
+            "contentType" : "application/pdf",
+            "metadata" : {
+                "id" : "1234567890",
+                "origin" : {
+                    "nino" : "AB123456Z",
+                    "token" : "48729348729348732894",
+                    "session" : "cd30f8ec-d866-4ae0-82a0-1bc720f1cb09",
+                    "agent" : "292929292",
+                    "trustedHelper" : "8984293480239480",
+                    "ipAddress" : "1.2.3.4"
+                },
+                "sender" : {
+                    "service" : "some-service-identifier/v1.2.33"
+                }
+            }
+        }
+    ]
+}

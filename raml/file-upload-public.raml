@@ -1,0 +1,46 @@
+#%RAML 1.0
+title: file-upload-frontend
+protocols: [ HTTP, HTTPS ]
+baseUri: https://{environmentHost}/file-upload
+baseUriParameters:
+  environmentHost:
+    enum: ["www-dev.tax.service.gov.uk","www-qa.tax.service.gov.uk"]
+description: Upload files to the Tax Platform
+
+/envelope:
+  post:
+    description: Create an envelope. Body must have an empty json object in order to pass
+    body:
+      application/json:
+        example: {}
+    responses:
+      201:
+        description: Successfully created
+        headers:
+          Location:
+            description: URI for the resource for showing this envelope
+            example: www-dev.tax.service.gov.uk/file-upload/envelope/fe5013eb-7a80-4e84-aa3a-98101d83f7f5
+      500:
+        description: Internal Server Error. Occurs when not parse a json object.
+
+  /file/{fileId}:
+    uriParameters:
+      fileId:
+        displayName: File ID
+        example: "fileId-1af94972-476f-4be5-9369-c53a8838075e"
+    /content:
+      put:
+        description: Upload a file to an envelope
+        responses:
+          200:
+            description: Uploaded
+          404:
+            description: Envelope not found
+            body:
+              application/json:
+                example: |
+                  {
+                    "error": {
+                    "msg": "Envelope 4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa not found"
+                    }
+                  }
