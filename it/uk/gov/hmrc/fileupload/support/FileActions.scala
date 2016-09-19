@@ -2,13 +2,13 @@ package uk.gov.hmrc.fileupload.support
 
 import play.api.Play.current
 import play.api.libs.ws.{WS, WSResponse}
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
 trait FileActions extends ActionsSupport {
 
-  def upload(data: Array[Byte], envelopeId: EnvelopeId, fileId: FileId): WSResponse =
+  def upload(data: Array[Byte], envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId): WSResponse =
     WS
-      .url(s"$url/envelope/$envelopeId/file/$fileId/content")
+      .url(s"$url/envelope/$envelopeId/file/$fileId/$fileRefId")
       .withHeaders("Content-Type" -> "application/octet-stream")
       .put(data)
       .futureValue

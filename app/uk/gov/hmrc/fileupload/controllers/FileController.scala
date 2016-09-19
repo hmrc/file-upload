@@ -17,53 +17,38 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
-import play.api.libs.json.{JsString, Json}
+import play.api.libs.json.Json
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.envelope.Service._
-import uk.gov.hmrc.fileupload.envelope.{Envelope, WithValidEnvelope}
-import uk.gov.hmrc.fileupload.file.Service._
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, JSONReadFile}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
+import uk.gov.hmrc.fileupload.read.file.Service._
+import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError, FileNotFoundError, StoreFile}
+import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId, JSONReadFile}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
-class FileController(uploadBodyParser: (EnvelopeId, FileId) => BodyParser[Future[JSONReadFile]],
+class FileController(uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]],
                      retrieveFile: (Envelope, FileId) => Future[GetFileResult],
                      withValidEnvelope: WithValidEnvelope,
-                     uploadFile: UploadedFileInfo => Future[UpsertFileToEnvelopeResult],
-                     upsertFileMetadata: UploadedFileMetadata => Future[UpdateMetadataResult],
-                     deleteFileFromEnvelope: (EnvelopeId, FileId) => Future[DeleteFileResult])
+                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
                     (implicit executionContext: ExecutionContext) extends BaseController {
 
 
-  def deleteFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { request =>
-    withValidEnvelope(envelopeId) { envelope =>
-      deleteFileFromEnvelope(envelopeId, fileId).map {
+  def upsertFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) = Action.async(uploadBodyParser(id, fileId, fileRefId)) { request =>
+    request.body.flatMap { jsonReadFile =>
+      handleCommand(StoreFile(id, fileId, fileRefId, jsonReadFile.length)).map {
         case Xor.Right(_) => Ok
-        case Xor.Left(DeleteFileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId")
-        case Xor.Left(DeleteFileServiceError(msg)) => ExceptionHandler(INTERNAL_SERVER_ERROR, msg)
+        case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
+        case Xor.Left(FileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found")
+        case Xor.Left(_) => ExceptionHandler(INTERNAL_SERVER_ERROR, "File not added to envelope")
       }.recover { case e => ExceptionHandler(e) }
     }
   }
 
-  def upsertFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async(uploadBodyParser(envelopeId, fileId)) { request =>
-    withValidEnvelope(envelopeId) { envelope =>
-      request.body.flatMap { jsonReadFile =>
-        val uploadedFileInfo = UploadedFileInfo(envelopeId, fileId, FileId(jsonReadFile.id.asInstanceOf[JsString].value),
-          jsonReadFile.length, jsonReadFile.uploadDate)
-
-        uploadFile(uploadedFileInfo).map {
-          case Xor.Right(_) => Ok
-          case Xor.Left(UpsertFileUpdatingEnvelopeFailed) => ExceptionHandler(INTERNAL_SERVER_ERROR, "File not added to envelope")
-          case Xor.Left(UpsertFileServiceError(msg)) => ExceptionHandler(INTERNAL_SERVER_ERROR, msg)
-        }.recover { case e => ExceptionHandler(e) }
-      }
-    }
-  }
-
-  def downloadFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { request =>
-    withValidEnvelope(envelopeId) { envelope =>
+  def downloadFile(id: EnvelopeId, fileId: FileId) = Action.async { request =>
+    withValidEnvelope(id) { envelope =>
       retrieveFile(envelope, fileId).map {
         case Xor.Right(FileFound(filename, length, data)) =>
           Ok.feed(data).withHeaders(
@@ -71,31 +56,8 @@ class FileController(uploadBodyParser: (EnvelopeId, FileId) => BodyParser[Future
             CONTENT_DISPOSITION -> s"""attachment; filename="${ filename.getOrElse("data") }""""
           )
         case Xor.Left(GetFileNotFoundError) =>
-          ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId")
+          ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
       }
     }
   }
-
-  def retrieveMetadata(envelopeId: EnvelopeId, fileId: FileId) = Action.async { request =>
-    withValidEnvelope(envelopeId) { envelope =>
-      envelope.getFileById(fileId).map(GetFileMetadataReport.fromFile(envelopeId, _)) match {
-        case Some(report) => Future.successful(Ok(Json.toJson(report)))
-        case None => Future.successful(
-          ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId")
-        )
-      }
-    }.recover { case e => ExceptionHandler(e) }
-  }
-
-  def metadata(envelopeId: EnvelopeId, fileId: FileId) = Action.async(FileMetadataParser) { request =>
-    withValidEnvelope(envelopeId) { envelope =>
-      val report = request.body
-      upsertFileMetadata(UploadedFileMetadata(envelopeId, fileId, report.name, report.contentType, report.metadata)).map {
-        case Xor.Right(_) => Ok.withHeaders(LOCATION -> s"${ request.host }${ routes.FileController.retrieveMetadata(envelopeId, fileId) }")
-        case Xor.Left(UpdateMetadataNotSuccessfulError) => ExceptionHandler(INTERNAL_SERVER_ERROR, "metadata not updated")
-        case Xor.Left(UpdateMetadataServiceError(message)) => ExceptionHandler(INTERNAL_SERVER_ERROR, message)
-      }.recover { case e => ExceptionHandler(e) }
-    }
-  }
-
 }

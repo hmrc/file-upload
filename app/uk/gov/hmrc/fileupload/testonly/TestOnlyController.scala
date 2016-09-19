@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.testonly
 
 import play.api.mvc.Action
 import play.api.mvc.Results._
-import uk.gov.hmrc.fileupload.file.Repository
+import uk.gov.hmrc.fileupload.read.file.Repository
 
 import scala.concurrent.ExecutionContext
 

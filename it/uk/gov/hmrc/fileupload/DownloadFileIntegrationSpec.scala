@@ -2,9 +2,11 @@ package uk.gov.hmrc.fileupload
 
 import java.io.RandomAccessFile
 
+import play.api.libs.json.Json
 import play.api.libs.ws._
+import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
 import uk.gov.hmrc.fileupload.support.FileMetadataReportSupport._
-import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FileActions, IntegrationSpec}
+import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActions, IntegrationSpec}
 
 
 /**
@@ -12,7 +14,7 @@ import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FileActions, Integration
   * Download File
   *
   */
-class DownloadFileIntegrationSpec extends IntegrationSpec with FileActions with EnvelopeActions {
+class DownloadFileIntegrationSpec extends IntegrationSpec with FileActions with EnvelopeActions with EventsActions {
 
   feature("Download File") {
 
@@ -20,10 +22,18 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with FileActions with 
       Given("I have a valid envelope id")
       val envelopeId = createEnvelope()
 
+      And("I have a valid file-id")
+      val fileId = FileId(s"fileId-${nextId()}")
+
+      And("I have a valid file-ref-id")
+      val fileRefId = FileRefId(s"fileRefId-${nextId()}")
+
+      And("FileInQuarantineStored")
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+
       And("I have uploaded a file")
       val data = "{'name':'pete'}"
-      val fileId = FileId(s"fileId-${nextId()}")
-      upload(data.getBytes, envelopeId, fileId)
+      upload(data.getBytes, envelopeId, fileId, fileRefId)
 
       When(s"I invoke GET envelope/$envelopeId/file/$fileId/content")
       val response: WSResponse = download(envelopeId, fileId)
@@ -38,7 +48,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with FileActions with 
       response.header("Content-Length") shouldBe Some(s"${data.getBytes.length}")
 
       And("Header should include content disposition")
-      response.header("Content-Disposition") shouldBe Some("attachment; filename=\"data\"")
+      response.header("Content-Disposition") shouldBe Some("attachment; filename=\"test.pdf\"")
     }
 
     scenario("File can not be found") {
@@ -62,17 +72,19 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with FileActions with 
       And("I have a valid file ID")
       val fileId = FileId(s"fileId-${nextId()}")
 
-      And("a file name has been provided within the file metadata")
+      And("I have a valid file-ref-id")
+      val fileRefId = FileRefId(s"fileRefId-${nextId()}")
+
+      And("FileInQuarantineStored")
       val newFileName = "new-file-name.pdf"
-      val json = requestBody(Map("name" -> newFileName))
-      updateFileMetadata(json, envelopeId, fileId)
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, newFileName, "pdf", Json.obj()))
 
       And("a file has previously been uploaded to the transient store")
       val file = new RandomAccessFile("t", "rw")
       file.setLength(1024 * 1024 * 2)
       val data = new Array[Byte](file.length().toInt)
       file.readFully(data)
-      val putFileResponse: WSResponse = upload(data, envelopeId, fileId)
+      val putFileResponse: WSResponse = upload(data, envelopeId, fileId, fileRefId)
       val md = java.security.MessageDigest.getInstance("SHA-256")
       md.reset()
       md.update(data)
