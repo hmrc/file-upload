@@ -19,8 +19,10 @@ package uk.gov.hmrc.fileupload.write.infrastructure
 import java.util.UUID
 
 import cats.data.Xor
+import play.api.Logger
+import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.{NotSavedError, VersionConflictError}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 case class Aggregate[C <: Command, S, E <: CommandNotAccepted](handler: Handler[C, S, E],
                                                                defaultState: () => S,
@@ -28,7 +30,7 @@ case class Aggregate[C <: Command, S, E <: CommandNotAccepted](handler: Handler[
                                                                publish: AnyRef => Unit,
                                                                nextEventId: () => EventId = () => EventId(UUID.randomUUID().toString),
                                                                toCreated: () => Created = () => Created(System.currentTimeMillis()))
-                                                               (implicit eventStore: EventStore) {
+                                                               (implicit eventStore: EventStore, executionContext: ExecutionContext) {
   type CommandResult = Xor[E, CommandAccepted.type]
 
   val commandAcceptedResult = Xor.Right(CommandAccepted)
@@ -51,31 +53,46 @@ case class Aggregate[C <: Command, S, E <: CommandNotAccepted](handler: Handler[
     handler.on.applyOrElse((state, event), (input: (S, EventData)) => state)
 
   def handleCommand(command: C): Future[CommandResult] = {
-    println(s"Handle Command $command")
-    val historicalUnitsOfWork = eventStore.unitsOfWorkForAggregate(command.streamId)
-    val lastVersion = historicalUnitsOfWork.reverse.headOption.map(_.version).getOrElse(Version(0))
-    val historicalEvents = historicalUnitsOfWork.flatMap(_.events)
-    println(s"historicalEvents $historicalEvents")
+    Logger.info(s"Handle Command $command")
+    eventStore.unitsOfWorkForAggregate(command.streamId).flatMap {
+      case Xor.Right(historicalUnitsOfWork) =>
+        val lastVersion = historicalUnitsOfWork.reverse.headOption.map(_.version).getOrElse(Version(0))
+        val historicalEvents = historicalUnitsOfWork.flatMap(_.events)
+        Logger.info(s"historicalEvents $historicalEvents")
 
-    val currentState = historicalEvents.foldLeft(defaultState()) { (state, event) =>
-      applyEvent(state, event.eventData)
-    }
+        val currentState = historicalEvents.foldLeft(defaultState()) { (state, event) =>
+          applyEvent(state, event.eventData)
+        }
 
-    val xorEventsData = handler.handle.applyOrElse((command, currentState), (input: (C, S)) => Xor.Right(List.empty))
+        val xorEventsData: Xor[E, List[EventData]] = handler.handle.applyOrElse((command, currentState), (input: (C, S)) => Xor.Right(List.empty))
 
-    xorEventsData.foreach(eventsData => {
-      if (eventsData.nonEmpty) {
-        val unitOfWork = createUnitOfWork(command.streamId, eventsData, lastVersion.nextVersion())
+        xorEventsData match {
+          case Xor.Right(eventsData) =>
+            if (eventsData.nonEmpty) {
+              val unitOfWork = createUnitOfWork(command.streamId, eventsData, lastVersion.nextVersion())
 
-        eventStore.saveUnitOfWork(command.streamId, unitOfWork)
-        println(s"events saved $unitOfWork")
-        unitOfWork.events.foreach(publish)
-      }
-    })
+              eventStore.saveUnitOfWork(command.streamId, unitOfWork).map {
+                case Xor.Right(_) =>
+                  unitOfWork.events.foreach(publish)
+                  commandAcceptedResult
 
-    xorEventsData match {
-      case Xor.Left(e) => Future.successful(Xor.left(e))
-      case Xor.Right(eventsData) => Future.successful(commandAcceptedResult)
+                case Xor.Left(VersionConflictError) =>
+                  Xor.left(commonError("version conflict"))
+
+                case Xor.Left(NotSavedError(m)) =>
+                  Xor.left(commonError(m))
+              }.recover { case e => Xor.left(commonError(e.getMessage)) }
+
+            } else {
+              Future.successful(commandAcceptedResult)
+            }
+
+          case Xor.Left(e) =>
+            Future.successful(Xor.left(e))
+        }
+
+      case Xor.Left(e) =>
+        Future.successful(Xor.left(commonError(e.message)))
     }
   }
 }
