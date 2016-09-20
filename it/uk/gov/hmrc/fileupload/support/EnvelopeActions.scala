@@ -6,10 +6,8 @@ import play.api.Play.current
 import play.api.libs.json.Json
 import play.api.libs.ws.{WS, WSResponse}
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.read.envelope.{EnvelopeStatus, Repository}
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
-import scala.concurrent.Future
 import scala.io.Source
 
 trait EnvelopeActions extends ActionsSupport with MongoSpecSupport {
@@ -50,7 +48,7 @@ trait EnvelopeActions extends ActionsSupport with MongoSpecSupport {
 
   def submitRoutingRequest(envelopeId: EnvelopeId, destination: String, application: String = "testApplication"): WSResponse = {
     val payload = Json.obj(
-      "envelope" -> envelopeId,
+      "envelopeId" -> envelopeId,
       "destination" -> destination,
       "application" -> application
     )
@@ -61,7 +59,7 @@ trait EnvelopeActions extends ActionsSupport with MongoSpecSupport {
 
   def getEnvelopesForDestination(destination: Option[String]): WSResponse = {
     WS
-      .url(s"$fileTransferUrl/non-stub/envelopes${destination.map(d => s"?destination=$d").getOrElse("")}")
+      .url(s"$fileTransferUrl/non-stub/envelopes${ destination.map(d => s"?destination=$d").getOrElse("") }")
       .get()
       .futureValue
   }

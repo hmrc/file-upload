@@ -21,8 +21,8 @@ import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.write.envelope.EnvelopeCommand
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
+import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import play.api.http.HeaderNames._
@@ -39,7 +39,9 @@ class RoutingControllerSpec extends UnitSpec with WithFakeApplication with Scala
                     newId: () => String = () => "testId") =
     new RoutingController(handleCommand, newId)
 
-  val validRequest = FakeRequest().withBody(Json.toJson(RouteEnvelopeRequest(EnvelopeId(), "application", "destination")))
+  val destination = "testDestination"
+  val envelopeId = EnvelopeId()
+  val validRequest = FakeRequest().withBody(Json.toJson(RouteEnvelopeRequest(envelopeId, "application", destination)))
 
   "Create Routing Request" should {
     "return 201 response (happy path)" in {
@@ -52,7 +54,57 @@ class RoutingControllerSpec extends UnitSpec with WithFakeApplication with Scala
       result.header.status shouldBe Status.CREATED
       result.header.headers(LOCATION) shouldBe routes.RoutingController.routingStatus(routingRequestId).url
     }
-    "return 400 bad request if sealing was not possible" in {
+    "return 400 bad request if destination != DMS" in {
+      val controller = newController(handleCommand = _ => Future.successful(
+        Xor.Left(SealEnvelopeDestinationNotAllowedError)
+      ))
+
+      val result = controller.createRoutingRequest()(validRequest).futureValue
+
+      result.header.status shouldBe Status.BAD_REQUEST
+      bodyOf(result) should include(s"Destination: $destination not supported")
+    }
+    "return 400 bad request if envelope already routed" in {
+      val controller = newController(handleCommand = _ => Future.successful(
+        Xor.Left(EnvelopeAlreadyRoutedError)
+      ))
+
+      val result = controller.createRoutingRequest()(validRequest).futureValue
+
+      result.header.status shouldBe Status.BAD_REQUEST
+      bodyOf(result) should include(s"Routing request already received for envelope: $envelopeId")
+    }
+    "return 400 bad request if envelope already sealed" in {
+      val controller = newController(handleCommand = _ => Future.successful(
+        Xor.Left(EnvelopeSealedError)
+      ))
+
+      val result = controller.createRoutingRequest()(validRequest).futureValue
+
+      result.header.status shouldBe Status.BAD_REQUEST
+      bodyOf(result) should include(s"Routing request already received for envelope: $envelopeId")
+    }
+    "return 400 bad request if files contained errors" in {
+      val controller = newController(handleCommand = _ => Future.successful(
+        Xor.Left(FilesWithError(List(FileId("id1") ,FileId("id2"))))
+      ))
+
+      val result = controller.createRoutingRequest()(validRequest).futureValue
+
+      result.header.status shouldBe Status.BAD_REQUEST
+      bodyOf(result) should include(s"Files: [id1, id2] contain errors")
+    }
+    "return 400 bad request if envelope was deleted or doesn't exist" in {
+      val controller = newController(handleCommand = _ => Future.successful(
+        Xor.Left(EnvelopeNotFoundError)
+      ))
+
+      val result = controller.createRoutingRequest()(validRequest).futureValue
+
+      result.header.status shouldBe Status.BAD_REQUEST
+      bodyOf(result) should include(s"Envelope with id: $envelopeId not found")
+    }
+    "return 400 bad request if sealing was not possible for other reason" in {
       val errorMsg = "errorMsg"
       val controller = newController(handleCommand = _ => Future.successful(
         Xor.Left(new CommandNotAccepted {override def toString = errorMsg })

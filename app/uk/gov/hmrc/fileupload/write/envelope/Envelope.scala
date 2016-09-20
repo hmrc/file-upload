@@ -169,6 +169,7 @@ sealed trait State {
   val envelopeSealedError = Xor.Left(EnvelopeSealedError)
   val envelopeSealDestinationNotAllowedError = Xor.Left(SealEnvelopeDestinationNotAllowedError)
   val envelopeAlreadyArchivedError = Xor.Left(EnvelopeArchivedError)
+  val envelopeAlreadyRoutedError = Xor.Left(EnvelopeAlreadyRoutedError)
 
   def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult = genericError
 
@@ -195,7 +196,6 @@ object Open extends State {
   // Could be useful in the future (should we check for name duplicates):
   // files.find(f => f.fileId != fileId && f.name == name).map(f => Xor.Left(FileNameDuplicateError(f.fileId))).getOrElse(successResult)
   override def canQuarantine(fileId: FileId, name: String, files: Seq[File]): CanResult = successResult
-
 
   override def canDelete: CanResult = successResult
 
@@ -230,14 +230,12 @@ object Sealed extends State {
 }
 
 object Routed extends State {
-
   override def canArchive: CanResult = successResult
 
-  override def genericError: CanResult = envelopeSealedError
+  override def genericError: CanResult = envelopeAlreadyRoutedError
 }
 
 object Archived extends State {
-
   override def genericError: CanResult = envelopeAlreadyArchivedError
 }
 

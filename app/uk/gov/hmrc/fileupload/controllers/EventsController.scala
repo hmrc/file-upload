@@ -39,6 +39,8 @@ class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotA
         val command = QuarantineFile(e.envelopeId, e.fileId, e.fileRefId, e.created, e.name, e.contentType, e.metadata)
         handleCommand(command).map {
           case Xor.Right(_) => Ok
+          case Xor.Left(EnvelopeAlreadyRoutedError | EnvelopeSealedError) =>
+            ExceptionHandler(LOCKED, s"Routing request already received for envelope: ${e.envelopeId}")
           case Xor.Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
         }
       case e: FileScanned =>

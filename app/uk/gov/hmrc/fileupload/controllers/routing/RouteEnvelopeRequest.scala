@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.controllers.routing
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.EnvelopeId
 
-case class RouteEnvelopeRequest(envelope: EnvelopeId,
+case class RouteEnvelopeRequest(envelopeId: EnvelopeId,
                                 application: String,
                                 destination: String)
 
