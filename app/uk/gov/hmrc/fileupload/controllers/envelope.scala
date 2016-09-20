@@ -17,15 +17,9 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import org.joda.time.DateTime
-import play.api.libs.iteratee.Iteratee
 import play.api.libs.json._
-import play.api.mvc.{BodyParser, RequestHeader, Result}
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 import uk.gov.hmrc.fileupload.read.envelope._
-
-import scala.concurrent.ExecutionContext
-import scala.util.control.NonFatal
-import scala.util.{Failure, Success, Try}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 case class EnvelopeReport(id: Option[EnvelopeId] = None,
                           constraints: Option[ConstraintsReport] = None,
@@ -90,18 +84,10 @@ object EnvelopeReport {
       maxSizePerItem = constraints.maxSizePerItem)
 }
 
-object EnvelopeParser extends BodyParser[EnvelopeReport] {
+case class CreateEnvelopeRequest(callbackUrl: Option[String] = None)
 
-  def apply(request: RequestHeader): Iteratee[Array[Byte], Either[Result, EnvelopeReport]] = {
-    import EnvelopeReport._
-
-    Iteratee.consume[Array[Byte]]().map { data =>
-      Try(Json.fromJson[EnvelopeReport](Json.parse(data)).get) match {
-        case Success(report) => Right(report)
-        case Failure(NonFatal(e)) => Left(ExceptionHandler(e))
-      }
-    }(ExecutionContext.global)
-  }
+object CreateEnvelopeRequest {
+  implicit val formats = Json.format[CreateEnvelopeRequest]
 }
 
 case class GetFileMetadataReport(id: FileId,

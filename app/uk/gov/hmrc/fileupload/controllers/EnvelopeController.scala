@@ -23,6 +23,7 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import uk.gov.hmrc.fileupload.read.envelope.Service._
 import uk.gov.hmrc.fileupload._
+import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -36,7 +37,7 @@ class EnvelopeController(nextId: () => EnvelopeId,
                          findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]])
                         (implicit executionContext: ExecutionContext) extends BaseController {
 
-  def create() = Action.async(EnvelopeParser) { implicit request =>
+  def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ routes.EnvelopeController.show(id) }"
 
     val command = CreateEnvelope(nextId(), request.body.callbackUrl)
