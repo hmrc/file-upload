@@ -74,7 +74,8 @@ class EnvelopeReportActorSpec extends TestKit(ActorSystem("envelope-report")) wi
 
       sendEvent()
 
-      val expectedEnvelope = initialState.copy(files = Some(Seq(file.copy(status = FileStatusAvailable))), version = newVersion)
+      val expectedEnvelope = initialState.copy(files = Some(
+        Seq(file.copy(status = FileStatusAvailable, length = Some(event.length)))), version = newVersion)
       modifiedEnvelope shouldBe expectedEnvelope
     }
     "delete a file" in new UpdateEnvelopeFixture {
@@ -93,7 +94,9 @@ class EnvelopeReportActorSpec extends TestKit(ActorSystem("envelope-report")) wi
 
       sendEvent()
 
-      val expectedEnvelope = initialState.copy(version = wrappedEvent.version, destination = Some(event.destination))
+      val expectedEnvelope = initialState.copy(
+        version = wrappedEvent.version, destination = Some(event.destination), application = Some(event.application)
+      )
       modifiedEnvelope shouldBe expectedEnvelope
     }
     "route envelope" in new UpdateEnvelopeFixture {

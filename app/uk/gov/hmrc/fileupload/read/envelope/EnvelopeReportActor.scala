@@ -52,7 +52,7 @@ class EnvelopeReportActor(override val id: EnvelopeId,
     }
 
     case (s: Envelope, e: EnvelopeSealed) => withUpdatedVersion {
-      s.copy(destination = Some(e.destination))
+      s.copy(destination = Some(e.destination), application = Some(e.application))
     }
 
     case (s: Envelope, e: EnvelopeRouted) => withUpdatedVersion {
@@ -68,7 +68,8 @@ class EnvelopeReportActor(override val id: EnvelopeId,
     }
 
     case (s: Envelope, e: FileStored) => withUpdatedVersion {
-      s.copy(files = fileStatusLens(s, e.fileId, FileStatusAvailable))
+      val withUpdatedStatus = s.copy(files = fileStatusLens(s, e.fileId, FileStatusAvailable))
+      withUpdatedStatus.copy(files = fileLengthLens(withUpdatedStatus, e.fileId, e.length))
     }
 
     case (s: Envelope, e: EnvelopeDeleted) => None
@@ -91,6 +92,18 @@ class EnvelopeReportActor(override val id: EnvelopeId,
       files.map { f =>
         if (f.fileId == fileId) {
           f.copy(status = targetStatus)
+        } else {
+          f
+        }
+      }
+    }
+  }
+
+  def fileLengthLens(envelope: Envelope, fileId: FileId, length: Long) = {
+    envelope.files.map { files =>
+      files.map { f =>
+        if (f.fileId == fileId) {
+          f.copy(length = Some(length))
         } else {
           f
         }
