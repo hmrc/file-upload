@@ -149,4 +149,5 @@ case class FileNameDuplicateError(fileId: FileId) extends EnvelopeCommandNotAcce
 case object FileNotFoundError extends EnvelopeCommandNotAccepted
 case object EnvelopeArchivedError extends EnvelopeCommandNotAccepted
 case class EnvelopeCommandError(message: String) extends EnvelopeCommandNotAccepted
+case object EnvelopeAlreadyRoutedError extends EnvelopeCommandNotAccepted
 
