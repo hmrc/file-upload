@@ -33,6 +33,8 @@ case class EnvelopeReport(id: Option[EnvelopeId] = None,
                           expiryDate: Option[DateTime] = None,
                           metadata: Option[Map[String, JsValue]] = None,
                           status: Option[String] = None,
+                          destination: Option[String] = None,
+                          application: Option[String] = None,
                           files: Option[Seq[GetFileMetadataReport]] = None)
 
 case class ConstraintsReport(contentTypes: Option[Seq[String]] = None,
@@ -69,7 +71,10 @@ object EnvelopeReport {
       expiryDate = envelope.expiryDate,
       status = Some(envelope.status.name),
       metadata = envelope.metadata,
-      files = fileReports)
+      destination = envelope.destination,
+      application = envelope.application,
+      files = fileReports
+    )
   }
 
   private def toConstraints(report: ConstraintsReport): Constraints = {
