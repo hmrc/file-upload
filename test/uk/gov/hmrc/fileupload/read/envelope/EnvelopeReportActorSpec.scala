@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.read.envelope
 
 import akka.actor.ActorSystem
 import akka.testkit.{TestActorRef, TestKit}
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.Matchers
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -46,7 +46,7 @@ class EnvelopeReportActorSpec extends TestKit(ActorSystem("envelope-report")) wi
       val expectedEnvelope = initialState.copy(version = newVersion,
         files = Some(List(File(event.fileId, fileRefId = event.fileRefId,
           status = FileStatusQuarantined, name = Some(event.name), contentType = Some(event.contentType),
-          length = None, uploadDate = Some(new DateTime(event.created)), revision = None, metadata = Some(event.metadata)))))
+          length = None, uploadDate = Some(new DateTime(event.created, DateTimeZone.UTC)), revision = None, metadata = Some(event.metadata)))))
 
       modifiedEnvelope shouldBe expectedEnvelope
     }
@@ -136,7 +136,7 @@ class EnvelopeReportActorSpec extends TestKit(ActorSystem("envelope-report")) wi
 
     val file = File(FileId(), fileRefId = FileRefId(),
       status = FileStatusQuarantined, name = Some("name"), contentType = Some("contentType"),
-      length = None, uploadDate = Some(new DateTime()), revision = None, metadata = None)
+      length = None, uploadDate = Some(new DateTime(DateTimeZone.UTC)), revision = None, metadata = None)
 
     val initialState = Envelope(envelopeId)
     val newVersion = Version(999)

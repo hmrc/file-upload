@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.fileupload.read.envelope
 
+
 import akka.actor.{ActorLogging, Props}
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, DateTimeZone}
 import uk.gov.hmrc.fileupload.read.infrastructure.ReportActor
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
@@ -38,7 +39,7 @@ class EnvelopeReportActor(override val id: EnvelopeId,
 
     case (s: Envelope, e: FileQuarantined) => withUpdatedVersion {
       val file = File(fileId = e.fileId, fileRefId = e.fileRefId, status = FileStatusQuarantined, name = Some(e.name),
-        contentType = Some(e.contentType), metadata = Some(e.metadata), uploadDate = Some(new DateTime(e.created)) )
+        contentType = Some(e.contentType), metadata = Some(e.metadata), uploadDate = Some(new DateTime(e.created, DateTimeZone.UTC)) )
       s.copy(files = s.files.orElse(Some(List.empty[File])).map(replaceOrAddFile(_, file)))
     }
 
