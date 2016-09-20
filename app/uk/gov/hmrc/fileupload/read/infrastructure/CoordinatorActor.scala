@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.fileupload.read.infrastructure
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.write.infrastructure.Event
 
-class CoordinatorActor(childProps: (EnvelopeId) => Props, subscribedEventTypes: Set[Class[_]], subscribe: (ActorRef, Class[_]) => Boolean) extends Actor {
+class CoordinatorActor(childProps: (EnvelopeId) => Props, subscribedEventTypes: Set[Class[_]], subscribe: (ActorRef, Class[_]) => Boolean) extends Actor with ActorLogging {
 
   override def preStart = {
     subscribe(self, classOf[Event])
@@ -31,7 +31,7 @@ class CoordinatorActor(childProps: (EnvelopeId) => Props, subscribedEventTypes: 
       val child = context.child(e.streamId.value).getOrElse(context.actorOf(childProps(EnvelopeId(e.streamId.value)), e.streamId.value))
       child ! e
 
-    case unhandledEvent: Event => println(s"not subscribedTo ${unhandledEvent.eventData.getClass}")
+    case unhandledEvent: Event => log.info("not subscribedTo {}", unhandledEvent.eventData.getClass)
   }
 
   private def isOneOfSubscribedEventTypes(e: Event) =
@@ -40,6 +40,6 @@ class CoordinatorActor(childProps: (EnvelopeId) => Props, subscribedEventTypes: 
 
 object CoordinatorActor {
 
-  def props(childProps: (EnvelopeId) => Props, subscribeTo: Set[Class[_]], subscribe: (ActorRef, Class[_]) => Boolean): Props =
-    Props(new CoordinatorActor(childProps, subscribeTo, subscribe))
+  def props(childProps: (EnvelopeId) => Props, subscribedEventTypes: Set[Class[_]], subscribe: (ActorRef, Class[_]) => Boolean): Props =
+    Props(new CoordinatorActor(childProps, subscribedEventTypes, subscribe))
 }

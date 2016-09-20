@@ -78,11 +78,11 @@ object Runner extends App {
 
   serviceWhichCallsCommandFunc(new CreateEnvelope(envelopeId, Some("http://test.com")))
   serviceWhichCallsCommandFunc(new QuarantineFile(envelopeId, FileId("file-id-1"), FileRefId("file-reference-id-1"), 0, "example.pdf", "application/pdf", Json.obj("name" -> "test")))
-  Thread.sleep(1000)
   serviceWhichCallsCommandFunc(new MarkFileAsClean(envelopeId, FileId("file-id-1"), FileRefId("file-reference-id-1")))
 
   serviceWhichCallsCommandFunc(new QuarantineFile(envelopeId, FileId("file-id-1"), FileRefId("file-reference-id-2"), 0, "example.pdf", "application/pdf", Json.obj("name" -> "test")))
   serviceWhichCallsCommandFunc(new QuarantineFile(envelopeId, FileId("file-id-2"), FileRefId("file-reference-id-21"), 0, "example.pdf", "application/pdf", Json.obj("name" -> "test")))
+  serviceWhichCallsCommandFunc(new MarkFileAsClean(envelopeId, FileId("file-id-2"), FileRefId("file-reference-id-21")))
 
   //print read model
   Thread.sleep(3000)

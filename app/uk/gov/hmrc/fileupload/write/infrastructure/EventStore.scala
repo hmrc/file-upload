@@ -16,20 +16,35 @@
 
 package uk.gov.hmrc.fileupload.write.infrastructure
 
+import cats.data.Xor
 import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{DB, DBMetaCommands}
 import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
+import reactivemongo.core.errors.DatabaseException
+import uk.gov.hmrc.fileupload.write.infrastructure.EventStore._
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
+
+object EventStore {
+  type SaveResult = Xor[SaveError, SaveSuccess.type]
+  case object SaveSuccess
+  sealed trait SaveError
+  case object VersionConflictError extends SaveError
+  case class NotSavedError(message: String) extends SaveError
+
+  val saveSuccess = Xor.right(SaveSuccess)
+
+  type GetResult = Xor[GetError, Seq[UnitOfWork]]
+  case class GetError(message: String)
+}
 
 trait EventStore {
 
-  def saveUnitOfWork(streamId: StreamId, unitOfWork: UnitOfWork)
+  def saveUnitOfWork(streamId: StreamId, unitOfWork: UnitOfWork): Future[SaveResult]
 
-  def unitsOfWorkForAggregate(streamId: StreamId): List[UnitOfWork]
+  def unitsOfWorkForAggregate(streamId: StreamId): Future[GetResult]
 }
 
 class MongoEventStore(mongo: () => DB with DBMetaCommands)
@@ -41,13 +56,24 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands)
 
   collection.indexesManager.ensure(Index(List("streamId" -> IndexType.Hashed)))
 
-  override def saveUnitOfWork(streamId: StreamId, unitOfWork: UnitOfWork): Unit = {
-    val result = collection.insert(unitOfWork)
-    Await.result(result.map(r => r.ok), 5 seconds)
-  }
+  val duplicateKeyErrroCode = Some(11000)
 
-  override def unitsOfWorkForAggregate(streamId: StreamId): List[UnitOfWork] = {
-    val result = collection.find(BSONDocument("streamId" -> streamId.value)).cursor[UnitOfWork]().collect[List]()
-    Await.result(result, 5 seconds)
-  }
+  override def saveUnitOfWork(streamId: StreamId, unitOfWork: UnitOfWork): Future[SaveResult] =
+    collection.insert(unitOfWork).map { r =>
+      if (r.ok) {
+        EventStore.saveSuccess
+      } else {
+        Xor.left(NotSavedError("not saved"))
+      }
+    }.recover {
+      case e: DatabaseException if e.code == duplicateKeyErrroCode =>
+          Xor.Left(VersionConflictError)
+      case e =>
+        Xor.left(NotSavedError(e.getMessage))
+    }
+
+  override def unitsOfWorkForAggregate(streamId: StreamId): Future[GetResult] =
+    collection.find(BSONDocument("streamId" -> streamId.value)).cursor[UnitOfWork]().collect[List]().map { l =>
+      Xor.right(l)
+    }.recover { case e => Xor.left(GetError(e.getMessage)) }
 }
