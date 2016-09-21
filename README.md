@@ -16,7 +16,34 @@ sbt run
 The endpoints can then be accessed with the base url http://localhost:8898/file-upload/
 
 ## Endpoints
-            
+
+Envelope
+POST    /file-upload/envelopes
+
+GET     /file-upload/envelopes/:envelope-id
+
+DELETE  /file-upload/envelopes/:envelope-id
+
+File
+POST    /file-upload/envelopes/:envelope-id/files/:file-id/metadata
+
+GET   	/file-upload/envelopes/:envelope-id/files/:file-id/metadata
+
+GET   	/file-upload/envelopes/:envelope-id/files/:file-id/content
+
+Client Routing
+POST    /file-routing/requests
+
+File Transfer
+GET     /file-transfer/envelopes
+
+GET     /file-transfer/envelopes/:envelope-id
+
+DELETE    /file-transfer/envelopes/:envelope-id
+
+
+
+
 [RAML definition](raml/file-upload.raml)
 
 ### License
