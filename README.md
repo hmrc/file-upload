@@ -96,11 +96,11 @@ GET     /file-transfer/envelopes
 ```
 | Responses    | Status    | Description |
 | --------|---------|-------|
-| Ok  | 200   | Successful. Returns a list of Envelopes.|
-| Bad Request  | 400   |  Invalid Request. |
-| Forbidden | 403   |  Not Authorised.|
-| Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |
-| Service Unavailable  | 503   |  INTERNAL_SERVER_ERROR |
+| Ok  | 200   | Successful. Returns a list of Envelopes.
+| Bad Request  | 400   |  Invalid Request. |  
+| Forbidden | 403   |  Not Authorised. |  
+| Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
+| Service Unavailable  | 503   |  INTERNAL_SERVER_ERROR|  
 
 
 #### Download Zip
@@ -129,8 +129,8 @@ DELETE    /file-transfer/envelopes/{envelope-id}
 | Ok  | 200   | Deleted  |
 | Bad Request  | 400   |  Invalid Request. File not uploaded. |
 | Not Found | 404   |  Envelope ID not found. |
-| GONE | 410   |  has Deleted before |
-| Locked | 423   |  unable to Deleted |
+| GONE | 410   |  Has Deleted before |
+| Locked | 423   |  Unable to Deleted |
 | Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |
 
 
