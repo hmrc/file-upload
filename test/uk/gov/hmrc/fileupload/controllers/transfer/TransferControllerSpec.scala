@@ -36,7 +36,7 @@ class TransferControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
   def newController(getEnvelopesByDestination: Option[String] => Future[List[Envelope]] = _ => failed,
                     handleCommand: EnvelopeCommand => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed) =
-    new TransferController(getEnvelopesByDestination, handleCommand)
+    new TransferController(getEnvelopesByDestination, handleCommand, null)
 
 
   "Delete envelope" should {

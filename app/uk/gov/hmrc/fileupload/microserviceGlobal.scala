@@ -26,17 +26,17 @@ import play.api.{Application, Configuration, Logger, Play}
 import uk.gov.hmrc.fileupload.controllers._
 import uk.gov.hmrc.fileupload.controllers.routing.RoutingController
 import uk.gov.hmrc.fileupload.controllers.transfer.TransferController
-import uk.gov.hmrc.fileupload.read.envelope.{Service => EnvelopeService, _}
-import uk.gov.hmrc.fileupload.read.file.{Service => FileService}
+import uk.gov.hmrc.fileupload.file.zip.Zippy
 import uk.gov.hmrc.fileupload.infrastructure.{DefaultMongoConnection, PlayHttp}
-import uk.gov.hmrc.fileupload.read.envelope.WithValidEnvelope
+import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => EnvelopeService, _}
+import uk.gov.hmrc.fileupload.read.file.{Service => FileService}
 import uk.gov.hmrc.fileupload.read.infrastructure.CoordinatorActor
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
 import uk.gov.hmrc.fileupload.testonly.TestOnlyController
 import uk.gov.hmrc.fileupload.utils.Contexts
 import uk.gov.hmrc.fileupload.write.envelope._
-import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, MongoEventStore}
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
+import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, MongoEventStore}
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
@@ -104,51 +104,10 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
   lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute) _
 
-  lazy val envelopeController = {
-    import play.api.libs.concurrent.Execution.Implicits._
-
-    val nextId = () => EnvelopeId(UUID.randomUUID().toString)
-
-    val del = envelopeRepository.delete _
-
-    new EnvelopeController(
-      nextId = nextId,
-      handleCommand = envelopeCommandHandler,
-      findEnvelope = find,
-      findMetadata = findMetadata)
-  }
-
-  lazy val eventController = {
-    new EventController(envelopeCommandHandler)
-  }
-
-  lazy val fileController = {
-    import play.api.libs.concurrent.Execution.Implicits._
-
-    val fileRepository = uk.gov.hmrc.fileupload.read.file.Repository.apply(db)
-
-    val iterateeForUpload = fileRepository.iterateeForUpload _
-    val uploadBodyParser = UploadParser.parse(iterateeForUpload) _
-
-    val getFileFromRepo = fileRepository.retrieveFile _
-    val retrieveFile = FileService.retrieveFile(getFileFromRepo) _
-
-    new FileController(uploadBodyParser = uploadBodyParser,
-      retrieveFile = retrieveFile,
-      withValidEnvelope = withValidEnvelope,
-      handleCommand = envelopeCommandHandler)
-  }
-
-  lazy val transferController = {
-    val getEnvelopesByDestination = envelopeRepository.getByDestination _
-
-    new TransferController(getEnvelopesByDestination, envelopeCommandHandler)
-  }
-
-  lazy val testOnlyController = {
-    val fileRepository = uk.gov.hmrc.fileupload.read.file.Repository.apply(db)
-    new TestOnlyController(fileRepository)
-  }
+  lazy val fileRepository = uk.gov.hmrc.fileupload.read.file.Repository.apply(db)
+  val iterateeForUpload = fileRepository.iterateeForUpload _
+  val getFileFromRepo = fileRepository.retrieveFile _
+  lazy val retrieveFile = FileService.retrieveFile(getFileFromRepo) _
 
   lazy val envelopeCommandHandler = {
     implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
@@ -162,6 +121,39 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
         defaultState = () => write.envelope.Envelope(),
         commonError = (msg) => EnvelopeCommandError(msg),
         publish = publish).handleCommand(command)
+  }
+
+  lazy val envelopeController = {
+    val nextId = () => EnvelopeId(UUID.randomUUID().toString)
+    new EnvelopeController(
+      nextId = nextId,
+      handleCommand = envelopeCommandHandler,
+      findEnvelope = find,
+      findMetadata = findMetadata)
+  }
+
+  lazy val eventController = {
+    new EventController(envelopeCommandHandler)
+  }
+
+  lazy val fileController = {
+    import play.api.libs.concurrent.Execution.Implicits._
+    val uploadBodyParser = UploadParser.parse(iterateeForUpload) _
+    new FileController(uploadBodyParser = uploadBodyParser,
+      retrieveFile = retrieveFile,
+      withValidEnvelope = withValidEnvelope,
+      handleCommand = envelopeCommandHandler)
+  }
+
+  lazy val transferController = {
+    val getEnvelopesByDestination = envelopeRepository.getByDestination _
+    val zipEnvelope = Zippy.zipEnvelope(find, retrieveFile) _
+    new TransferController(getEnvelopesByDestination, envelopeCommandHandler, zipEnvelope)
+  }
+
+  lazy val testOnlyController = {
+    val fileRepository = uk.gov.hmrc.fileupload.read.file.Repository.apply(db)
+    new TestOnlyController(fileRepository)
   }
 
   lazy val routingController = {
@@ -190,7 +182,6 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
     Akka.system.actorOf(CoordinatorActor.props(
       createReportActor, Set(classOf[EnvelopeEvent]), subscribe), "envelopeReadModelCoordinator")
-
 
     eventController
     envelopeController

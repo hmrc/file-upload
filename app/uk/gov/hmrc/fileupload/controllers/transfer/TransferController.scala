@@ -17,13 +17,14 @@
 package uk.gov.hmrc.fileupload.controllers.transfer
 
 import cats.data.Xor
-import controllers.Assets
 import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent}
+import play.api.mvc.Action
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
+import uk.gov.hmrc.fileupload.file.zip.Zippy._
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, OutputForTransfer}
 import uk.gov.hmrc.fileupload.write.envelope._
+import uk.gov.hmrc.fileupload.write.envelope.EnvelopeNotFoundError
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
@@ -31,7 +32,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 class TransferController(getEnvelopesByDestination: Option[String] => Future[List[Envelope]],
-                         handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
+                         handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
+                         zipEnvelope: EnvelopeId => Future[ZipResult])
                         (implicit executionContext: ExecutionContext) extends BaseController {
 
   def list() = Action.async { implicit request =>
@@ -101,8 +103,14 @@ class TransferController(getEnvelopesByDestination: Option[String] => Future[Lis
     Future.successful(Ok(Json.parse(result)))
   }
 
-  def download(envelopeId: EnvelopeId): Action[AnyContent] =
-    Assets.at(path="/public", file="transfer/envelope.zip")
+  def download(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId) = Action.async { implicit request =>
+    zipEnvelope(envelopeId) map {
+      case Xor.Right(stream) => Ok.chunked(stream).withHeaders(
+        CONTENT_TYPE -> "application/zip",
+        CONTENT_DISPOSITION -> s"""attachment; filename="$envelopeId.zip""""
+      )
+    }
+  }
 
   def delete(envelopeId: EnvelopeId) = Action.async { implicit request =>
     Future.successful(Ok)
