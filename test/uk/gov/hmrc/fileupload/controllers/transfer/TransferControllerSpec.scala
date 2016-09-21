@@ -22,7 +22,7 @@ import play.api.http.Status
 import play.api.test.FakeRequest
 import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import uk.gov.hmrc.fileupload.write.envelope._
-import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
+import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
 import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
@@ -54,7 +54,7 @@ class TransferControllerSpec extends UnitSpec with WithFakeApplication with Scal
       val envelope = Support.envelope
       val request = FakeRequest()
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(EnvelopeCommandError("not good"))))
+      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(CommandError("not good"))))
       val result = controller.nonStubDelete(envelope._id)(request).futureValue
 
       result.header.status shouldBe Status.INTERNAL_SERVER_ERROR

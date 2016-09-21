@@ -24,7 +24,7 @@ import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, OutputForTransfer}
 import uk.gov.hmrc.fileupload.write.envelope._
-import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
+import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -111,7 +111,7 @@ class TransferController(getEnvelopesByDestination: Option[String] => Future[Lis
   def nonStubDelete(envelopeId: EnvelopeId) = Action.async { implicit request =>
     handleCommand(ArchiveEnvelope(envelopeId)).map {
       case Xor.Right(_) => Ok
-      case Xor.Left(EnvelopeCommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
       case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $envelopeId not found")
       case Xor.Left(EnvelopeArchivedError) => ExceptionHandler(GONE, s"Envelope with id: $envelopeId already deleted")
       case Xor.Left(_) => ExceptionHandler(LOCKED, s"Envelope with id: $envelopeId locked")

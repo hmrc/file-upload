@@ -20,9 +20,9 @@ import cats.data.Xor
 import org.scalatest.{FeatureSpec, Matchers}
 import uk.gov.hmrc.fileupload.write.infrastructure.{Command, CommandNotAccepted, EventData, Handler}
 
-trait EventBasedGWTSpec[C <: Command, S, E <: CommandNotAccepted] extends FeatureSpec with Matchers {
+trait EventBasedGWTSpec[C <: Command, S] extends FeatureSpec with Matchers {
 
-  def handler: Handler[C, S, E]
+  def handler: Handler[C, S]
 
   def defaultStatus: S
 
@@ -30,7 +30,7 @@ trait EventBasedGWTSpec[C <: Command, S, E <: CommandNotAccepted] extends Featur
 
   case class When(command: C)
 
-  case class Then(result: Xor[E, List[EventData]])
+  case class Then(result: Xor[CommandNotAccepted, List[EventData]])
 
   def givenWhenThen(given: Given, when: When, expected: Then): Unit = {
     info(given.toString)
@@ -61,7 +61,7 @@ trait EventBasedGWTSpec[C <: Command, S, E <: CommandNotAccepted] extends Featur
   implicit def EventsData2Then(eventsData: List[EventData]): Then =
     Then(Xor.Right(eventsData))
 
-  implicit def CommandNotAccepted2Then(e: E): Then =
+  implicit def CommandNotAccepted2Then(e: CommandNotAccepted): Then =
     Then(Xor.Left(e))
 
   implicit class AddEventDataToList(item: EventData) {
