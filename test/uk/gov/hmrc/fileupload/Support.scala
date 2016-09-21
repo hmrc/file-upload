@@ -52,12 +52,9 @@ object Support {
     Await.result(futureResult, 500.millis)
   }
 
-  def constraints = Constraints(contentTypes = Some(Seq("application/vnd.openxmlformats-officedocument.wordprocessingml.document")),
-    maxItems = Some(100), maxSize = Some("12GB"), maxSizePerItem = Some("10MB"))
-
-  def envelope = new Envelope(_id = EnvelopeId(), constraints = Some(constraints), callbackUrl = Some("http://absolute.callback.url"),
+  def envelope = new Envelope(_id = EnvelopeId(), callbackUrl = Some("http://absolute.callback.url"),
     expiryDate = Some(DateTime.now().plusDays(1).withMillisOfSecond(0)),
-    metadata = Some(Map("anything" -> JsString("the caller wants to add to the envelope"))),
+    metadata = Some(Json.obj("anything" -> "the caller wants to add to the envelope")),
     destination = Some("destination"),
     application = Some("application")
   )

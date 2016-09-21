@@ -32,11 +32,14 @@ class EnvelopeReportActorSpec extends TestKit(ActorSystem("envelope-report")) wi
 
   "EnvelopeReportActor" should {
     "create a new envelope" in new UpdateEnvelopeFixture {
-      val event = EnvelopeCreated(envelopeId, Some("callback-url"))
+      val callbackUrl = Some("callback-url")
+      val expiryDate = Some(new DateTime())
+      val metadata = Some(Json.obj("key" -> "value"))
+      val event = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata)
 
       sendEvent()
 
-      modifiedEnvelope shouldBe initialState.copy(version = newVersion, callbackUrl = Some("callback-url"))
+      modifiedEnvelope shouldBe initialState.copy(version = newVersion, callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata)
     }
     "mark file as quarantined" in new UpdateEnvelopeFixture {
       val event = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", "contentType", Json.obj("abc" -> "xyz"))

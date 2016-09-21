@@ -76,7 +76,7 @@ object Runner extends App {
   
   val envelopeId = EnvelopeId(UUID.randomUUID().toString)
 
-  serviceWhichCallsCommandFunc(new CreateEnvelope(envelopeId, Some("http://test.com")))
+  serviceWhichCallsCommandFunc(new CreateEnvelope(envelopeId, Some("http://test.com"), None, None))
   serviceWhichCallsCommandFunc(new QuarantineFile(envelopeId, FileId("file-id-1"), FileRefId("file-reference-id-1"), 0, "example.pdf", "application/pdf", Json.obj("name" -> "test")))
   serviceWhichCallsCommandFunc(new MarkFileAsClean(envelopeId, FileId("file-id-1"), FileRefId("file-reference-id-1")))
 

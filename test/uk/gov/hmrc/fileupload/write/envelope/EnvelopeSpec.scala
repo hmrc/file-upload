@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.fileupload.write.envelope
 
+import org.joda.time.DateTime
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.{EnvelopeId, EventBasedGWTSpec, FileId, FileRefId}
 
@@ -29,7 +30,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
   val fileId = FileId("fileId-1")
   val fileRefId = FileRefId("fileRefId-1")
 
-  val envelopeCreated = EnvelopeCreated(envelopeId, Some("http://www.callback-url.com"))
+  val envelopeCreated = EnvelopeCreated(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")) )
   val fileQuarantined = FileQuarantined(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj())
   val noVirusDetected = NoVirusDetected(envelopeId, fileId, fileRefId)
   val virusDetected = VirusDetected(envelopeId, fileId, fileRefId)
@@ -46,7 +47,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, Envelope
 
       givenWhenThen(
         --,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com")),
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar"))),
         envelopeCreated
       )
     }

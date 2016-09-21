@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.fileupload.write.envelope
 
+import org.joda.time.DateTime
 import play.api.libs.json.{Format, JsObject, JsValue, Json}
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
@@ -28,7 +29,10 @@ sealed trait EnvelopeCommand extends Command {
   def streamId: StreamId = StreamId(id.value)
 }
 
-case class CreateEnvelope(id: EnvelopeId, callbackUrl: Option[String]) extends EnvelopeCommand
+case class CreateEnvelope(id: EnvelopeId,
+                          callbackUrl: Option[String],
+                          expiryDate: Option[DateTime],
+                          metadata: Option[JsObject]) extends EnvelopeCommand
 
 case class QuarantineFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
                           created: Long, name: String, contentType: String, metadata: JsObject) extends EnvelopeCommand
@@ -55,7 +59,7 @@ sealed trait EnvelopeEvent extends EventData {
   def streamId: StreamId = StreamId(id.value)
 }
 
-case class EnvelopeCreated(id: EnvelopeId, callbackUrl: Option[String]) extends EnvelopeEvent
+case class EnvelopeCreated(id: EnvelopeId, callbackUrl: Option[String], expiryDate: Option[DateTime], metadata: Option[JsObject]) extends EnvelopeEvent
 
 case class FileQuarantined(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
                            created: Long, name: String, contentType: String, metadata: JsObject) extends EnvelopeEvent
