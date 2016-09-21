@@ -1,6 +1,5 @@
 # file-upload
 
-[![Build Status](https://travis-ci.org/hmrc/file-upload.svg?branch=master)](https://travis-ci.org/hmrc/file-upload) [ ![Download](https://api.bintray.com/packages/hmrc/releases/file-upload/images/download.svg) ](https://bintray.com/hmrc/# file-upload
 
 [![Build Status](https://travis-ci.org/hmrc/file-upload.svg?branch=master)](https://travis-ci.org/hmrc/file-upload) [ ![Download](https://api.bintray.com/packages/hmrc/releases/file-upload/images/download.svg) ](https://bintray.com/hmrc/releases/file-upload/_latestVersion)
 
@@ -18,6 +17,8 @@ sbt run
 The endpoints can then be accessed with the base url http://localhost:8898/file-upload/
 
 ## Endpoints
+
+Alternatively  look  here for a [RAML definition](raml/file-upload.raml)
 
 ### Envelope
 
@@ -81,6 +82,8 @@ POST    /file-routing/requests
 | --------|---------|-------|
 | Created  | 201   | Successfully created event CLOSED |
 | Bad Request  | 400   |  Invalid Request. |
+| Bad Request  | 400   |  Destination not supported; Routing request already received for envelope |
+| Bad Request | 400   |  File contain errors; Envelope not found |
 | Forbidden | 403   |  Not Authorised. |
 | Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
 
@@ -93,10 +96,11 @@ GET     /file-transfer/envelopes
 ```
 | Responses    | Status    | Description |
 | --------|---------|-------|
-| Ok  | 200   | Successful. Returns a list of Envelopes.
-| Bad Request  | 400   |  Invalid Request. 
-| Forbidden | 403   |  Not Authorised.
-| Service Unavailable  | 503   |  INTERNAL_SERVER_ERROR
+| Ok  | 200   | Successful. Returns a list of Envelopes.|
+| Bad Request  | 400   |  Invalid Request. |
+| Forbidden | 403   |  Not Authorised.|
+| Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |
+| Service Unavailable  | 503   |  INTERNAL_SERVER_ERROR |
 
 
 #### Download Zip
@@ -122,12 +126,14 @@ DELETE    /file-transfer/envelopes/{envelope-id}
 ```
 | Responses    | Status    | Description |
 | --------|---------|-------|
-| Ok  | 200   | File Successfully uploaded.  |
+| Ok  | 200   | Deleted  |
 | Bad Request  | 400   |  Invalid Request. File not uploaded. |
 | Not Found | 404   |  Envelope ID not found. |
-| Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
+| GONE | 410   |  has Deleted before |
+| Locked | 423   |  unable to Deleted |
+| Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |
 
-Alternatively  look  here for a [RAML definition](raml/file-upload.raml)
+
 
 ### License
 
