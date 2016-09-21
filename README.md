@@ -33,6 +33,11 @@ POST   	/file-upload/envelopes
 | Bad Request | 400   |  Envelope Not Created |
 | Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |    
 
+#### Example
+| POST Request   | Body   | Response (in Headers) |
+| --------|---------|-------|
+| localhost:8898/file-upload/envelopes  | {}   | Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653 |
+
 #### Show Envelope
 Show Envelope which comprises of Envelope Id and the current status.
 ```
@@ -46,6 +51,18 @@ GET     /file-upload/envelopes/{envelope-id}
 | Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
 
 
+#### Example
+
+Request (GET): localhost:8898/file-upload/envelopes/46d95a7c-c03b-484c-ac70-bf760cd36510 
+
+Response (Body):
+```json
+{
+    "id": "46d95a7c-c03b-484c-ac70-bf760cd36510", 
+    "status": "OPEN"
+} 
+```
+
 #### Hard Delete an Envelope
 Completely deletes an envelope and its contents from the front end database.
 ```
@@ -58,6 +75,10 @@ DELETE  /file-upload/envelopes/{envelope-id}
 | Not Found | 404   |  Envelope not found. |
 | Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
 
+#### Example 
+
+Request (Delete): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
+
 #### Download File
 Downloads a file from the envelope
 ```
@@ -69,6 +90,9 @@ GET   	/file-upload/envelopes/{envelope-id}/files/{file-id}/content
 | Not Found | 404   |  File not found. |
 | Internal Server Error | 500   |  INTERNAL_SERVER_ERROR |
 
+Request (Get): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1/content
+
+Response: Download File
 
 ### Routing
 
@@ -87,6 +111,9 @@ POST    /file-routing/requests
 | Forbidden | 403   |  Not Authorised. |
 | Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
 
+#### Example
+Request (POST): localhost:8898/file-routing/requests
+
 ### Transfer
 
 #### Download List of Envelopes
@@ -101,6 +128,72 @@ GET     /file-transfer/envelopes
 | Forbidden | 403   |  Not Authorised. |  
 | Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
 | Service Unavailable  | 503   |  INTERNAL_SERVER_ERROR|  
+
+#### Example
+
+Request (GET): localhost:8898/file-transfer/envelopes
+
+Response:
+```json
+{
+  "_links": {
+    "self": {
+      "href": "http://full.url.com/file-transfer/envelopes?destination=DMS"
+    }
+  },
+  "_embedded": {
+    "envelopes": [
+      {
+        "id": "0b215e97-11d4-4006-91db-c067e74fc653",
+        "destination": "DMS",
+        "application": "application:digital.forms.service/v1.233",
+        "_embedded": {
+          "files": [
+            {
+              "href": "/file-upload/envelopes/b215e97-11d4-4006-91db-c067e74fc653/files/1/content",
+              "name": "original-file-name-on-disk.docx",
+              "contentType": "application/vnd.oasis.opendocument.spreadsheet",
+              "length": 1231222,
+              "created": "2016-03-31T12:33:45Z",
+              "_links": {
+                "self": {
+                  "href": "/file-upload/envelopes/b215e97-11d4-4006-91db-c067e74fc653/files/1"
+                }
+              }
+            },
+            {
+              "href": "/file-upload/envelopes/b215e97-11d4-4006-91db-c067e74fc653/files/2/content",
+              "name": "another-file-name-on-disk.docx",
+              "contentType": "application/vnd.oasis.opendocument.spreadsheet",
+              "length": 112221,
+              "created": "2016-03-31T12:33:45Z",
+              "_links": {
+                "self": {
+                  "href": "/file-upload/envelopes/b215e97-11d4-4006-91db-c067e74fc653/files/2"
+                }
+              }
+            }
+          ]
+        },
+        "_links": {
+          "self": {
+            "href": "/file-transfer/envelopes/0b215e97-11d4-4006-91db-c067e74fc653"
+          },
+          "package": {
+            "href": "/file-transfer/envelopes/0b215e97-11d4-4006-91db-c067e74fc653",
+            "type": "application/zip"
+          },
+          "files": [
+            {
+              "href": "/files/2"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+```
 
 
 #### Download Zip
@@ -119,6 +212,12 @@ GET     /file-transfer/envelopes/{envelope-id}
 | Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
 
 
+#### Example
+
+Request (GET): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
+
+Response: Download Zip file
+
 #### Soft Delete an Envelope 
 Changes status of an envelope to DELETED which prevents any service or user from using this envelope.
 ```
@@ -133,7 +232,10 @@ DELETE    /file-transfer/envelopes/{envelope-id}
 | Locked | 423   |  Unable to Deleted |
 | Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |
 
+#### Example
+Request (DELETE): localhost:8898/file-transfer/envelopes
 
+Response: Soft Envelope Deleted
 
 ### License
 
