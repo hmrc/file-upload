@@ -69,4 +69,4 @@ case object CommandAccepted
 
 trait CommandNotAccepted
 case class CommandError(message: String) extends CommandNotAccepted
-case object VersionConflict extends CommandNotAccepted
+case class VersionConflict(version: Version, command: Command) extends CommandNotAccepted

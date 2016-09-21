@@ -34,7 +34,7 @@ case class Aggregate[C <: Command, S](handler: Handler[C, S],
 
   val commandAcceptedResult = Xor.Right(CommandAccepted)
 
-  val numOfRetry: Int = 10
+  val numOfRetry: Int = 15
 
   def createUnitOfWork(streamId: StreamId, eventsData: List[EventData], version: Version) = {
     val created = toCreated()
@@ -80,7 +80,7 @@ case class Aggregate[C <: Command, S](handler: Handler[C, S],
 
                 case Xor.Left(VersionConflictError) =>
                   Logger.info(s"VersionConflictError for version $nextVersion and $command")
-                  Xor.left(VersionConflict)
+                  Xor.left(VersionConflict(nextVersion, command))
 
                 case Xor.Left(NotSavedError(m)) =>
                   Xor.left(CommandError(m))
@@ -103,7 +103,7 @@ case class Aggregate[C <: Command, S](handler: Handler[C, S],
     def run(retries: Int, command: C): Future[CommandResult] = {
       applyCommand(command).flatMap {
         case result@Xor.Right(_) => Future.successful(result)
-        case error@Xor.Left(VersionConflict) =>
+        case error@Xor.Left(VersionConflict(_, _)) =>
           if (retries > 0) {
             Logger.info(s"Retry $retries")
             run(retries - 1, command)
