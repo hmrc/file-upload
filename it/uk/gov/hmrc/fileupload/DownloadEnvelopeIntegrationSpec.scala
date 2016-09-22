@@ -10,7 +10,7 @@ import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActio
 
 class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with FileActions with EnvelopeActions with Eventually with EventsActions {
 
-  implicit override val patienceConfig = PatienceConfig(timeout = Span(20, Seconds), interval = Span(5, Millis))
+  implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
 
   feature("Download Envelope") {
 

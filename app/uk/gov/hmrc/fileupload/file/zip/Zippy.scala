@@ -16,7 +16,9 @@
 
 package uk.gov.hmrc.fileupload.file.zip
 
+import java.io.{BufferedOutputStream, ByteArrayOutputStream}
 import java.util.UUID
+import java.util.zip.ZipOutputStream
 
 import cats.data.Xor
 import play.api.libs.iteratee.Enumerator
@@ -33,36 +35,38 @@ object Zippy {
 
   type ZipResult = Xor[ZipEnvelopeError, Enumerator[Bytes]]
   sealed trait ZipEnvelopeError
-  case object EnvelopeNotFoundError extends ZipEnvelopeError
+  case object ZipEnvelopeNotFoundError extends ZipEnvelopeError
   case object EmptyEnvelopeError extends ZipEnvelopeError
 
 
   def zipEnvelope(getEnvelope: (EnvelopeId) => Future[FindResult], retrieveFile: (Envelope, FileId) => Future[GetFileResult])
                  (envelopeId: EnvelopeId)
-                 (implicit ex: ExecutionContext): Future[ZipResult] = {
+                 (implicit ec: ExecutionContext): Future[ZipResult] = {
 
     getEnvelope(envelopeId) map {
-      case Xor.Right(e@Envelope(_, _, _, _, _, _, Some(files), _, _)) =>
-        val mainFolderPath = envelopeId.toString
-        val envelopeFolderPath = s"$mainFolderPath/${envelopeId.toString}"
-        val mainFolder = ZipFileInfo(mainFolderPath, isDir = true, new java.util.Date(), None)
-        val envelopeFolder = ZipFileInfo(envelopeFolderPath, isDir = true, new java.util.Date(), None)
-
+      case Xor.Right(envelopeWithFiles @ Envelope(_, _, _, _, _, _, Some(files), _, _)) =>
         val zipFiles = files.collect {
           case f =>
-            val fileName: String = f.name.getOrElse(UUID.randomUUID().toString)
-            ZipFileInfo(s"$envelopeFolderPath/$fileName", isDir = false, new java.util.Date(), Some(() => retrieveFile(e, f.fileId).map {
+            val fileName = f.name.getOrElse(UUID.randomUUID().toString)
+            ZipFileInfo(fileName, isDir = false, new java.util.Date(), Some(() => retrieveFile(envelopeWithFiles, f.fileId).map {
               case Xor.Right(FileFound(name, length, data)) => data
               case Xor.Left(error) => throw new Exception(s"File $envelopeId ${f.fileId} not found in repo" )
             }))
         }
-        val infoes: Seq[ZipFileInfo] = mainFolder+:envelopeFolder+:zipFiles
-        Xor.right( ZipStreamEnumerator(infoes))
+        Xor.right( ZipStreamEnumerator(zipFiles))
 
-      case Xor.Left(FindEnvelopeNotFoundError) => Xor.left(EnvelopeNotFoundError)
-      case Xor.Right(e@Envelope(_, _, _, _, _, _, None, _, _)) => Xor.left(EmptyEnvelopeError)
+      case Xor.Right(envelopeWithoutFiles @ Envelope(_, _, _, _, _, _, None, _, _)) =>
+        Xor.Right(emptyZip())
+
+      case Xor.Left(FindEnvelopeNotFoundError) => Xor.left(ZipEnvelopeNotFoundError)
     }
+  }
 
+  def emptyZip() = {
+    val baos = new ByteArrayOutputStream()
+    val out =  new ZipOutputStream(new BufferedOutputStream(baos))
+    out.close()
+    Enumerator(baos.toByteArray)
   }
 
 }
