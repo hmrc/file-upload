@@ -37,7 +37,10 @@ POST   	/file-upload/envelopes
 
 Request (POST): localhost:8898/file-upload/envelopes
 
-Body: {}
+Body:
+``` json
+{}
+```
 
 Response (in Headers): Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
@@ -50,13 +53,13 @@ GET     /file-upload/envelopes/{envelope-id}
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 200   | File Successfully uploaded  |
-| Not Found | 404   |  Envelope ID not found. |
+| Not Found | 404   |  Envelope with id not found. |
 | Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
 
 
 #### Example
 
-Request (GET): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
+Request (GET): localhost:8898/file-upload/envelopes/46d95a7c-c03b-484c-ac70-bf760cd36510 
 
 Response (in Body):
 ```json
@@ -80,9 +83,25 @@ DELETE  /file-upload/envelopes/{envelope-id}
 
 #### Example 
 
-Request (Delete): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
+Request (DELETE): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
 Response: 202
+
+#### Hard Delete File
+Delete a file in an envelope
+
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Delete File  |
+| Bad Request  | 400   | File Not Deleted. |
+| Not Found | 404   |  File not found in envelope |
+| Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
+
+#### Example
+
+Request (DELETE): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1
+
+Response: 200
 
 #### Retrieve Metadata
 Retrieve metadata from a file in an envelope
@@ -90,14 +109,13 @@ Retrieve metadata from a file in an envelope
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 200   | Successfully retrieved metadata  |
-| Bad Request  | 400   | Invalid request. |
 | Not Found | 404   |  Envelope not found. |
 | Not Found | 404   |  File not found inside Envelope. |
 | Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
 
 #### Example
 
-Request (GET): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1/metadata
+Request (GET): localhost:8898/file-upload/envelopes/7989913d-b41f-4455-8baa-e8ed0168960c/files/file-id-1/metadata
 
 Response (in Body): 
 ``` json
@@ -121,9 +139,8 @@ GET   	/file-upload/envelopes/{envelope-id}/files/{file-id}/content
 | --------|---------|-------|
 | Ok  | 200   | Download a file.  |
 | Not Found | 404   |  File not found. |
-| Internal Server Error | 500   |  INTERNAL_SERVER_ERROR |
 
-Request (Get): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1/content
+Request (GET): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1/content
 
 Response: Download File
 
@@ -139,9 +156,8 @@ POST    /file-routing/requests
 | --------|---------|-------|
 | Created  | 201   | Successfully created event CLOSED |
 | Bad Request  | 400   |  Invalid Request. |
-| Bad Request  | 400   |  Destination not supported; Routing request already received for envelope |
-| Bad Request | 400   |  File contain errors; Envelope not found |
-| Forbidden | 403   |  Not Authorised. |
+| Bad Request  | 400   |  Destination not supported; Routing request already received for envelope. |
+| Bad Request | 400   |  File contain errors. Envelope not found. |
 | Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
 
 #### Example
@@ -150,7 +166,7 @@ Request (POST): localhost:8898/file-routing/requests
 Body:
 ``` json
 {
-	"envelopeId":"0b215e97-11d4-4006-91db-c067e74fc653",
+	"envelopeId":"8f494f63-d2e3-4ab1-9154-5f64a0b70f7c",
 	"application":"application/json",
 	"destination":"DMS"
 }
@@ -168,10 +184,6 @@ GET     /file-transfer/envelopes
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 200   | Successful. Returns a list of Envelopes.
-| Bad Request  | 400   |  Invalid Request. |
-| Forbidden | 403   |  Not Authorised. |
-| Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |
-| Service Unavailable  | 503   |  INTERNAL_SERVER_ERROR|  
 
 #### Example
 
@@ -251,7 +263,6 @@ GET     /file-transfer/envelopes/{envelope-id}
 | Ok  | 200   | File Successfully uploaded.  |
 | Partial Content  | 206   |   Partially Downloaded. |
 | Bad Request  | 400   |  Invalid Request. File not uploaded. |
-| Forbidden | 403   |  Not Authorised. |
 | Not Found | 404   |  Envelope ID not found. |
 | Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
 
@@ -272,12 +283,13 @@ DELETE    /file-transfer/envelopes/{envelope-id}
 | Ok  | 200   | Deleted  |
 | Bad Request  | 400   |  Invalid Request. File not uploaded. |
 | Not Found | 404   |  Envelope ID not found. |
-| GONE | 410   |  Has Deleted before |
-| Locked | 423   |  Unable to Deleted |
+| Gone | 410   |  Has Deleted before. |
+| Locked | 423   |  Unable to Deleted. |
 | Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |
+| Service Unavailable | 503   |  SERVICE_UNAVAILABLE |
 
 #### Example
-Request (DELETE): localhost:8898/file-transfer/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
+Request (DELETE): localhost:8898/file-transfer/envelopes
 
 Response: Soft Envelope Deleted
 
