@@ -154,10 +154,11 @@ POST    /file-routing/requests
 
 | Responses    | Status    | Description |
 | --------|---------|-------|
-| Created  | 201   | Successfully created event CLOSED |
-| Bad Request  | 400   |  Invalid Request. |
+| Created  | 201   | Successfully created routing request.  |
 | Bad Request  | 400   |  Destination not supported; Routing request already received for envelope. |
+| Bad Request  | 400   |  Routing request already received for envelope |
 | Bad Request | 400   |  File contain errors. Envelope not found. |
+| Bad Request | 400   |  Envelope not found |
 | Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
 
 #### Example
@@ -257,15 +258,6 @@ Downloads a zip file which is the envelope and its contents.
 ```
 GET     /file-transfer/envelopes/{envelope-id}
 ```
-
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 200   | File Successfully uploaded.  |
-| Partial Content  | 206   |   Partially Downloaded. |
-| Bad Request  | 400   |  Invalid Request. File not uploaded. |
-| Not Found | 404   |  Envelope ID not found. |
-| Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
-
 
 #### Example
 
