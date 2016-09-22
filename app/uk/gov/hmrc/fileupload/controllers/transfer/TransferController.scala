@@ -17,8 +17,9 @@
 package uk.gov.hmrc.fileupload.controllers.transfer
 
 import cats.data.Xor
+import controllers.Assets
 import play.api.libs.json.Json
-import play.api.mvc.Action
+import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.file.zip.Zippy._
@@ -103,12 +104,16 @@ class TransferController(getEnvelopesByDestination: Option[String] => Future[Lis
     Future.successful(Ok(Json.parse(result)))
   }
 
-  def download(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId) = Action.async { implicit request =>
+  def download(envelopeId: EnvelopeId): Action[AnyContent] =
+    Assets.at(path="/public", file="transfer/envelope.zip")
+
+  def nonStubDownload(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId) = Action.async { implicit request =>
     zipEnvelope(envelopeId) map {
       case Xor.Right(stream) => Ok.chunked(stream).withHeaders(
         CONTENT_TYPE -> "application/zip",
         CONTENT_DISPOSITION -> s"""attachment; filename="$envelopeId.zip""""
       )
+      case Xor.Left(reason) => ExceptionHandler(400, reason.toString)
     }
   }
 
