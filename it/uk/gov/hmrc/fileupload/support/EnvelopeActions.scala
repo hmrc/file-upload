@@ -64,4 +64,10 @@ trait EnvelopeActions extends ActionsSupport with MongoSpecSupport {
       .futureValue
   }
 
+  def archiveEnvelopFor(id: EnvelopeId): WSResponse =
+    WS
+      .url(s"$fileTransferUrl/envelopes/$id")
+      .delete()
+      .futureValue
+
 }
