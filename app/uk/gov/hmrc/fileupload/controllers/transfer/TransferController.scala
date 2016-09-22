@@ -48,7 +48,8 @@ class TransferController(getEnvelopesByDestination: Option[String] => Future[Lis
         CONTENT_TYPE -> "application/zip",
         CONTENT_DISPOSITION -> s"""attachment; filename="$envelopeId.zip""""
       )
-      case Xor.Left(ZipEnvelopeNotFoundError) => ExceptionHandler(404, s"Envelope with id: $envelopeId not found")
+      case Xor.Left(ZipEnvelopeNotFoundError | EnvelopeNotRoutedYet) =>
+        ExceptionHandler(404, s"Envelope with id: $envelopeId not found")
     }
   }
 

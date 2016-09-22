@@ -24,8 +24,8 @@ import cats.data.Xor
 import play.api.libs.iteratee.Enumerator
 import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
 import uk.gov.hmrc.fileupload.file.zip.ZipStream.{ZipFileInfo, ZipStreamEnumerator}
-import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindEnvelopeNotFoundError, FindResult}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatusClosed}
 import uk.gov.hmrc.fileupload.read.file.Service.{FileFound, GetFileResult}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
@@ -37,6 +37,7 @@ object Zippy {
   sealed trait ZipEnvelopeError
   case object ZipEnvelopeNotFoundError extends ZipEnvelopeError
   case object EmptyEnvelopeError extends ZipEnvelopeError
+  case object EnvelopeNotRoutedYet extends ZipEnvelopeError
 
 
   def zipEnvelope(getEnvelope: (EnvelopeId) => Future[FindResult], retrieveFile: (Envelope, FileId) => Future[GetFileResult])
@@ -44,7 +45,7 @@ object Zippy {
                  (implicit ec: ExecutionContext): Future[ZipResult] = {
 
     getEnvelope(envelopeId) map {
-      case Xor.Right(envelopeWithFiles @ Envelope(_, _, _, _, _, _, Some(files), _, _)) =>
+      case Xor.Right(envelopeWithFiles @ Envelope(_, _, EnvelopeStatusClosed, _, _, _, Some(files), _, _)) =>
         val zipFiles = files.collect {
           case f =>
             val fileName = f.name.getOrElse(UUID.randomUUID().toString)
@@ -55,8 +56,10 @@ object Zippy {
         }
         Xor.right( ZipStreamEnumerator(zipFiles))
 
-      case Xor.Right(envelopeWithoutFiles @ Envelope(_, _, _, _, _, _, None, _, _)) =>
+      case Xor.Right(envelopeWithoutFiles @ Envelope(_, _, EnvelopeStatusClosed, _, _, _, None, _, _)) =>
         Xor.Right(emptyZip())
+
+      case Xor.Right(envelopeWithWrongStatus: Envelope) => Xor.left(EnvelopeNotRoutedYet)
 
       case Xor.Left(FindEnvelopeNotFoundError) => Xor.left(ZipEnvelopeNotFoundError)
     }
