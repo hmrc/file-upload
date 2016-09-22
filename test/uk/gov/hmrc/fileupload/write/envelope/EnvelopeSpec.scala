@@ -20,7 +20,7 @@ import org.joda.time.DateTime
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.{EnvelopeId, EventBasedGWTSpec, FileId, FileRefId}
 
-class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope, EnvelopeCommandNotAccepted] {
+class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
   override val handler = Envelope
 

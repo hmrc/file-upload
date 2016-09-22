@@ -21,7 +21,7 @@ import uk.gov.hmrc.fileupload.write.envelope.Envelope.CanResult
 import uk.gov.hmrc.fileupload.write.infrastructure.{EventData, Handler}
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 
-object Envelope extends Handler[EnvelopeCommand, Envelope, EnvelopeCommandNotAccepted] {
+object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
   type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
 
