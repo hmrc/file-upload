@@ -34,9 +34,12 @@ POST   	/file-upload/envelopes
 | Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |    
 
 #### Example
-| POST Request   | Body   | Response (in Headers) |
-| --------|---------|-------|
-| localhost:8898/file-upload/envelopes  | {}   | Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653 |
+
+Request (POST): localhost:8898/file-upload/envelopes
+
+Body: {}
+
+Response (in Headers): Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
 #### Show Envelope
 Show Envelope which comprises of Envelope Id and the current status.
@@ -55,7 +58,7 @@ GET     /file-upload/envelopes/{envelope-id}
 
 Request (GET): localhost:8898/file-upload/envelopes/46d95a7c-c03b-484c-ac70-bf760cd36510 
 
-Response (Body):
+Response (in Body):
 ```json
 {
     "id": "46d95a7c-c03b-484c-ac70-bf760cd36510", 
@@ -78,6 +81,36 @@ DELETE  /file-upload/envelopes/{envelope-id}
 #### Example 
 
 Request (Delete): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
+
+Response: 202
+
+#### Retrieve Metadata
+Retrieve metadata from a file in an envelope
+
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Successfully retrieved metadata  |
+| Bad Request  | 400   | Invalid request. |
+| Not Found | 404   |  Envelope not found. |
+| Not Found | 404   |  File not found inside Envelope. |
+| Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
+
+#### Example
+
+Request (GET): localhost:8898/file-upload/envelopes/7989913d-b41f-4455-8baa-e8ed0168960c/files/file-id-1/metadata
+
+Response (in Body): 
+``` json
+{
+  "id": "file-id-1",
+  "status": "CLEANED",
+  "name": "myfile.txt",
+  "contentType": "pdf",
+  "created": "1970-01-01T00:00:00Z",
+  "metadata": {},
+  "href": "/file-upload/envelopes/7989913d-b41f-4455-8baa-e8ed0168960c/files/file-id-1/content"
+}
+```
 
 #### Download File
 Downloads a file from the envelope
@@ -114,6 +147,17 @@ POST    /file-routing/requests
 #### Example
 Request (POST): localhost:8898/file-routing/requests
 
+Body:
+``` json
+{
+	"envelopeId":"8f494f63-d2e3-4ab1-9154-5f64a0b70f7c",
+	"application":"application/json",
+	"destination":"DMS"
+}
+```
+
+Response: 201
+
 ### Transfer
 
 #### Download List of Envelopes
@@ -124,16 +168,16 @@ GET     /file-transfer/envelopes
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 200   | Successful. Returns a list of Envelopes.
-| Bad Request  | 400   |  Invalid Request. |  
-| Forbidden | 403   |  Not Authorised. |  
-| Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
+| Bad Request  | 400   |  Invalid Request. |
+| Forbidden | 403   |  Not Authorised. |
+| Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |
 | Service Unavailable  | 503   |  INTERNAL_SERVER_ERROR|  
 
 #### Example
 
 Request (GET): localhost:8898/file-transfer/envelopes
 
-Response:
+Response (in Body):
 ```json
 {
   "_links": {
