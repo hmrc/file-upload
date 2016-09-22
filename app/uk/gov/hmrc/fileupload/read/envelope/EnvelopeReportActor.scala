@@ -34,7 +34,7 @@ class EnvelopeReportActor(override val id: EnvelopeId,
   override def apply = {
 
     case (s: Envelope, e: EnvelopeCreated) => withUpdatedVersion {
-      s.copy(callbackUrl = e.callbackUrl)
+      s.copy(callbackUrl = e.callbackUrl, expiryDate = e.expiryDate, metadata = e.metadata)
     }
 
     case (s: Envelope, e: FileQuarantined) => withUpdatedVersion {

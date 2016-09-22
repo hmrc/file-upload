@@ -21,13 +21,13 @@ import uk.gov.hmrc.fileupload.write.envelope.Envelope.CanResult
 import uk.gov.hmrc.fileupload.write.infrastructure.{EventData, Handler}
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 
-object Envelope extends Handler[EnvelopeCommand, Envelope, EnvelopeCommandNotAccepted] {
+object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
   type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
 
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
-      EnvelopeCreated(command.id, command.callbackUrl)
+      EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata)
 
     case (command: QuarantineFile, envelope: Envelope) =>
       envelope.canQuarantine(command.fileId, command.name).map(_ =>

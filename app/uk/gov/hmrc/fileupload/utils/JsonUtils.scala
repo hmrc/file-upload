@@ -16,7 +16,14 @@
 
 package uk.gov.hmrc.fileupload.utils
 
+import play.api.libs.iteratee.Iteratee
 import play.api.libs.json._
+import play.api.mvc.{BodyParser, RequestHeader, Result}
+import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
+
+import scala.concurrent.ExecutionContext
+import scala.util.control.NonFatal
+import scala.util.{Failure, Success, Try}
 
 object JsonUtils {
   def oFormat[A](format: Format[A]): OFormat[A] = new OFormat[A] {
@@ -26,4 +33,15 @@ object JsonUtils {
 
   def optional[A : Writes](k: String, value: Option[A]): JsObject =
     value.map(v => Json.obj(k -> v)).getOrElse(Json.obj())
+
+  def jsonBodyParser[A : Reads](implicit ec: ExecutionContext): BodyParser[A] = new BodyParser[A] {
+    def apply(v1: RequestHeader): Iteratee[Array[Byte], Either[Result, A]] = {
+      Iteratee.consume[Array[Byte]]().map { data =>
+        Try(Json.fromJson[A](Json.parse(data)).get) match {
+          case Success(report) => Right(report)
+          case Failure(NonFatal(e)) => Left(ExceptionHandler(e))
+        }
+      }
+    }
+  }
 }

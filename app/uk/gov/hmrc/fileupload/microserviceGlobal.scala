@@ -157,10 +157,9 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     implicit val eventStore = new MongoEventStore(db)
 
     (command: EnvelopeCommand) =>
-      Aggregate[EnvelopeCommand, write.envelope.Envelope, EnvelopeCommandNotAccepted](
+      Aggregate[EnvelopeCommand, write.envelope.Envelope](
         handler = write.envelope.Envelope,
         defaultState = () => write.envelope.Envelope(),
-        commonError = (msg) => EnvelopeCommandError(msg),
         publish = publish).handleCommand(command)
   }
 

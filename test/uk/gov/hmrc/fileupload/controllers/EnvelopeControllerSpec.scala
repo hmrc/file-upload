@@ -49,7 +49,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
     "return response with OK status and a Location header specifying the envelope endpoint" in {
 	    val serverUrl = "http://production.com:8000"
 
-	    val fakeRequest = new FakeRequest[EnvelopeReport]("POST", "/envelopes", FakeHeaders(), body = envelopeReport){
+	    val fakeRequest = new FakeRequest("POST", "/envelopes", FakeHeaders(), body = CreateEnvelopeRequest()){
 		    override lazy val host = serverUrl
 	    }
 
@@ -66,7 +66,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
     "return response with OK status and a Location header specifying the envelope endpoint" in {
       val serverUrl = "http://production.com:8000"
 
-      val fakeRequest = new FakeRequest[EnvelopeReport]("POST", "/envelopes", FakeHeaders(), body = EnvelopeReport()) {
+      val fakeRequest = new FakeRequest("POST", "/envelopes", FakeHeaders(), body = CreateEnvelopeRequest()) {
         override lazy val host = serverUrl
       }
 

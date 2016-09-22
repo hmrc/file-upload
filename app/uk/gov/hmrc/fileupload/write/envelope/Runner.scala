@@ -25,7 +25,7 @@ import reactivemongo.api.MongoDriver
 import uk.gov.hmrc.fileupload.read.envelope.{EnvelopeReportActor, Repository}
 import uk.gov.hmrc.fileupload.read.infrastructure.CoordinatorActor
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
-import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, CommandAccepted, MongoEventStore}
+import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
 import scala.concurrent.{Await, Future}
@@ -69,14 +69,14 @@ object Runner extends App {
   implicit val eventStore = new MongoEventStore(() => connection.db("eventsourcing"))
 
   val handle = (command: EnvelopeCommand) => Aggregate(
-    Envelope, () => Envelope(), (msg) => EnvelopeCommandError(msg), publish)
+    Envelope, () => Envelope(), publish)
     .handleCommand(command)
 
   val serviceWhichCallsCommandFunc = serviceWhichCallsCommand(handle) _
   
   val envelopeId = EnvelopeId(UUID.randomUUID().toString)
 
-  serviceWhichCallsCommandFunc(new CreateEnvelope(envelopeId, Some("http://test.com")))
+  serviceWhichCallsCommandFunc(new CreateEnvelope(envelopeId, Some("http://test.com"), None, None))
   serviceWhichCallsCommandFunc(new QuarantineFile(envelopeId, FileId("file-id-1"), FileRefId("file-reference-id-1"), 0, "example.pdf", "application/pdf", Json.obj("name" -> "test")))
   serviceWhichCallsCommandFunc(new MarkFileAsClean(envelopeId, FileId("file-id-1"), FileRefId("file-reference-id-1")))
 
@@ -88,7 +88,7 @@ object Runner extends App {
   Thread.sleep(3000)
   println(Await.result(repository.get(envelopeId), 5 seconds))
 
-  def serviceWhichCallsCommand(handle: (EnvelopeCommand) => Future[Xor[EnvelopeCommandNotAccepted, CommandAccepted.type]])(command: EnvelopeCommand) = {
+  def serviceWhichCallsCommand(handle: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])(command: EnvelopeCommand) = {
     val result = Await.result(handle(command), 5 seconds)
     println(result)
   }

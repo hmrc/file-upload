@@ -24,16 +24,17 @@ import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.{NotSavedError, Ve
 
 import scala.concurrent.{ExecutionContext, Future}
 
-case class Aggregate[C <: Command, S, E <: CommandNotAccepted](handler: Handler[C, S, E],
-                                                               defaultState: () => S,
-                                                               commonError: String => E,
-                                                               publish: AnyRef => Unit,
-                                                               nextEventId: () => EventId = () => EventId(UUID.randomUUID().toString),
-                                                               toCreated: () => Created = () => Created(System.currentTimeMillis()))
-                                                               (implicit eventStore: EventStore, executionContext: ExecutionContext) {
-  type CommandResult = Xor[E, CommandAccepted.type]
+case class Aggregate[C <: Command, S](handler: Handler[C, S],
+                                      defaultState: () => S,
+                                      publish: AnyRef => Unit,
+                                      nextEventId: () => EventId = () => EventId(UUID.randomUUID().toString),
+                                      toCreated: () => Created = () => Created(System.currentTimeMillis()))
+                                     (implicit eventStore: EventStore, executionContext: ExecutionContext) {
+  type CommandResult = Xor[CommandNotAccepted, CommandAccepted.type]
 
   val commandAcceptedResult = Xor.Right(CommandAccepted)
+
+  val numOfRetry: Int = 15
 
   def createUnitOfWork(streamId: StreamId, eventsData: List[EventData], version: Version) = {
     val created = toCreated()
@@ -52,7 +53,7 @@ case class Aggregate[C <: Command, S, E <: CommandNotAccepted](handler: Handler[
   def applyEvent(state: S, event: EventData): S =
     handler.on.applyOrElse((state, event), (input: (S, EventData)) => state)
 
-  def handleCommand(command: C): Future[CommandResult] = {
+  def applyCommand(command: C): Future[CommandResult] = {
     Logger.info(s"Handle Command $command")
     eventStore.unitsOfWorkForAggregate(command.streamId).flatMap {
       case Xor.Right(historicalUnitsOfWork) =>
@@ -64,12 +65,13 @@ case class Aggregate[C <: Command, S, E <: CommandNotAccepted](handler: Handler[
           applyEvent(state, event.eventData)
         }
 
-        val xorEventsData: Xor[E, List[EventData]] = handler.handle.applyOrElse((command, currentState), (input: (C, S)) => Xor.Right(List.empty))
+        val xorEventsData: Xor[CommandNotAccepted, List[EventData]] = handler.handle.applyOrElse((command, currentState), (input: (C, S)) => Xor.Right(List.empty))
 
         xorEventsData match {
           case Xor.Right(eventsData) =>
             if (eventsData.nonEmpty) {
-              val unitOfWork = createUnitOfWork(command.streamId, eventsData, lastVersion.nextVersion())
+              val nextVersion = lastVersion.nextVersion()
+              val unitOfWork = createUnitOfWork(command.streamId, eventsData, nextVersion)
 
               eventStore.saveUnitOfWork(command.streamId, unitOfWork).map {
                 case Xor.Right(_) =>
@@ -77,11 +79,12 @@ case class Aggregate[C <: Command, S, E <: CommandNotAccepted](handler: Handler[
                   commandAcceptedResult
 
                 case Xor.Left(VersionConflictError) =>
-                  Xor.left(commonError("version conflict"))
+                  Logger.info(s"VersionConflictError for version $nextVersion and $command")
+                  Xor.left(VersionConflict(nextVersion, command))
 
                 case Xor.Left(NotSavedError(m)) =>
-                  Xor.left(commonError(m))
-              }.recover { case e => Xor.left(commonError(e.getMessage)) }
+                  Xor.left(CommandError(m))
+              }.recover { case e => Xor.left(CommandError(e.getMessage)) }
 
             } else {
               Future.successful(commandAcceptedResult)
@@ -92,7 +95,25 @@ case class Aggregate[C <: Command, S, E <: CommandNotAccepted](handler: Handler[
         }
 
       case Xor.Left(e) =>
-        Future.successful(Xor.left(commonError(e.message)))
+        Future.successful(Xor.left(CommandError(e.message)))
     }
+  }
+
+  def handleCommand(command: C): Future[CommandResult] = {
+    def run(retries: Int, command: C): Future[CommandResult] = {
+      applyCommand(command).flatMap {
+        case result@Xor.Right(_) => Future.successful(result)
+        case error@Xor.Left(VersionConflict(_, _)) =>
+          if (retries > 0) {
+            Logger.info(s"Retry $retries")
+            run(retries - 1, command)
+          } else {
+            Logger.info("Return with version conflict")
+            Future.successful(error)
+          }
+        case error => Future.successful(error)
+      }
+    }
+    run(numOfRetry, command)
   }
 }

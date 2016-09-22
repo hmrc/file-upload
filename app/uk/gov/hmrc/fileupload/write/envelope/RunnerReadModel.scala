@@ -59,7 +59,7 @@ object RunnerReadModel extends App {
 
   val envelopeId = EnvelopeId("e-4")
 
-  publishEvent(EnvelopeCreated(envelopeId, None), Version(1))
+  publishEvent(EnvelopeCreated(envelopeId, None, None, None), Version(1))
   publishEvent(FileQuarantined(envelopeId, FileId("file-1"), FileRefId("a"), 0, "test.pdf", "pdf", Json.obj()), Version(2))
   publishEvent(NoVirusDetected(envelopeId, FileId("file-1"), FileRefId("a")), Version(3))
 

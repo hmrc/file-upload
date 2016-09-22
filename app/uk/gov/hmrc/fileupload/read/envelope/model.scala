@@ -24,10 +24,9 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 case class Envelope(_id: EnvelopeId = EnvelopeId(),
                     version: Version = Version(0),
                     status: EnvelopeStatus = EnvelopeStatusOpen,
-                    constraints: Option[Constraints] = None,
                     callbackUrl: Option[String] = None,
                     expiryDate: Option[DateTime] = None,
-                    metadata: Option[Map[String, JsValue]] = None,
+                    metadata: Option[JsObject] = None,
                     files: Option[Seq[File]] = None,
                     destination: Option[String] = None,
                     application: Option[String] = None) {
@@ -36,11 +35,6 @@ case class Envelope(_id: EnvelopeId = EnvelopeId(),
     files.flatMap { _.find { file => file.fileId == fileId }}
   }
 }
-
-case class Constraints(contentTypes: Option[Seq[String]] = None,
-                       maxItems: Option[Int] = None,
-                       maxSize: Option[String] = None,
-                       maxSizePerItem: Option[String] = None)
 
 case class File(fileId: FileId,
                 fileRefId: FileRefId,
@@ -62,7 +56,6 @@ object Envelope {
   implicit val fileReads: Format[File] = Json.format[File]
   implicit val envelopeStatusReads: Reads[EnvelopeStatus] = EnvelopeStatusReads
   implicit val envelopeStatusWrites: Writes[EnvelopeStatus] = EnvelopeStatusWrites
-  implicit val constraintsReads: Format[Constraints] = Json.format[Constraints]
   implicit val envelopeFormat: Format[Envelope] = Json.format[Envelope]
   implicit val envelopeOFormat: OFormat[Envelope] = new OFormat[Envelope] {
     def reads(json: JsValue): JsResult[Envelope] = envelopeFormat.reads(json)

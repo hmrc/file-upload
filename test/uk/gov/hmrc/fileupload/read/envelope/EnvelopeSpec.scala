@@ -21,12 +21,11 @@ import java.lang.Math._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.json.{JsString, Json}
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
-import uk.gov.hmrc.fileupload.controllers.{ConstraintsReport, EnvelopeReport}
 import uk.gov.hmrc.fileupload.write.infrastructure.Version
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.util.{Random}
+import scala.util.Random
 
 class EnvelopeSpec extends UnitSpec {
 
@@ -38,16 +37,7 @@ class EnvelopeSpec extends UnitSpec {
 	    val formattedExpiryDate: String = formatter.print(today)
 	    val json = Json.parse(
         s"""
-          |{"constraints": {
-          |    "contentTypes": [
-          |      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          |      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          |      "application/vnd.oasis.opendocument.spreadsheet"
-          |    ],
-          |    "maxItems": 100,
-          |    "maxSize": "12GB",
-          |    "maxSizePerItem": "10MB"
-          |  },
+          |{
           |  "callbackUrl": "http://absolute.callback.url",
           |  "expiryDate": "$formattedExpiryDate",
           |  "metadata": {
@@ -62,39 +52,12 @@ class EnvelopeSpec extends UnitSpec {
 
 	    val result: Envelope = Envelope.fromJson(json, id)
 
-      val contraints = Constraints(contentTypes = Some(Seq("application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "application/vnd.oasis.opendocument.spreadsheet")),
-        maxItems = Some(100),
-        maxSize = Some("12GB"),
-        maxSizePerItem = Some("10MB"))
-
-      val expectedResult = Envelope(id, Version(1), EnvelopeStatusOpen, Some(contraints),
+      val expectedResult = Envelope(id, Version(1), EnvelopeStatusOpen,
                                     callbackUrl = Some("http://absolute.callback.url"),
                                     expiryDate = Some(formatter.parseDateTime(formattedExpiryDate)),
-                                    metadata = Some(Map("anything" -> JsString("the caller wants to add to the envelope"))), None)
+                                    metadata = Some(Json.obj("anything" -> "the caller wants to add to the envelope")))
 
       result shouldEqual expectedResult
-    }
-  }
-
-  "an envelope" should {
-    "have maxItems constrain defaulted to 1 when not specified" in {
-      val dto: EnvelopeReport = EnvelopeReport(constraints = Some(ConstraintsReport(maxItems = None)))
-
-      val envelope: Envelope = EnvelopeReport.toEnvelope(EnvelopeId("abc"), dto)
-
-      envelope.constraints.get.maxItems should equal( Some(1) )
-    }
-  }
-
-  "an envelope" should {
-    "have maxItems constrain NOT defaulted to 1 when specified" in {
-      val dto: EnvelopeReport = EnvelopeReport(constraints = Some(ConstraintsReport(maxItems = Some(2))))
-
-      val envelope: Envelope = EnvelopeReport.toEnvelope(EnvelopeId("abc"), dto)
-
-      envelope.constraints.get.maxItems should equal( Some(2) )
     }
   }
 
