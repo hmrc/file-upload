@@ -40,7 +40,7 @@ trait FileActions extends ActionsSupport {
 
   def downloadEnvelope(envelopeId: EnvelopeId): WSResponse =
     WS
-      .url(s"$fileTransferUrl/non-stub/envelopes/$envelopeId")
+      .url(s"$fileTransferUrl/envelopes/$envelopeId")
       .get()
       .futureValue
 }
