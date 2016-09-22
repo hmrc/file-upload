@@ -59,7 +59,7 @@ trait EnvelopeActions extends ActionsSupport with MongoSpecSupport {
 
   def getEnvelopesForDestination(destination: Option[String]): WSResponse = {
     WS
-      .url(s"$fileTransferUrl/non-stub/envelopes${ destination.map(d => s"?destination=$d").getOrElse("") }")
+      .url(s"$fileTransferUrl/envelopes${ destination.map(d => s"?destination=$d").getOrElse("") }")
       .get()
       .futureValue
   }
