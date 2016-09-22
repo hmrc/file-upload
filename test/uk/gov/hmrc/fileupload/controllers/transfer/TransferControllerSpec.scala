@@ -45,7 +45,7 @@ class TransferControllerSpec extends UnitSpec with WithFakeApplication with Scal
       val request = FakeRequest()
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.Right(CommandAccepted)))
-      val result = controller.nonStubDelete(envelope._id)(request).futureValue
+      val result = controller.delete(envelope._id)(request).futureValue
 
       result.header.status shouldBe Status.OK
     }
@@ -55,7 +55,7 @@ class TransferControllerSpec extends UnitSpec with WithFakeApplication with Scal
       val request = FakeRequest()
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.Left(CommandError("not good"))))
-      val result = controller.nonStubDelete(envelope._id)(request).futureValue
+      val result = controller.delete(envelope._id)(request).futureValue
 
       result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
     }
@@ -65,7 +65,7 @@ class TransferControllerSpec extends UnitSpec with WithFakeApplication with Scal
       val request = FakeRequest()
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.Left(EnvelopeNotFoundError)))
-      val result = controller.nonStubDelete(envelope._id)(request).futureValue
+      val result = controller.delete(envelope._id)(request).futureValue
 
       result.header.status shouldBe Status.NOT_FOUND
     }
@@ -75,7 +75,7 @@ class TransferControllerSpec extends UnitSpec with WithFakeApplication with Scal
       val request = FakeRequest()
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.Left(EnvelopeArchivedError)))
-      val result = controller.nonStubDelete(envelope._id)(request).futureValue
+      val result = controller.delete(envelope._id)(request).futureValue
 
       result.header.status shouldBe Status.GONE
     }
@@ -85,7 +85,7 @@ class TransferControllerSpec extends UnitSpec with WithFakeApplication with Scal
       val request = FakeRequest()
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.Left(EnvelopeSealedError)))
-      val result = controller.nonStubDelete(envelope._id)(request).futureValue
+      val result = controller.delete(envelope._id)(request).futureValue
 
       result.header.status shouldBe Status.LOCKED
     }
@@ -95,7 +95,7 @@ class TransferControllerSpec extends UnitSpec with WithFakeApplication with Scal
       val request = FakeRequest()
 
       val controller = newController(handleCommand = _ => failed)
-      val result = controller.nonStubDelete(envelope._id)(request).futureValue
+      val result = controller.delete(envelope._id)(request).futureValue
 
       result.header.status shouldBe Status.SERVICE_UNAVAILABLE
     }

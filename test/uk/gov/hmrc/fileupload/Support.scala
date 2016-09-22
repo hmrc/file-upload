@@ -82,20 +82,4 @@ object Support {
   object Implicits {
     implicit def underLyingActor[T <: Actor](actorRef: ActorRef): T = actorRef.asInstanceOf[TestActorRef[T]].underlyingActor
   }
-
-  class DBStub extends DB with DBMetaCommands {
-    override def connection: MongoConnection = ???
-
-    override def failoverStrategy: FailoverStrategy = ???
-
-    override def name: String = ???
-  }
-
-  object FileRepositoryStub {
-    def OkWriteResult(n: Int): Future[WriteResult] = Future.successful(DefaultWriteResult(ok = true, n, Seq(), None, Some(1), None))
-  }
-
-  class FileRepositoryStub(var data: Map[String, Envelope] = Map(), val iteratee: Iteratee[ByteStream, Future[JSONReadFile]]) extends Repository(() => new DBStub) {
-    override def iterateeForUpload(envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = iteratee
-  }
 }
