@@ -39,7 +39,9 @@ Request (POST): localhost:8898/file-upload/envelopes
 
 Body:
 ``` json
-{}
+{
+    "callbackUrl": {user provides}
+}
 ```
 
 Response (in Headers): Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
@@ -53,8 +55,7 @@ GET     /file-upload/envelopes/{envelope-id}
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 200   | File Successfully uploaded  |
-| Not Found | 404   |  Envelope with id not found. |
-| Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
+| Not Found | 404   |  Envelope with id not found. |  
 
 
 #### Example
@@ -70,16 +71,15 @@ Response (in Body):
 ```
 
 #### Hard Delete an Envelope
-Completely deletes an envelope and its contents from the front end database.
+Completely deletes an envelope and its contents.
 ```
 DELETE  /file-upload/envelopes/{envelope-id}
 ```
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Accepted  | 202   | Deleted  |
-| Bad Request  | 400   | Envelope not deleted |
+| Bad Request  | 400   | Envelope not deleted. |
 | Not Found | 404   |  Envelope not found. |
-| Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
 
 #### Example 
 
@@ -88,14 +88,13 @@ Request (DELETE): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c
 Response: 202
 
 #### Hard Delete File
-Delete a file in an envelope
+Delete a file in an envelope.
 
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 200   | Delete File  |
 | Bad Request  | 400   | File Not Deleted. |
-| Not Found | 404   |  File not found in envelope |
-| Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
+| Not Found | 404   |  File not found in envelope | 
 
 #### Example
 
@@ -104,14 +103,12 @@ Request (DELETE): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c
 Response: 200
 
 #### Retrieve Metadata
-Retrieve metadata from a file in an envelope
+Retrieve metadata from a file in an envelope.
 
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 200   | Successfully retrieved metadata  |
-| Not Found | 404   |  Envelope not found. |
-| Not Found | 404   |  File not found inside Envelope. |
-| Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
+| Not Found | 404   |  Metadata not found |
 
 #### Example
 
@@ -131,7 +128,7 @@ Response (in Body):
 ```
 
 #### Download File
-Downloads a file from the envelope
+Downloads a file from the envelope.
 ```
 GET   	/file-upload/envelopes/{envelope-id}/files/{file-id}/content
 ```
@@ -155,11 +152,7 @@ POST    /file-routing/requests
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Created  | 201   | Successfully created routing request.  |
-| Bad Request  | 400   |  Destination not supported; Routing request already received for envelope. |
-| Bad Request  | 400   |  Routing request already received for envelope |
-| Bad Request | 400   |  File contain errors. Envelope not found. |
-| Bad Request | 400   |  Envelope not found |
-| Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |  
+| Bad Request  | 400   |  Envelope not found. | 
 
 #### Example
 Request (POST): localhost:8898/file-routing/requests
@@ -277,8 +270,6 @@ DELETE    /file-transfer/envelopes/{envelope-id}
 | Not Found | 404   |  Envelope ID not found. |
 | Gone | 410   |  Has Deleted before. |
 | Locked | 423   |  Unable to Deleted. |
-| Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |
-| Service Unavailable | 503   |  SERVICE_UNAVAILABLE |
 
 #### Example
 Request (DELETE): localhost:8898/file-transfer/envelopes
