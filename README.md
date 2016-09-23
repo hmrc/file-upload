@@ -14,7 +14,7 @@ To run the application execute
 sbt run
 ```
 
-The endpoints can then be accessed with the base url http://localhost:8898/file-upload/
+The endpoints can then be accessed with the base url http://localhost:8898/
 
 ## Endpoints
 
@@ -25,17 +25,23 @@ Alternatively  look  here for a [RAML definition](raml/file-upload.raml)
 #### Create An Envelope
 Creates an envelope and auto generates an Id. Successful response provides in the headers the link  and the envelope Id.
 ```
-POST   	/file-upload/envelopes
+POST   	file-upload/envelopes
 ```
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 201   | Envelope Successfully Created |
-| Bad Request | 400   |  Envelope Not Created |
-| Internal Server Error  | 500   |  INTERNAL_SERVER_ERROR |    
+| Bad Request | 400   |  Envelope Not Created |  
 
 #### Example
 
 Request (POST): localhost:8898/file-upload/envelopes
+
+Body:
+``` json
+{}
+```
+
+#### OR
 
 Body:
 ``` json
@@ -44,12 +50,14 @@ Body:
 }
 ```
 
+Note: Parameters in body are optional.
+
 Response (in Headers): Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
 #### Show Envelope
 Show Envelope which comprises of Envelope Id and the current status.
 ```
-GET     /file-upload/envelopes/{envelope-id}
+GET     file-upload/envelopes/{envelope-id}
 ```
 
 | Responses    | Status    | Description |
@@ -60,7 +68,7 @@ GET     /file-upload/envelopes/{envelope-id}
 
 #### Example
 
-Request (GET): localhost:8898/file-upload/envelopes/46d95a7c-c03b-484c-ac70-bf760cd36510 
+Request (GET): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
 Response (in Body):
 ```json
@@ -73,7 +81,7 @@ Response (in Body):
 #### Hard Delete an Envelope
 Completely deletes an envelope and its contents.
 ```
-DELETE  /file-upload/envelopes/{envelope-id}
+DELETE  file-upload/envelopes/{envelope-id}
 ```
 | Responses    | Status    | Description |
 | --------|---------|-------|
@@ -89,6 +97,9 @@ Response: 202
 
 #### Hard Delete File
 Delete a file in an envelope.
+```
+DELETE  file-upload/envelopes/{envelope-id}/files/{fileId}
+```
 
 | Responses    | Status    | Description |
 | --------|---------|-------|
@@ -104,6 +115,9 @@ Response: 200
 
 #### Retrieve Metadata
 Retrieve metadata from a file in an envelope.
+```
+GET     file-upload/envelopes/{envelope-id}/files/{filesId}/metadata
+```
 
 | Responses    | Status    | Description |
 | --------|---------|-------|
@@ -112,7 +126,7 @@ Retrieve metadata from a file in an envelope.
 
 #### Example
 
-Request (GET): localhost:8898/file-upload/envelopes/7989913d-b41f-4455-8baa-e8ed0168960c/files/file-id-1/metadata
+Request (GET): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1/metadata
 
 Response (in Body): 
 ``` json
@@ -123,7 +137,7 @@ Response (in Body):
   "contentType": "pdf",
   "created": "1970-01-01T00:00:00Z",
   "metadata": {},
-  "href": "/file-upload/envelopes/7989913d-b41f-4455-8baa-e8ed0168960c/files/file-id-1/content"
+  "href": "/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1/content"
 }
 ```
 
@@ -160,7 +174,7 @@ Request (POST): localhost:8898/file-routing/requests
 Body:
 ``` json
 {
-	"envelopeId":"8f494f63-d2e3-4ab1-9154-5f64a0b70f7c",
+	"envelopeId":"0b215e97-11d4-4006-91db-c067e74fc653",
 	"application":"application/json",
 	"destination":"DMS"
 }
@@ -254,7 +268,7 @@ GET     /file-transfer/envelopes/{envelope-id}
 
 #### Example
 
-Request (GET): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
+Request (GET): localhost:8898/file-transfer/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
 Response: Download Zip file
 
@@ -272,7 +286,7 @@ DELETE    /file-transfer/envelopes/{envelope-id}
 | Locked | 423   |  Unable to Deleted. |
 
 #### Example
-Request (DELETE): localhost:8898/file-transfer/envelopes
+Request (DELETE): localhost:8898/file-transfer/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
 Response: 200
 
