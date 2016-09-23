@@ -18,7 +18,7 @@ class FileTransferIntegrationSpec extends IntegrationSpec with FileActions with 
     new Repository(mongo).removeAll().futureValue
   }
 
-  feature("File Transfer") {
+  feature("File Transfer list") {
 
     scenario("List Envelopes for a given destination") {
       Given("I know a destination for envelopes")
@@ -66,6 +66,35 @@ class FileTransferIntegrationSpec extends IntegrationSpec with FileActions with 
         (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe expectedNumberOfEnvelopes
       }
     }
+  }
 
+  feature("File Transfer delete") {
+
+    scenario("Archive Envelope") {
+      Given("I know a destination for envelopes")
+      val destination = "DMS"
+
+      And("There exist CLOSED envelopes that match it")
+      val envelopeId = createEnvelope()
+      submitRoutingRequest(envelopeId, destination)
+
+      And("There exist other envelopes with different statuses")
+      createEnvelope()
+
+      eventually {
+        When("I archive the envelope")
+        archiveEnvelopFor(envelopeId)
+
+        Then(s"I invoke GET /file-transfer/envelopes?destination=$destination")
+        val response = getEnvelopesForDestination(Some(destination))
+
+        And("I will receive a 200 Ok response")
+        response.status shouldBe OK
+
+        And("The response will contain expected number of envelopes")
+        val body = Json.parse(response.body)
+        (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe 0
+      }
+    }
   }
 }

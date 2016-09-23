@@ -8,7 +8,7 @@ object EnvelopeReportSupport extends Support {
 
   def requestBody(args: Map[String, Any] = Map.empty) = s"""
      |{
-     |  "callbackUrl": "${args.getOrElse("callbackUrl", "http://bbc.co.uk")}",
+     |  "callbackUrl": "${args.getOrElse("callbackUrl", "http://callback-url.tax.gov.uk")}",
      |  "expiryDate": "${args.getOrElse("formattedExpiryDate", "2099-07-14T10:28:18Z")}",
      |  "metadata": {
      |    "anything": "the caller wants to add to the envelope"

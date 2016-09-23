@@ -3,7 +3,3 @@
 GET        /envelopes                         @uk.gov.hmrc.fileupload.controllers.transfer.TransferController.list()
 GET        /envelopes/:envelopeId             @uk.gov.hmrc.fileupload.controllers.transfer.TransferController.download(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)
 DELETE     /envelopes/:envelopeId             @uk.gov.hmrc.fileupload.controllers.transfer.TransferController.delete(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)
-
-
-DELETE     /non-stub/envelopes/:envelopeId    @uk.gov.hmrc.fileupload.controllers.transfer.TransferController.nonStubDelete(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)
-GET        /non-stub/envelopes                @uk.gov.hmrc.fileupload.controllers.transfer.TransferController.nonStubList
