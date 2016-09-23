@@ -1,6 +1,9 @@
 package uk.gov.hmrc.fileupload
 
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
+import play.api.test.FakeApplication
+import uk.gov.hmrc.fileupload.read.envelope.Repository
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
 
 /**
@@ -8,7 +11,17 @@ import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
   * Delete Envelope
   *
   */
-class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with Eventually with EnvelopeActions {
+class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with Eventually with EnvelopeActions with BeforeAndAfterEach{
+
+  override implicit lazy val app = FakeApplication(
+    additionalConfiguration = Map(
+      "mongodb.uri" -> s"mongodb://localhost:27017/$databaseName"
+    ))
+
+  override def beforeEach {
+    new Repository(mongo).removeAll().futureValue
+  }
+
 
   feature("Delete Envelope") {
 

@@ -1,8 +1,11 @@
 package uk.gov.hmrc.fileupload
 
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
 import play.api.libs.json.{JsObject, Json}
+import play.api.test.FakeApplication
 import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
+import uk.gov.hmrc.fileupload.read.envelope.Repository
 import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport.prettify
 import uk.gov.hmrc.fileupload.support.FileMetadataReportSupport._
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActions, IntegrationSpec}
@@ -12,7 +15,16 @@ import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActio
   * Update FileMetadata
   *
   */
-class GetFileMetadataIntegrationSpec extends IntegrationSpec with Eventually with FileActions with EnvelopeActions with EventsActions {
+class GetFileMetadataIntegrationSpec extends IntegrationSpec with Eventually with FileActions with EnvelopeActions with EventsActions with BeforeAndAfterEach {
+
+  override implicit lazy val app = FakeApplication(
+    additionalConfiguration = Map(
+      "mongodb.uri" -> s"mongodb://localhost:27017/$databaseName"
+    ))
+
+  override def beforeEach {
+    new Repository(mongo).removeAll().futureValue
+  }
 
   feature("Retrieve Metadata") {
 
