@@ -274,7 +274,7 @@ DELETE    /file-transfer/envelopes/{envelope-id}
 #### Example
 Request (DELETE): localhost:8898/file-transfer/envelopes
 
-Response: Soft Envelope Deleted
+Response: 200
 
 ### License
 
