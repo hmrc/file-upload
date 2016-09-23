@@ -40,7 +40,7 @@ Request (POST): localhost:8898/file-upload/envelopes
 Body:
 ``` json
 {
-    "callbackUrl": {user provides}
+    "callbackUrl": "{user provides}"
 }
 ```
 
