@@ -27,6 +27,10 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with FileActions with 
     new Repository(mongo).removeAll().futureValue
   }
 
+  override def afterEach {
+    mongo.apply().drop().futureValue
+  }
+
   feature("Download File") {
 
     scenario("Check that a file can be downloaded") {

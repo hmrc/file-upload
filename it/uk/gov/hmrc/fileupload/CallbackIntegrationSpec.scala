@@ -23,6 +23,9 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
     new Repository(mongo).removeAll().futureValue
   }
 
+  override def afterEach {
+    mongo.apply().drop().futureValue
+  }
 
   val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
   val today = new DateTime().plusMinutes(10)

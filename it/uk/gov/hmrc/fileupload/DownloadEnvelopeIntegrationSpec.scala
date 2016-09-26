@@ -22,6 +22,10 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with FileActions w
     new Repository(mongo).removeAll().futureValue
   }
 
+  override def afterEach {
+    mongo.apply().drop().futureValue
+  }
+
   implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
 
   feature("Download Envelope") {

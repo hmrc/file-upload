@@ -26,6 +26,10 @@ class GetFileMetadataIntegrationSpec extends IntegrationSpec with Eventually wit
     new Repository(mongo).removeAll().futureValue
   }
 
+  override def afterEach {
+    mongo.apply().drop().futureValue
+  }
+
   feature("Retrieve Metadata") {
 
     scenario("GET metadata with valid envelope id") {

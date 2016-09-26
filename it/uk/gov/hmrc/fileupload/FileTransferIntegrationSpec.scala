@@ -18,6 +18,10 @@ class FileTransferIntegrationSpec extends IntegrationSpec with FileActions with 
     new Repository(mongo).removeAll().futureValue
   }
 
+  override def afterEach {
+    mongo.apply().drop().futureValue
+  }
+
   feature("File Transfer list") {
 
     scenario("List Envelopes for a given destination") {

@@ -24,6 +24,9 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with Eventually with En
     new Repository(mongo).removeAll().futureValue
   }
 
+  override def afterEach {
+    mongo.apply().drop().futureValue
+  }
 
   feature("Retrieve Envelope") {
 

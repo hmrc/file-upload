@@ -25,6 +25,10 @@ class DeleteFileIntegrationSpec extends IntegrationSpec with FileActions with En
     new Repository(mongo).removeAll().futureValue
   }
 
+  override def afterEach {
+    mongo.apply().drop().futureValue
+  }
+
   implicit override val patienceConfig = PatienceConfig(timeout = Span(20, Seconds), interval = Span(5, Millis))
 
   feature("Delete file") {

@@ -30,6 +30,10 @@ class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with En
     new Repository(mongo).removeAll().futureValue
   }
 
+  override def afterEach {
+    mongo.apply().drop().futureValue
+  }
+
   feature("Upload File") {
 
     info("I want to upload a file")

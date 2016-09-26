@@ -22,6 +22,9 @@ class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with Eventually with
     new Repository(mongo).removeAll().futureValue
   }
 
+  override def afterEach {
+    mongo.apply().drop().futureValue
+  }
 
   feature("Delete Envelope") {
 
