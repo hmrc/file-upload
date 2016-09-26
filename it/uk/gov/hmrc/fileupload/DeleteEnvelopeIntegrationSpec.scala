@@ -7,6 +7,7 @@ import uk.gov.hmrc.fileupload.support.IntegrationSpec
   * Delete Envelope
   *
   */
+
 class DeleteEnvelopeIntegrationSpec extends IntegrationSpec{
 
   feature("Delete Envelope") {
