@@ -1,6 +1,6 @@
 package uk.gov.hmrc.fileupload
 
-import uk.gov.hmrc.fileupload.support.IntegrationSpec
+import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
 
 /**
   * Integration tests for FILE-65
@@ -8,7 +8,7 @@ import uk.gov.hmrc.fileupload.support.IntegrationSpec
   *
   */
 
-class DeleteEnvelopeIntegrationSpec extends IntegrationSpec{
+class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions {
 
   feature("Delete Envelope") {
 

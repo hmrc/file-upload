@@ -9,28 +9,23 @@ import play.api.http.Status
 import play.api.test.FakeApplication
 import uk.gov.hmrc.fileupload.read.envelope.Repository
 import uk.gov.hmrc.mongo.MongoSpecSupport
+import scala.concurrent.ExecutionContext.Implicits._
 
 trait IntegrationSpec extends FeatureSpec with GivenWhenThen with OneServerPerSuite with ScalaFutures
-  with IntegrationPatience with Matchers with Status with EnvelopeActions with EventsActions
-  with FileActions with Eventually with FakeConsumingService with FakeAuditingService
+  with IntegrationPatience with Matchers with Status with Eventually with FakeConsumingService with FakeAuditingService
   with BeforeAndAfterEach with MongoSpecSupport{
 
   override lazy val port: Int = 9000
 
   val nextId = () => UUID.randomUUID().toString
 
-  override implicit lazy val app = FakeApplication(
+  override lazy val app = FakeApplication(
     additionalConfiguration = Map(
       "mongodb.uri" -> s"mongodb://localhost:27017/$databaseName"
     )
   )
 
   override def beforeEach {
-    implicit lazy val app = FakeApplication(
-      additionalConfiguration = Map(
-        "mongodb.uri" -> s"mongodb://localhost:27017/$databaseName"
-      )
-    )
     new Repository(mongo).removeAll().futureValue
   }
 

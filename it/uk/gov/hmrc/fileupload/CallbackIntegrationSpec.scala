@@ -7,7 +7,8 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.controllers.{FileInQuarantineStored, FileScanned}
 import uk.gov.hmrc.fileupload.support._
 
-class CallbackIntegrationSpec extends IntegrationSpec{
+class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
+
   implicit override val patienceConfig = PatienceConfig(timeout = Span(10, Seconds), interval = Span(10, Millis))
 
   val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")

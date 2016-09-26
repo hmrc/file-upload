@@ -1,9 +1,9 @@
 package uk.gov.hmrc.fileupload
 
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.fileupload.support.IntegrationSpec
+import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
 
-class FileTransferIntegrationSpec extends IntegrationSpec{
+class FileTransferIntegrationSpec extends IntegrationSpec with EnvelopeActions {
 
   feature("File Transfer list") {
 

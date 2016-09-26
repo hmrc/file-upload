@@ -13,7 +13,7 @@ import uk.gov.hmrc.fileupload.support._
   * Upload File
   *
   */
-class UploadFileIntegrationSpec extends IntegrationSpec{
+class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(20, Seconds), interval = Span(5, Millis))
 

@@ -4,14 +4,14 @@ import play.api.libs.json.JsObject
 import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
 import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport.prettify
 import uk.gov.hmrc.fileupload.support.FileMetadataReportSupport._
-import uk.gov.hmrc.fileupload.support.IntegrationSpec
+import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActions, IntegrationSpec}
 
 /**
   * Integration tests for FILE-100
   * Update FileMetadata
   *
   */
-class GetFileMetadataIntegrationSpec extends IntegrationSpec{
+class GetFileMetadataIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
 
   feature("Retrieve Metadata") {
 

@@ -4,14 +4,14 @@ import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.ws._
 import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport._
-import uk.gov.hmrc.fileupload.support.IntegrationSpec
+import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
 
 /**
   * Integration tests for FILE-63 & FILE-64
   * Create Envelope and Get Envelope
   *
   */
-class CreateEnvelopeIntegrationSpec extends IntegrationSpec {
+class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions {
 
   val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
   val today = new DateTime().plusMinutes(10)

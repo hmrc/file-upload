@@ -2,14 +2,14 @@ package uk.gov.hmrc.fileupload
 
 import play.api.libs.json._
 import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
-import uk.gov.hmrc.fileupload.support.IntegrationSpec
+import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, IntegrationSpec}
 
 /**
   * Integration tests for FILE-63 & FILE-64
   * Create Envelope and Get Envelope
   *
   */
-class GetEnvelopeIntegrationSpec extends IntegrationSpec{
+class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions with EventsActions {
 
   feature("Retrieve Envelope") {
 

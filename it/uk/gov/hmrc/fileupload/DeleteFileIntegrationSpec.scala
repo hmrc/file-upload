@@ -4,14 +4,14 @@ import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.json.Json
 import play.api.libs.ws._
 import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
-import uk.gov.hmrc.fileupload.support.IntegrationSpec
+import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActions, IntegrationSpec}
 
 /**
   * Integration tests for FILE-180
   * Delete File
   *
   */
-class DeleteFileIntegrationSpec extends IntegrationSpec{
+class DeleteFileIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(20, Seconds), interval = Span(5, Millis))
 
