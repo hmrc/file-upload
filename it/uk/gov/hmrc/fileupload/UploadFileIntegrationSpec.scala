@@ -2,14 +2,10 @@ package uk.gov.hmrc.fileupload
 
 import java.io.RandomAccessFile
 
-import org.scalatest.BeforeAndAfterEach
-import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws._
-import play.api.test.FakeApplication
 import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
-import uk.gov.hmrc.fileupload.read.envelope.Repository
 import uk.gov.hmrc.fileupload.support._
 
 /**
@@ -17,18 +13,9 @@ import uk.gov.hmrc.fileupload.support._
   * Upload File
   *
   */
-class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with EnvelopeActions with EventsActions with FakeConsumingService with Eventually with BeforeAndAfterEach{
+class UploadFileIntegrationSpec extends IntegrationSpec{
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(20, Seconds), interval = Span(5, Millis))
-
-  override implicit lazy val app = FakeApplication(
-    additionalConfiguration = Map(
-      "mongodb.uri" -> s"mongodb://localhost:27017/$databaseName"
-    ))
-
-  override def beforeEach {
-    new Repository(mongo).removeAll().futureValue
-  }
 
   feature("Upload File") {
 

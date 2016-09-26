@@ -2,28 +2,16 @@ package uk.gov.hmrc.fileupload
 
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import org.scalatest.BeforeAndAfterEach
 import play.api.libs.ws._
-import play.api.test.FakeApplication
-import uk.gov.hmrc.fileupload.read.envelope.Repository
 import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport._
-import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
+import uk.gov.hmrc.fileupload.support.IntegrationSpec
 
 /**
   * Integration tests for FILE-63 & FILE-64
   * Create Envelope and Get Envelope
   *
   */
-class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions with BeforeAndAfterEach{
-
-  override implicit lazy val app = FakeApplication(
-    additionalConfiguration = Map(
-      "mongodb.uri" -> s"mongodb://localhost:27017/$databaseName"
-    ))
-
-  override def beforeEach {
-    new Repository(mongo).removeAll().futureValue
-  }
+class CreateEnvelopeIntegrationSpec extends IntegrationSpec {
 
   val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
   val today = new DateTime().plusMinutes(10)
