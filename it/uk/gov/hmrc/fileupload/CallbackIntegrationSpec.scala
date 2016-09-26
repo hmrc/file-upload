@@ -11,7 +11,7 @@ import uk.gov.hmrc.fileupload.controllers.{FileInQuarantineStored, FileScanned}
 import uk.gov.hmrc.fileupload.read.envelope.Repository
 import uk.gov.hmrc.fileupload.support._
 
-class CallbackSpec extends IntegrationSpec with EnvelopeActions with EventsActions with FileActions with Eventually with FakeConsumingService with FakeAuditingService with BeforeAndAfterEach{
+class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with EventsActions with FileActions with Eventually with FakeConsumingService with FakeAuditingService with BeforeAndAfterEach{
   implicit override val patienceConfig = PatienceConfig(timeout = Span(10, Seconds), interval = Span(10, Millis))
 
   override implicit lazy val app = FakeApplication(
