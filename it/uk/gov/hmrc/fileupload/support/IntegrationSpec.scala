@@ -26,6 +26,11 @@ trait IntegrationSpec extends FeatureSpec with GivenWhenThen with OneServerPerSu
   )
 
   override def beforeEach {
+    implicit lazy val app = FakeApplication(
+      additionalConfiguration = Map(
+        "mongodb.uri" -> s"mongodb://localhost:27017/$databaseName"
+      )
+    )
     new Repository(mongo).removeAll().futureValue
   }
 
