@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.fileupload.read.infrastructure
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Props}
+import play.api.Logger
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.write.infrastructure.Event
 
-class CoordinatorActor(childProps: (EnvelopeId) => Props, subscribedEventTypes: Set[Class[_]], subscribe: (ActorRef, Class[_]) => Boolean) extends Actor with ActorLogging {
+class CoordinatorActor(childProps: (EnvelopeId) => Props, subscribedEventTypes: Set[Class[_]], subscribe: (ActorRef, Class[_]) => Boolean) extends Actor {
 
   override def preStart = {
     subscribe(self, classOf[Event])
@@ -31,7 +32,7 @@ class CoordinatorActor(childProps: (EnvelopeId) => Props, subscribedEventTypes: 
       val child = context.child(e.streamId.value).getOrElse(context.actorOf(childProps(EnvelopeId(e.streamId.value)), e.streamId.value))
       child ! e
 
-    case unhandledEvent: Event => log.info("not subscribedTo {}", unhandledEvent.eventData.getClass)
+    case unhandledEvent: Event => Logger.debug(s"not subscribedTo ${unhandledEvent.eventData.getClass}")
   }
 
   private def isOneOfSubscribedEventTypes(e: Event) =

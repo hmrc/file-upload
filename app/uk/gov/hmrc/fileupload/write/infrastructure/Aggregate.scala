@@ -59,7 +59,6 @@ case class Aggregate[C <: Command, S](handler: Handler[C, S],
       case Xor.Right(historicalUnitsOfWork) =>
         val lastVersion = historicalUnitsOfWork.reverse.headOption.map(_.version).getOrElse(Version(0))
         val historicalEvents = historicalUnitsOfWork.flatMap(_.events)
-        Logger.info(s"historicalEvents $historicalEvents")
 
         val currentState = historicalEvents.foldLeft(defaultState()) { (state, event) =>
           applyEvent(state, event.eventData)
@@ -75,7 +74,10 @@ case class Aggregate[C <: Command, S](handler: Handler[C, S],
 
               eventStore.saveUnitOfWork(command.streamId, unitOfWork).map {
                 case Xor.Right(_) =>
-                  unitOfWork.events.foreach(publish)
+                  unitOfWork.events.foreach { event =>
+                    Logger.info(s"Event created $event")
+                    publish(event)
+                  }
                   commandAcceptedResult
 
                 case Xor.Left(VersionConflictError) =>
@@ -108,7 +110,7 @@ case class Aggregate[C <: Command, S](handler: Handler[C, S],
             Logger.info(s"Retry $retries")
             run(retries - 1, command)
           } else {
-            Logger.info("Return with version conflict")
+            Logger.warn(s"Return with version conflict $command")
             Future.successful(error)
           }
         case error => Future.successful(error)
