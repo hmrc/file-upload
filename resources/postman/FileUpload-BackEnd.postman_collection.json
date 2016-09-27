@@ -1,8 +1,8 @@
 {
 	"variables": [],
 	"info": {
-		"name": "File Upload",
-		"_postman_id": "f1ee10c8-287f-2530-25c4-dc7335cd68bc",
+		"name": "File Upload - Back End",
+		"_postman_id": "ec06567e-b678-805d-5c2f-54d999bc3a4f",
 		"description": "",
 		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
 	},
@@ -23,7 +23,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes",
+						"url": "{{be-url}}/file-upload/envelopes",
 						"method": "POST",
 						"header": [
 							{
@@ -57,7 +57,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{emptyEnvelopeId}}",
+						"url": "{{be-url}}/file-upload/envelopes/{{emptyEnvelopeId}}",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -114,7 +114,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes",
+						"url": "{{be-url}}/file-upload/envelopes",
 						"method": "POST",
 						"header": [
 							{
@@ -148,7 +148,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -211,7 +211,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes",
+						"url": "{{be-url}}/file-upload/envelopes",
 						"method": "POST",
 						"header": [
 							{
@@ -245,7 +245,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}",
 						"method": "DELETE",
 						"header": [],
 						"body": {
@@ -268,7 +268,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -320,12 +320,12 @@
 							"listen": "test",
 							"script": {
 								"type": "text/javascript",
-								"exec": "tests[\"Status code is 404\"] = responseCode.code === 404;\n\nvar jsonData = JSON.parse(responseBody);\ntests[\"Check error response is returned\"] = jsonData.error.msg === \"Envelope 123456789 not found\";"
+								"exec": "tests[\"Status code is 404\"] = responseCode.code === 404;\n\nvar jsonData = JSON.parse(responseBody);\ntests[\"Check error response is returned\"] = jsonData.error.msg === \"Envelope with id: 123456789 not found\";"
 							}
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/123456789",
+						"url": "{{be-url}}/file-upload/envelopes/123456789",
 						"method": "DELETE",
 						"header": [],
 						"body": {
@@ -348,7 +348,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes",
+						"url": "{{be-url}}/file-upload/envelopes",
 						"method": "POST",
 						"header": [
 							{
@@ -389,7 +389,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeIdWithFile}}/files/{{fileId}}/content",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeIdWithFile}}/files/{{fileId}}/content",
 						"method": "PUT",
 						"header": [],
 						"body": {
@@ -412,7 +412,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeIdWithFile}}",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeIdWithFile}}",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -469,7 +469,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeIdWithFile}}",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeIdWithFile}}",
 						"method": "DELETE",
 						"header": [],
 						"body": {
@@ -492,7 +492,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeIdWithFile}}",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeIdWithFile}}",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -555,7 +555,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes",
+						"url": "{{be-url}}/file-upload/envelopes",
 						"method": "POST",
 						"header": [
 							{
@@ -589,7 +589,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -641,12 +641,12 @@
 							"listen": "test",
 							"script": {
 								"type": "text/javascript",
-								"exec": "tests[\"Status code is 404\"] = responseCode.code === 404;\ntests[\"Status code name is Not Found\"] = responseCode.name.has(\"Not Found\");\n\nvar jsonData = JSON.parse(responseBody);\ntests[\"Check error response is returned\"] = jsonData.error.msg === \"Envelope 123456789 not found\";\n\n\n"
+								"exec": "tests[\"Status code is 404\"] = responseCode.code === 404;\ntests[\"Status code name is Not Found\"] = responseCode.name.has(\"Not Found\");\n\nvar jsonData = JSON.parse(responseBody);\ntests[\"Check error response is returned\"] = jsonData.error.msg === \"Envelope with id: 123456789 not found\";\n\n\n"
 							}
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/123456789",
+						"url": "{{be-url}}/file-upload/envelopes/123456789",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -709,7 +709,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope",
+						"url": "{{be-url}}/file-upload/envelopes",
 						"method": "POST",
 						"header": [
 							{
@@ -750,7 +750,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeIdWithFile}}/files/{{fileId}}/content",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeIdWithFile}}/files/{{fileId}}/content",
 						"method": "PUT",
 						"header": [],
 						"body": {
@@ -773,7 +773,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeIdWithFile}}",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeIdWithFile}}",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -830,7 +830,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeIdWithFile}}/files/{{fileId}}/content",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeIdWithFile}}/files/{{fileId}}/content",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -963,7 +963,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/123456/files/{{fileId}}/content",
+						"url": "{{be-url}}/file-upload/envelopes/123456/files/{{fileId}}/content",
 						"method": "PUT",
 						"header": [],
 						"body": {
@@ -992,7 +992,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope",
+						"url": "{{be-url}}/file-upload/envelopes",
 						"method": "POST",
 						"header": [
 							{
@@ -1033,7 +1033,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/metadata",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/metadata",
 						"method": "PUT",
 						"header": [
 							{
@@ -1062,7 +1062,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/content",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/content",
 						"method": "PUT",
 						"header": [],
 						"body": {
@@ -1085,7 +1085,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -1142,7 +1142,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/metadata",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/metadata",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -1165,7 +1165,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/content",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/content",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -1297,7 +1297,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelope",
+						"url": "{{be-url}}/file-upload/envelopes",
 						"method": "POST",
 						"header": [
 							{
@@ -1338,7 +1338,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/metadata",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/metadata",
 						"method": "PUT",
 						"header": [
 							{
@@ -1367,7 +1367,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -1424,7 +1424,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/metadata",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/metadata",
 						"method": "GET",
 						"header": [],
 						"body": {
@@ -1447,7 +1447,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/metadata",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/metadata",
 						"method": "PUT",
 						"header": [
 							{
@@ -1476,7 +1476,7 @@
 						}
 					],
 					"request": {
-						"url": "{{url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/metadata",
+						"url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}/metadata",
 						"method": "GET",
 						"header": [],
 						"body": {
