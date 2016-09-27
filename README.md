@@ -29,8 +29,8 @@ POST   	file-upload/envelopes
 ```
 | Responses    | Status    | Description |
 | --------|---------|-------|
-| Ok  | 201   | Envelope Successfully Created. |
-| Bad Request | 400   |  Envelope Not Created. |  
+| Ok  | 201   | Envelope successfully created. |
+| Bad Request | 400   |  Envelope not created. |  
 
 #### Example
 
@@ -55,7 +55,7 @@ GET     file-upload/envelopes/{envelope-id}
 
 | Responses    | Status    | Description |
 | --------|---------|-------|
-| Ok  | 200   | File Successfully Uploaded.  |
+| Ok  | 200   | File successfully uploaded.  |
 | Not Found | 404   |  Envelope with id not found. |  
 
 
@@ -103,8 +103,8 @@ DELETE  file-upload/envelopes/{envelope-id}/files/{fileId}
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 200   | Delete File  |
-| Bad Request  | 400   | File Not Deleted. |
-| Not Found | 404   |  File not found in envelope | 
+| Bad Request  | 400   | File not deleted. |
+| Not Found | 404   |  File not found in envelope. | 
 
 #### Example
 
@@ -120,8 +120,8 @@ GET     file-upload/envelopes/{envelope-id}/files/{filesId}/metadata
 
 | Responses    | Status    | Description |
 | --------|---------|-------|
-| Ok  | 200   | Successfully retrieved metadata  |
-| Not Found | 404   |  Metadata not found |
+| Ok  | 200   | Successfully retrieved metadata.  |
+| Not Found | 404   |  Metadata not found. |
 
 #### Example
 
@@ -190,7 +190,7 @@ GET     /file-transfer/envelopes
 ```
 | Responses    | Status    | Description |
 | --------|---------|-------|
-| Ok  | 200   | Successful. Returns a list of Envelopes.
+| Ok  | 200   | Returns a list of Envelopes.
 
 #### Example
 
@@ -266,8 +266,8 @@ GET     /file-transfer/envelopes/{envelope-id}
 ```
 | Responses    | Status    | Description |
 | --------|---------|-------|
-| Ok  | 200   | Download Zip |
-| Not Found | 404   |  Envelope Not Found |
+| Ok  | 200   | Download zip. |
+| Not Found | 404   |  Envelope not found. |
 
 
 #### Example
@@ -284,10 +284,10 @@ DELETE    /file-transfer/envelopes/{envelope-id}
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 200   | Deleted  |
-| Bad Request  | 400   |  Invalid Request. File not uploaded. |
+| Bad Request  | 400   |  Invalid request. File not uploaded. |
 | Not Found | 404   |  Envelope ID not found. |
 | Gone | 410   |  Has Deleted before. |
-| Locked | 423   |  Unable to Deleted. |
+| Locked | 423   |  Unable to deleted. |
 
 #### Example
 Request (DELETE): localhost:8898/file-transfer/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
