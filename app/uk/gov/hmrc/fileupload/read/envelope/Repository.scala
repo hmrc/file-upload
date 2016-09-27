@@ -54,6 +54,10 @@ class Repository(mongo: () => DB with DBMetaCommands)
     }
   }
 
+  def all()(implicit ec: ExecutionContext): Future[List[Envelope]] = {
+    findAll()
+  }
+
   def toBoolean(wr: WriteResult): Boolean = wr match {
     case r if r.ok && r.n > 0 => true
     case _ => false

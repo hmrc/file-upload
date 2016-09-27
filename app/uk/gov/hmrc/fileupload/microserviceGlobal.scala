@@ -28,7 +28,7 @@ import uk.gov.hmrc.fileupload.controllers.routing.RoutingController
 import uk.gov.hmrc.fileupload.controllers.transfer.TransferController
 import uk.gov.hmrc.fileupload.file.zip.Zippy
 import uk.gov.hmrc.fileupload.infrastructure.{DefaultMongoConnection, PlayHttp}
-import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => EnvelopeService, _}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope, Service => EnvelopeService, _}
 import uk.gov.hmrc.fileupload.read.file.{Service => FileService}
 import uk.gov.hmrc.fileupload.read.infrastructure.CoordinatorActor
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
@@ -152,7 +152,9 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
   lazy val testOnlyController = {
     val fileRepository = uk.gov.hmrc.fileupload.read.file.Repository.apply(db)
-    new TestOnlyController(fileRepository)
+    val envelopeRepository = uk.gov.hmrc.fileupload.read.envelope.Repository.apply(db)
+    val allEnvelopes = envelopeRepository.all _
+    new TestOnlyController(fileRepository, envelopeRepository, allEnvelopes)
   }
 
   lazy val routingController = {
