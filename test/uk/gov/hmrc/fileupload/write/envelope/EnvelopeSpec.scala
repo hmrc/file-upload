@@ -199,6 +199,15 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
       )
     }
 
+    scenario("Store file for an existing file with virus should fail") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined And virusDetected,
+        StoreFile(envelopeId, fileId, fileRefId, 100),
+        FileWithError
+      )
+    }
+
     scenario("Store file for an existing file and a sealed envelope") {
 
       givenWhenThen(
@@ -222,6 +231,15 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
       givenWhenThen(
         envelopeCreated,
         StoreFile(envelopeId, fileId, fileRefId, 100),
+        FileNotFoundError
+      )
+    }
+
+    scenario("Store file for a non existing file ref") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined,
+        StoreFile(envelopeId, fileId, fileRefId.copy(fileRefId.value + "_"), 100),
         FileNotFoundError
       )
     }

@@ -51,8 +51,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
       }
 
     case (command: StoreFile, envelope: Envelope) =>
-      // TODO: allow only if file has no virus
-      if (envelope.hasFileRefId(command.fileId, command.fileRefId)) {
+      envelope.fileAvailableAndNoError(command.fileId, command.fileRefId).map { _ =>
         val fileStored = FileStored(command.id, command.fileId, command.fileRefId, command.length)
 
         if (withEvent(envelope, fileStored).canRoute.isRight) {
@@ -60,8 +59,6 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
         } else {
           fileStored
         }
-      } else {
-        FileNotFoundError
       }
 
     case (command: DeleteFile, envelope: Envelope) =>
@@ -145,8 +142,21 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
 case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated) {
 
-  def hasFileRefId(fileId: FileId, fileReferenceId: FileRefId): Boolean =
-    files.get(fileId).exists(_.isSame(fileReferenceId))
+  def hasFileRefId(fileId: FileId, fileRefId: FileRefId): Boolean =
+    files.get(fileId).exists(_.isSame(fileRefId))
+
+  def fileAvailableAndNoError(fileId: FileId, fileRefId: FileRefId): CanResult =
+    files.get(fileId).map(f => {
+      if (f.isSame(fileRefId)) {
+        if (!f.hasError) {
+          Xor.right(Unit)
+        } else {
+          Xor.left(FileWithError)
+        }
+      } else {
+        Xor.left(FileNotFoundError)
+      }
+    }).getOrElse(Xor.left(FileNotFoundError))
 
   def canDeleteFile(fileId: FileId): CanResult = state.canDeleteFile(fileId, files)
 

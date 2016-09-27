@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 
-import akka.actor.{ActorLogging, Props}
+import akka.actor.Props
 import org.joda.time.{DateTime, DateTimeZone}
 import uk.gov.hmrc.fileupload.read.infrastructure.ReportActor
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -29,7 +29,7 @@ class EnvelopeReportActor(override val id: EnvelopeId,
                           override val get: (EnvelopeId) => Future[Option[Envelope]],
                           override val save: (Envelope) => Future[Boolean],
                           override val delete: (EnvelopeId) => Future[Boolean],
-                          override val defaultState: (EnvelopeId) => Envelope) extends ReportActor[Envelope, EnvelopeId] with ActorLogging {
+                          override val defaultState: (EnvelopeId) => Envelope) extends ReportActor[Envelope, EnvelopeId] {
 
   override def apply = {
 

@@ -16,14 +16,14 @@
 
 package uk.gov.hmrc.fileupload.read.infrastructure
 
-import akka.actor.{Actor, ActorLogging, PoisonPill, ReceiveTimeout}
+import akka.actor.{Actor, PoisonPill, ReceiveTimeout}
 import uk.gov.hmrc.fileupload.utils.Contexts
 import uk.gov.hmrc.fileupload.write.infrastructure.{Created, Event, EventData, Version}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-trait ReportActor[T, Id] extends Actor with ActorLogging {
+trait ReportActor[T, Id] extends Actor {
 
   def id: Id
   def get: Id => Future[Option[T]]
