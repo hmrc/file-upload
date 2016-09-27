@@ -23,25 +23,18 @@ Alternatively  look  here for a [RAML definition](raml/file-upload.raml)
 ### Envelope
 
 #### Create An Envelope
-Creates an envelope and auto generates an Id. Successful response provides in the headers the link  and the envelope Id.
+Creates an envelope and auto generates an Id. The body in the http request must be json. Successful response provides in the headers the link and the envelope Id.
 ```
 POST   	file-upload/envelopes
 ```
 | Responses    | Status    | Description |
 | --------|---------|-------|
-| Ok  | 201   | Envelope Successfully Created |
-| Bad Request | 400   |  Envelope Not Created |  
+| Ok  | 201   | Envelope Successfully Created. |
+| Bad Request | 400   |  Envelope Not Created. |  
 
 #### Example
 
 Request (POST): localhost:8898/file-upload/envelopes
-
-Body:
-``` json
-{}
-```
-
-#### OR
 
 Body:
 ``` json
@@ -55,14 +48,14 @@ Note: Parameters in body are optional.
 Response (in Headers): Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
 #### Show Envelope
-Show Envelope which comprises of Envelope Id and the current status.
+Shows the envelope and its current parameters such as id, status, callbackurl and potentially files. By default it should show at least the envelope Id and the status of an existing envelope.
 ```
 GET     file-upload/envelopes/{envelope-id}
 ```
 
 | Responses    | Status    | Description |
 | --------|---------|-------|
-| Ok  | 200   | File Successfully uploaded  |
+| Ok  | 200   | File Successfully Uploaded.  |
 | Not Found | 404   |  Envelope with id not found. |  
 
 
@@ -73,13 +66,18 @@ Request (GET): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067
 Response (in Body):
 ```json
 {
-    "id": "46d95a7c-c03b-484c-ac70-bf760cd36510", 
-    "status": "OPEN"
-} 
+  "id": "0b215e97-11d4-4006-91db-c067e74fc653",
+  "callbackUrl": "http://absolute.callback.url",
+  "expiryDate": "2016-08-07T13:15:30Z",
+  "metadata": {
+    "anything": "the caller wants to add to the envelope"
+  },
+  "status": "OPEN"
+}
 ```
 
 #### Hard Delete an Envelope
-Completely deletes an envelope and its contents.
+Completely deletes an envelope and its contents. After deleting, any attempts to GET information or files from envelope will return a bad request.
 ```
 DELETE  file-upload/envelopes/{envelope-id}
 ```
@@ -95,8 +93,9 @@ Request (DELETE): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c
 
 Response: 202
 
-#### Hard Delete File
-Delete a file in an envelope.
+
+#### Hard Delete a File
+Completely deletes a file in an envelope. After deleting, any attempts to GET information or the file will return a bad request.
 ```
 DELETE  file-upload/envelopes/{envelope-id}/files/{fileId}
 ```
@@ -114,7 +113,7 @@ Request (DELETE): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c
 Response: 200
 
 #### Retrieve Metadata
-Retrieve metadata from a file in an envelope.
+Returns current metadata information from a file in an envelope.
 ```
 GET     file-upload/envelopes/{envelope-id}/files/{filesId}/metadata
 ```
@@ -142,7 +141,7 @@ Response (in Body):
 ```
 
 #### Download File
-Downloads a file from the envelope.
+Downloads a selected file from an envelope.
 ```
 GET   	/file-upload/envelopes/{envelope-id}/files/{file-id}/content
 ```
@@ -153,12 +152,12 @@ GET   	/file-upload/envelopes/{envelope-id}/files/{file-id}/content
 
 Request (GET): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1/content
 
-Response: Download File
+Response: Downloads a binary file which contains the selected file.
 
 ### Routing
 
 #### Create File Routing Request
-Changes the status of an Envelope to CLOSED and rejects any requests to add files to the envelope. This makes it available for file transfer.
+Changes the status of an envelope to CLOSED, auto generates a routing Id and sets the destination. The status change, rejects any requests to add files to the envelope. This makes it available for file transfer.
 ```
 POST    /file-routing/requests
 ```
@@ -166,7 +165,7 @@ POST    /file-routing/requests
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Created  | 201   | Successfully created routing request.  |
-| Bad Request  | 400   |  Envelope not found. | 
+| Bad Request  | 400   | Failed to create route request. | 
 
 #### Example
 Request (POST): localhost:8898/file-routing/requests
@@ -180,12 +179,12 @@ Body:
 }
 ```
 
-Response: 201
+Response(in Headers): Location -> /file-routing/requests/39e0e07d-7969-44ac-9f9c-4f7cc264b027
 
 ### Transfer
 
 #### Download List of Envelopes
-Retrieves a list of envelopes for routing. This applies to all envelopes that are closed.
+Returns a list of envelopes for routing with the status closed and their destination. 
 ```
 GET     /file-transfer/envelopes
 ```
@@ -265,12 +264,17 @@ Downloads a zip file which is the envelope and its contents.
 ```
 GET     /file-transfer/envelopes/{envelope-id}
 ```
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Download Zip |
+| Not Found | 404   |  Envelope Not Found |
+
 
 #### Example
 
 Request (GET): localhost:8898/file-transfer/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
-Response: Download Zip file
+Response: Downloads a binary file which contains the zipped files.
 
 #### Soft Delete an Envelope 
 Changes status of an envelope to DELETED which prevents any service or user from using this envelope.
