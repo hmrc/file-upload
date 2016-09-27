@@ -58,7 +58,7 @@ class NotifierActor(subscribe: (ActorRef, Class[_]) => Boolean,
   def notifyEnvelopeCallback(notification: Notification) =
     findEnvelope(notification.envelopeId).map {
       case Xor.Right(envelope) => envelope.callbackUrl.foreach(notify(notification, _))
-      case Xor.Left(e) => Logger.error(e.toString)
+      case Xor.Left(e) => Logger.warn(e.toString)
     }
 }
 
