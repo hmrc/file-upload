@@ -53,7 +53,7 @@ object IllegalArgumentHandler extends ExceptionHandler[IllegalArgumentException]
 object NoSuchElementHandler extends ExceptionHandler[NoSuchElementException] {
   def apply(exception: NoSuchElementException): Result = {
     val message = "Invalid json format"
-    Logger.error(message, exception)
+    Logger.warn(message, exception)
     ExceptionHandler(BAD_REQUEST, message)
   }
 }
@@ -67,7 +67,7 @@ object BadRequestHandler extends ExceptionHandler[BadRequestException] {
 object DefaultExceptionHandler extends ExceptionHandler[Throwable] {
   override def apply(exception: Throwable): Result = {
     val message = "Internal Server Error"
-    Logger.error(message, exception)
+    Logger.warn(message, exception)
     ExceptionHandler(INTERNAL_SERVER_ERROR, message)
   }
 }
