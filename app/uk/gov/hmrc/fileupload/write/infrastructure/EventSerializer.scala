@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload.write.infrastructure
 
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsValue, Json}
 import reactivemongo.bson.{BSONArray, BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 import reactivemongo.json.BSONFormats
 

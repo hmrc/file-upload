@@ -16,22 +16,38 @@
 
 package uk.gov.hmrc.fileupload.testonly
 
+import play.api.libs.json.Json
 import play.api.mvc.Action
 import play.api.mvc.Results._
-import uk.gov.hmrc.fileupload.read.file.Repository
+import reactivemongo.api.commands.WriteResult
+import uk.gov.hmrc.fileupload.read.file.{Repository => FileRepository}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, Repository => EnvelopeRepository}
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
-class TestOnlyController(repo: Repository)(implicit executionContext: ExecutionContext) {
+class TestOnlyController(fileRepo: FileRepository, envelopeRepo: EnvelopeRepository, findAllEnvelopes: () => Future[List[Envelope]])(implicit executionContext: ExecutionContext) {
 
   def cleanup() = Action.async { request =>
-    repo.removeAll().map { results =>
-      if (results.forall(_.ok)) {
+    val removeEnvelopes: Future[WriteResult] = envelopeRepo.removeAll()
+    val removeFiles: Future[List[WriteResult]] = fileRepo.removeAll()
+
+    val cleanUpDb: Future[(WriteResult, List[WriteResult])] = removeEnvelopes zip removeFiles
+
+    cleanUpDb.map { results =>
+      if (results._2.forall(_.ok)) {
         Ok
       } else {
         InternalServerError
       }
     }
+  }
+
+  def stats() = Action.async {
+    findAllEnvelopes().map(envelopes => {
+      val envelopesSize = envelopes.size
+      val filesSize = envelopes.map( _.files.size).sum
+      Ok(Json.obj("envelopes"->envelopesSize, "files" -> filesSize))
+    })
   }
 
 }
