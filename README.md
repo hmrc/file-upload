@@ -43,12 +43,12 @@ Body:
 }
 ```
 
-Note: Parameters in body are optional.
+Note: Parameters in body are optional. However, it is advised to provide a callbackUrl to be informed of its progress.
 
 Response (in Headers): Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
 #### Show Envelope
-Shows the envelope and its current parameters such as id, status, callbackurl and potentially files. By default it should show at least the envelope Id and the status of an existing envelope.
+Shows the envelope and its current details such as status, callbackurl and potentially the current files inside. It should show at least the envelope Id and the status when the envelope was created.
 ```
 GET     file-upload/envelopes/{envelope-id}
 ```
@@ -77,7 +77,7 @@ Response (in Body):
 ```
 
 #### Hard Delete an Envelope
-Completely deletes an envelope and its contents. After deleting, any attempts to GET information or files from envelope will return a bad request.
+Completely deletes an envelope and any files inside.
 ```
 DELETE  file-upload/envelopes/{envelope-id}
 ```
@@ -93,9 +93,8 @@ Request (DELETE): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c
 
 Response: 202
 
-
 #### Hard Delete a File
-Completely deletes a file in an envelope. After deleting, any attempts to GET information or the file will return a bad request.
+Completely deletes a file in an envelope.
 ```
 DELETE  file-upload/envelopes/{envelope-id}/files/{fileId}
 ```
@@ -113,7 +112,7 @@ Request (DELETE): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c
 Response: 200
 
 #### Retrieve Metadata
-Returns current metadata information from a file in an envelope.
+Returns current metadata information of the file in the envelope. Metadata such as file name are provided by the user.
 ```
 GET     file-upload/envelopes/{envelope-id}/files/{filesId}/metadata
 ```
@@ -141,7 +140,7 @@ Response (in Body):
 ```
 
 #### Download File
-Downloads a selected file from an envelope.
+Downloads a file from an envelope.
 ```
 GET   	/file-upload/envelopes/{envelope-id}/files/{file-id}/content
 ```
@@ -157,7 +156,7 @@ Response: Downloads a binary file which contains the selected file.
 ### Routing
 
 #### Create File Routing Request
-Changes the status of an envelope to CLOSED, auto generates a routing Id and sets the destination. The status change, rejects any requests to add files to the envelope. This makes it available for file transfer.
+Changes the status of an envelope to CLOSED, auto generates a routing Id. The status change, rejects any requests to add files to the envelope. This makes it available for file transfer. To make the request, the envelope Id, application and destination must be provided. In regards to MVP, only DMS is supported.
 ```
 POST    /file-routing/requests
 ```
@@ -184,7 +183,7 @@ Response(in Headers): Location -> /file-routing/requests/39e0e07d-7969-44ac-9f9c
 ### Transfer
 
 #### Download List of Envelopes
-Returns a list of envelopes for routing with the status closed and their destination. 
+Returns either a list of all available or selected envelopes (via query string) for routing that have the status CLOSED and information from the routing request provided (above). 
 ```
 GET     /file-transfer/envelopes
 ```
@@ -195,6 +194,14 @@ GET     /file-transfer/envelopes
 #### Example
 
 Request (GET): localhost:8898/file-transfer/envelopes
+
+Note: Returns a list of all available of envelopes for transfer.
+
+#### OR
+
+Request (GET): localhost:8898/file-transfer/envelopes?destination=DMS
+
+Note: Returns a list of all available envelopes going to a specific destination.
 
 Response (in Body):
 ```json
