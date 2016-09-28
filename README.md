@@ -83,7 +83,7 @@ DELETE  file-upload/envelopes/{envelope-id}
 ```
 | Responses    | Status    | Description |
 | --------|---------|-------|
-| Accepted  | 202   | Deleted  |
+| Ok  | 200   | Envelope is deleted.  |
 | Bad Request  | 400   | Envelope not deleted. |
 | Not Found | 404   |  Envelope not found. |
 
