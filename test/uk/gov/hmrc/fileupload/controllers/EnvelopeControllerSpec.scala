@@ -80,14 +80,14 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
   }
 
 	"Delete Envelope" should {
-		"respond with 202 ACCEPTED status" in {
+		"respond with 200 OK status" in {
 			val envelope = Support.envelope
 			val request = FakeRequest("DELETE", s"/envelopes/${envelope._id}")
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
 			val result = controller.delete(envelope._id)(request).futureValue
 
-			status(result) shouldBe Status.ACCEPTED
+			status(result) shouldBe Status.OK
 		}
 
 		"respond with 404 NOT FOUND status" in {

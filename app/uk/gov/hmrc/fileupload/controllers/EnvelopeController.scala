@@ -48,7 +48,7 @@ class EnvelopeController(nextId: () => EnvelopeId,
 
   def delete(id: EnvelopeId) = Action.async {
     handleCommand(DeleteEnvelope(id)).map {
-      case Xor.Right(_) => Accepted
+      case Xor.Right(_) => Ok
       case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
       case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
       case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not deleted")
