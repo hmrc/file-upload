@@ -1,6 +1,5 @@
 package uk.gov.hmrc.fileupload
 
-import org.scalatest.concurrent.Eventually
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
 
 /**
@@ -8,7 +7,8 @@ import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
   * Delete Envelope
   *
   */
-class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with Eventually with EnvelopeActions {
+
+class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions {
 
   feature("Delete Envelope") {
 

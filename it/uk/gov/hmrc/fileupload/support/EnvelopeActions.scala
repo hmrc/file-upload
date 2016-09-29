@@ -10,7 +10,7 @@ import uk.gov.hmrc.mongo.MongoSpecSupport
 
 import scala.io.Source
 
-trait EnvelopeActions extends ActionsSupport with MongoSpecSupport {
+trait EnvelopeActions extends ActionsSupport {
 
   def createEnvelope(file: JFile): WSResponse = createEnvelope(Source.fromFile(file).mkString)
 

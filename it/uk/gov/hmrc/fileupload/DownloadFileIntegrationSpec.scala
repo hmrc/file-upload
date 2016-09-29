@@ -5,7 +5,6 @@ import java.io.RandomAccessFile
 import play.api.libs.json.Json
 import play.api.libs.ws._
 import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
-import uk.gov.hmrc.fileupload.support.FileMetadataReportSupport._
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActions, IntegrationSpec}
 
 
@@ -14,7 +13,7 @@ import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActio
   * Download File
   *
   */
-class DownloadFileIntegrationSpec extends IntegrationSpec with FileActions with EnvelopeActions with EventsActions {
+class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
 
   feature("Download File") {
 

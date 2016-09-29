@@ -1,22 +1,9 @@
 package uk.gov.hmrc.fileupload
 
-import org.scalatest.BeforeAndAfterEach
-import org.scalatest.concurrent.Eventually
 import play.api.libs.json.{JsValue, Json}
-import play.api.test.FakeApplication
-import uk.gov.hmrc.fileupload.read.envelope.Repository
-import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FileActions, IntegrationSpec}
+import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
 
-class FileTransferIntegrationSpec extends IntegrationSpec with FileActions with EnvelopeActions with BeforeAndAfterEach with Eventually {
-
-  override implicit lazy val app = FakeApplication(
-    additionalConfiguration = Map(
-      "mongodb.uri" -> s"mongodb://localhost:27017/$databaseName"
-    ))
-
-  override def beforeEach {
-    new Repository(mongo).removeAll().futureValue
-  }
+class FileTransferIntegrationSpec extends IntegrationSpec with EnvelopeActions {
 
   feature("File Transfer list") {
 
