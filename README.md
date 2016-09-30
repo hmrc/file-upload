@@ -18,8 +18,6 @@ The endpoints can then be accessed with the base url http://localhost:8898/
 
 ## Endpoints
 
-Alternatively  look  here for a [RAML definition](raml/file-upload.raml)
-
 ### Envelope
 
 #### Create An Envelope
