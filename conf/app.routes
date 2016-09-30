@@ -8,3 +8,4 @@ GET        /envelopes/:envelopeId/files/:fileId/metadata      @uk.gov.hmrc.fileu
 PUT        /envelopes/:envelopeId/files/:fileId/:fileRefId    @uk.gov.hmrc.fileupload.controllers.FileController.upsertFile(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId, fileRefId: uk.gov.hmrc.fileupload.FileRefId)
 GET        /envelopes/:envelopeId/files/:fileId/content       @uk.gov.hmrc.fileupload.controllers.FileController.downloadFile(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId)
 POST       /events/:eventType                                 @uk.gov.hmrc.fileupload.controllers.EventController.collect(eventType: String)
+GET        /events/:envelopeId                                @uk.gov.hmrc.fileupload.controllers.EventController.get(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)

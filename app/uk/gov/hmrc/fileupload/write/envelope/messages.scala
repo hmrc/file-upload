@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.write.envelope
 
 import org.joda.time.DateTime
-import play.api.libs.json.{Format, JsObject, JsValue, Json}
+import play.api.libs.json._
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
@@ -138,6 +138,17 @@ object EventSerializer {
       case e: EnvelopeRouted => Json.toJson(e)
       case e: EnvelopeArchived => Json.toJson(e)
     }
+
+  val eventWrite = new Writes[Event] {
+    def writes(event: Event) = Json.obj(
+      "eventId" -> event.eventId.value,
+      "streamId" -> event.streamId.value,
+      "version" -> event.version.value,
+      "created" -> event.created.value,
+      "eventType" -> event.eventType.value,
+      "eventData" -> fromEventData(event.eventData)
+    )
+  }
 }
 
 // error

@@ -20,9 +20,11 @@ import cats.data.Xor
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.Json
 import play.api.mvc._
+import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.controllers.EventFormatters._
 import uk.gov.hmrc.fileupload.write.envelope._
-import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
+import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.GetResult
+import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted, StreamId}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -30,8 +32,11 @@ import scala.language.postfixOps
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
-class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
+class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
+                      unitOfWorks: StreamId => Future[GetResult])
                      (implicit executionContext: ExecutionContext) extends BaseController {
+
+  implicit val eventWrites = EventSerializer.eventWrite
 
   def collect(eventType: String) = Action.async(EventParser) { implicit request =>
     request.body match {
@@ -53,6 +58,15 @@ class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotA
           case Xor.Right(_) => Ok
           case Xor.Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
         }
+    }
+  }
+
+  def get(envelopeId: EnvelopeId) = Action.async { implicit request =>
+    unitOfWorks(StreamId(envelopeId.value)) map {
+      case Xor.Right(r) =>
+        Ok(Json.toJson(r.flatMap(_.events)))
+      case Xor.Left(e) =>
+        ExceptionHandler(INTERNAL_SERVER_ERROR, e.message)
     }
   }
 }
