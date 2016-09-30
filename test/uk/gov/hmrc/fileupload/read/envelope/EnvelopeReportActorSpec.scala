@@ -91,7 +91,6 @@ class EnvelopeReportActorSpec extends TestKit(ActorSystem("envelope-report")) wi
       val expectedEnvelope = initialState.copy(files = Some(List(otherFile)), version = newVersion)
       modifiedEnvelope shouldBe expectedEnvelope
     }
-    // todo EnvelopeSealed needs 'application' as well
     "seal envelope" in new UpdateEnvelopeFixture {
       val event = EnvelopeSealed(initialState._id, "testRoutingReqId", "testDestination", "testApplication")
 

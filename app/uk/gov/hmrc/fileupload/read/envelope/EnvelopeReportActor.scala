@@ -75,7 +75,6 @@ class EnvelopeReportActor(override val id: EnvelopeId,
     case (s: Envelope, e: EnvelopeDeleted) => None
   }
 
-  // todo: version handling will be moved to parent trait
   def withUpdatedVersion(e: Envelope) = Some(e.copy(version = eventVersion))
 
   def replaceOrAddFile(allFiles: Seq[File], newFile: File): Seq[File] = {
