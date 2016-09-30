@@ -61,8 +61,8 @@ class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotA
     }
   }
 
-  def get(envelopeId: EnvelopeId) = Action.async { implicit request =>
-    unitOfWorks(StreamId(envelopeId.value)) map {
+  def get(streamId: StreamId) = Action.async { implicit request =>
+    unitOfWorks(streamId) map {
       case Xor.Right(r) =>
         Ok(Json.toJson(r.flatMap(_.events)))
       case Xor.Left(e) =>
