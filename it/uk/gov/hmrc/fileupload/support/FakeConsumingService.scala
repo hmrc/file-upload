@@ -15,7 +15,7 @@ trait FakeConsumingService extends BeforeAndAfterAll with ScalaFutures {
 
   lazy val server = new WireMockServer(wireMockConfig().port(consumingServicePort))
 
-  final lazy val consumimngServiceBaseUrl = s"http://localhost:$consumingServicePort"
+  final lazy val consumingServiceBaseUrl = s"http://localhost:$consumingServicePort"
 
   override def beforeAll() = {
     super.beforeAll()
@@ -69,7 +69,7 @@ trait FakeConsumingService extends BeforeAndAfterAll with ScalaFutures {
   }
 
   def callbackUrl(callbackPath: String = "mycallbackpath") = {
-    s"$consumimngServiceBaseUrl/$callbackPath"
+    s"$consumingServiceBaseUrl/$callbackPath"
   }
 
 }

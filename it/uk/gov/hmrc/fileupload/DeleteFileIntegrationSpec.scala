@@ -11,7 +11,7 @@ import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActio
   * Delete File
   *
   */
-class DeleteFileIntegrationSpec extends IntegrationSpec with FileActions with EnvelopeActions with EventsActions {
+class DeleteFileIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(20, Seconds), interval = Span(5, Millis))
 

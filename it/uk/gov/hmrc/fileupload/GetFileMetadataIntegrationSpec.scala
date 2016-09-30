@@ -1,7 +1,6 @@
 package uk.gov.hmrc.fileupload
 
-import org.scalatest.concurrent.Eventually
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.JsObject
 import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
 import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport.prettify
 import uk.gov.hmrc.fileupload.support.FileMetadataReportSupport._
@@ -12,7 +11,7 @@ import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActio
   * Update FileMetadata
   *
   */
-class GetFileMetadataIntegrationSpec extends IntegrationSpec with Eventually with FileActions with EnvelopeActions with EventsActions {
+class GetFileMetadataIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
 
   feature("Retrieve Metadata") {
 

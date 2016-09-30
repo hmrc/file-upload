@@ -1,6 +1,5 @@
 package uk.gov.hmrc.fileupload
 
-import org.scalatest.concurrent.Eventually
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
 
 /**
@@ -8,7 +7,8 @@ import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
   * Delete Envelope
   *
   */
-class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with Eventually with EnvelopeActions {
+
+class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions {
 
   feature("Delete Envelope") {
 
@@ -21,8 +21,8 @@ class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with Eventually with
       When("I call DELETE /file-upload/envelopes/:envelope-id")
       val envelopeResponse = deleteEnvelopFor(envelopeId)
 
-      Then("I will receive a 202 Accpeted response")
-      envelopeResponse.status shouldBe ACCEPTED
+      Then("I will receive a 200 OK response")
+      envelopeResponse.status shouldBe OK
 
       eventually {
         And("the envelope should be deleted")

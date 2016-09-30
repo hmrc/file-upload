@@ -2,13 +2,13 @@ package uk.gov.hmrc.fileupload
 
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.controllers.{FileInQuarantineStored, FileScanned}
 import uk.gov.hmrc.fileupload.support._
 
-class CallbackSpec extends IntegrationSpec with EnvelopeActions with EventsActions with FileActions with Eventually with FakeConsumingService with FakeAuditingService {
+class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
+
   implicit override val patienceConfig = PatienceConfig(timeout = Span(10, Seconds), interval = Span(10, Millis))
 
   val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
