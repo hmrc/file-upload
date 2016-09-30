@@ -44,7 +44,7 @@ Body:
 }
 ```
 
-Note: A callbackUrl must be provided in order for the service to provide feedback of the envelope's progress while other parameters such as "metadata" are optional.
+Note: All parameters are optional. A callbackUrl is optional but should be provided in order for the service to provide feedback of the envelope's progress.
 
 Response (in Headers): Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
