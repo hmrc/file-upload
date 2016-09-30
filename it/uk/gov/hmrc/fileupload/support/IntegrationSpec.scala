@@ -12,7 +12,7 @@ import uk.gov.hmrc.mongo.MongoSpecSupport
 import scala.concurrent.ExecutionContext.Implicits._
 
 trait IntegrationSpec extends FeatureSpec with GivenWhenThen with OneServerPerSuite with ScalaFutures
-  with IntegrationPatience with Matchers with Status with Eventually with FakeConsumingService with FakeAuditingService
+  with IntegrationPatience with Matchers with Status with Eventually with FakeConsumingService
   with BeforeAndAfterEach with MongoSpecSupport{
 
   override lazy val port: Int = 9000
@@ -21,7 +21,8 @@ trait IntegrationSpec extends FeatureSpec with GivenWhenThen with OneServerPerSu
 
   override lazy val app = FakeApplication(
     additionalConfiguration = Map(
-      "mongodb.uri" -> s"mongodb://localhost:27017/$databaseName"
+      "mongodb.uri" -> s"mongodb://localhost:27017/$databaseName",
+      "auditing.enabled" -> "false"
     )
   )
 
