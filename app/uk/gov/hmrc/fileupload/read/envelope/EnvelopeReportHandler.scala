@@ -17,65 +17,63 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 
-import akka.actor.Props
 import org.joda.time.{DateTime, DateTimeZone}
-import uk.gov.hmrc.fileupload.read.infrastructure.ReportActor
+import uk.gov.hmrc.fileupload.read.infrastructure.Report
 import uk.gov.hmrc.fileupload.write.envelope._
+import uk.gov.hmrc.fileupload.write.infrastructure.{StreamId, Version}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 import scala.concurrent.Future
 
-class EnvelopeReportActor(override val id: EnvelopeId,
-                          override val get: (EnvelopeId) => Future[Option[Envelope]],
-                          override val save: (Envelope) => Future[Boolean],
-                          override val delete: (EnvelopeId) => Future[Boolean],
-                          override val defaultState: (EnvelopeId) => Envelope) extends ReportActor[Envelope, EnvelopeId] {
+class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
+                            override val save: (Envelope) => Future[Option[Envelope]],
+                            override val delete: (EnvelopeId) => Future[Boolean],
+                            override val defaultState: (EnvelopeId) => Envelope,
+                            override val updateVersion: (Version, Envelope) => Envelope = (v, e) => e.copy(version = v)) extends Report[Envelope, EnvelopeId] {
 
   override def apply = {
 
-    case (s: Envelope, e: EnvelopeCreated) => withUpdatedVersion {
+    case (s: Envelope, e: EnvelopeCreated) => Some {
       s.copy(callbackUrl = e.callbackUrl, expiryDate = e.expiryDate, metadata = e.metadata)
     }
 
-    case (s: Envelope, e: FileQuarantined) => withUpdatedVersion {
+    case (s: Envelope, e: FileQuarantined) => Some {
       val file = File(fileId = e.fileId, fileRefId = e.fileRefId, status = FileStatusQuarantined, name = Some(e.name),
         contentType = Some(e.contentType), metadata = Some(e.metadata), uploadDate = Some(new DateTime(e.created, DateTimeZone.UTC)) )
       s.copy(files = s.files.orElse(Some(List.empty[File])).map(replaceOrAddFile(_, file)))
     }
 
-    case (s: Envelope, e: NoVirusDetected) => withUpdatedVersion {
+    case (s: Envelope, e: NoVirusDetected) => Some {
       s.copy(files = fileStatusLens(s, e.fileId, FileStatusCleaned))
     }
 
-    case (s: Envelope, e: VirusDetected) => withUpdatedVersion {
+    case (s: Envelope, e: VirusDetected) => Some {
       s.copy(files = fileStatusLens(s, e.fileId, FileStatusError))
     }
 
-    case (s: Envelope, e: EnvelopeSealed) => withUpdatedVersion {
+    case (s: Envelope, e: EnvelopeSealed) => Some {
       s.copy(destination = Some(e.destination), application = Some(e.application))
     }
 
-    case (s: Envelope, e: EnvelopeRouted) => withUpdatedVersion {
+    case (s: Envelope, e: EnvelopeRouted) => Some {
       s.copy(status = EnvelopeStatusClosed)
     }
 
-    case (s: Envelope, e: EnvelopeArchived) => withUpdatedVersion {
+    case (s: Envelope, e: EnvelopeArchived) => Some {
       s.copy(status = EnvelopeStatusDeleted)
     }
 
-    case (s: Envelope, e: FileDeleted) => withUpdatedVersion {
+    case (s: Envelope, e: FileDeleted) => Some {
       s.copy(files = s.files.orElse(Some(List.empty[File])).map(filterOutFile(_, e.fileId)))
     }
 
-    case (s: Envelope, e: FileStored) => withUpdatedVersion {
+    case (s: Envelope, e: FileStored) => Some {
       val withUpdatedStatus = s.copy(files = fileStatusLens(s, e.fileId, FileStatusAvailable))
       withUpdatedStatus.copy(files = fileLengthLens(withUpdatedStatus, e.fileId, e.length))
     }
 
     case (s: Envelope, e: EnvelopeDeleted) => None
   }
-
-  def withUpdatedVersion(e: Envelope) = Some(e.copy(version = eventVersion))
 
   def replaceOrAddFile(allFiles: Seq[File], newFile: File): Seq[File] = {
     val filteredFiles = filterOutFile(allFiles, newFile.fileId)
@@ -109,13 +107,4 @@ class EnvelopeReportActor(override val id: EnvelopeId,
       }
     }
   }
-
-}
-
-object EnvelopeReportActor {
-
-  def props(get: (EnvelopeId) => Future[Option[Envelope]], save: (Envelope) => Future[Boolean],
-            delete: EnvelopeId => Future[Boolean], defaultState: (EnvelopeId) => Envelope)
-           (id: EnvelopeId) =
-    Props(new EnvelopeReportActor(id, get, save, delete, defaultState))
 }
