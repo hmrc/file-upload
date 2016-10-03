@@ -37,7 +37,7 @@ object Stats {
     Future {
       insert(InProgressFile(_id = fileQuarantined.fileRefId, envelopeId = fileQuarantined.id, fileId = fileQuarantined.fileId, startedAt = fileQuarantined.created))
     }.onFailure {
-      case e => Logger.error(s"It was not possible to store an in progress file for ${fileQuarantined.id} - ${fileQuarantined.fileId} - ${fileQuarantined.fileRefId}", e)
+      case e => Logger.warn(s"It was not possible to store an in progress file for ${fileQuarantined.id} - ${fileQuarantined.fileId} - ${fileQuarantined.fileRefId}", e)
     }
   }
 
@@ -46,7 +46,7 @@ object Stats {
     Future {
       deleteInProgressFile(virusDetected.id, virusDetected.fileId)
     }.onFailure {
-      case e => Logger.error(s"It was not possible to store an in progress file for ${virusDetected.id} - ${virusDetected.fileId} - ${virusDetected.fileRefId}", e)
+      case e => Logger.warn(s"It was not possible to store an in progress file for ${virusDetected.id} - ${virusDetected.fileId} - ${virusDetected.fileRefId}", e)
     }
   }
 
@@ -55,7 +55,7 @@ object Stats {
     Future {
       deleteInProgressFile(fileStored.id, fileStored.fileId)
     }.onFailure {
-      case e => Logger.error(s"It was not possible to store an in progress file for ${fileStored.id} - ${fileStored.fileId} - ${fileStored.fileRefId}", e)
+      case e => Logger.warn(s"It was not possible to store an in progress file for ${fileStored.id} - ${fileStored.fileId} - ${fileStored.fileRefId}", e)
     }
   }
 
@@ -63,7 +63,7 @@ object Stats {
          (implicit ec: ExecutionContext): Future[GetInProgressFileResult] = {
     findAllInProgressFile().map(Xor.right).recover {
       case e =>
-        Logger.error("It was not possible to retrieve in progress files", e)
+        Logger.warn("It was not possible to retrieve in progress files", e)
         Xor.left(GetInProgressFileGenericError)
     }
   }
