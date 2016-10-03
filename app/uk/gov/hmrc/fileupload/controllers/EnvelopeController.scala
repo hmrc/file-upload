@@ -22,7 +22,7 @@ import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import uk.gov.hmrc.fileupload.read.envelope.Service._
-import uk.gov.hmrc.fileupload.stats.Stats.GetInProgressFileResult
+import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
 import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
