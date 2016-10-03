@@ -32,7 +32,7 @@ import uk.gov.hmrc.fileupload.infrastructure.{DefaultMongoConnection, PlayHttp}
 import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => EnvelopeService, _}
 import uk.gov.hmrc.fileupload.read.file.{Service => FileService}
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
-import uk.gov.hmrc.fileupload.stats.{Stats, StatsActor}
+import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor}
 import uk.gov.hmrc.fileupload.testonly.TestOnlyController
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
@@ -108,7 +108,12 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   val iterateeForUpload = fileRepository.iterateeForUpload _
   val getFileFromRepo = fileRepository.retrieveFile _
   lazy val retrieveFile = FileService.retrieveFile(getFileFromRepo) _
-  lazy val findAllInProgressFile = Stats.all _
+
+  lazy val statsRepository = uk.gov.hmrc.fileupload.read.stats.Repository.apply(db)
+  lazy val saveFileQuarantinedStat = Stats.save(statsRepository.insert) _
+  lazy val deleteFileStoredStat = Stats.deleteFileStored(statsRepository.delete) _
+  lazy val deleteVirusDetectedStat = Stats.deleteVirusDetected(statsRepository.delete) _
+  lazy val allInProgressFile = Stats.all(statsRepository.all) _
 
   implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
   implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
@@ -145,7 +150,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       handleCommand = envelopeCommandHandler,
       findEnvelope = find,
       findMetadata = findMetadata,
-      findAllInProgressFile = findAllInProgressFile)
+      findAllInProgressFile = allInProgressFile )
   }
 
   lazy val eventController = {
@@ -188,9 +193,11 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     subscribe = eventStream.subscribe
     publish = eventStream.publish
 
+
+
     // notifier
     Akka.system.actorOf(NotifierActor.props(subscribe, find, sendNotification), "notifierActor")
-    Akka.system.actorOf(StatsActor.props(subscribe, find, sendNotification), "statsActor")
+    Akka.system.actorOf(StatsActor.props(subscribe, find, sendNotification, saveFileQuarantinedStat, deleteVirusDetectedStat, deleteFileStoredStat), "statsActor")
 
     eventController
     envelopeController

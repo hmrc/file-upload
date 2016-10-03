@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.stats
+package uk.gov.hmrc.fileupload.read.stats
 
 import akka.actor.{Actor, ActorRef, Props}
 import cats.data.Xor
@@ -28,7 +28,10 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{Event, EventData}
 import scala.concurrent.{ExecutionContext, Future}
 
 class StatsActor(subscribe: (ActorRef, Class[_]) => Boolean,
-                 notify: (Notification, String) => Future[NotifyResult])
+                 notify: (Notification, String) => Future[NotifyResult],
+                 save: (FileQuarantined) => Unit,
+                 deleteVirusDetected: (VirusDetected) => Unit,
+                 deleteFileStored: (FileStored) => Unit)
                 (implicit executionContext: ExecutionContext) extends Actor {
 
   override def preStart = {
@@ -38,11 +41,11 @@ class StatsActor(subscribe: (ActorRef, Class[_]) => Boolean,
   def receive = {
     case event: Event => event.eventData match {
       case e: FileQuarantined =>
-        Stats.save(e)
+        save(e)
       case e: VirusDetected =>
-        Stats.delete(e)
+        deleteVirusDetected(e)
       case e: FileStored =>
-        Stats.delete(e)
+        deleteFileStored(e)
     }
   }
 }
@@ -50,7 +53,10 @@ class StatsActor(subscribe: (ActorRef, Class[_]) => Boolean,
 object StatsActor {
   def props(subscribe: (ActorRef, Class[_]) => Boolean,
             findEnvelope: (EnvelopeId) => Future[FindResult],
-            notify: (Notification, String) => Future[NotifyResult])
+            notify: (Notification, String) => Future[NotifyResult],
+            save: (FileQuarantined) => Unit,
+            deleteVirusDetected: (VirusDetected) => Unit,
+            deleteFileStored: (FileStored) => Unit)
            (implicit executionContext: ExecutionContext) =
-    Props(new StatsActor(subscribe = subscribe, notify = notify))
+    Props(new StatsActor(subscribe = subscribe, notify = notify, save = save, deleteFileStored = deleteFileStored, deleteVirusDetected = deleteVirusDetected))
 }

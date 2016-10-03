@@ -27,7 +27,7 @@ import uk.gov.hmrc.fileupload.read.envelope.Service.{FindError, FindMetadataErro
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.stats.Stats._
+import uk.gov.hmrc.fileupload.read.stats.Stats._
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.{ExecutionContext, Future}

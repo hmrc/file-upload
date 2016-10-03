@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.stats
+package uk.gov.hmrc.fileupload.read.stats
 
 import play.api.libs.json.{Format, Json}
 import reactivemongo.api.commands.WriteResult
@@ -32,18 +32,19 @@ object InProgressFile {
 case class InProgressFile(_id: FileRefId, envelopeId: EnvelopeId, fileId: FileId, startedAt: Long)
 
 object Repository {
-  def apply(mongo: () => DB with DBMetaCommands): Repository = new Repository(mongo)
+  def apply(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext): Repository = new Repository(mongo)
 }
 
-class Repository(mongo: () => DB with DBMetaCommands)
+class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext)
   extends ReactiveRepository[InProgressFile, BSONObjectID](collectionName = "inprogress-files", mongo, domainFormat = InProgressFile.format) {
 
-  def delete(envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId)(implicit ec: ExecutionContext): Future[Boolean] = {
-    remove("_id" -> fileRefId) map toBoolean
-  }
+  def delete(envelopeId: EnvelopeId, fileId: FileId): Future[Boolean] =
+    remove("envelopeId" -> envelopeId, "fileId" -> fileId) map toBoolean
 
   def toBoolean(wr: WriteResult): Boolean = wr match {
     case r if r.ok && r.n > 0 => true
     case _ => false
   }
+
+  def all() = findAll()
 }
