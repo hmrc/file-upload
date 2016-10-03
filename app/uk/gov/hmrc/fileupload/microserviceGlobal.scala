@@ -28,16 +28,14 @@ import uk.gov.hmrc.fileupload.controllers.routing.RoutingController
 import uk.gov.hmrc.fileupload.controllers.transfer.TransferController
 import uk.gov.hmrc.fileupload.file.zip.Zippy
 import uk.gov.hmrc.fileupload.infrastructure.{DefaultMongoConnection, PlayHttp}
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope, Service => EnvelopeService, _}
+import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => EnvelopeService, _}
 import uk.gov.hmrc.fileupload.read.file.{Service => FileService}
-import uk.gov.hmrc.fileupload.read.infrastructure.CoordinatorActor
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
 import uk.gov.hmrc.fileupload.stats.{Stats, StatsActor}
 import uk.gov.hmrc.fileupload.testonly.TestOnlyController
-import uk.gov.hmrc.fileupload.utils.Contexts
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
-import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, MongoEventStore}
+import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, MongoEventStore, StreamId}
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
@@ -116,12 +114,21 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
   implicit lazy val eventStore = new MongoEventStore(db)
 
+  // envelope read model
+  lazy val createReportActor = new EnvelopeReportHandler(
+    toId = (streamId: StreamId) => EnvelopeId(streamId.value),
+    envelopeRepository.update,
+    envelopeRepository.delete,
+    defaultState = (id: EnvelopeId) => uk.gov.hmrc.fileupload.read.envelope.Envelope(id))
+
+  // command handler
   lazy val envelopeCommandHandler = {
     (command: EnvelopeCommand) =>
-      Aggregate[EnvelopeCommand, write.envelope.Envelope](
+      new Aggregate[EnvelopeCommand, write.envelope.Envelope](
         handler = write.envelope.Envelope,
         defaultState = () => write.envelope.Envelope(),
-        publish = publish).handleCommand(command)
+        publish = publish,
+        publishAllEvents = createReportActor.handle).handleCommand(command)
   }
 
   lazy val envelopeController = {
@@ -177,16 +184,6 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     // notifier
     Akka.system.actorOf(NotifierActor.props(subscribe, find, sendNotification), "notifierActor")
     Akka.system.actorOf(StatsActor.props(subscribe, find, sendNotification), "statsActor")
-
-    // envelope read model
-    val createReportActor = EnvelopeReportActor.props(
-      envelopeRepository.get(_)(Contexts.blockingDb),
-      envelopeRepository.update(_)(Contexts.blockingDb),
-      envelopeRepository.delete(_)(Contexts.blockingDb),
-      defaultState = (id: EnvelopeId) => uk.gov.hmrc.fileupload.read.envelope.Envelope(id)) _
-
-    Akka.system.actorOf(CoordinatorActor.props(
-      createReportActor, Set(classOf[EnvelopeEvent]), subscribe), "envelopeReadModelCoordinator")
 
     eventController
     envelopeController

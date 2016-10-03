@@ -16,19 +16,17 @@
 
 package uk.gov.hmrc.fileupload.read.envelope
 
-import akka.actor.ActorSystem
-import akka.testkit.{TestActorRef, TestKit}
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.Matchers
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId, StopSystemAfterAll}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class EnvelopeReportActorSpec extends TestKit(ActorSystem("envelope-report")) with UnitSpec with Matchers with StopSystemAfterAll {
+class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
 
   "EnvelopeReportActor" should {
     "create a new envelope" in new UpdateEnvelopeFixture {
@@ -37,14 +35,14 @@ class EnvelopeReportActorSpec extends TestKit(ActorSystem("envelope-report")) wi
       val metadata = Some(Json.obj("key" -> "value"))
       val event = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata)
 
-      sendEvent()
+      sendEvent(event)
 
       modifiedEnvelope shouldBe initialState.copy(version = newVersion, callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata)
     }
     "mark file as quarantined" in new UpdateEnvelopeFixture {
       val event = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", "contentType", Json.obj("abc" -> "xyz"))
 
-      sendEvent()
+      sendEvent(event)
 
       val expectedEnvelope = initialState.copy(version = newVersion,
         files = Some(List(File(event.fileId, fileRefId = event.fileRefId,
@@ -53,11 +51,29 @@ class EnvelopeReportActorSpec extends TestKit(ActorSystem("envelope-report")) wi
 
       modifiedEnvelope shouldBe expectedEnvelope
     }
+    "create a new envelope and mark file as quarantined" in new UpdateEnvelopeFixture {
+      val callbackUrl = Some("callback-url")
+      val expiryDate = Some(new DateTime())
+      val metadata = Some(Json.obj("key" -> "value"))
+      val envelopeCreated = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata)
+      val fileQuarantined = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", "contentType", Json.obj("abc" -> "xyz"))
+
+      val events = List(envelopeCreated, fileQuarantined)
+
+      sendEvents(events)
+
+      val expectedEnvelope = initialState.copy(version = Version(2), callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata,
+        files = Some(List(File(fileQuarantined.fileId, fileRefId = fileQuarantined.fileRefId,
+          status = FileStatusQuarantined, name = Some(fileQuarantined.name), contentType = Some(fileQuarantined.contentType),
+          length = None, uploadDate = Some(new DateTime(fileQuarantined.created, DateTimeZone.UTC)), revision = None, metadata = Some(fileQuarantined.metadata)))))
+
+      modifiedEnvelope shouldBe expectedEnvelope
+    }
     "update file status if virus was detected" in new UpdateEnvelopeFixture {
       override val initialState = Envelope(files = Some(List(file)))
       val event = VirusDetected(envelopeId, file.fileId, fileRefId = FileRefId())
 
-      sendEvent()
+      sendEvent(event)
 
       val expectedEnvelope = initialState.copy(files = Some(Seq(file.copy(status = FileStatusError))), version = newVersion)
       modifiedEnvelope shouldBe expectedEnvelope
@@ -66,7 +82,7 @@ class EnvelopeReportActorSpec extends TestKit(ActorSystem("envelope-report")) wi
       override val initialState = Envelope(files = Some(List(file)))
       val event = NoVirusDetected(envelopeId, file.fileId, fileRefId = FileRefId())
 
-      sendEvent()
+      sendEvent(event)
 
       val expectedEnvelope = initialState.copy(files = Some(Seq(file.copy(status = FileStatusCleaned))), version = newVersion)
       modifiedEnvelope shouldBe expectedEnvelope
@@ -75,7 +91,7 @@ class EnvelopeReportActorSpec extends TestKit(ActorSystem("envelope-report")) wi
       override val initialState = Envelope(files = Some(List(file)))
       val event = FileStored(envelopeId, file.fileId, fileRefId = FileRefId(), length = 1)
 
-      sendEvent()
+      sendEvent(event)
 
       val expectedEnvelope = initialState.copy(files = Some(
         Seq(file.copy(status = FileStatusAvailable, length = Some(event.length)))), version = newVersion)
@@ -86,7 +102,7 @@ class EnvelopeReportActorSpec extends TestKit(ActorSystem("envelope-report")) wi
       override val initialState = Envelope(envelopeId, files = Some(Seq(file, otherFile)))
       val event = FileDeleted(envelopeId, file.fileId)
 
-      sendEvent()
+      sendEvent(event)
 
       val expectedEnvelope = initialState.copy(files = Some(List(otherFile)), version = newVersion)
       modifiedEnvelope shouldBe expectedEnvelope
@@ -94,34 +110,34 @@ class EnvelopeReportActorSpec extends TestKit(ActorSystem("envelope-report")) wi
     "seal envelope" in new UpdateEnvelopeFixture {
       val event = EnvelopeSealed(initialState._id, "testRoutingReqId", "testDestination", "testApplication")
 
-      sendEvent()
+      sendEvent(event)
 
       val expectedEnvelope = initialState.copy(
-        version = wrappedEvent.version, destination = Some(event.destination), application = Some(event.application)
+        version = Version(1), destination = Some(event.destination), application = Some(event.application)
       )
       modifiedEnvelope shouldBe expectedEnvelope
     }
     "route envelope" in new UpdateEnvelopeFixture {
       val event = EnvelopeRouted(initialState._id)
 
-      sendEvent()
+      sendEvent(event)
 
-      val expectedEnvelope = initialState.copy(version = wrappedEvent.version, status = EnvelopeStatusClosed)
+      val expectedEnvelope = initialState.copy(version = Version(1), status = EnvelopeStatusClosed)
       modifiedEnvelope shouldBe expectedEnvelope
     }
     "delete envelope" in new UpdateEnvelopeFixture {
       val event = EnvelopeDeleted(initialState._id)
 
-      sendEvent()
+      sendEvent(event)
 
       assert(deleteFunctionWasCalled)
     }
     "archive envelope (soft delete for transfer)" in new UpdateEnvelopeFixture {
       val event = EnvelopeArchived(envelopeId)
 
-      sendEvent()
+      sendEvent(event)
 
-      val expectedEnvelope = initialState.copy(version = wrappedEvent.version, status = EnvelopeStatusDeleted)
+      val expectedEnvelope = initialState.copy(version = Version(1), status = EnvelopeStatusDeleted)
       modifiedEnvelope shouldBe expectedEnvelope
     }
   }
@@ -131,7 +147,7 @@ class EnvelopeReportActorSpec extends TestKit(ActorSystem("envelope-report")) wi
     var modifiedEnvelope: Envelope = _
     def save(e: Envelope) = {
       modifiedEnvelope = e
-      Future.successful(true)
+      Future.successful(Option(modifiedEnvelope))
     }
     var deleteFunctionWasCalled: Boolean = false
     def delete(id: EnvelopeId) = {
@@ -144,16 +160,22 @@ class EnvelopeReportActorSpec extends TestKit(ActorSystem("envelope-report")) wi
       length = None, uploadDate = Some(new DateTime(DateTimeZone.UTC)), revision = None, metadata = None)
 
     val initialState = Envelope(envelopeId)
-    val newVersion = Version(999)
+    val newVersion = Version(1)
 
-    def actor = TestActorRef(EnvelopeReportActor.props(get = _ => Future.successful(None),
-      save = save, delete, defaultState = _ => initialState)(envelopeId))
+    def handler = new EnvelopeReportHandler(
+      (streamId: StreamId) => EnvelopeId(streamId.value),
+      save = save,
+      delete = delete,
+      defaultState = _ => initialState)
 
-    def event: EnvelopeEvent
-    def wrappedEvent = Event(EventId("randomId"), streamId = StreamId("randomId"), version = newVersion, created = Created(1),
-      eventType = EventType("eventType"), eventData = event)
+    def wrappedEvent(e: EnvelopeEvent, version: Version = newVersion) = Event(EventId("randomId"), streamId = StreamId("randomId"),
+      version = version, created = Created(1), eventType = EventType("eventType"), eventData = e)
 
-    def sendEvent() = actor ! wrappedEvent
+    def wrappedEvents(events: Seq[EnvelopeEvent]) = events.zipWithIndex.map(i => wrappedEvent(i._1, Version(i._2 + 1)))
+
+    def sendEvent(event: EnvelopeEvent) = handler.handle(List(wrappedEvent(event)))
+
+    def sendEvents(events: Seq[EnvelopeEvent]) = handler.handle(wrappedEvents(events))
   }
 
 }

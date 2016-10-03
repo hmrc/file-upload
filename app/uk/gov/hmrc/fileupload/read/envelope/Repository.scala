@@ -33,9 +33,13 @@ object Repository {
 class Repository(mongo: () => DB with DBMetaCommands)
   extends ReactiveRepository[Envelope, BSONObjectID](collectionName = "envelopes-read-model", mongo, domainFormat = Envelope.envelopeFormat) {
 
-  def update(envelope: Envelope)(implicit ex: ExecutionContext): Future[Boolean] = {
-    val selector = Json.obj(_Id -> envelope._id.value)//, "version" -> envelope.version - 1)
-    collection.update(selector, envelope, upsert = true) map toBoolean
+  def update(envelope: Envelope)(implicit ex: ExecutionContext): Future[Option[Envelope]] = {
+    val selector = Json.obj(
+      _Id -> envelope._id.value,
+      "version" -> Json.obj("$lte" -> envelope.version))
+    val result = collection.findAndUpdate(selector, envelope, fetchNewObject = true, upsert = envelope.version.value == 1)
+
+    result.map(_.value.map(Json.fromJson[Envelope](_).get))
   }
 
   def get(id: EnvelopeId)(implicit ec: ExecutionContext): Future[Option[Envelope]] = {
