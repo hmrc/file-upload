@@ -74,6 +74,7 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands)
 
   override def unitsOfWorkForAggregate(streamId: StreamId): Future[GetResult] =
     collection.find(BSONDocument("streamId" -> streamId.value)).cursor[UnitOfWork]().collect[List]().map { l =>
-      Xor.right(l)
+      val sortByVersion = l.sortBy(_.version.value)
+      Xor.right(sortByVersion)
     }.recover { case e => Xor.left(GetError(e.getMessage)) }
 }

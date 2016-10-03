@@ -1,6 +1,5 @@
 package uk.gov.hmrc.fileupload
 
-import org.scalatest.concurrent.Eventually
 import play.api.libs.json._
 import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, IntegrationSpec}
@@ -10,7 +9,7 @@ import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, Integrati
   * Create Envelope and Get Envelope
   *
   */
-class GetEnvelopeIntegrationSpec extends IntegrationSpec with Eventually with EnvelopeActions with EventsActions {
+class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions with EventsActions {
 
   feature("Retrieve Envelope") {
 

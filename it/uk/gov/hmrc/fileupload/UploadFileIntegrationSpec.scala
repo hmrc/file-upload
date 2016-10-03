@@ -2,7 +2,6 @@ package uk.gov.hmrc.fileupload
 
 import java.io.RandomAccessFile
 
-import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws._
@@ -14,7 +13,7 @@ import uk.gov.hmrc.fileupload.support._
   * Upload File
   *
   */
-class UploadFileIntegrationSpec extends IntegrationSpec with FileActions with EnvelopeActions with EventsActions with FakeConsumingService with Eventually {
+class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(20, Seconds), interval = Span(5, Millis))
 

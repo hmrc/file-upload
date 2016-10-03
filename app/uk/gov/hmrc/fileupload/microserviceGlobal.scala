@@ -111,12 +111,12 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   lazy val retrieveFile = FileService.retrieveFile(getFileFromRepo) _
   lazy val findAllInProgressFile = Stats.all _
 
+  implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
+  implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
+
+  implicit lazy val eventStore = new MongoEventStore(db)
+
   lazy val envelopeCommandHandler = {
-    implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
-    implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
-
-    implicit val eventStore = new MongoEventStore(db)
-
     (command: EnvelopeCommand) =>
       Aggregate[EnvelopeCommand, write.envelope.Envelope](
         handler = write.envelope.Envelope,
@@ -135,7 +135,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   }
 
   lazy val eventController = {
-    new EventController(envelopeCommandHandler)
+    new EventController(envelopeCommandHandler, eventStore.unitsOfWorkForAggregate)
   }
 
   lazy val fileController = {

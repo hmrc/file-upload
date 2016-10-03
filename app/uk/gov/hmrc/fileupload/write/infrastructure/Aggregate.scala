@@ -107,7 +107,7 @@ case class Aggregate[C <: Command, S](handler: Handler[C, S],
         case result@Xor.Right(_) => Future.successful(result)
         case error@Xor.Left(VersionConflict(_, _)) =>
           if (retries > 0) {
-            Logger.info(s"Retry $retries")
+            Logger.info(s"Retry $retries for $command")
             run(retries - 1, command)
           } else {
             Logger.warn(s"Return with version conflict $command")

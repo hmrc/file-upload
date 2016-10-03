@@ -17,8 +17,7 @@
 package uk.gov.hmrc.fileupload.controllers.transfer
 
 import cats.data.Xor
-import controllers.Assets
-import play.api.mvc.{Action, AnyContent}
+import play.api.mvc.Action
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.file.zip.Zippy._

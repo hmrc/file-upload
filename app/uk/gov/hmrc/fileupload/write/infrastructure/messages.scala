@@ -17,6 +17,8 @@
 package uk.gov.hmrc.fileupload.write.infrastructure
 
 import play.api.libs.json.{JsError, JsSuccess, _}
+import play.api.mvc.PathBindable
+import uk.gov.hmrc.play.binders.SimpleObjectBinder
 
 case class UnitOfWork(streamId: StreamId, version: Version, created: Created, events: Seq[Event])
 
@@ -28,6 +30,11 @@ case class EventId(value: String) extends AnyVal {
 
 case class StreamId(value: String) extends AnyVal {
   override def toString = value.toString
+}
+
+object StreamId {
+  implicit val binder: PathBindable[StreamId] =
+    new SimpleObjectBinder[StreamId](StreamId.apply, _.value)
 }
 
 case class Version(value: Int) extends AnyVal {
