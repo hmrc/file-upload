@@ -31,8 +31,7 @@ class StatsActor(subscribe: (ActorRef, Class[_]) => Boolean,
                  notify: (Notification, String) => Future[NotifyResult],
                  save: (FileQuarantined) => Unit,
                  deleteVirusDetected: (VirusDetected) => Unit,
-                 deleteFileStored: (FileStored) => Unit
-                )
+                 deleteFileStored: (FileStored) => Unit)
                 (implicit executionContext: ExecutionContext) extends Actor {
 
   override def preStart = {

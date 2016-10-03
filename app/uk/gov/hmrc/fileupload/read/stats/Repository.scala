@@ -29,26 +29,22 @@ object InProgressFile {
   implicit val format: Format[InProgressFile] = Json.format[InProgressFile]
 }
 
-case class InProgressFile(_id: FileRefId, envelopeId: EnvelopeId, fileId: FileId, startedAt: Long )
+case class InProgressFile(_id: FileRefId, envelopeId: EnvelopeId, fileId: FileId, startedAt: Long)
 
 object Repository {
-  def apply(mongo: () => DB with DBMetaCommands): Repository = new Repository(mongo)
+  def apply(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext): Repository = new Repository(mongo)
 }
 
-class Repository(mongo: () => DB with DBMetaCommands)
+class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext)
   extends ReactiveRepository[InProgressFile, BSONObjectID](collectionName = "inprogress-files", mongo, domainFormat = InProgressFile.format) {
 
-  def delete(envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId)(implicit ec: ExecutionContext): Future[Boolean] = {
+  def delete(envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId): Future[Boolean] =
     remove("_id" -> fileRefId) map toBoolean
-  }
 
   def toBoolean(wr: WriteResult): Boolean = wr match {
     case r if r.ok && r.n > 0 => true
     case _ => false
   }
 
-  def all() = {
-    import play.api.libs.concurrent.Execution.Implicits._
-    findAll()
-  }
+  def all() = findAll()
 }
