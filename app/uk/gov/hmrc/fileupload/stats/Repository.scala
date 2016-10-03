@@ -29,7 +29,7 @@ object InProgressFile {
   implicit val format: Format[InProgressFile] = Json.format[InProgressFile]
 }
 
-case class InProgressFile(_id: FileRefId, envelopeId: EnvelopeId, fileId: FileId, startedAt: Long )
+case class InProgressFile(_id: FileRefId, envelopeId: EnvelopeId, fileId: FileId, startedAt: Long)
 
 object Repository {
   def apply(mongo: () => DB with DBMetaCommands): Repository = new Repository(mongo)
