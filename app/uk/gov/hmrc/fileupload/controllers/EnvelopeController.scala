@@ -17,10 +17,12 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
+import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import uk.gov.hmrc.fileupload.read.envelope.Service._
+import uk.gov.hmrc.fileupload.stats.Stats.GetInProgressFileResult
 import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
@@ -33,7 +35,8 @@ import scala.language.postfixOps
 class EnvelopeController(nextId: () => EnvelopeId,
                          handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                          findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]],
-                         findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]])
+                         findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]],
+                         findAllInProgressFile: () => Future[GetInProgressFileResult])
                         (implicit executionContext: ExecutionContext) extends BaseController {
 
   def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
@@ -83,5 +86,12 @@ class EnvelopeController(nextId: () => EnvelopeId,
       case Xor.Left(FindMetadataFileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
       case Xor.Left(FindMetadataServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
     }.recover { case e => ExceptionHandler(e) }
+  }
+
+  def inProgressFiles() = Action.async {
+    findAllInProgressFile().map {
+      case Xor.Right(inProgressFiles) => Ok(Json.toJson(inProgressFiles))
+      case Xor.Left(error) => InternalServerError("It was not possible to retrieve in progress files")
+    }
   }
 }

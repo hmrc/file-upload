@@ -20,8 +20,8 @@ import play.api.libs.json.Json
 import play.api.mvc.Action
 import play.api.mvc.Results._
 import reactivemongo.api.commands.WriteResult
-import uk.gov.hmrc.fileupload.read.file.{Repository => FileRepository}
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, Repository => EnvelopeRepository}
+import uk.gov.hmrc.fileupload.read.file.{Repository => FileRepository}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -34,11 +34,7 @@ class TestOnlyController(fileRepo: FileRepository, envelopeRepo: EnvelopeReposit
     val cleanUpDb: Future[(WriteResult, List[WriteResult])] = removeEnvelopes zip removeFiles
 
     cleanUpDb.map { results =>
-      if (results._2.forall(_.ok)) {
-        Ok
-      } else {
-        InternalServerError
-      }
+      if (results._2.forall(_.ok)) Ok else InternalServerError
     }
   }
 

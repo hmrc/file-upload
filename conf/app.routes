@@ -9,3 +9,4 @@ PUT        /envelopes/:envelopeId/files/:fileId/:fileRefId    @uk.gov.hmrc.fileu
 GET        /envelopes/:envelopeId/files/:fileId/content       @uk.gov.hmrc.fileupload.controllers.FileController.downloadFile(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId)
 POST       /events/:eventType                                 @uk.gov.hmrc.fileupload.controllers.EventController.collect(eventType: String)
 GET        /events/:streamId                                  @uk.gov.hmrc.fileupload.controllers.EventController.get(streamId: uk.gov.hmrc.fileupload.write.infrastructure.StreamId)
+GET        /file-upload/inprogressfiles                       @uk.gov.hmrc.fileupload.controllers.EnvelopeController.inProgressFiles()
