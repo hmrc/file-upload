@@ -60,7 +60,7 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, writeConcern: WriteCo
   val duplicateKeyErrroCode = Some(11000)
 
   override def saveUnitOfWork(streamId: StreamId, unitOfWork: UnitOfWork): Future[SaveResult] =
-    collection.insert(unitOfWork).map { r =>
+    collection.insert(unitOfWork, writeConcern).map { r =>
       if (r.ok) {
         EventStore.saveSuccess
       } else {
