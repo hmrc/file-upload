@@ -22,8 +22,7 @@ import akka.actor.ActorSystem
 import cats.data.Xor
 import play.api.libs.json.Json
 import reactivemongo.api.MongoDriver
-import uk.gov.hmrc.fileupload.read.envelope.{EnvelopeReportActor, Repository}
-import uk.gov.hmrc.fileupload.read.infrastructure.CoordinatorActor
+import uk.gov.hmrc.fileupload.read.envelope.{EnvelopeReportHandler, Repository}
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
@@ -48,15 +47,11 @@ object Runner extends App {
   val connection = mongoDriver.connection(List("localhost"))
   val repository = Repository(() => connection.db("eventsourcing"))
 
-  actorSystem.actorOf(
-    CoordinatorActor.props(
-      EnvelopeReportActor.props(
-        repository.get,
-        repository.update,
-        repository.delete,
-        defaultState = (id: EnvelopeId) => uk.gov.hmrc.fileupload.read.envelope.Envelope(id)),
-      Set(classOf[EnvelopeCreated], classOf[FileQuarantined], classOf[NoVirusDetected]),
-      subscribe), "envelopeReportEventHandler")
+  val envelopeReport = new EnvelopeReportHandler(
+    (streamId: StreamId) => EnvelopeId(streamId.value),
+    repository.update,
+    repository.delete,
+    defaultState = (id: EnvelopeId) => uk.gov.hmrc.fileupload.read.envelope.Envelope(id))
 
   // write model
 
@@ -68,8 +63,13 @@ object Runner extends App {
 
   implicit val eventStore = new MongoEventStore(() => connection.db("eventsourcing"))
 
-  val handle = (command: EnvelopeCommand) => Aggregate(
-    Envelope, () => Envelope(), publish)
+  val handle = (command: EnvelopeCommand) => new Aggregate(
+    Envelope,
+    () => Envelope(),
+    (a: AnyRef) => {
+      println(s"handle $a")
+    },
+    envelopeReport.handle)
     .handleCommand(command)
 
   val serviceWhichCallsCommandFunc = serviceWhichCallsCommand(handle) _
@@ -86,7 +86,9 @@ object Runner extends App {
 
   //print read model
   Thread.sleep(3000)
-  println(Await.result(repository.get(envelopeId), 5 seconds))
+  val r = Await.result(repository.get(envelopeId), 5 seconds)
+  println(r)
+  println(r.map(_.version == Version(6)))
 
   def serviceWhichCallsCommand(handle: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])(command: EnvelopeCommand) = {
     val result = Await.result(handle(command), 5 seconds)

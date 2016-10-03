@@ -24,12 +24,13 @@ import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.{NotSavedError, Ve
 
 import scala.concurrent.{ExecutionContext, Future}
 
-case class Aggregate[C <: Command, S](handler: Handler[C, S],
-                                      defaultState: () => S,
-                                      publish: AnyRef => Unit,
-                                      nextEventId: () => EventId = () => EventId(UUID.randomUUID().toString),
-                                      toCreated: () => Created = () => Created(System.currentTimeMillis()))
-                                     (implicit eventStore: EventStore, executionContext: ExecutionContext) {
+class Aggregate[C <: Command, S](handler: Handler[C, S],
+                                 defaultState: () => S,
+                                 publish: AnyRef => Unit,
+                                 publishAllEvents: Seq[Event] => Unit,
+                                 nextEventId: () => EventId = () => EventId(UUID.randomUUID().toString),
+                                 toCreated: () => Created = () => Created(System.currentTimeMillis()))
+                                (implicit eventStore: EventStore, executionContext: ExecutionContext) {
   type CommandResult = Xor[CommandNotAccepted, CommandAccepted.type]
 
   val commandAcceptedResult = Xor.Right(CommandAccepted)
@@ -57,11 +58,10 @@ case class Aggregate[C <: Command, S](handler: Handler[C, S],
     Logger.info(s"Handle Command $command")
     eventStore.unitsOfWorkForAggregate(command.streamId).flatMap {
       case Xor.Right(historicalUnitsOfWork) =>
-        val lastVersion = historicalUnitsOfWork.reverse.headOption.map(_.version).getOrElse(Version(0))
         val historicalEvents = historicalUnitsOfWork.flatMap(_.events)
 
-        val currentState = historicalEvents.foldLeft(defaultState()) { (state, event) =>
-          applyEvent(state, event.eventData)
+        val (currentState, lastVersion) = historicalEvents.foldLeft((defaultState(), Aggregate.defaultVersion)) { (state, event) =>
+          (applyEvent(state._1, event.eventData), event.version)
         }
 
         val xorEventsData: Xor[CommandNotAccepted, List[EventData]] = handler.handle.applyOrElse((command, currentState), (input: (C, S)) => Xor.Right(List.empty))
@@ -73,7 +73,8 @@ case class Aggregate[C <: Command, S](handler: Handler[C, S],
               val unitOfWork = createUnitOfWork(command.streamId, eventsData, nextVersion)
 
               eventStore.saveUnitOfWork(command.streamId, unitOfWork).map {
-                case Xor.Right(_) =>
+                case Xor.Right(newEvents) =>
+                  publishAllEvents(historicalEvents ++ unitOfWork.events)
                   unitOfWork.events.foreach { event =>
                     Logger.info(s"Event created $event")
                     publish(event)
@@ -118,4 +119,9 @@ case class Aggregate[C <: Command, S](handler: Handler[C, S],
     }
     run(numOfRetry, command)
   }
+}
+
+object Aggregate {
+
+  val defaultVersion = Version(0)
 }
