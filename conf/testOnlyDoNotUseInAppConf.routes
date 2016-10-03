@@ -10,7 +10,6 @@
 # Failing to follow this rule may result in test routes deployed in production.
 
 POST        /file-upload/test-only/cleanup-transient                    @uk.gov.hmrc.fileupload.testonly.TestOnlyController.cleanup
-GET        /file-upload/test-only/stats                                 @uk.gov.hmrc.fileupload.testonly.TestOnlyController.stats
 
 # Add all the application routes to the prod.routes file
 ->          /                                           prod.Routes

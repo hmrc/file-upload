@@ -27,6 +27,7 @@ import uk.gov.hmrc.fileupload.read.envelope.Service.{FindError, FindMetadataErro
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.fileupload._
+import uk.gov.hmrc.fileupload.stats.Stats._
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -42,8 +43,10 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
   def newController(nextId: () => EnvelopeId = () => EnvelopeId("abc-def"),
                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
                     findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]] = _ => failed,
-                    findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]] = (_, _) => failed) =
-    new EnvelopeController(nextId, handleCommand, findEnvelope, findMetadata)
+                    findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]] = (_, _) => failed,
+                    findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed
+                   ) =
+    new EnvelopeController(nextId, handleCommand, findEnvelope, findMetadata, findAllInProgressFile)
 
   "Create envelope with a request" should {
     "return response with OK status and a Location header specifying the envelope endpoint" in {

@@ -32,6 +32,7 @@ import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope, Servic
 import uk.gov.hmrc.fileupload.read.file.{Service => FileService}
 import uk.gov.hmrc.fileupload.read.infrastructure.CoordinatorActor
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
+import uk.gov.hmrc.fileupload.stats.{Stats, StatsActor}
 import uk.gov.hmrc.fileupload.testonly.TestOnlyController
 import uk.gov.hmrc.fileupload.utils.Contexts
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -108,6 +109,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   val iterateeForUpload = fileRepository.iterateeForUpload _
   val getFileFromRepo = fileRepository.retrieveFile _
   lazy val retrieveFile = FileService.retrieveFile(getFileFromRepo) _
+  lazy val findAllInProgressFile = Stats.all _
 
   lazy val envelopeCommandHandler = {
     implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
@@ -128,7 +130,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       nextId = nextId,
       handleCommand = envelopeCommandHandler,
       findEnvelope = find,
-      findMetadata = findMetadata)
+      findMetadata = findMetadata,
+      findAllInProgressFile = findAllInProgressFile)
   }
 
   lazy val eventController = {
@@ -173,6 +176,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
     // notifier
     Akka.system.actorOf(NotifierActor.props(subscribe, find, sendNotification), "notifierActor")
+    Akka.system.actorOf(StatsActor.props(subscribe, find, sendNotification), "statsActor")
 
     // envelope read model
     val createReportActor = EnvelopeReportActor.props(
