@@ -41,19 +41,19 @@ object Stats {
     }
   }
 
-  def deleteVirusDetected(deleteInProgressFile: (EnvelopeId, FileId, FileRefId) => Future[Boolean])(virusDetected: VirusDetected)
+  def deleteVirusDetected(deleteInProgressFile: (EnvelopeId, FileId) => Future[Boolean])(virusDetected: VirusDetected)
                          (implicit ec: ExecutionContext): Unit = {
     Future {
-      deleteInProgressFile(virusDetected.id, virusDetected.fileId, virusDetected.fileRefId)
+      deleteInProgressFile(virusDetected.id, virusDetected.fileId)
     }.onFailure {
       case e => Logger.error("It was not possible to store an in progress file", e)
     }
   }
 
-  def deleteFileStored(deleteInProgressFile: (EnvelopeId, FileId, FileRefId) => Future[Boolean])(fileStored: FileStored)
+  def deleteFileStored(deleteInProgressFile: (EnvelopeId, FileId) => Future[Boolean])(fileStored: FileStored)
                       (implicit ec: ExecutionContext): Unit = {
     Future {
-      deleteInProgressFile(fileStored.id, fileStored.fileId, fileStored.fileRefId)
+      deleteInProgressFile(fileStored.id, fileStored.fileId)
     }.onFailure {
       case e => Logger.error("It was not possible to store an in progress file", e)
     }
