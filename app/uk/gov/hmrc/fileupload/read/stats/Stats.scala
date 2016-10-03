@@ -21,7 +21,7 @@ import play.api.Logger
 import play.api.libs.iteratee.Enumerator
 import reactivemongo.api.commands.WriteResult
 import uk.gov.hmrc.fileupload.write.envelope.{FileQuarantined, FileStored, VirusDetected}
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -37,7 +37,7 @@ object Stats {
     Future {
       insert(InProgressFile(_id = fileQuarantined.fileRefId, envelopeId = fileQuarantined.id, fileId = fileQuarantined.fileId, startedAt = fileQuarantined.created))
     }.onFailure {
-      case e => Logger.error("It was not possible to store an in progress file", e)
+      case e => Logger.error(s"It was not possible to store an in progress file for ${fileQuarantined.id} - ${fileQuarantined.fileId} - ${fileQuarantined.fileRefId}", e)
     }
   }
 
@@ -46,7 +46,7 @@ object Stats {
     Future {
       deleteInProgressFile(virusDetected.id, virusDetected.fileId)
     }.onFailure {
-      case e => Logger.error("It was not possible to store an in progress file", e)
+      case e => Logger.error(s"It was not possible to store an in progress file for ${virusDetected.id} - ${virusDetected.fileId} - ${virusDetected.fileRefId}", e)
     }
   }
 
@@ -55,7 +55,7 @@ object Stats {
     Future {
       deleteInProgressFile(fileStored.id, fileStored.fileId)
     }.onFailure {
-      case e => Logger.error("It was not possible to store an in progress file", e)
+      case e => Logger.error(s"It was not possible to store an in progress file for ${fileStored.id} - ${fileStored.fileId} - ${fileStored.fileRefId}", e)
     }
   }
 
