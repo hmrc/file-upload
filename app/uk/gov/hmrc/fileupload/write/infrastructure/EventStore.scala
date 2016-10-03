@@ -18,6 +18,7 @@ package uk.gov.hmrc.fileupload.write.infrastructure
 
 import cats.data.Xor
 import reactivemongo.api.collections.bson.BSONCollection
+import reactivemongo.api.commands.WriteConcern
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{DB, DBMetaCommands}
 import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
@@ -47,7 +48,7 @@ trait EventStore {
   def unitsOfWorkForAggregate(streamId: StreamId): Future[GetResult]
 }
 
-class MongoEventStore(mongo: () => DB with DBMetaCommands)
+class MongoEventStore(mongo: () => DB with DBMetaCommands, writeConcern: WriteConcern = WriteConcern.Default)
                      (implicit ec: ExecutionContext,
                       reader: BSONDocumentReader[UnitOfWork],
                       writer: BSONDocumentWriter[UnitOfWork]) extends EventStore {
