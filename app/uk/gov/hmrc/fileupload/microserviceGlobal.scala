@@ -23,6 +23,7 @@ import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
 import play.api.mvc.{EssentialFilter, RequestHeader, Result}
 import play.api.{Application, Configuration, Logger, Play}
+import reactivemongo.api.commands
 import uk.gov.hmrc.fileupload.controllers._
 import uk.gov.hmrc.fileupload.controllers.routing.RoutingController
 import uk.gov.hmrc.fileupload.controllers.transfer.TransferController
@@ -112,7 +113,13 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
   implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
 
-  implicit lazy val eventStore = new MongoEventStore(db)
+  implicit lazy val eventStore = {
+    if (play.Play.isProd) {
+      new MongoEventStore(db, writeConcern = commands.WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = false))
+    } else {
+      new MongoEventStore(db)
+    }
+  }
 
   // envelope read model
   lazy val createReportActor = new EnvelopeReportHandler(
