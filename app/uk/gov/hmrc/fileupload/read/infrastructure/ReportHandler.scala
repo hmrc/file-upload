@@ -42,7 +42,6 @@ trait Report[T, Id] {
         currentState = currentState.flatMap { s =>
           apply(s -> e.eventData)
         }
-        println(s"currentState:  $currentState")
       }
 
       currentState match {
