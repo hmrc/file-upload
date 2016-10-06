@@ -55,7 +55,7 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, writeConcern: WriteCo
 
   val collection = mongo().collection[BSONCollection]("events")
 
-  collection.indexesManager.ensure(Index(List("streamId" -> IndexType.Hashed)))
+  collection.indexesManager.ensure(Index(key = List("streamId" -> IndexType.Hashed), background = true))
 
   val duplicateKeyErrroCode = Some(11000)
 
