@@ -118,13 +118,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
   implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
 
-  implicit lazy val eventStore = {
-    if (play.Play.isProd) {
-      new MongoEventStore(db, writeConcern = commands.WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = false))
-    } else {
-      new MongoEventStore(db)
-    }
-  }
+  var eventStore: MongoEventStore = _
 
   // envelope read model
   lazy val createReportActor = new EnvelopeReportHandler(
@@ -140,7 +134,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
         handler = write.envelope.Envelope,
         defaultState = () => write.envelope.Envelope(),
         publish = publish,
-        publishAllEvents = createReportActor.handle).handleCommand(command)
+        publishAllEvents = createReportActor.handle)(eventStore, defaultContext).handleCommand(command)
   }
 
   lazy val envelopeController = {
@@ -193,7 +187,12 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     subscribe = eventStream.subscribe
     publish = eventStream.publish
 
-
+    // event store
+    if (play.Play.isProd && app.configuration.getBoolean("Prod.mongodb.replicaSetInUse").getOrElse(true)) {
+      eventStore = new MongoEventStore(db, writeConcern = commands.WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = false))
+    } else {
+      eventStore = new MongoEventStore(db)
+    }
 
     // notifier
     Akka.system.actorOf(NotifierActor.props(subscribe, find, sendNotification), "notifierActor")

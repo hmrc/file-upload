@@ -46,6 +46,7 @@ class StatsActor(subscribe: (ActorRef, Class[_]) => Boolean,
         deleteVirusDetected(e)
       case e: FileStored =>
         deleteFileStored(e)
+      case _ =>
     }
   }
 }
