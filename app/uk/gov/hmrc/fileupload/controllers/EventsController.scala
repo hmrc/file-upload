@@ -34,7 +34,7 @@ import scala.util.{Failure, Success, Try}
 import uk.gov.hmrc.fileupload.write.infrastructure.{Event => DomainEvent}
 
 class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
-                      unitOfWorks: StreamId => Future[GetResult],  publishAllEvents: Seq[DomainEvent] => Unit)
+                      unitOfWorks: StreamId => Future[GetResult], publishAllEvents: Seq[DomainEvent] => Unit)
                      (implicit executionContext: ExecutionContext) extends BaseController {
 
   implicit val eventWrites = EventSerializer.eventWrite
