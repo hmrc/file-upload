@@ -11,4 +11,4 @@ POST       /events/:eventType                                 @uk.gov.hmrc.fileu
 GET        /events/:streamId                                  @uk.gov.hmrc.fileupload.controllers.EventController.get(streamId: uk.gov.hmrc.fileupload.write.infrastructure.StreamId)
 GET        /files/inprogress                                  @uk.gov.hmrc.fileupload.controllers.EnvelopeController.inProgressFiles()
 
-GET        /events/:streamId/replayevents                     @uk.gov.hmrc.fileupload.controllers.EventController.replayEvents(streamId: uk.gov.hmrc.fileupload.write.infrastructure.StreamId)
+GET        /events/:streamId/replay                           @uk.gov.hmrc.fileupload.controllers.EventController.replay(streamId: uk.gov.hmrc.fileupload.write.infrastructure.StreamId)

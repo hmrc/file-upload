@@ -71,10 +71,8 @@ class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotA
     }
   }
 
-  def replayEvents(streamId: StreamId) = Action.async { implicit request =>
-    val units: Future[GetResult] = unitOfWorks(streamId)
-
-    units.map {
+  def replay(streamId: StreamId) = Action.async { implicit request =>
+    unitOfWorks(streamId).map {
       case Xor.Right(sequence) =>
         publishAllEvents(sequence.flatMap( _.events ))
         Ok
