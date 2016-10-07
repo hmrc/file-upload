@@ -20,11 +20,10 @@ import cats.data.Xor
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.Json
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.controllers.EventFormatters._
 import uk.gov.hmrc.fileupload.write.envelope._
-import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.GetResult
-import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted, StreamId}
+import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.{GetError, GetResult}
+import uk.gov.hmrc.fileupload.write.infrastructure.{EventSerializer => _, _}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -32,8 +31,10 @@ import scala.language.postfixOps
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
+import uk.gov.hmrc.fileupload.write.infrastructure.{Event => DomainEvent}
+
 class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
-                      unitOfWorks: StreamId => Future[GetResult])
+                      unitOfWorks: StreamId => Future[GetResult],  publishAllEvents: Seq[DomainEvent] => Unit)
                      (implicit executionContext: ExecutionContext) extends BaseController {
 
   implicit val eventWrites = EventSerializer.eventWrite
@@ -68,6 +69,18 @@ class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotA
       case Xor.Left(e) =>
         ExceptionHandler(INTERNAL_SERVER_ERROR, e.message)
     }
+  }
+
+  def replayEvents(streamId: StreamId) = Action.async { implicit request =>
+    val units: Future[GetResult] = unitOfWorks(streamId)
+
+    units.map {
+      case Xor.Right(sequence) =>
+        publishAllEvents(sequence.flatMap( _.events ))
+        Ok
+      case Xor.Left(error) => InternalServerError(s"Unexpected result: ${error.message}")
+    }
+
   }
 }
 

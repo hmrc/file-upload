@@ -148,7 +148,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   }
 
   lazy val eventController = {
-    new EventController(envelopeCommandHandler, eventStore.unitsOfWorkForAggregate)
+    new EventController(envelopeCommandHandler, eventStore.unitsOfWorkForAggregate, createReportHandler.handle)
   }
 
   lazy val fileController = {
