@@ -170,7 +170,10 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     val fileRepository = uk.gov.hmrc.fileupload.read.file.Repository.apply(db)
     val envelopeRepository = uk.gov.hmrc.fileupload.read.envelope.Repository.apply(db)
     val allEnvelopes = envelopeRepository.all _
-    new TestOnlyController(fileRepository, envelopeRepository, allEnvelopes)
+    implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
+    implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
+    val eventStore = new MongoEventStore(db)
+    new TestOnlyController(fileRepository, envelopeRepository, allEnvelopes, eventStore, statsRepository)
   }
 
   lazy val routingController = {

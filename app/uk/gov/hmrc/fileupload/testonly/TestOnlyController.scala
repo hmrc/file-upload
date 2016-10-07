@@ -16,34 +16,45 @@
 
 package uk.gov.hmrc.fileupload.testonly
 
-import play.api.libs.json.Json
 import play.api.mvc.Action
 import play.api.mvc.Results._
 import reactivemongo.api.commands.WriteResult
+import reactivemongo.bson.BSONDocument
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, Repository => EnvelopeRepository}
 import uk.gov.hmrc.fileupload.read.file.{Repository => FileRepository}
+import uk.gov.hmrc.fileupload.read.stats.{Repository => InProgressRepository}
+import uk.gov.hmrc.fileupload.write.infrastructure.MongoEventStore
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class TestOnlyController(fileRepo: FileRepository, envelopeRepo: EnvelopeRepository, findAllEnvelopes: () => Future[List[Envelope]])(implicit executionContext: ExecutionContext) {
+class TestOnlyController(fileRepo: FileRepository, envelopeRepo: EnvelopeRepository, findAllEnvelopes: () => Future[List[Envelope]],
+                         mongoEventStore: MongoEventStore, inProgressRepository: InProgressRepository)(implicit executionContext: ExecutionContext) {
 
   def cleanup() = Action.async { request =>
-    val removeEnvelopes: Future[WriteResult] = envelopeRepo.removeAll()
-    val removeFiles: Future[List[WriteResult]] = fileRepo.removeAll()
-
-    val cleanUpDb: Future[(WriteResult, List[WriteResult])] = removeEnvelopes zip removeFiles
-
-    cleanUpDb.map { results =>
+    cleanupEnvelopeAndFiles.map { results =>
       if (results._2.forall(_.ok)) Ok else InternalServerError
     }
   }
 
-  def stats() = Action.async {
-    findAllEnvelopes().map(envelopes => {
-      val envelopesSize = envelopes.size
-      val filesSize = envelopes.map( _.files.size).sum
-      Ok(Json.obj("envelopes"->envelopesSize, "files" -> filesSize))
-    })
+  def clearCollections() = Action.async {
+    request =>
+      for {
+        envelopeAndFileCleanResult <- cleanupEnvelopeAndFiles
+        emptyEventsResult <- emptyEvents
+        inprogressResult <- inProgressRepository.removeAll()
+      } yield {
+        (inprogressResult :: emptyEventsResult :: envelopeAndFileCleanResult._2).forall(_.ok)
+      } match {
+        case true => Ok
+        case false => InternalServerError
+      }
   }
 
+  private def cleanupEnvelopeAndFiles: Future[(WriteResult, List[WriteResult])] = {
+    envelopeRepo.removeAll() zip fileRepo.removeAll()
+  }
+
+  private def emptyEvents: Future[WriteResult] = {
+    mongoEventStore.collection.remove(BSONDocument())
+  }
 }
