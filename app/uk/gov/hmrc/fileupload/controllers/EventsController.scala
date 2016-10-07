@@ -78,7 +78,6 @@ class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotA
         Ok
       case Xor.Left(error) => InternalServerError(s"Unexpected result: ${error.message}")
     }
-
   }
 }
 
