@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.fileupload.read.envelope
 
+import cats.data.Xor
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.Matchers
 import play.api.libs.json.Json
@@ -27,6 +28,8 @@ import uk.gov.hmrc.play.test.UnitSpec
 import scala.concurrent.Future
 
 class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
+
+  import scala.concurrent.ExecutionContext.Implicits.global
 
   "EnvelopeReportActor" should {
     "create a new envelope" in new UpdateEnvelopeFixture {
@@ -145,14 +148,14 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
   trait UpdateEnvelopeFixture {
     val envelopeId = EnvelopeId()
     var modifiedEnvelope: Envelope = _
-    def save(e: Envelope) = {
+    def update(e: Envelope) = {
       modifiedEnvelope = e
-      Future.successful(Option(modifiedEnvelope))
+      Future.successful(Repository.updateSuccess)
     }
     var deleteFunctionWasCalled: Boolean = false
     def delete(id: EnvelopeId) = {
       deleteFunctionWasCalled = true
-      Future.successful(true)
+      Future.successful(Repository.deleteSuccess)
     }
 
     val file = File(FileId(), fileRefId = FileRefId(),
@@ -164,7 +167,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
 
     def handler = new EnvelopeReportHandler(
       (streamId: StreamId) => EnvelopeId(streamId.value),
-      save = save,
+      update = update,
       delete = delete,
       defaultState = _ => initialState)
 

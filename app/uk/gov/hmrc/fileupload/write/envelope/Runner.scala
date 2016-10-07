@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.write.envelope
 
 import java.util.UUID
+import java.util.concurrent.Executors
 
 import akka.actor.ActorSystem
 import cats.data.Xor
@@ -27,12 +28,14 @@ import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfW
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 
 object Runner extends App {
 
-  import scala.concurrent.ExecutionContext.Implicits.global
+//  import scala.concurrent.ExecutionContext.Implicits.global
+
+  implicit val ec = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(100))
 
   //publish/subscribe for write/read communication
   val actorSystem = ActorSystem()
@@ -67,7 +70,7 @@ object Runner extends App {
     Envelope,
     () => Envelope(),
     (a: AnyRef) => {
-      println(s"handle $a")
+//      println(s"handle $a")
     },
     envelopeReport.handle)
     .handleCommand(command)
@@ -80,7 +83,7 @@ object Runner extends App {
   serviceWhichCallsCommandFunc(new QuarantineFile(envelopeId, FileId("file-id-1"), FileRefId("file-reference-id-1"), 0, "example.pdf", "application/pdf", Json.obj("name" -> "test")))
   serviceWhichCallsCommandFunc(new MarkFileAsClean(envelopeId, FileId("file-id-1"), FileRefId("file-reference-id-1")))
 
-  serviceWhichCallsCommandFunc(new QuarantineFile(envelopeId, FileId("file-id-1"), FileRefId("file-reference-id-2"), 0, "example.pdf", "application/pdf", Json.obj("name" -> "test")))
+  serviceWhichCallsCommandFunc(new QuarantineFile(envelopeId, FileId("file-id-1"), FileRefId("file-reference-id-11"), 0, "example.pdf", "application/pdf", Json.obj("name" -> "test")))
   serviceWhichCallsCommandFunc(new QuarantineFile(envelopeId, FileId("file-id-2"), FileRefId("file-reference-id-21"), 0, "example.pdf", "application/pdf", Json.obj("name" -> "test")))
   serviceWhichCallsCommandFunc(new MarkFileAsClean(envelopeId, FileId("file-id-2"), FileRefId("file-reference-id-21")))
 
@@ -90,8 +93,14 @@ object Runner extends App {
   println(r)
   println(r.map(_.version == Version(6)))
 
+//  System.exit(-1)
+
   def serviceWhichCallsCommand(handle: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])(command: EnvelopeCommand) = {
     val result = Await.result(handle(command), 5 seconds)
+//    handle(command).onComplete {
+//      case Success(v) => println(v)
+//      case Failure(f) => println(f)
+//    }
     println(result)
   }
 }

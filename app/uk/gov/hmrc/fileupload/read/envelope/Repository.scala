@@ -16,38 +16,78 @@
 
 package uk.gov.hmrc.fileupload.read.envelope
 
+import cats.data.Xor
 import play.api.libs.json.Json
 import play.api.mvc.{Result, Results}
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.{DB, DBMetaCommands}
 import reactivemongo.bson.BSONObjectID
+import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.mongo.ReactiveRepository
 
 import scala.concurrent.{ExecutionContext, Future}
 
 object Repository {
+
+  type UpdateResult = Xor[UpdateError, UpdateSuccess.type]
+  case object UpdateSuccess
+  sealed trait UpdateError
+  case object NewerVersionAvailable extends UpdateError
+  case class NotUpdatedError(message: String) extends UpdateError
+
+  val updateSuccess = Xor.right(UpdateSuccess)
+
+  type DeleteResult = Xor[DeleteError, DeleteSuccess.type]
+  case object DeleteSuccess
+  case class DeleteError(message: String)
+
+  val deleteSuccess = Xor.right(DeleteSuccess)
+
   def apply(mongo: () => DB with DBMetaCommands): Repository = new Repository(mongo)
 }
 
 class Repository(mongo: () => DB with DBMetaCommands)
   extends ReactiveRepository[Envelope, BSONObjectID](collectionName = "envelopes-read-model", mongo, domainFormat = Envelope.envelopeFormat) {
 
-  def update(envelope: Envelope)(implicit ex: ExecutionContext): Future[Option[Envelope]] = {
+  val duplicateKeyErrroCode = Some(11000)
+
+  import Repository._
+
+  def update(envelope: Envelope)(implicit ex: ExecutionContext): Future[UpdateResult] = {
     val selector = Json.obj(
       _Id -> envelope._id.value,
       "version" -> Json.obj("$lte" -> envelope.version))
-    val result = collection.findAndUpdate(selector, envelope, fetchNewObject = true, upsert = envelope.version.value == 1)
 
-    result.map(_.value.map(Json.fromJson[Envelope](_).get))
+    collection.update(selector = selector, update = envelope, upsert = true, multi = false).map { r =>
+      if (r.ok) {
+        updateSuccess
+      } else {
+        Xor.left(NotUpdatedError("No report updated"))
+      }
+    }.recover {
+      case f: DatabaseException =>
+        Xor.left(NewerVersionAvailable)
+      case f: Throwable =>
+        Xor.left(NotUpdatedError(f.getMessage))
+    }
   }
 
   def get(id: EnvelopeId)(implicit ec: ExecutionContext): Future[Option[Envelope]] = {
     find("_id" -> id).map(_.headOption)
   }
 
-  def delete(id: EnvelopeId)(implicit ec: ExecutionContext): Future[Boolean] = {
-    remove("_id" -> id) map toBoolean
+  def delete(id: EnvelopeId)(implicit ec: ExecutionContext): Future[DeleteResult] = {
+    remove("_id" -> id).map { r =>
+      if (toBoolean(r)) {
+        deleteSuccess
+      } else {
+        Xor.left(DeleteError("No report deleted"))
+      }
+    }.recover {
+      case f: Throwable =>
+        Xor.left(DeleteError(f.getMessage))
+    }
   }
 
   def getByDestination(maybeDestination: Option[String])(implicit ec: ExecutionContext): Future[List[Envelope]] = {

@@ -16,17 +16,23 @@
 
 package uk.gov.hmrc.fileupload.read.infrastructure
 
+import cats.data.Xor
+import play.api.Logger
+import uk.gov.hmrc.fileupload.read.envelope.Repository._
 import uk.gov.hmrc.fileupload.write.infrastructure._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 trait Report[T, Id] {
 
   def toId: StreamId => Id
-  def save: T => Future[Option[T]]
-  def delete: Id => Future[Boolean]
+  def update: T => Future[UpdateResult]
+  def delete: Id => Future[DeleteResult]
   def defaultState: Id => T
   def updateVersion: (Version, T) => T
+
+  implicit def ec: ExecutionContext
 
   var eventVersion = Report.defaultVersion
   var created = Report.defaultCreated
@@ -46,9 +52,32 @@ trait Report[T, Id] {
 
       currentState match {
         case Some(entity) =>
-          save(updateVersion(eventVersion, entity))
+          val updatedVersion = updateVersion(eventVersion, entity)
+          update(updatedVersion).onComplete {
+            case Success(result) =>
+              result match {
+                case Xor.Right(_) =>
+                  Logger.info(s"Report successfully updated $updatedVersion")
+                case Xor.Left(NewerVersionAvailable) =>
+                  Logger.info(s"Report not stored: NewerVersionAvailable for $updatedVersion")
+                case Xor.Left(NotUpdatedError(m)) =>
+                  Logger.info(s"Report not stored: NoUpdatedError $m for $updatedVersion")
+              }
+            case Failure(f) =>
+              Logger.info(s"Report not stored: ${f.getMessage} for $updatedVersion")
+          }
         case None =>
-          delete(id)
+          delete(id).onComplete {
+            case Success(result) =>
+              result match {
+                case Xor.Right(_) =>
+                  Logger.info(s"Report successfully deleted $id")
+                case Xor.Left(DeleteError(m)) =>
+                  Logger.info(s"Report not stored: $m for $id")
+              }
+            case Failure(f) =>
+              Logger.info(s"Report not stored: ${f.getMessage} for $id")
+          }
       }
     }
   }

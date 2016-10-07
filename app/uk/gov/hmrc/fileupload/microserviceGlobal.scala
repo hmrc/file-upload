@@ -121,7 +121,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   var eventStore: MongoEventStore = _
 
   // envelope read model
-  lazy val createReportActor = new EnvelopeReportHandler(
+  lazy val createReportHandler = new EnvelopeReportHandler(
     toId = (streamId: StreamId) => EnvelopeId(streamId.value),
     envelopeRepository.update,
     envelopeRepository.delete,
@@ -134,7 +134,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
         handler = write.envelope.Envelope,
         defaultState = () => write.envelope.Envelope(),
         publish = publish,
-        publishAllEvents = createReportActor.handle)(eventStore, defaultContext).handleCommand(command)
+        publishAllEvents = createReportHandler.handle)(eventStore, defaultContext).handleCommand(command)
   }
 
   lazy val envelopeController = {

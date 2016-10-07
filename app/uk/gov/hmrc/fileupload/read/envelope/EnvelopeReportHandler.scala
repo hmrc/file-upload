@@ -16,20 +16,21 @@
 
 package uk.gov.hmrc.fileupload.read.envelope
 
-
 import org.joda.time.{DateTime, DateTimeZone}
+import uk.gov.hmrc.fileupload.read.envelope.Repository.{DeleteResult, UpdateResult}
 import uk.gov.hmrc.fileupload.read.infrastructure.Report
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{StreamId, Version}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
-                            override val save: (Envelope) => Future[Option[Envelope]],
-                            override val delete: (EnvelopeId) => Future[Boolean],
+                            override val update: (Envelope) => Future[UpdateResult],
+                            override val delete: (EnvelopeId) => Future[DeleteResult],
                             override val defaultState: (EnvelopeId) => Envelope,
-                            override val updateVersion: (Version, Envelope) => Envelope = (v, e) => e.copy(version = v)) extends Report[Envelope, EnvelopeId] {
+                            override val updateVersion: (Version, Envelope) => Envelope = (v, e) => e.copy(version = v))
+                           (implicit override val ec: ExecutionContext)extends Report[Envelope, EnvelopeId] {
 
   override def apply = {
 

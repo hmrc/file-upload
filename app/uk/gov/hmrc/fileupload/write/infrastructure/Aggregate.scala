@@ -114,7 +114,10 @@ class Aggregate[C <: Command, S](handler: Handler[C, S],
             Logger.warn(s"Return with version conflict $command")
             Future.successful(error)
           }
-        case error => Future.successful(error)
+        case error => {
+          Logger.warn(s"Return with error $error for $command")
+          Future.successful(error)
+        }
       }
     }
     run(numOfRetry, command)
