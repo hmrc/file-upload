@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.read.envelope
 
 import org.joda.time.{DateTime, DateTimeZone}
 import uk.gov.hmrc.fileupload.read.envelope.Repository.{DeleteResult, UpdateResult}
-import uk.gov.hmrc.fileupload.read.infrastructure.Report
+import uk.gov.hmrc.fileupload.read.infrastructure.ReportHandler
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{StreamId, Version}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
@@ -30,7 +30,7 @@ class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
                             override val delete: (EnvelopeId) => Future[DeleteResult],
                             override val defaultState: (EnvelopeId) => Envelope,
                             override val updateVersion: (Version, Envelope) => Envelope = (v, e) => e.copy(version = v))
-                           (implicit override val ec: ExecutionContext)extends Report[Envelope, EnvelopeId] {
+                           (implicit override val ec: ExecutionContext) extends ReportHandler[Envelope, EnvelopeId] {
 
   override def apply = {
 

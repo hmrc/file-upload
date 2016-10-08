@@ -24,7 +24,7 @@ import uk.gov.hmrc.fileupload.write.infrastructure._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-trait Report[T, Id] {
+trait ReportHandler[T, Id] {
 
   def toId: StreamId => Id
   def update: T => Future[UpdateResult]
@@ -34,10 +34,10 @@ trait Report[T, Id] {
 
   implicit def ec: ExecutionContext
 
-  var eventVersion = Report.defaultVersion
-  var created = Report.defaultCreated
-
   def handle(events: Seq[Event]): Unit = {
+    var eventVersion = ReportHandler.defaultVersion
+    var created = ReportHandler.defaultCreated
+
     events.headOption.foreach { event =>
       val id = toId(event.streamId)
       var currentState = Option(defaultState(id))
@@ -85,7 +85,7 @@ trait Report[T, Id] {
   def apply: PartialFunction[(T, EventData), Option[T]]
 }
 
-object Report {
+object ReportHandler {
 
   val defaultVersion = Version(0)
   val defaultCreated = Created(0)

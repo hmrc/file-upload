@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.fileupload.read.envelope
 
-import cats.data.Xor
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.Matchers
 import play.api.libs.json.Json
