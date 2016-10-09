@@ -27,14 +27,14 @@ import scala.util.{Failure, Success}
 trait ReportHandler[T, Id] {
 
   def toId: StreamId => Id
-  def update: T => Future[UpdateResult]
+  def update: (T, Boolean) => Future[UpdateResult]
   def delete: Id => Future[DeleteResult]
   def defaultState: Id => T
   def updateVersion: (Version, T) => T
 
   implicit def ec: ExecutionContext
 
-  def handle(events: Seq[Event]): Unit = {
+  def handle(replay: Boolean = false)(events: Seq[Event]): Unit = {
     var eventVersion = ReportHandler.defaultVersion
     var created = ReportHandler.defaultCreated
 
@@ -53,7 +53,7 @@ trait ReportHandler[T, Id] {
       currentState match {
         case Some(entity) =>
           val updatedVersion = updateVersion(eventVersion, entity)
-          update(updatedVersion).onComplete {
+          update(updatedVersion, !replay).onComplete {
             case Success(result) =>
               result match {
                 case Xor.Right(_) =>
@@ -67,20 +67,23 @@ trait ReportHandler[T, Id] {
               Logger.info(s"Report not stored: ${f.getMessage} for $updatedVersion")
           }
         case None =>
-          delete(id).onComplete {
-            case Success(result) =>
-              result match {
-                case Xor.Right(_) =>
-                  Logger.info(s"Report successfully deleted $id")
-                case Xor.Left(DeleteError(m)) =>
-                  Logger.info(s"Report not stored: $m for $id")
-              }
-            case Failure(f) =>
-              Logger.info(s"Report not stored: ${f.getMessage} for $id")
-          }
+          remove(id)
       }
     }
   }
+
+  private def remove(id: Id): Unit =
+    delete(id).onComplete {
+      case Success(result) =>
+        result match {
+          case Xor.Right(_) =>
+            Logger.info(s"Report successfully deleted $id")
+          case Xor.Left(DeleteError(m)) =>
+            Logger.info(s"Report not deleted: $m for $id")
+        }
+      case Failure(f) =>
+        Logger.info(s"Report not deleted: ${f.getMessage} for $id")
+    }
 
   def apply: PartialFunction[(T, EventData), Option[T]]
 }

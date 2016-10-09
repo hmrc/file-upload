@@ -134,7 +134,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
         handler = write.envelope.Envelope,
         defaultState = () => write.envelope.Envelope(),
         publish = publish,
-        publishAllEvents = createReportHandler.handle)(eventStore, defaultContext).handleCommand(command)
+        publishAllEvents = createReportHandler.handle(replay = false))(eventStore, defaultContext).handleCommand(command)
   }
 
   lazy val envelopeController = {
@@ -148,7 +148,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   }
 
   lazy val eventController = {
-    new EventController(envelopeCommandHandler, eventStore.unitsOfWorkForAggregate, createReportHandler.handle)
+    new EventController(envelopeCommandHandler, eventStore.unitsOfWorkForAggregate, createReportHandler.handle(replay = true))
   }
 
   lazy val fileController = {

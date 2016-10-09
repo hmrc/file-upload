@@ -147,7 +147,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
   trait UpdateEnvelopeFixture {
     val envelopeId = EnvelopeId()
     var modifiedEnvelope: Envelope = _
-    def update(e: Envelope) = {
+    def update(e: Envelope, replay: Boolean = false) = {
       modifiedEnvelope = e
       Future.successful(Repository.updateSuccess)
     }
@@ -175,9 +175,9 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
 
     def wrappedEvents(events: Seq[EnvelopeEvent]) = events.zipWithIndex.map(i => wrappedEvent(i._1, Version(i._2 + 1)))
 
-    def sendEvent(event: EnvelopeEvent) = handler.handle(List(wrappedEvent(event)))
+    def sendEvent(event: EnvelopeEvent) = handler.handle(replay = false)(List(wrappedEvent(event)))
 
-    def sendEvents(events: Seq[EnvelopeEvent]) = handler.handle(wrappedEvents(events))
+    def sendEvents(events: Seq[EnvelopeEvent]) = handler.handle(replay = false)(wrappedEvents(events))
   }
 
 }

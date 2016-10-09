@@ -54,10 +54,15 @@ class Repository(mongo: () => DB with DBMetaCommands)
 
   import Repository._
 
-  def update(envelope: Envelope)(implicit ex: ExecutionContext): Future[UpdateResult] = {
-    val selector = Json.obj(
-      _Id -> envelope._id.value,
-      "version" -> Json.obj("$lte" -> envelope.version))
+  def update(envelope: Envelope, checkVersion: Boolean = true)(implicit ex: ExecutionContext): Future[UpdateResult] = {
+    val selector = if (checkVersion) {
+      Json.obj(
+        _Id -> envelope._id.value,
+        "version" -> Json.obj("$lte" -> envelope.version))
+    } else {
+      Json.obj(
+        _Id -> envelope._id.value)
+    }
 
     collection.update(selector = selector, update = envelope, upsert = true, multi = false).map { r =>
       if (r.ok) {

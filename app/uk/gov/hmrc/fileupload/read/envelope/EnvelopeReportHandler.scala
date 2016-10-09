@@ -26,7 +26,7 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 import scala.concurrent.{ExecutionContext, Future}
 
 class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
-                            override val update: (Envelope) => Future[UpdateResult],
+                            override val update: (Envelope, Boolean) => Future[UpdateResult],
                             override val delete: (EnvelopeId) => Future[DeleteResult],
                             override val defaultState: (EnvelopeId) => Envelope,
                             override val updateVersion: (Version, Envelope) => Envelope = (v, e) => e.copy(version = v))

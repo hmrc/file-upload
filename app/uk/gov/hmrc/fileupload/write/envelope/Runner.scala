@@ -72,7 +72,7 @@ object Runner extends App {
     (a: AnyRef) => {
 //      println(s"handle $a")
     },
-    envelopeReport.handle)
+    envelopeReport.handle(replay = false))
     .handleCommand(command)
 
   val serviceWhichCallsCommandFunc = serviceWhichCallsCommand(handle) _
