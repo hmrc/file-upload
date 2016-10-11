@@ -5,7 +5,7 @@ import java.io.RandomAccessFile
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws._
-import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
+import uk.gov.hmrc.fileupload.controllers.{FileInQuarantineStored, FileScanned}
 import uk.gov.hmrc.fileupload.support._
 
 /**
@@ -40,6 +40,9 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       And("FileInQuarantineStored")
       sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
 
+      And("FileScanned")
+      sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))
+
       And("I have a valid file attached to the request body")
       val data = "{}".getBytes
 
@@ -64,6 +67,9 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
 
       And("FileInQuarantineStored")
       sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+
+      And("FileScanned")
+      sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))
 
       And("I have a valid 3MB file attached to the request body")
       val file = new RandomAccessFile("t", "rw")
@@ -95,6 +101,9 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
 
       And("FileInQuarantineStored")
       sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+
+      And("FileScanned")
+      sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))
 
       When(s"I invoke PUT envelope/$envelopeId/files/$fileId/$fileRefId")
       val response = upload(data, envelopeId, fileId, fileRefId)
@@ -142,6 +151,9 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
 
       And("FileInQuarantineStored")
       sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+
+      And("FileScanned")
+      sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))
 
       And("I have no file attached to the request body")
       val data = "".getBytes
