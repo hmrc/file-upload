@@ -210,6 +210,15 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
         noVirusDetected
       )
     }
+
+    scenario("Mark file as clean for an archived envelope") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined And noVirusDetected And fileStored And envelopeSealed And envelopeRouted And envelopeArchived,
+        MarkFileAsClean(envelopeId, fileId, fileRefId),
+        EnvelopeArchivedError
+      )
+    }
   }
 
   feature("MarkFileAsInfected") {
@@ -274,6 +283,15 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
         envelopeCreated And fileQuarantined And envelopeSealed,
         MarkFileAsInfected(envelopeId, fileId, fileRefId),
         virusDetected
+      )
+    }
+
+    scenario("Mark file as infected for an archived envelope") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined And noVirusDetected And fileStored And envelopeSealed And envelopeRouted And envelopeArchived,
+        MarkFileAsInfected(envelopeId, fileId, fileRefId),
+        EnvelopeArchivedError
       )
     }
   }
@@ -358,6 +376,15 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
         envelopeCreated And fileQuarantined,
         StoreFile(envelopeId, fileId, fileRefId.copy(fileRefId.value + "_"), 100),
         FileNotFoundError
+      )
+    }
+
+    scenario("Store file for an archived envelope") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined And noVirusDetected And fileStored And envelopeSealed And envelopeRouted And envelopeArchived,
+        StoreFile(envelopeId, fileId, fileRefId, 100),
+        EnvelopeArchivedError
       )
     }
   }
