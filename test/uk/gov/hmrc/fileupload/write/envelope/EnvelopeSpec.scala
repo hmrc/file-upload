@@ -82,6 +82,24 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
       )
     }
 
+    scenario("Quarantine a new file for a different file id with different fileRefId") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = FileRefId()),
+        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()),
+        fileQuarantined
+      )
+    }
+
+    scenario("Quarantine same file") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined,
+        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()),
+        FileAlreadyProcessed
+      )
+    }
+
     scenario("Quarantine a new file for a non existing envelope") {
 
       givenWhenThen(
@@ -139,6 +157,33 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
       )
     }
 
+    scenario("Mark file as clean for an existing file which has other files") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = FileRefId()) And fileQuarantined,
+        MarkFileAsClean(envelopeId, fileId, fileRefId),
+        noVirusDetected
+      )
+    }
+
+    scenario("Mark file as clean for an already marked file") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined And noVirusDetected,
+        MarkFileAsClean(envelopeId, fileId, fileRefId),
+        FileAlreadyProcessed
+      )
+    }
+
+    scenario("Mark file as clean for an already stored file") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined And fileStored,
+        MarkFileAsClean(envelopeId, fileId, fileRefId),
+        FileAlreadyProcessed
+      )
+    }
+
     scenario("Mark file as clean for an existing fileId with different fileRefId") {
 
       givenWhenThen(
@@ -156,6 +201,15 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
         FileNotFoundError
       )
     }
+
+    scenario("Mark file as clean for a sealed file") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined And envelopeSealed,
+        MarkFileAsClean(envelopeId, fileId, fileRefId),
+        noVirusDetected
+      )
+    }
   }
 
   feature("MarkFileAsInfected") {
@@ -166,6 +220,33 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
         envelopeCreated And fileQuarantined,
         MarkFileAsInfected(envelopeId, fileId, fileRefId),
         virusDetected
+      )
+    }
+
+    scenario("Mark file as clean for an existing file which has other files") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = FileRefId()) And fileQuarantined,
+        MarkFileAsInfected(envelopeId, fileId, fileRefId),
+        virusDetected
+      )
+    }
+
+    scenario("Mark file as infected for an already infected file") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined And virusDetected,
+        MarkFileAsInfected(envelopeId, fileId, fileRefId),
+        FileAlreadyProcessed
+      )
+    }
+
+    scenario("Mark file as clean for an already stored file") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined And fileStored,
+        MarkFileAsInfected(envelopeId, fileId, fileRefId),
+        FileAlreadyProcessed
       )
     }
 
@@ -186,6 +267,15 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
         FileNotFoundError
       )
     }
+
+    scenario("Mark file as infected for a sealed file") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined And envelopeSealed,
+        MarkFileAsInfected(envelopeId, fileId, fileRefId),
+        virusDetected
+      )
+    }
   }
 
   feature("StoreFile") {
@@ -196,6 +286,24 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
         envelopeCreated And fileQuarantined And noVirusDetected,
         StoreFile(envelopeId, fileId, fileRefId, 100),
         fileStored
+      )
+    }
+
+    scenario("Store file for an existing file which is not scanned yet") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined,
+        StoreFile(envelopeId, fileId, fileRefId, 100),
+        FileNotFoundError
+      )
+    }
+
+    scenario("Store file for an already stored file") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined And noVirusDetected And fileStored,
+        StoreFile(envelopeId, fileId, fileRefId, 100),
+        FileAlreadyProcessed
       )
     }
 
@@ -211,9 +319,18 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
     scenario("Store file for an existing file and a sealed envelope") {
 
       givenWhenThen(
-        envelopeCreated And envelopeSealed And fileQuarantined And noVirusDetected,
+        envelopeCreated And fileQuarantined And noVirusDetected And envelopeSealed,
         StoreFile(envelopeId, fileId, fileRefId, 100),
         fileStored And envelopeRouted
+      )
+    }
+
+    scenario("Store file for an existing file and another quarantined file and a sealed envelope") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = FileRefId()) And fileQuarantined And noVirusDetected And envelopeSealed,
+        StoreFile(envelopeId, fileId, fileRefId, 100),
+        fileStored
       )
     }
 

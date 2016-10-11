@@ -163,6 +163,7 @@ case class FilesWithError(fileIds: Seq[FileId]) extends EnvelopeCommandNotAccept
 case class FilesNotAvailableError(fileIds: Seq[FileId]) extends EnvelopeCommandNotAccepted
 case class FileNameDuplicateError(fileId: FileId) extends EnvelopeCommandNotAccepted
 case object FileNotFoundError extends EnvelopeCommandNotAccepted
+case object FileAlreadyProcessed extends EnvelopeCommandNotAccepted
 case object EnvelopeArchivedError extends EnvelopeCommandNotAccepted
 case object EnvelopeAlreadyRoutedError extends EnvelopeCommandNotAccepted
 
