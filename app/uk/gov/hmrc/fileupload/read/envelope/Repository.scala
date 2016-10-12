@@ -20,7 +20,8 @@ import cats.data.Xor
 import play.api.libs.json.Json
 import play.api.mvc.{Result, Results}
 import reactivemongo.api.commands.WriteResult
-import reactivemongo.api.{DB, DBMetaCommands}
+import reactivemongo.api.indexes.{Index, IndexType}
+import reactivemongo.api.{DB, DBMetaCommands, ReadPreference}
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.fileupload.EnvelopeId
@@ -51,6 +52,10 @@ class Repository(mongo: () => DB with DBMetaCommands)
   extends ReactiveRepository[Envelope, BSONObjectID](collectionName = "envelopes-read-model", mongo, domainFormat = Envelope.envelopeFormat) {
 
   val duplicateKeyErrroCode = Some(11000)
+
+  override def ensureIndexes(implicit ec:ExecutionContext) = {
+    collection.indexesManager.ensure(Index(key = List("status" -> IndexType.Ascending), background = true)).map(Seq(_))
+  }
 
   import Repository._
 
@@ -96,11 +101,12 @@ class Repository(mongo: () => DB with DBMetaCommands)
   }
 
   def getByDestination(maybeDestination: Option[String])(implicit ec: ExecutionContext): Future[List[Envelope]] = {
-    maybeDestination.map { d =>
-      find("destination" -> d, "status" -> EnvelopeStatusClosed.name)
+    val query = maybeDestination.map { d =>
+      Json.obj("status" -> EnvelopeStatusClosed.name, "destination" -> d)
     } getOrElse {
-      find("status" -> EnvelopeStatusClosed.name)
+      Json.obj("status" -> EnvelopeStatusClosed.name)
     }
+    collection.find(query).cursor[Envelope](ReadPreference.secondaryPreferred).collect[List]()
   }
 
   def all()(implicit ec: ExecutionContext): Future[List[Envelope]] = {
