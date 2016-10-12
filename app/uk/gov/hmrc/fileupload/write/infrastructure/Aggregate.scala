@@ -82,7 +82,7 @@ class Aggregate[C <: Command, S](handler: Handler[C, S],
                   commandAcceptedResult
 
                 case Xor.Left(VersionConflictError) =>
-                  Logger.info(s"VersionConflictError for version $nextVersion and $command")
+                  Logger.info(s"VersionConflict for version $nextVersion and $command")
                   Xor.left(VersionConflict(nextVersion, command))
 
                 case Xor.Left(NotSavedError(m)) =>

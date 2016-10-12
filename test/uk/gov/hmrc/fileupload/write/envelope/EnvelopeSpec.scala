@@ -523,12 +523,12 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
       )
     }
 
-    scenario("Seal envelope with unsupported destination") {
+    scenario("Seal envelope with a different destination") {
 
       givenWhenThen(
         envelopeCreated,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DESTINATION_X", "testApplication"),
-        SealEnvelopeDestinationNotAllowedError
+        envelopeSealed.copy(destination = "DESTINATION_X") And envelopeRouted
       )
     }
 

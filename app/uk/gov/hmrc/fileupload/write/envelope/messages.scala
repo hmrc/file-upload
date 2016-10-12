@@ -157,7 +157,6 @@ sealed trait EnvelopeCommandNotAccepted extends CommandNotAccepted
 
 case object EnvelopeNotFoundError extends EnvelopeCommandNotAccepted
 case object EnvelopeSealedError extends EnvelopeCommandNotAccepted
-case object SealEnvelopeDestinationNotAllowedError extends EnvelopeCommandNotAccepted
 case object FileWithError extends EnvelopeCommandNotAccepted
 case class FilesWithError(fileIds: Seq[FileId]) extends EnvelopeCommandNotAccepted
 case class FilesNotAvailableError(fileIds: Seq[FileId]) extends EnvelopeCommandNotAccepted

@@ -160,7 +160,6 @@ object State {
   val envelopeNotFoundError = Xor.left(EnvelopeNotFoundError)
   val fileNotFoundError = Xor.left(FileNotFoundError)
   val envelopeSealedError = Xor.left(EnvelopeSealedError)
-  val envelopeSealDestinationNotAllowedError = Xor.left(SealEnvelopeDestinationNotAllowedError)
   val envelopeAlreadyArchivedError = Xor.left(EnvelopeArchivedError)
   val envelopeAlreadyRoutedError = Xor.left(EnvelopeAlreadyRoutedError)
   val fileAlreadyProcessedError = Xor.left(FileAlreadyProcessed)
@@ -233,15 +232,11 @@ object Open extends State {
   override def canDelete: CanResult = successResult
 
   override def canSeal(files: Seq[File], destination: String): CanResult = {
-    if (destination.toLowerCase != "dms") {
-      envelopeSealDestinationNotAllowedError
+    val filesWithError = files.filter(_.hasError)
+    if (filesWithError.isEmpty) {
+      successResult
     } else {
-      val filesWithError = files.filter(_.hasError)
-      if (filesWithError.isEmpty) {
-        successResult
-      } else {
-        Xor.Left(FilesWithError(filesWithError.map(_.fileId)))
-      }
+      Xor.Left(FilesWithError(filesWithError.map(_.fileId)))
     }
   }
 }

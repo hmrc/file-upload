@@ -38,8 +38,6 @@ class RoutingController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNo
       val requestId = newId()
       handleCommand(SealEnvelope(envelopeId, requestId, destination, application)).map {
         case Xor.Right(_) => Created.withHeaders(LOCATION -> routes.RoutingController.routingStatus(requestId).url)
-        case Xor.Left(SealEnvelopeDestinationNotAllowedError) =>
-          ExceptionHandler(BAD_REQUEST, s"Destination: $destination not supported")
         case Xor.Left(EnvelopeSealedError) | Xor.Left(EnvelopeAlreadyRoutedError) =>
           ExceptionHandler(BAD_REQUEST, s"Routing request already received for envelope: $envelopeId")
         case Xor.Left(FilesWithError(ids)) =>

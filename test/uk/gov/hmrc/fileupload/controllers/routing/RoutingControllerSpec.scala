@@ -54,16 +54,6 @@ class RoutingControllerSpec extends UnitSpec with WithFakeApplication with Scala
       result.header.status shouldBe Status.CREATED
       result.header.headers(LOCATION) shouldBe routes.RoutingController.routingStatus(routingRequestId).url
     }
-    "return 400 bad request if destination != DMS" in {
-      val controller = newController(handleCommand = _ => Future.successful(
-        Xor.Left(SealEnvelopeDestinationNotAllowedError)
-      ))
-
-      val result = controller.createRoutingRequest()(validRequest).futureValue
-
-      result.header.status shouldBe Status.BAD_REQUEST
-      bodyOf(result) should include(s"Destination: $destination not supported")
-    }
     "return 400 bad request if envelope already routed" in {
       val controller = newController(handleCommand = _ => Future.successful(
         Xor.Left(EnvelopeAlreadyRoutedError)
