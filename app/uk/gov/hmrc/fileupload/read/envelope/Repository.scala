@@ -54,7 +54,7 @@ class Repository(mongo: () => DB with DBMetaCommands)
   val duplicateKeyErrroCode = Some(11000)
 
   override def ensureIndexes(implicit ec:ExecutionContext) = {
-    collection.indexesManager.ensure(Index(key = List("status" -> IndexType.Ascending), background = true)).map(Seq(_))
+    collection.indexesManager.ensure(Index(key = List("status" -> IndexType.Ascending, "destination" -> IndexType.Ascending), background = true)).map(Seq(_))
   }
 
   import Repository._
