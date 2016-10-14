@@ -19,7 +19,7 @@ The endpoints can then be accessed with the base url http://localhost:8898/
 ## Table of Contents
 
 *   [Endpoints](#endpoints)
-*   [CallBackURL](#callbackUrl)
+*   [Callback](#callback)
 
 ## Endpoints <a name="endpoints"></a>
 
@@ -47,7 +47,7 @@ Body:
 }
 ```
 
-Note: All parameters are optional. A [callbackUrl](#callbackUrl) is optional but should be provided in order for the service to provide feedback of the envelope's progress.
+Note: All parameters are optional. A [callbackUrl](#callback) is optional but should be provided in order for the service to provide feedback of the envelope's progress.
 
 Response (in Headers): Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
@@ -304,24 +304,25 @@ Request (DELETE): localhost:8898/file-transfer/envelopes/0b215e97-11d4-4006-91db
 
 Response: 200
 
-## CallBackUrl <a name="callbackUrl"></a>
+## Callback <a name="callback"></a>
 
-The following is an example response from the callbackUrl. Should comprise of:
-* Envelope Id e.g. "0b215e97-11d4-4006-91db-c067e74fc653"
-* File Id e.g. "file-id-1"
-* Status which will show the current status such as QUARANTINED, CLEANED, VIRUSDETECTED or ERROR
+The following is an example request to the callbackUrl. Should comprise of:
+* Envelope Id
+* File Id
+* Status which will show the current status. Possible values are QUARANTINED, CLEANED or ERROR
 * Reason which is optional and only occurs when status is ERROR
 
-
-#### Response
+Request (POST)
 ```json
 {
-  "envelopeId": "$envelopeId",
-  "fileId": "$fileId",
-  "status": "$status",
-  "reason": "$reason"
+  "envelopeId": "0b215ey97-11d4-4006-91db-c067e74fc653",
+  "fileId": "file-id-1",
+  "status": "ERROR",
+  "reason": "VirusDectected"
 }
 ```
+
+Response: 200
 
 ### License
 
