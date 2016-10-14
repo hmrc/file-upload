@@ -16,11 +16,16 @@ sbt run
 
 The endpoints can then be accessed with the base url http://localhost:8898/
 
-## Endpoints <a id="endpoints"></a>
+## Table of Contents
+
+*   [Endpoints](#endpoints)
+*   [CallBackURL](#callbackUrl)
+
+## Endpoints <a name="endpoints"></a>
 
 ### Envelope
 
-#### Create An Envelope
+#### Create An Envelope <a name="create"></a>
 Creates an envelope and auto generates an Id. The body in the http request must be json. Successful response is provided in the Location Header which will have the link of the newly created envelope.
 ```
 POST   	file-upload/envelopes
@@ -301,14 +306,20 @@ Response: 200
 
 ## CallBackUrl <a name="callbackUrl"></a>
 
+The following is an example response from the callbackUrl. Should comprise of:
+* Envelope Id e.g. "0b215e97-11d4-4006-91db-c067e74fc653"
+* File Id e.g. "file-id-1"
+* Status which will show the current status such as QUARANTINED, CLEANED, VIRUSDETECTED or ERROR
+* Reason which is optional and only occurs when status is ERROR
+
 
 #### Response
 ```json
 {
   "envelopeId": "$envelopeId",
   "fileId": "$fileId",
-  "status": "$status",//QUARANTINED, CLEANED, VIRUSDETECTED or ERROR
-  "reason": "$reason"//optional (when status is ERROR)
+  "status": "$status",
+  "reason": "$reason"
 }
 ```
 
