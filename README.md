@@ -16,7 +16,12 @@ sbt run
 
 The endpoints can then be accessed with the base url http://localhost:8898/
 
-## Endpoints
+## Table of Contents
+
+*   [Endpoints](#endpoints)
+*   [Callback](#callback)
+
+## Endpoints <a name="endpoints"></a>
 
 ### Envelope
 
@@ -42,7 +47,7 @@ Body:
 }
 ```
 
-Note: All parameters are optional. A callbackUrl is optional but should be provided in order for the service to provide feedback of the envelope's progress.
+Note: All parameters are optional. A [callbackUrl](#callback) is optional but should be provided in order for the service to provide feedback of the envelope's progress.
 
 Response (in Headers): Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
@@ -298,6 +303,26 @@ DELETE    /file-transfer/envelopes/{envelope-id}
 Request (DELETE): localhost:8898/file-transfer/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
 Response: 200
+
+## Callback <a name="callback"></a>
+
+The following is an example request to the callbackUrl. Should comprise of:
+* Envelope Id
+* File Id
+* Status which will show the current status. Possible values are QUARANTINED, CLEANED or ERROR
+* Reason which is optional and only occurs when status is ERROR
+
+Request (POST)
+```json
+{
+  "envelopeId": "0b215ey97-11d4-4006-91db-c067e74fc653",
+  "fileId": "file-id-1",
+  "status": "ERROR",
+  "reason": "VirusDectected"
+}
+```
+
+Expected Response: 200
 
 ### License
 
