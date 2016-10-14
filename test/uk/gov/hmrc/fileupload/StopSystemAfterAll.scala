@@ -17,13 +17,16 @@
 package uk.gov.hmrc.fileupload
 
 
-import org.scalatest.{Suite, BeforeAndAfterAll}
+import org.scalatest.{BeforeAndAfterAll, Suite}
 import akka.testkit.TestKit
+
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 trait StopSystemAfterAll extends BeforeAndAfterAll {
   this: TestKit with Suite =>
   override protected def afterAll() {
     super.afterAll()
-    system.shutdown()
+    Await.result(system.terminate(), 5 seconds)
   }
 }
