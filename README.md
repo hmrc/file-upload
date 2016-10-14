@@ -25,7 +25,7 @@ The endpoints can then be accessed with the base url http://localhost:8898/
 
 ### Envelope
 
-#### Create An Envelope <a name="create"></a>
+#### Create An Envelope
 Creates an envelope and auto generates an Id. The body in the http request must be json. Successful response is provided in the Location Header which will have the link of the newly created envelope.
 ```
 POST   	file-upload/envelopes
@@ -322,7 +322,7 @@ Request (POST)
 }
 ```
 
-Response: 200
+Expected Response: 200
 
 ### License
 
