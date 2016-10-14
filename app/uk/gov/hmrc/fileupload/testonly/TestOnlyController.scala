@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.fileupload.testonly
 
-import org.joda.time.Duration
 import play.api.mvc.{Action, Controller}
 import uk.gov.hmrc.fileupload.AppConfig
 import uk.gov.hmrc.fileupload.read.file.Repository
@@ -26,9 +25,8 @@ import scala.concurrent.ExecutionContext
 
 class TestOnlyController(repository: Repository)(implicit executionContext: ExecutionContext) extends Controller {
 
-  def expireTransient(expiryDurationInDays: Option[Int]) = Action.async { request =>
-    val expiry = expiryDurationInDays.map(Duration.standardDays(_)).getOrElse(AppConfig.transientDataStoreTTl)
-    repository.clear(Some(expiry)).map {
+  def expireTransient() = Action.async { request =>
+    repository.clear(Some(AppConfig.transientDataStoreTTl)).map {
       results =>
         val errors = results.filter(_.hasErrors)
         errors match {
