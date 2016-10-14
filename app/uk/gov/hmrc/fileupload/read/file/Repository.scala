@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.fileupload.read.file
 
+import org.joda.time.{DateTime, Duration}
 import play.api.libs.iteratee.{Enumerator, Iteratee}
 import play.api.libs.json.Json
 import play.modules.reactivemongo.GridFSController._
@@ -23,7 +24,7 @@ import play.modules.reactivemongo.JSONFileToSave
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.gridfs.GridFS
 import reactivemongo.api.{DB, DBMetaCommands}
-import reactivemongo.bson.BSONDocument
+import reactivemongo.bson.{BSONDateTime, BSONDocument}
 import reactivemongo.json._
 import uk.gov.hmrc.fileupload._
 
@@ -55,9 +56,13 @@ class Repository(mongo: () => DB with DBMetaCommands) {
     }
   }
 
-  def removeAll()(implicit ec: ExecutionContext): Future[List[WriteResult]] = {
-    val files = gfs.files.remove(Json.obj())
-    val chunks = gfs.chunks.remove(Json.obj())
+  def clear(expireDuration: Option[Duration] = None)(implicit ec: ExecutionContext): Future[List[WriteResult]] = {
+    val query = expireDuration.fold(BSONDocument()) {
+      duration => BSONDocument("uploadDate" -> BSONDocument("$lt" -> BSONDateTime(DateTime.now().minus(duration).getMillis)))
+    }
+    val files = gfs.files.remove[BSONDocument](query)
+    val chunks = gfs.chunks.remove[BSONDocument](query)
     Future.sequence(List(files, chunks))
   }
+
 }

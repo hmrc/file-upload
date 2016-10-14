@@ -35,7 +35,7 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
   val repository = new Repository(mongo)
 
   override def beforeEach {
-    repository.removeAll().futureValue
+    repository.clear().futureValue
   }
 
 	"repository" should {
