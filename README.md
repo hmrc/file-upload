@@ -322,7 +322,7 @@ Request (POST)
 }
 ```
 
-Expected Response: 200
+Expected response status code: 200
 
 ### License
 
