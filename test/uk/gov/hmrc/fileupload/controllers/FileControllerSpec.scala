@@ -24,6 +24,7 @@ import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.{JsString, JsValue}
 import play.api.mvc._
 import play.api.test.{FakeHeaders, FakeRequest}
+import reactivemongo.api.commands.WriteResult
 import reactivemongo.json.JSONSerializationPack
 import reactivemongo.json.JSONSerializationPack.Document
 import uk.gov.hmrc.fileupload._
@@ -59,11 +60,13 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
   def newController(uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]] = parse,
                     retrieveFile: (Envelope, FileId) => Future[GetFileResult] = (_, _) => failed,
                     withValidEnvelope: WithValidEnvelope = Support.envelopeAvailable(),
-                    handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed) =
+                    handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
+                    clear: () => Future[List[WriteResult]] = () => failed) =
     new FileController(uploadBodyParser = uploadBodyParser,
       retrieveFile = retrieveFile,
       withValidEnvelope = withValidEnvelope,
-      handleCommand = handleCommand)
+      handleCommand = handleCommand,
+      clear = clear)
 
   "Upload a file" should {
     "return 200 after the file is added to the envelope" in {

@@ -46,7 +46,8 @@ class Repository(mongo: () => DB with DBMetaCommands) {
 
   lazy val gfs: JSONGridFS = GridFS[JSONSerializationPack.type](mongo(), "envelopes")
 
-  def iterateeForUpload(envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId)(implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = {
+  def iterateeForUpload(envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId)
+                       (implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = {
     gfs.iteratee(JSONFileToSave(id = Json.toJson(fileRefId.value), filename = None, metadata = Json.obj("envelopeId" -> envelopeId, "fileId" -> fileId)))
   }
 
@@ -56,10 +57,11 @@ class Repository(mongo: () => DB with DBMetaCommands) {
     }
   }
 
-  def clear(expireDuration: Option[Duration] = None)(implicit ec: ExecutionContext): Future[List[WriteResult]] = {
-    val query = expireDuration.fold(BSONDocument()) {
-      duration => BSONDocument("uploadDate" -> BSONDocument("$lt" -> BSONDateTime(DateTime.now().minus(duration).getMillis)))
-    }
+  def clear(duration: Duration = Duration.standardDays(35), toNow: () => DateTime = () => DateTime.now())()
+           (implicit ec: ExecutionContext): Future[List[WriteResult]] = {
+    val smallerThan = toNow().minus(duration).getMillis
+    val query = BSONDocument("uploadDate" -> BSONDocument("$lt" -> BSONDateTime(smallerThan)))
+
     val files = gfs.files.remove[BSONDocument](query)
     val chunks = gfs.chunks.remove[BSONDocument](query)
     Future.sequence(List(files, chunks))

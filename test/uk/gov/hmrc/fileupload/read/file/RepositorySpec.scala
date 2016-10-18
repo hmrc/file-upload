@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.fileupload.read.file
 
+import org.joda.time.Duration
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -35,7 +36,7 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
   val repository = new Repository(mongo)
 
   override def beforeEach {
-    repository.clear().futureValue
+    repository.clear(duration = Duration.standardSeconds(0)).futureValue
   }
 
 	"repository" should {

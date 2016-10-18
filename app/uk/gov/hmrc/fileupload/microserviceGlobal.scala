@@ -33,7 +33,6 @@ import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => Envel
 import uk.gov.hmrc.fileupload.read.file.{Service => FileService}
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
 import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor}
-import uk.gov.hmrc.fileupload.testonly.TestOnlyController
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
 import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, MongoEventStore, StreamId}
@@ -157,18 +156,14 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     new FileController(uploadBodyParser = uploadBodyParser,
       retrieveFile = retrieveFile,
       withValidEnvelope = withValidEnvelope,
-      handleCommand = envelopeCommandHandler)
+      handleCommand = envelopeCommandHandler,
+      clear = fileRepository.clear() _)
   }
 
   lazy val transferController = {
     val getEnvelopesByDestination = envelopeRepository.getByDestination _
     val zipEnvelope = Zippy.zipEnvelope(find, retrieveFile) _
     new TransferController(getEnvelopesByDestination, envelopeCommandHandler, zipEnvelope)
-  }
-
-  lazy val testOnlyController = {
-    val fileRepository = uk.gov.hmrc.fileupload.read.file.Repository.apply(db)
-    new TestOnlyController(fileRepository)
   }
 
   lazy val routingController = {
@@ -213,8 +208,6 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       eventController.asInstanceOf[A]
     } else if (controllerClass == classOf[TransferController]) {
       transferController.asInstanceOf[A]
-    } else if (controllerClass == classOf[TestOnlyController]) {
-      testOnlyController.asInstanceOf[A]
     } else if (controllerClass == classOf[RoutingController]) {
       routingController.asInstanceOf[A]
     } else {
