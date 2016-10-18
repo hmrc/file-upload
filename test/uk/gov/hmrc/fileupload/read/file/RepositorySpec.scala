@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload.read.file
 
-import org.joda.time.Duration
+import org.joda.time.{DateTime, Duration}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -71,5 +71,42 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 
       fileResult shouldBe None
 		}
-  }
+
+		"Clear files after expiry duration" in {
+			val id = insertAnyFile()
+			val imagineWeAre2DaysInTheFuture = () => DateTime.now().plusDays(3)
+			val expiryDuration = Duration.standardDays(2)
+			repository.clear(expiryDuration, imagineWeAre2DaysInTheFuture).futureValue
+
+			val fileResult = repository.retrieveFile(FileRefId(id)).futureValue
+
+			fileResult shouldBe None
+		}
+
+		"Do not clear files within expiry duration" in {
+			val id = insertAnyFile()
+			val imagineWeAre2DaysInTheFuture = () => DateTime.now().plusDays(3)
+			val expiryDuration = Duration.standardDays(4)
+			repository.clear(expiryDuration, imagineWeAre2DaysInTheFuture).futureValue
+
+			val fileResult = repository.retrieveFile(FileRefId(id)).futureValue
+
+			fileResult.isDefined shouldBe true
+		}
+	}
+
+	def insertAnyFile(): String = {
+		val text = "I only exists to be stored in mongo :<"
+		val contents = Enumerator[ByteStream](text.getBytes)
+
+		val envelopeId = Support.envelope._id
+		val fileId = FileId()
+		val fileRefId = FileRefId()
+
+		val sink = repository.iterateeForUpload(envelopeId, fileId, fileRefId)
+		contents.run[Future[JSONReadFile]](sink).futureValue.id match {
+			case JsString(v) => v
+			case _ => fail("expected JsString here")
+		}
+	}
 }
