@@ -44,7 +44,8 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "domain" % domainVersion,
     "com.typesafe.akka" % "akka-actor_2.11" % akkaVersion,
     "com.typesafe.akka" % "akka-testkit_2.11" % akkaVersion,
-    "org.typelevel" %% "cats" % catsVersion)
+    "org.typelevel" %% "cats" % catsVersion,
+    "com.google.code.findbugs" % "jsr305" % "2.0.3")
 
   trait TestDependencies {
     lazy val scope: String = "test"

@@ -16,9 +16,11 @@
 
 package uk.gov.hmrc.fileupload.controllers.transfer
 
+import com.google.common.base.Charsets
+import com.google.common.io.BaseEncoding
 import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
-import play.api.http.Status
+import play.api.http.{HeaderNames, Status}
 import play.api.test.FakeRequest
 import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -33,6 +35,10 @@ class TransferControllerSpec extends UnitSpec with WithFakeApplication with Scal
   implicit val ec = ExecutionContext.global
 
   val failed = Future.failed(new Exception("not good"))
+
+  def basic64(s:String): String = {
+    BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
+  }
 
   def newController(getEnvelopesByDestination: Option[String] => Future[List[Envelope]] = _ => failed,
                     handleCommand: EnvelopeCommand => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed) =

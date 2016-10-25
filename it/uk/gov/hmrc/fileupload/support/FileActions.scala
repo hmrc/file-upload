@@ -1,10 +1,17 @@
 package uk.gov.hmrc.fileupload.support
 
+import com.google.common.base.Charsets
+import com.google.common.io.BaseEncoding
 import play.api.Play.current
+import play.api.http.HeaderNames
 import play.api.libs.ws.{WS, WSResponse}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
 trait FileActions extends ActionsSupport {
+
+  def basic644(s:String): String = {
+    BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
+  }
 
   def upload(data: Array[Byte], envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId): WSResponse =
     WS
@@ -21,7 +28,7 @@ trait FileActions extends ActionsSupport {
 
   def download(envelopeId: EnvelopeId, fileId: FileId): WSResponse =
     WS
-      .url(s"$url/envelopes/$envelopeId/files/$fileId/content")
+      .url(s"$url/envelopes/$envelopeId/files/$fileId/content").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic644("Paul:123")))
       .get()
       .futureValue
 

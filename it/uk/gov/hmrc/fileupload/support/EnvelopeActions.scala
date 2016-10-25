@@ -2,7 +2,10 @@ package uk.gov.hmrc.fileupload.support
 
 import java.io.{File => JFile}
 
+import com.google.common.base.Charsets
+import com.google.common.io.BaseEncoding
 import play.api.Play.current
+import play.api.http.HeaderNames
 import play.api.libs.json.Json
 import play.api.libs.ws.{WS, WSResponse}
 import uk.gov.hmrc.fileupload.EnvelopeId
@@ -11,6 +14,10 @@ import uk.gov.hmrc.mongo.MongoSpecSupport
 import scala.io.Source
 
 trait EnvelopeActions extends ActionsSupport {
+
+  def basic64(s:String): String = {
+    BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
+  }
 
   def createEnvelope(file: JFile): WSResponse = createEnvelope(Source.fromFile(file).mkString)
 
@@ -42,7 +49,7 @@ trait EnvelopeActions extends ActionsSupport {
 
   def deleteEnvelopFor(id: EnvelopeId): WSResponse =
     WS
-      .url(s"$url/envelopes/$id")
+      .url(s"$url/envelopes/$id").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("Paul:123")))
       .delete()
       .futureValue
 
@@ -59,7 +66,7 @@ trait EnvelopeActions extends ActionsSupport {
 
   def getEnvelopesForDestination(destination: Option[String]): WSResponse = {
     WS
-      .url(s"$fileTransferUrl/envelopes${ destination.map(d => s"?destination=$d").getOrElse("") }")
+      .url(s"$fileTransferUrl/envelopes${ destination.map(d => s"?destination=$d").getOrElse("") }").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("Paul:123")))
       .get()
       .futureValue
   }

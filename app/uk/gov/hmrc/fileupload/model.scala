@@ -79,3 +79,4 @@ object FileRefId {
 case class EventType(value: String) extends AnyVal {
   override def toString = value
 }
+

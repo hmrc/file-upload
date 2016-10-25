@@ -17,9 +17,9 @@
 package uk.gov.hmrc.fileupload.controllers.transfer
 
 import cats.data.Xor
-import play.api.mvc.Action
+import play.api.mvc.{Action, RequestHeader, Result}
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
+import uk.gov.hmrc.fileupload.controllers.{AuthBasicModule, ExceptionHandler}
 import uk.gov.hmrc.fileupload.file.zip.Zippy._
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, OutputForTransfer}
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeNotFoundError, _}
@@ -35,9 +35,11 @@ class TransferController(getEnvelopesByDestination: Option[String] => Future[Lis
                         (implicit executionContext: ExecutionContext) extends BaseController {
 
   def list() = Action.async { implicit request =>
-    val maybeDestination = request.getQueryString("destination")
-    getEnvelopesByDestination(maybeDestination).map { envelopes =>
-      Ok(OutputForTransfer(envelopes))
+    nonStubFunctionsWithBasicAuth{
+      val maybeDestination = request.getQueryString("destination")
+      getEnvelopesByDestination(maybeDestination).map { envelopes =>
+        Ok(OutputForTransfer(envelopes))
+      }
     }
   }
 
@@ -62,6 +64,13 @@ class TransferController(getEnvelopesByDestination: Option[String] => Future[Lis
       case Xor.Left(EnvelopeArchivedError) => ExceptionHandler(GONE, s"Envelope with id: $envelopeId already deleted")
       case Xor.Left(_) => ExceptionHandler(LOCKED, s"Envelope with id: $envelopeId locked")
     }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
+  }
+
+  def nonStubFunctionsWithBasicAuth(returnFunctions: => Future[Result])(implicit request: RequestHeader): Future[Result] = {
+    AuthBasicModule.check(request.headers.get(AUTHORIZATION)) match{
+      case false => Future.successful(Forbidden)
+      case true => returnFunctions
+    }
   }
 
 }

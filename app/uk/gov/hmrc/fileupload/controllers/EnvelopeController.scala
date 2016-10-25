@@ -17,7 +17,6 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
-import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.read.envelope.Envelope
@@ -49,13 +48,15 @@ class EnvelopeController(nextId: () => EnvelopeId,
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  def delete(id: EnvelopeId) = Action.async {
-    handleCommand(DeleteEnvelope(id)).map {
-      case Xor.Right(_) => Ok
-      case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
-      case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not deleted")
-    }.recover { case e => ExceptionHandler(e) }
+  def delete(id: EnvelopeId) = Action.async { request =>
+    nonStubFunctionsWithBasicAuth{
+      handleCommand(DeleteEnvelope(id)).map {
+        case Xor.Right(_) => Ok
+        case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
+        case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+        case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not deleted")
+      }.recover { case e => ExceptionHandler(e) }
+    }(request)
   }
 
   def deleteFile(id: EnvelopeId, fileId: FileId) = Action.async { request =>
@@ -92,6 +93,13 @@ class EnvelopeController(nextId: () => EnvelopeId,
     findAllInProgressFile().map {
       case Xor.Right(inProgressFiles) => Ok(Json.toJson(inProgressFiles))
       case Xor.Left(error) => InternalServerError("It was not possible to retrieve in progress files")
+    }
+  }
+
+  def nonStubFunctionsWithBasicAuth(returnFunctions: => Future[Result])(request: RequestHeader): Future[Result] = {
+    AuthBasicModule.check(request.headers.get(AUTHORIZATION)) match{
+      case true => returnFunctions
+      case false => Future.successful(Forbidden)
     }
   }
 }

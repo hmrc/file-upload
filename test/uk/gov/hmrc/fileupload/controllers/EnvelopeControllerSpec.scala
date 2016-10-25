@@ -17,8 +17,10 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
+import com.google.common.base.Charsets
+import com.google.common.io.BaseEncoding
 import org.scalatest.concurrent.ScalaFutures
-import play.api.http.Status
+import play.api.http.{HeaderNames, Status}
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.{FakeHeaders, FakeRequest}
@@ -39,6 +41,10 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
   implicit val ec = ExecutionContext.global
 
   val failed = Future.failed(new Exception("not good"))
+
+  def basic64(s:String): String = {
+    BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
+  }
 
   def newController(nextId: () => EnvelopeId = () => EnvelopeId("abc-def"),
                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
@@ -85,7 +91,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 	"Delete Envelope" should {
 		"respond with 200 OK status" in {
 			val envelope = Support.envelope
-			val request = FakeRequest("DELETE", s"/envelopes/${envelope._id}")
+			val request = FakeRequest("DELETE", s"/envelopes/${envelope._id}").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("Paul:123")))
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
 			val result = controller.delete(envelope._id)(request).futureValue
@@ -95,7 +101,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
 		"respond with 404 NOT FOUND status" in {
 			val id = EnvelopeId()
-			val request = FakeRequest()
+			val request = FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("Paul:123")))
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.left(EnvelopeNotFoundError)))
 			val result = controller.delete(id)(request).futureValue
@@ -109,7 +115,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
 		"respond with 500 INTERNAL SERVER ERROR status" in {
 			val id = EnvelopeId()
-			val request = FakeRequest()
+			val request = FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("Paul:123")))
 
       val controller = newController(handleCommand = _ => Future.failed(new Exception()))
       val result = controller.delete(id)(request).futureValue
