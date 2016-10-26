@@ -49,7 +49,7 @@ trait EnvelopeActions extends ActionsSupport {
 
   def deleteEnvelopFor(id: EnvelopeId): WSResponse =
     WS
-      .url(s"$url/envelopes/$id").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("Paul:123")))
+      .url(s"$url/envelopes/$id").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
       .delete()
       .futureValue
 
@@ -66,7 +66,7 @@ trait EnvelopeActions extends ActionsSupport {
 
   def getEnvelopesForDestination(destination: Option[String]): WSResponse = {
     WS
-      .url(s"$fileTransferUrl/envelopes${ destination.map(d => s"?destination=$d").getOrElse("") }").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("Paul:123")))
+      .url(s"$fileTransferUrl/envelopes${ destination.map(d => s"?destination=$d").getOrElse("") }").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
       .get()
       .futureValue
   }

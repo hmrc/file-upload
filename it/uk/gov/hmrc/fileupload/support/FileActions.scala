@@ -28,7 +28,7 @@ trait FileActions extends ActionsSupport {
 
   def download(envelopeId: EnvelopeId, fileId: FileId): WSResponse =
     WS
-      .url(s"$url/envelopes/$envelopeId/files/$fileId/content").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic644("Paul:123")))
+      .url(s"$url/envelopes/$envelopeId/files/$fileId/content").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic644("yuan:yaunspassword")))
       .get()
       .futureValue
 

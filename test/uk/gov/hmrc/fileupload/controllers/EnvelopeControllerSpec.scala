@@ -91,7 +91,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 	"Delete Envelope" should {
 		"respond with 200 OK status" in {
 			val envelope = Support.envelope
-			val request = FakeRequest("DELETE", s"/envelopes/${envelope._id}").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("Paul:123")))
+			val request = FakeRequest("DELETE", s"/envelopes/${envelope._id}").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
 			val result = controller.delete(envelope._id)(request).futureValue
@@ -101,7 +101,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
 		"respond with 404 NOT FOUND status" in {
 			val id = EnvelopeId()
-			val request = FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("Paul:123")))
+			val request = FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.left(EnvelopeNotFoundError)))
 			val result = controller.delete(id)(request).futureValue
@@ -115,7 +115,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
 		"respond with 500 INTERNAL SERVER ERROR status" in {
 			val id = EnvelopeId()
-			val request = FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("Paul:123")))
+			val request = FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
 
       val controller = newController(handleCommand = _ => Future.failed(new Exception()))
       val result = controller.delete(id)(request).futureValue

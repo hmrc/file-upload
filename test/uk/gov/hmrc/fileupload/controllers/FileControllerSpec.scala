@@ -100,7 +100,7 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
       val fileFound = Xor.Right(FileFound(Some("myfile.txt"), 100, Enumerator.eof[ByteStream]))
       val controller = newController(retrieveFile = (_,_) => Future.successful(fileFound))
 
-      val result = controller.downloadFile(EnvelopeId(), FileId())(FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("Paul:123")))).futureValue
+      val result = controller.downloadFile(EnvelopeId(), FileId())(FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))).futureValue
 
       result.header.status shouldBe Status.OK
       val headers = result.header.headers
@@ -111,7 +111,7 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
     "return filename = `data` in headers if absent in client metadata for a given file" in {
       val fileFound = Xor.Right(FileFound(None, 100, Enumerator.eof[ByteStream]))
       val controller = newController(retrieveFile = (_,_) => Future.successful(fileFound))
-      val result = controller.downloadFile(EnvelopeId(), FileId())(FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("Paul:123")))).futureValue
+      val result = controller.downloadFile(EnvelopeId(), FileId())(FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))).futureValue
 
       val headers = result.header.headers
       headers("Content-Disposition") shouldBe "attachment; filename=\"data\""
@@ -120,7 +120,7 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
     "respond with 404 when a file is not found" in {
       val envelopeId = EnvelopeId()
       val fileId = FileId("myFileId")
-      val fakeRequest = new FakeRequest[AnyContentAsJson]("GET", s"/envelopes/$envelopeId/files/$fileId/content", FakeHeaders(), body = null).withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("Paul:123")))
+      val fakeRequest = new FakeRequest[AnyContentAsJson]("GET", s"/envelopes/$envelopeId/files/$fileId/content", FakeHeaders(), body = null).withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
 
       val fileFound: GetFileResult = Xor.Left(GetFileNotFoundError)
       val controller = newController(
@@ -139,7 +139,7 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
         withValidEnvelope = Support.envelopeNotFound
       )
 
-      val result: Result = controller.downloadFile(envelopeId, fileId)(FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("Paul:123")))).futureValue
+      val result: Result = controller.downloadFile(envelopeId, fileId)(FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))).futureValue
 
       result.header.status shouldBe Status.NOT_FOUND
     }

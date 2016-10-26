@@ -18,21 +18,27 @@ package uk.gov.hmrc.fileupload.controllers
 
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
+import uk.gov.hmrc.play.config.ServicesConfig
 
-object AuthBasicModule {
-  val users: List[User] = List(
-    User("Yuan", "123"),
-    User("Paul", "123"),
-    User("Konrad", "123")
-  )
+object AuthBasicModule extends ServicesConfig {
 
   def check (auth:Option[String]): Boolean = {
+
+    var users: List[User] = List.empty
+
+    val users1 = getString("basicAuth.authorizedUsers").split(";").toList
+
+    for (i <- 0 to users1.length-1) {
+      users = users :+ User(users1(i).split(":").toList(0), users1(i).split(":").toList(1))
+    }
+
     auth match {
-      case Some(auth) => users.exists(user => "Basic " + BaseEncoding.base64().encode((user.name + ":" + user.password).getBytes(Charsets.UTF_8)) == auth)
+      case Some(auth) =>
+        users.exists(user => "Basic " + BaseEncoding.base64().encode((user.name + ":" + user.password).getBytes(Charsets.UTF_8)) == auth)
       case None => false
     }
   }
 
-  }
+}
 
 case class User(name: String, password: String)
