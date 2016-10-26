@@ -22,6 +22,8 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.iteratee.{Enumerator, Iteratee}
 import play.api.libs.json.JsString
+import reactivemongo.bson.BSONDocument
+import reactivemongo.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
@@ -78,9 +80,8 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 			val expiryDuration = Duration.standardDays(2)
 			repository.clear(expiryDuration, imagineWeAre2DaysInTheFuture).futureValue
 
-			val fileResult = repository.retrieveFile(FileRefId(id)).futureValue
-
-			fileResult shouldBe None
+			repository.gfs.files.find(BSONDocument("_id" -> id)).one[BSONDocument].futureValue shouldBe None
+			repository.gfs.chunks.find(BSONDocument("files_id" -> id)).one[BSONDocument].futureValue shouldBe None
 		}
 
 		"Do not clear files within expiry duration" in {
@@ -89,9 +90,8 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 			val expiryDuration = Duration.standardDays(4)
 			repository.clear(expiryDuration, imagineWeAre2DaysInTheFuture).futureValue
 
-			val fileResult = repository.retrieveFile(FileRefId(id)).futureValue
-
-			fileResult.isDefined shouldBe true
+			repository.gfs.files.find(BSONDocument("_id" -> id)).one[BSONDocument].futureValue.isDefined shouldBe true
+			repository.gfs.chunks.find(BSONDocument("files_id" -> id)).one[BSONDocument].futureValue.isDefined shouldBe true
 		}
 	}
 
