@@ -192,7 +192,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
     // event store
     if (play.Play.isProd && app.configuration.getBoolean("Prod.mongodb.replicaSetInUse").getOrElse(true)) {
-      eventStore = new MongoEventStore(db, writeConcern = commands.WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = false))
+      eventStore = new MongoEventStore(db, writeConcern = commands.WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = true))
     } else {
       eventStore = new MongoEventStore(db)
     }
