@@ -20,6 +20,8 @@ The endpoints can then be accessed with the base url http://localhost:8898/
 
 *   [Endpoints](#endpoints)
 *   [Callback](#callback)
+*   [Test-Only Endpoints](#testonly)
+*   [Admin-App](#admin)
 
 ## Endpoints <a name="endpoints"></a>
 
@@ -155,6 +157,154 @@ GET   	/file-upload/envelopes/{envelope-id}/files/{file-id}/content
 Request (GET): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1/content
 
 Response: Binary file which contains the selected file.
+
+#### Update Event
+Updates an event of an envelope that has a file being uploaded to Quarantine and Scanned. 
+
+```
+POST    /file-upload/events/{eventType}
+```
+
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Successfully update event.
+| Bad Request  | 400   | Invalid Event.
+| Locked  | 423   | Cannot update event. Routing request is already received for this envelope.
+
+#### Example (for File in Quarantine)
+Request (POST): localhost:8898/file-upload/events/FileQuarantinedStored
+
+Body:
+```json
+{
+	"envelopeId": "0b215e97-11d4-4006-91db-c067e74fc653",
+	"fileId": "file-id-1",
+	"fileRefId": "file-ref-1",
+	"created": 1477490659794,
+	"name": "myfile.txt",
+	"contentType": "pdf",
+	"metadata": {}
+}
+```
+
+Response: 200
+
+#### Example (for File Scanned)
+Request (POST): localhost:8898/file-upload/events/FileScanned
+
+Body:
+```json
+{
+	"envelopeId": "0b215e97-11d4-4006-91db-c067e74fc653",
+	"fileId": "file-id-1",
+	"fileRefId": "file-ref-1",
+	"hasVirus": false
+}
+```
+
+Response: 200
+
+#### Get Events
+Retreives a list of all events based on the stream Id which is the envelope Id. 
+
+```
+GET     /events/{streamId}
+```
+
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Successfully returns a list of events based on stream Id.
+
+#### Example
+Request (GET): localhost:8899/file-upload/test-only/events/0b215e97-11d4-4006-91db-c067e74fc653
+
+Response (In Body):
+```json
+[
+  {
+    "eventId": "bbf89c47-ec22-4b5a-917a-fa19f9f2005d",
+    "streamId": "0b215e97-11d4-4006-91db-c067e74fc653",
+    "version": 1,
+    "created": 1477490656518,
+    "eventType": "uk.gov.hmrc.fileupload.write.envelope.EnvelopeCreated",
+    "eventData": {
+      "id": "0b215e97-11d4-4006-91db-c067e74fc653"
+    }
+  },
+  {
+    "eventId": "07ea4682-0c2c-49f8-b01a-6128c18ed30f",
+    "streamId": "0b215e97-11d4-4006-91db-c067e74fc653,
+    "version": 2,
+    "created": 1477490659794,
+    "eventType": "uk.gov.hmrc.fileupload.write.envelope.FileQuarantined",
+    "eventData": {
+      "id": "0b215e97-11d4-4006-91db-c067e74fc653",
+      "fileId": "file-id-1",
+      "fileRefId": "82c1e62c-ddca-468f-a1c9-ca9aa97aa0a2",
+      "created": 1477490659610,
+      "name": "zKv4Qv6366462570363333088.tmp",
+      "contentType": "application/octet-stream",
+      "metadata": {
+        "foo": "bar"
+      }
+    }
+  },
+  {
+    "eventId": "29ab824b-e045-4281-9e40-4fd572a03078",
+    "streamId": "0b215e97-11d4-4006-91db-c067e74fc653",
+    "version": 3,
+    "created": 1477490660074,
+    "eventType": "uk.gov.hmrc.fileupload.write.envelope.EnvelopeSealed",
+    "eventData": {
+      "id": "0b215e97-11d4-4006-91db-c067e74fc653",
+      "routingRequestId": "ec97bbd0-7be5-4727-8d92-441818a63dcd",
+      "destination": "DMS",
+      "application": "foo"
+    }
+  }
+]
+
+
+```
+
+
+#### GET Inprogress Files
+Returns a list of files that are inprogress which have been uploaded to Quarantine but did not make it to Transient. 
+
+```
+GET     /files/inprogress
+```
+
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Successfully returns a list of inprogress files.
+
+#### Example
+Request (GET): localhost:8898//files/inprogress
+
+Response (in Body):
+```json
+[
+  {
+    "_id": "82c1e62c-ddca-468f-a1c9-ca9aa97aa0a2",
+    "envelopeId": "0b215e97-11d4-4006-91db-c067e74fc653",
+    "fileId": "file-id-1",
+    "startedAt": 1477490659610
+  },
+  {
+    "_id": "9b96ce3e-df86-4c6c-b737-aef1e4c98741",
+    "envelopeId": "eb5ec7d2-c6c4-4cf9-935b-9f1d4061fab5",
+    "fileId": "1",
+    "startedAt": 1477491112228
+  },
+  {
+    "_id": "bcbbc597-a8a4-4870-bd6c-cfea52ab2ced",
+    "envelopeId": "a1752950-32ab-4bdb-a918-0ee9141ac305",
+    "fileId": "1",
+    "startedAt": 1477491307267
+  }
+]
+```
 
 ### Routing
 
@@ -323,6 +473,60 @@ Request (POST)
 ```
 
 Expected response status code: 200
+
+## Test-Only Endpoints <a name="testonly"></a>
+
+#### Clean Up Transient (Do Not Use)
+Removes all envelopes, files and chunks in their respective collections inside Transient Storage (Only). 
+
+Note: This does not remove event data and inprogress files.
+
+```
+POST    /file-upload/test-only/cleanup-transient
+```
+
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Successfully cleared Transient.  |
+
+#### Example
+Request (POST): localhost:8898/file-upload/test-only/cleanup-transient
+
+Response: 200
+
+#### Clear Collections (Do Not Use)
+Removes everything in all collection in both quarantine and transient. 
+
+```
+POST    /file-upload/test-only/clear-collections
+```
+
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Successfully cleared all collections.  |
+
+#### Example
+Request (POST): localhost:8898/file-upload/test-only/clear-collections
+
+Response: 200
+
+## Admin-App (Internal Use Only) <a name="admin"></a>
+
+#### Replay Events (Do Not Use)
+Replays events of an envelope.
+
+```
+GET     /events/{streamId}/replay
+```
+
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Successfully replayed events.  |
+
+#### Example
+Request (GET): localhost:8898/events/0b215ey97-11d4-4006-91db-c067e74fc653/replay
+
+Response: 200
 
 ### License
 
