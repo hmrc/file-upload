@@ -54,4 +54,38 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       locationHeader should fullyMatch regex ".*/file-upload/envelopes/[A-z0-9-]+$"
     }
   }
+
+  feature("Create Envelope with id") {
+
+    scenario("Create a new Envelope with empty body") {
+      Given("I have an empty JSON request")
+      val json = "{}"
+
+      When("I invoke PUT /file-upload/envelopes/aaa")
+      val response: WSResponse = createEnvelopeWithId("aaa", json)
+
+      Then("I will receive a 201 Created response")
+      response.status shouldBe CREATED
+
+      And("a new Envelope record with no attributes will be created")
+
+      And("the Envelope ID will be returned in the location header")
+      val locationHeader = response.header("Location").get
+      locationHeader should fullyMatch regex ".*/file-upload/envelopes/aaa"
+    }
+
+    scenario("Recreate an envelope") {
+      Given("I have an empty JSON request")
+      val json = "{}"
+
+      And("I invoke PUT /file-upload/envelopes/aaa")
+      createEnvelopeWithId("aaa", json)
+
+      When("I invoke PUT /file-upload/envelopes/aaa")
+      val response: WSResponse = createEnvelopeWithId("aaa", json)
+
+      Then("I will receive a 400 Bad Request response")
+      response.status shouldBe BAD_REQUEST
+    }
+  }
 }
