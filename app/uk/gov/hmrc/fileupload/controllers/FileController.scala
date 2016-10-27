@@ -47,7 +47,7 @@ class FileController(uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyPa
   }
 
   def downloadFile(id: EnvelopeId, fileId: FileId) = Action.async { request =>
-    nonStubFunctionsWithBasicAuth{
+    withBasicAuth{
       withValidEnvelope(id) { envelope =>
         retrieveFile(envelope, fileId).map {
           case Xor.Right(FileFound(filename, length, data)) =>
@@ -62,9 +62,9 @@ class FileController(uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyPa
     }(request)
   }
 
-  def nonStubFunctionsWithBasicAuth(returnFunctions: => Future[Result])(request: RequestHeader): Future[Result] = {
+  def withBasicAuth(continueProgress: => Future[Result])(request: RequestHeader): Future[Result] = {
     AuthBasicModule.check(request.headers.get(AUTHORIZATION)) match{
-      case true => returnFunctions
+      case true => continueProgress
       case false => Future.successful(Forbidden)
     }
   }

@@ -49,7 +49,7 @@ class EnvelopeController(nextId: () => EnvelopeId,
   }
 
   def delete(id: EnvelopeId) = Action.async { request =>
-    nonStubFunctionsWithBasicAuth{
+    withBasicAuth{
       handleCommand(DeleteEnvelope(id)).map {
         case Xor.Right(_) => Ok
         case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
@@ -96,9 +96,9 @@ class EnvelopeController(nextId: () => EnvelopeId,
     }
   }
 
-  def nonStubFunctionsWithBasicAuth(returnFunctions: => Future[Result])(request: RequestHeader): Future[Result] = {
+  def withBasicAuth(continueProgress: => Future[Result])(request: RequestHeader): Future[Result] = {
     AuthBasicModule.check(request.headers.get(AUTHORIZATION)) match{
-      case true => returnFunctions
+      case true => continueProgress
       case false => Future.successful(Forbidden)
     }
   }

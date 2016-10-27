@@ -24,17 +24,18 @@ object AuthBasicModule extends ServicesConfig {
 
   def check (auth:Option[String]): Boolean = {
 
-    var users: List[User] = List.empty
-
-    val users1 = getString("basicAuth.authorizedUsers").split(";").toList
-
-    for (i <- 0 to users1.length-1) {
-      users = users :+ User(users1(i).split(":").toList(0), users1(i).split(":").toList(1))
-    }
+    val usersListFromServer: List[User] = getString("basicAuth.authorizedUsers").split(";").flatMap(
+                                            user => {
+                                              user.split(":") match {
+                                                case Array(username, password) => Some(User(username, password))
+                                                case _ => None
+                                              }
+                                            }
+                                          ).toList
 
     auth match {
       case Some(auth) =>
-        users.exists(user => "Basic " + BaseEncoding.base64().encode((user.name + ":" + user.password).getBytes(Charsets.UTF_8)) == auth)
+        usersListFromServer.exists(user => "Basic " + BaseEncoding.base64().encode((user.name + ":" + user.password).getBytes(Charsets.UTF_8)) == auth)
       case None => false
     }
   }

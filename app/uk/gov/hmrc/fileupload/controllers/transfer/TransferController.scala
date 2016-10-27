@@ -35,7 +35,7 @@ class TransferController(getEnvelopesByDestination: Option[String] => Future[Lis
                         (implicit executionContext: ExecutionContext) extends BaseController {
 
   def list() = Action.async { implicit request =>
-    nonStubFunctionsWithBasicAuth{
+    withBasicAuth{
       val maybeDestination = request.getQueryString("destination")
       getEnvelopesByDestination(maybeDestination).map { envelopes =>
         Ok(OutputForTransfer(envelopes))
@@ -66,10 +66,10 @@ class TransferController(getEnvelopesByDestination: Option[String] => Future[Lis
     }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
   }
 
-  def nonStubFunctionsWithBasicAuth(returnFunctions: => Future[Result])(implicit request: RequestHeader): Future[Result] = {
+  def withBasicAuth(continueProgress: => Future[Result])(implicit request: RequestHeader): Future[Result] = {
     AuthBasicModule.check(request.headers.get(AUTHORIZATION)) match{
       case false => Future.successful(Forbidden)
-      case true => returnFunctions
+      case true => continueProgress
     }
   }
 
