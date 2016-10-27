@@ -156,6 +156,7 @@ object EventSerializer {
 sealed trait EnvelopeCommandNotAccepted extends CommandNotAccepted
 
 case object EnvelopeNotFoundError extends EnvelopeCommandNotAccepted
+case object EnvelopeAlreadyCreatedError extends EnvelopeCommandNotAccepted
 case object EnvelopeSealedError extends EnvelopeCommandNotAccepted
 case object FileWithError extends EnvelopeCommandNotAccepted
 case class FilesWithError(fileIds: Seq[FileId]) extends EnvelopeCommandNotAccepted

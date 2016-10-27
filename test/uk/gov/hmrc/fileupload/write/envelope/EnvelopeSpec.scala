@@ -51,6 +51,24 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
         envelopeCreated
       )
     }
+
+    scenario("Create new envelope for an existing envelope") {
+
+      givenWhenThen(
+        envelopeCreated,
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar"))),
+        EnvelopeAlreadyCreatedError
+      )
+    }
+
+    scenario("Create new envelope for a deleted envelope") {
+
+      givenWhenThen(
+        envelopeCreated And envelopeDeleted,
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar"))),
+        EnvelopeAlreadyCreatedError
+      )
+    }
   }
 
   feature("QuarantineFile") {
