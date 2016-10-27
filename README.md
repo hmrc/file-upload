@@ -3,8 +3,9 @@
 
 [![Build Status](https://travis-ci.org/hmrc/file-upload.svg?branch=master)](https://travis-ci.org/hmrc/file-upload) [ ![Download](https://api.bintray.com/packages/hmrc/releases/file-upload/images/download.svg) ](https://bintray.com/hmrc/releases/file-upload/_latestVersion)
 
-This API provides a mechanism whereby a client microservice can define and manage an envelope which can later be filled with files and then optionally routed to another system.
-The envelope resources are exposed on the /file-upload/envelopes endpoint.
+This API provides a mechanism whereby a client microservice can define and manage an envelope which can later be filled with files and then optionally routed to another system. The envelope resources are exposed on the /file-upload/envelopes endpoint. Please <i>**DO NOT USE**</i> Test-Only endpoints because they are not available in production and Internal-Use-Only endpoints <i>**WITHOUT PERMISSION.**</i> 
+
+
 
 ## Run the application locally
 
@@ -16,12 +17,14 @@ sbt run
 
 The endpoints can then be accessed with the base url http://localhost:8898/
 
+Test-only Endpoints 
+
 ## Table of Contents
 
 *   [Endpoints](#endpoints)
 *   [Callback](#callback)
 *   [Test-Only Endpoints](#testonly)
-*   [Admin-App](#admin)
+*   [Internal-Use-Only Endpoints](#internal)
 
 ## Endpoints <a name="endpoints"></a>
 
@@ -38,7 +41,6 @@ POST   	file-upload/envelopes
 | Bad Request | 400   |  Envelope not created. |  
 
 #### Example
-
 Request (POST): localhost:8898/file-upload/envelopes
 
 Body:
@@ -66,7 +68,6 @@ GET     file-upload/envelopes/{envelope-id}
 
 
 #### Example
-
 Request (GET): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
 Response (in Body):
@@ -93,7 +94,6 @@ DELETE  file-upload/envelopes/{envelope-id}
 | Not Found | 404   |  Envelope not found. |
 
 #### Example 
-
 Request (DELETE): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
 Response: 200
@@ -111,7 +111,6 @@ DELETE  file-upload/envelopes/{envelope-id}/files/{fileId}
 | Not Found | 404   |  File not found in envelope. | 
 
 #### Example
-
 Request (DELETE): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1
 
 Response: 200
@@ -128,7 +127,6 @@ GET     file-upload/envelopes/{envelope-id}/files/{filesId}/metadata
 | Not Found | 404   |  Metadata not found. |
 
 #### Example
-
 Request (GET): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1/metadata
 
 Response (in Body): 
@@ -147,22 +145,26 @@ Response (in Body):
 #### Download File
 Download a file from an envelope.
 ```
-GET   	/file-upload/envelopes/{envelope-id}/files/{file-id}/content
+GET   	file-upload/envelopes/{envelope-id}/files/{file-id}/content
 ```
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 200   | Successfully download a file.  |
 | Not Found | 404   |  File not found. |
 
+#### Example
 Request (GET): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1/content
 
 Response: Binary file which contains the selected file.
 
-#### Update Event
-Updates an event of an envelope that has a file being uploaded to Quarantine and Scanned. 
+### EVENTS (DO NOT USE)
+These endpoints are used by the application itself and <i>**DO NOT REQUIRE**</i> end-user input. Please <i>**DO NOT USE**</i> these endpoints <i>**WITHOUT PERMISSION**</i>.
+
+#### UPDATE EVENT OF A FILE (DO NOT USE)
+Updates an event of a file being uploaded to Quarantine and then Scanned. Note: This is automated.
 
 ```
-POST    /file-upload/events/{eventType}
+POST    file-upload/events/{eventType}
 ```
 
 | Responses    | Status    | Description |
@@ -171,7 +173,7 @@ POST    /file-upload/events/{eventType}
 | Bad Request  | 400   | Invalid Event.
 | Locked  | 423   | Cannot update event. Routing request is already received for this envelope.
 
-#### Example (for File in Quarantine)
+#### EXAMPLE (FOR FILE IN QUARANTINE)
 Request (POST): localhost:8898/file-upload/events/FileQuarantinedStored
 
 Body:
@@ -189,7 +191,7 @@ Body:
 
 Response: 200
 
-#### Example (for File Scanned)
+#### EXAMPLE (FOR FILE SCANNED)
 Request (POST): localhost:8898/file-upload/events/FileScanned
 
 Body:
@@ -204,18 +206,20 @@ Body:
 
 Response: 200
 
-#### Get Events
-Retreives a list of all events based on the stream Id which is the envelope Id. 
+Note: "hasVirus" depends on the result from clamAV. If there is a virus, then hasVirus is set to "true" otherwise if not then it would be set to "false".
+
+#### SHOW EVENTS OF AN ENVELOPE (DO NOT USE)
+Retrieves a list of all events based on the stream Id. 
 
 ```
-GET     /events/{streamId}
+GET     file-upload/events/{streamId}
 ```
 
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 200   | Successfully returns a list of events based on stream Id.
 
-#### Example
+#### EXAMPLE
 Request (GET): localhost:8899/file-upload/test-only/events/0b215e97-11d4-4006-91db-c067e74fc653
 
 Response (In Body):
@@ -233,7 +237,7 @@ Response (In Body):
   },
   {
     "eventId": "07ea4682-0c2c-49f8-b01a-6128c18ed30f",
-    "streamId": "0b215e97-11d4-4006-91db-c067e74fc653,
+    "streamId": "0b215e97-11d4-4006-91db-c067e74fc653",
     "version": 2,
     "created": 1477490659794,
     "eventType": "uk.gov.hmrc.fileupload.write.envelope.FileQuarantined",
@@ -263,47 +267,6 @@ Response (In Body):
     }
   }
 ]
-
-
-```
-
-
-#### GET Inprogress Files
-Returns a list of files that are inprogress which have been uploaded to Quarantine but did not make it to Transient. 
-
-```
-GET     /files/inprogress
-```
-
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 200   | Successfully returns a list of inprogress files.
-
-#### Example
-Request (GET): localhost:8898//files/inprogress
-
-Response (in Body):
-```json
-[
-  {
-    "_id": "82c1e62c-ddca-468f-a1c9-ca9aa97aa0a2",
-    "envelopeId": "0b215e97-11d4-4006-91db-c067e74fc653",
-    "fileId": "file-id-1",
-    "startedAt": 1477490659610
-  },
-  {
-    "_id": "9b96ce3e-df86-4c6c-b737-aef1e4c98741",
-    "envelopeId": "eb5ec7d2-c6c4-4cf9-935b-9f1d4061fab5",
-    "fileId": "1",
-    "startedAt": 1477491112228
-  },
-  {
-    "_id": "bcbbc597-a8a4-4870-bd6c-cfea52ab2ced",
-    "envelopeId": "a1752950-32ab-4bdb-a918-0ee9141ac305",
-    "fileId": "1",
-    "startedAt": 1477491307267
-  }
-]
 ```
 
 ### Routing
@@ -311,7 +274,7 @@ Response (in Body):
 #### Create File Routing Request
 Changes the status of an envelope to CLOSED and auto generates a routing Id. The status change, rejects any requests to add files to the envelope. This makes it available for file transfer. To make the request, the envelope Id, application and destination must be provided. A response is provided in the Location Header with a link and a new autogenerated routing Id. In regards to MVP, only DMS is supported.
 ```
-POST    /file-routing/requests
+POST    file-routing/requests
 ```
 
 | Responses    | Status    | Description |
@@ -338,14 +301,13 @@ Response(in Headers): Location -> /file-routing/requests/39e0e07d-7969-44ac-9f9c
 #### Download List of Envelopes
 Returns either a list of all available or selected envelopes (via query string) for routing that have the status CLOSED and information from the routing request provided (above). 
 ```
-GET     /file-transfer/envelopes
+GET     file-transfer/envelopes
 ```
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 200   | Successfully returns a list of envelopes.
 
 #### Example
-
 Request (GET): localhost:8898/file-transfer/envelopes
 
 Note: Returns a list of all available envelopes for transfer.
@@ -431,7 +393,6 @@ GET     /file-transfer/envelopes/{envelope-id}
 
 
 #### Example
-
 Request (GET): localhost:8898/file-transfer/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
 Response: Binary file contains the zipped files.
@@ -439,7 +400,7 @@ Response: Binary file contains the zipped files.
 #### Soft Delete an Envelope 
 Changes status of an envelope to DELETED which prevents any service or user from using this envelope.
 ```
-DELETE    /file-transfer/envelopes/{envelope-id}
+DELETE    file-transfer/envelopes/{envelope-id}
 ```
 | Responses    | Status    | Description |
 | --------|---------|-------|
@@ -474,57 +435,97 @@ Request (POST)
 
 Expected response status code: 200
 
-## Test-Only Endpoints <a name="testonly"></a>
+## TEST-ONLY ENDPOINTS <a name="testonly"></a>
+These endpoints are not available in production and are used for testing purposes. <i>**PLEASE DO NOT USE THESE WITHOUT PERMISSION**</i>.
 
-#### Clean Up Transient (Do Not Use)
+#### CLEAN UP TRANSIENT (DO NOT USE)
 Removes all envelopes, files and chunks in their respective collections inside Transient Storage (Only). 
 
 Note: This does not remove event data and inprogress files.
 
 ```
-POST    /file-upload/test-only/cleanup-transient
+POST    file-upload/test-only/cleanup-transient
 ```
 
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 200   | Successfully cleared Transient.  |
 
-#### Example
+#### EXAMPLE
 Request (POST): localhost:8898/file-upload/test-only/cleanup-transient
 
 Response: 200
 
-#### Clear Collections (Do Not Use)
+#### CLEAR COLLECTIONS (DO NOT USE)
 Removes everything in all collection in both quarantine and transient. 
 
 ```
-POST    /file-upload/test-only/clear-collections
+POST    file-upload/test-only/clear-collections
 ```
 
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 200   | Successfully cleared all collections.  |
 
-#### Example
+#### EXAMPLE
 Request (POST): localhost:8898/file-upload/test-only/clear-collections
 
 Response: 200
 
-## Admin-App (Internal Use Only) <a name="admin"></a>
+## INTERNAL USE ONLY ENDPOINTS <a name="internal"></a>
+The following endpoints are for internal use. <i>**PLEASE DO NOT USE THESE ENDPOINTS WITHOUT PERMISSION**</i>.
 
-#### Replay Events (Do Not Use)
+#### SHOW FILES INPROGRESS (DO NOT USE)
+Returns a list of files that are inprogress which have been uploaded to Quarantine but did not make it to Transient. Note: Be aware that files can reappear and disappear for a short moment. If it occurs, that means the file has been successfully transferred across.
+
+```
+GET     file-upload/files/inprogress
+```
+
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Successfully returns a list of inprogress files.
+
+#### EXAMPLE
+Request (GET): localhost:8898/file-upload/files/inprogress
+
+Response (in Body):
+```json
+[
+  {
+    "_id": "82c1e62c-ddca-468f-a1c9-ca9aa97aa0a2",
+    "envelopeId": "0b215e97-11d4-4006-91db-c067e74fc653",
+    "fileId": "file-id-1",
+    "startedAt": 1477490659610
+  },
+  {
+    "_id": "9b96ce3e-df86-4c6c-b737-aef1e4c98741",
+    "envelopeId": "eb5ec7d2-c6c4-4cf9-935b-9f1d4061fab5",
+    "fileId": "1",
+    "startedAt": 1477491112228
+  },
+  {
+    "_id": "bcbbc597-a8a4-4870-bd6c-cfea52ab2ced",
+    "envelopeId": "a1752950-32ab-4bdb-a918-0ee9141ac305",
+    "fileId": "1",
+    "startedAt": 1477491307267
+  }
+]
+```
+
+#### REPLAY EVENTS (DO NOT USE)
 Replays events of an envelope.
 
 ```
-GET     /events/{streamId}/replay
+GET     file-upload/events/{streamId}/replay
 ```
 
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 200   | Successfully replayed events.  |
 
-#### Example
-Request (GET): localhost:8898/events/0b215ey97-11d4-4006-91db-c067e74fc653/replay
+#### EXAMPLE
+Request (GET): localhost:8898/file-upload/events/0b215ey97-11d4-4006-91db-c067e74fc653/replay
 
 Response: 200
 
