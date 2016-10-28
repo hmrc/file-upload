@@ -49,6 +49,8 @@ class TransferController(getEnvelopesByDestination: Option[String] => Future[Lis
       )
       case Xor.Left(ZipEnvelopeNotFoundError | EnvelopeNotRoutedYet) =>
         ExceptionHandler(404, s"Envelope with id: $envelopeId not found")
+      case Xor.Left(ZipProcessingError(message)) =>
+        ExceptionHandler(INTERNAL_SERVER_ERROR, message)
     }
   }
 

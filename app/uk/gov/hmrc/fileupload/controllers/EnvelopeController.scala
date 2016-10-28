@@ -42,8 +42,19 @@ class EnvelopeController(nextId: () => EnvelopeId,
   def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ routes.EnvelopeController.show(id) }"
     val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata)
+    handleCreate(envelopeLocation, command)
+  }
+
+  def createWithId(id: EnvelopeId) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
+    def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ routes.EnvelopeController.show(id) }"
+    val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata)
+    handleCreate(envelopeLocation, command)
+  }
+
+  private def handleCreate(envelopeLocation: EnvelopeId => (String, String), command: CreateEnvelope): Future[Result] = {
     handleCommand(command).map {
       case Xor.Right(_) => Created.withHeaders(envelopeLocation(command.id))
+      case Xor.Left(EnvelopeAlreadyCreatedError) => ExceptionHandler(BAD_REQUEST, "Envelope already created")
       case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
       case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not created")
     }.recover { case e => ExceptionHandler(e) }

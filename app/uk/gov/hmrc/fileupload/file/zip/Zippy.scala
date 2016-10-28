@@ -24,7 +24,7 @@ import cats.data.Xor
 import play.api.libs.iteratee.Enumerator
 import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
 import uk.gov.hmrc.fileupload.file.zip.ZipStream.{ZipFileInfo, ZipStreamEnumerator}
-import uk.gov.hmrc.fileupload.read.envelope.Service.{FindEnvelopeNotFoundError, FindResult}
+import uk.gov.hmrc.fileupload.read.envelope.Service.{FindEnvelopeNotFoundError, FindResult, FindServiceError}
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatusClosed}
 import uk.gov.hmrc.fileupload.read.file.Service.{FileFound, GetFileResult}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
@@ -36,8 +36,8 @@ object Zippy {
   type ZipResult = Xor[ZipEnvelopeError, Enumerator[Bytes]]
   sealed trait ZipEnvelopeError
   case object ZipEnvelopeNotFoundError extends ZipEnvelopeError
-  case object EmptyEnvelopeError extends ZipEnvelopeError
   case object EnvelopeNotRoutedYet extends ZipEnvelopeError
+  case class ZipProcessingError(message: String) extends ZipEnvelopeError
 
 
   def zipEnvelope(getEnvelope: (EnvelopeId) => Future[FindResult], retrieveFile: (Envelope, FileId) => Future[GetFileResult])
@@ -62,6 +62,8 @@ object Zippy {
       case Xor.Right(envelopeWithWrongStatus: Envelope) => Xor.left(EnvelopeNotRoutedYet)
 
       case Xor.Left(FindEnvelopeNotFoundError) => Xor.left(ZipEnvelopeNotFoundError)
+
+      case Xor.Left(FindServiceError(message)) => Xor.left(ZipProcessingError(message))
     }
   }
 

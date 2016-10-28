@@ -17,21 +17,25 @@
 package uk.gov.hmrc.fileupload.read.file
 
 import org.joda.time.{DateTime, Duration}
+import play.api.Logger
 import play.api.libs.iteratee.{Enumerator, Iteratee}
 import play.api.libs.json.{JsString, Json}
 import play.modules.reactivemongo.GridFSController._
 import play.modules.reactivemongo.JSONFileToSave
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.gridfs.GridFS
+import reactivemongo.api.indexes.Index
+import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.{DB, DBMetaCommands}
 import reactivemongo.bson.{BSONDateTime, BSONDocument}
 import reactivemongo.json._
 import uk.gov.hmrc.fileupload._
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 object Repository {
-  def apply(mongo: () => DB with DBMetaCommands): Repository = new Repository(mongo)
+  def apply(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext): Repository = new Repository(mongo)
 
   sealed trait RetrieveFileError
 
@@ -41,11 +45,19 @@ object Repository {
 
 case class FileData(length: Long = 0, data: Enumerator[Array[Byte]] = null)
 
-class Repository(mongo: () => DB with DBMetaCommands) {
+class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext) {
 
   import reactivemongo.json.collection._
 
   lazy val gfs: JSONGridFS = GridFS[JSONSerializationPack.type](mongo(), "envelopes")
+
+  ensureIndex()
+
+  def ensureIndex() =
+    gfs.chunks.indexesManager.ensure(Index(List("files_id" -> Ascending, "n" -> Ascending), unique = true, background = true)).onComplete {
+      case Success(result) => Logger.info(s"Index creation for chunks success $result")
+      case Failure(t) => Logger.warn(s"Index creation for chunks failed ${ t.getMessage }")
+    }
 
   def iterateeForUpload(envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId)
                        (implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = {

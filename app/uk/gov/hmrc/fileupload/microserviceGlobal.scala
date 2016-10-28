@@ -33,6 +33,7 @@ import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => Envel
 import uk.gov.hmrc.fileupload.read.file.{Service => FileService}
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
 import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor}
+import uk.gov.hmrc.fileupload.testonly.TestOnlyController
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
 import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, MongoEventStore, StreamId}
@@ -166,6 +167,16 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     new TransferController(getEnvelopesByDestination, envelopeCommandHandler, zipEnvelope)
   }
 
+  lazy val testOnlyController = {
+    val fileRepository = uk.gov.hmrc.fileupload.read.file.Repository.apply(db)
+    val envelopeRepository = uk.gov.hmrc.fileupload.read.envelope.Repository.apply(db)
+    val allEnvelopes = envelopeRepository.all _
+    implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
+    implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
+    val eventStore = new MongoEventStore(db)
+    new TestOnlyController(fileRepository, envelopeRepository, allEnvelopes, eventStore, statsRepository)
+  }
+
   lazy val routingController = {
     new RoutingController(envelopeCommandHandler)
   }
@@ -182,7 +193,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
     // event store
     if (play.Play.isProd && app.configuration.getBoolean("Prod.mongodb.replicaSetInUse").getOrElse(true)) {
-      eventStore = new MongoEventStore(db, writeConcern = commands.WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = false))
+      eventStore = new MongoEventStore(db, writeConcern = commands.WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = true))
     } else {
       eventStore = new MongoEventStore(db)
     }
@@ -195,6 +206,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     envelopeController
     fileController
     transferController
+    testOnlyController
     routingController
   }
 
@@ -208,6 +220,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       eventController.asInstanceOf[A]
     } else if (controllerClass == classOf[TransferController]) {
       transferController.asInstanceOf[A]
+    } else if (controllerClass == classOf[TestOnlyController]) {
+      testOnlyController.asInstanceOf[A]
     } else if (controllerClass == classOf[RoutingController]) {
       routingController.asInstanceOf[A]
     } else {

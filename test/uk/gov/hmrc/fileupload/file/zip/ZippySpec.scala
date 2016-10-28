@@ -23,7 +23,7 @@ import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.iteratee.{Enumerator, Iteratee}
 import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
-import uk.gov.hmrc.fileupload.file.zip.Zippy.{EnvelopeNotRoutedYet, ZipEnvelopeNotFoundError}
+import uk.gov.hmrc.fileupload.file.zip.Zippy.{EnvelopeNotRoutedYet, ZipEnvelopeNotFoundError, ZipProcessingError}
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatusClosed, EnvelopeStatusOpen}
 import uk.gov.hmrc.fileupload.read.envelope.Service._
 import uk.gov.hmrc.fileupload.read.file.Service._
@@ -36,14 +36,14 @@ class ZippySpec extends UnitSpec with ScalaFutures {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
+  val retrieveFile: (Envelope, FileId) => Future[GetFileResult] = (_, _) => Xor.right(
+    FileFound(name = Some("fileTest"), length = 100, data = Enumerator("one".getBytes(), "two".getBytes(), "three".getBytes()))
+  )
+
   "Zippy" should {
     "provide a zip file containing an envelope including its files" in {
       val envelope = Support.envelopeWithAFile(FileId("myfile")).copy(status = EnvelopeStatusClosed)
       val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Xor.right(envelope))
-      val retrieveFile: (Envelope, FileId) => Future[GetFileResult] = (_, _) => Xor.right(
-        FileFound(name = Some("fileTest"), length = 100, data = Enumerator("one".getBytes(), "two".getBytes(), "three".getBytes()))
-      )
-
       val zipResult = Zippy.zipEnvelope(getEnvelope, retrieveFile)(envelopeId = EnvelopeId("myid")).futureValue
 
       zipResult.isRight shouldBe true
@@ -55,10 +55,6 @@ class ZippySpec extends UnitSpec with ScalaFutures {
     "fail if envelope is not in Closed status" in {
       val envelope = Support.envelopeWithAFile(FileId("myfile")).copy(status = EnvelopeStatusOpen)
       val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Xor.right(envelope))
-      val retrieveFile: (Envelope, FileId) => Future[GetFileResult] = (_, _) => Xor.right(
-        FileFound(name = Some("fileTest"), length = 100, data = Enumerator("one".getBytes(), "two".getBytes(), "three".getBytes()))
-      )
-
       val zipResult = Zippy.zipEnvelope(getEnvelope, retrieveFile)(envelopeId = EnvelopeId("myid")).futureValue
 
       zipResult.isLeft shouldBe true
@@ -70,10 +66,6 @@ class ZippySpec extends UnitSpec with ScalaFutures {
 
     "fail when no envelope is found" in {
       val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Xor.left(FindEnvelopeNotFoundError))
-      val retrieveFile: (Envelope, FileId) => Future[GetFileResult] = (_, _) => Xor.right(
-        FileFound(name = Some("fileTest"), length = 100, data = Enumerator("one".getBytes(), "two".getBytes(), "three".getBytes()))
-      )
-
       val zipResult = Zippy.zipEnvelope(getEnvelope, retrieveFile)(envelopeId = EnvelopeId("myid")).futureValue
 
       zipResult.isLeft shouldBe true
@@ -83,13 +75,20 @@ class ZippySpec extends UnitSpec with ScalaFutures {
       }
     }
 
+    "fail when no service error" in {
+      val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Xor.left(FindServiceError("A service error")))
+      val zipResult = Zippy.zipEnvelope(getEnvelope, retrieveFile)(envelopeId = EnvelopeId("myid")).futureValue
+
+      zipResult.isLeft shouldBe true
+      zipResult.leftMap {
+        case ZipProcessingError("A service error") =>
+        case _ => fail("EnvelopeNotFound was expected")
+      }
+    }
+
     "return empty zip when no file is found in the envelope" in {
       val envelopeWithNoFiles = Support.envelope.copy(status = EnvelopeStatusClosed)
       val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Xor.right(envelopeWithNoFiles))
-      val retrieveFile: (Envelope, FileId) => Future[GetFileResult] = (_, _) => Xor.right(
-        FileFound(name = Some("fileTest"), length = 100, data = Enumerator("one".getBytes(), "two".getBytes(), "three".getBytes()))
-      )
-
       val zipResult = Zippy.zipEnvelope(getEnvelope, retrieveFile)(envelopeId = EnvelopeId("myid")).futureValue
 
       zipResult.isRight shouldBe true
