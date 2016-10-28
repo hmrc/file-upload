@@ -142,8 +142,8 @@ Response (in Body):
 }
 ```
 
-#### Upload File
-Uploads a binary file to Transient Store.
+#### Upload File (DO NOT USE) 
+Uploads a binary file to Transient Store. This endpoint cannot be used directly to upload a file and any attempts to do so will be rejected. Only files that have been uploaded to the frontend, that have been quarantined and then scanned are accepted.
 ```
 PUT     /file-upload/envelopes/{envelope-Id}/files/{file-Id}/{file-Ref-Id}
 ```
@@ -155,7 +155,7 @@ PUT     /file-upload/envelopes/{envelope-Id}/files/{file-Id}/{file-Ref-Id}
 #### Example
 Request (PUT): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1/file-ref-1
 
-Body: Binary File.
+Body: Binary File. 
 
 Response: 200
 
