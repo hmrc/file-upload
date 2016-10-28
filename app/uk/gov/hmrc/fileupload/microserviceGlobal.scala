@@ -24,6 +24,7 @@ import net.ceedubs.ficus.Ficus._
 import play.api.mvc.{EssentialFilter, RequestHeader, Result}
 import play.api.{Application, Configuration, Logger, Play}
 import reactivemongo.api.commands
+import reactivemongo.api.commands._
 import uk.gov.hmrc.fileupload.controllers._
 import uk.gov.hmrc.fileupload.controllers.routing.RoutingController
 import uk.gov.hmrc.fileupload.controllers.transfer.TransferController
@@ -167,13 +168,15 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   }
 
   lazy val testOnlyController = {
-    val fileRepository = uk.gov.hmrc.fileupload.read.file.Repository.apply(db)
-    val envelopeRepository = uk.gov.hmrc.fileupload.read.envelope.Repository.apply(db)
     val allEnvelopes = envelopeRepository.all _
+    val removeAllEnvelopes = () => envelopeRepository.removeAll()
+    val removeAllFiles = () => fileRepository.removeAll()
     implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
     implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
     val eventStore = new MongoEventStore(db)
-    new TestOnlyController(fileRepository, envelopeRepository, allEnvelopes, eventStore, statsRepository)
+
+
+    new TestOnlyController(removeAllFiles, removeAllEnvelopes, allEnvelopes, eventStore, statsRepository)
   }
 
   lazy val routingController = {
