@@ -30,6 +30,15 @@ trait EnvelopeActions extends ActionsSupport {
       .post(data)
       .futureValue
 
+  def createEnvelopeWithId(id: String, data: String): WSResponse = createEnvelopeWithId(id, data.getBytes())
+
+  def createEnvelopeWithId(id: String, data: Array[Byte]): WSResponse =
+    WS
+      .url(s"$url/envelopes/$id")
+      .withHeaders("Content-Type" -> "application/json")
+      .put(data)
+      .futureValue
+
   def getEnvelopeFor(id: EnvelopeId): WSResponse =
     WS
       .url(s"$url/envelopes/$id")

@@ -27,7 +27,9 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
-      EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata)
+      envelope.canCreate().map(_ =>
+        EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata)
+      )
 
     case (command: QuarantineFile, envelope: Envelope) =>
       envelope.canQuarantine(command.fileId, command.fileRefId, command.name).map(_ =>
@@ -138,6 +140,8 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
 case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated) {
 
+  def canCreate(): CanResult = state.canCreate()
+
   def canDeleteFile(fileId: FileId): CanResult = state.canDeleteFile(fileId, files)
 
   def canQuarantine(fileId: FileId, fileRefId: FileRefId, name: String): CanResult = state.canQuarantine(fileId, fileRefId, name, files)
@@ -158,6 +162,7 @@ case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCrea
 object State {
   val successResult = Xor.right(Unit)
   val envelopeNotFoundError = Xor.left(EnvelopeNotFoundError)
+  val envelopeAlreadyCreatedError = Xor.left(EnvelopeAlreadyCreatedError)
   val fileNotFoundError = Xor.left(FileNotFoundError)
   val envelopeSealedError = Xor.left(EnvelopeSealedError)
   val envelopeAlreadyArchivedError = Xor.left(EnvelopeArchivedError)
@@ -167,6 +172,8 @@ object State {
 
 sealed trait State {
   import State._
+
+  def canCreate(): CanResult = envelopeAlreadyCreatedError
 
   def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult = genericError
 
@@ -210,7 +217,12 @@ sealed trait State {
     }).getOrElse(fileNotFoundError)
 }
 
-object NotCreated extends State
+object NotCreated extends State {
+  import State._
+
+  override def canCreate(): CanResult =
+    successResult
+}
 
 object Open extends State {
   import State._
