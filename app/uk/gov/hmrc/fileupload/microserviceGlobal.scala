@@ -157,7 +157,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     new FileController(uploadBodyParser = uploadBodyParser,
       retrieveFile = retrieveFile,
       withValidEnvelope = withValidEnvelope,
-      handleCommand = envelopeCommandHandler)
+      handleCommand = envelopeCommandHandler,
+      clear = fileRepository.clear() _)
   }
 
   lazy val transferController = {

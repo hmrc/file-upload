@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.fileupload.testonly
 
+import org.joda.time.Duration
 import play.api.mvc.Action
 import play.api.mvc.Results._
 import reactivemongo.api.commands.WriteResult
@@ -51,7 +52,7 @@ class TestOnlyController(fileRepo: FileRepository, envelopeRepo: EnvelopeReposit
   }
 
   private def cleanupEnvelopeAndFiles: Future[(WriteResult, List[WriteResult])] = {
-    envelopeRepo.removeAll() zip fileRepo.removeAll()
+    envelopeRepo.removeAll() zip fileRepo.clear(Duration.ZERO)
   }
 
   private def emptyEvents: Future[WriteResult] = {
