@@ -20,30 +20,23 @@ import play.api.mvc.Action
 import play.api.mvc.Results._
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.bson.BSONDocument
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, Repository => EnvelopeRepository}
-import uk.gov.hmrc.fileupload.read.file.{Repository => FileRepository}
 import uk.gov.hmrc.fileupload.read.stats.{Repository => InProgressRepository}
 import uk.gov.hmrc.fileupload.write.infrastructure.MongoEventStore
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class TestOnlyController(fileRepo: FileRepository, envelopeRepo: EnvelopeRepository, findAllEnvelopes: () => Future[List[Envelope]],
-                         mongoEventStore: MongoEventStore, inProgressRepository: InProgressRepository)(implicit executionContext: ExecutionContext) {
-
-  def cleanup() = Action.async { request =>
-    cleanupEnvelopeAndFiles.map { results =>
-      if (results._2.forall(_.ok)) Ok else InternalServerError
-    }
-  }
+class TestOnlyController(removeAllFiles: () => Future[List[WriteResult]], removeAllEnvelopes: () => Future[WriteResult],
+                         mongoEventStore: MongoEventStore, inProgressRepository: InProgressRepository)
+                        (implicit executionContext: ExecutionContext) {
 
   def clearCollections() = Action.async {
     request =>
       for {
         envelopeAndFileCleanResult <- cleanupEnvelopeAndFiles
         emptyEventsResult <- emptyEvents
-        inprogressResult <- inProgressRepository.removeAll()
+        inProgressResult <- inProgressRepository.removeAll()
       } yield {
-        (inprogressResult :: emptyEventsResult :: envelopeAndFileCleanResult._2).forall(_.ok)
+        (inProgressResult :: emptyEventsResult :: envelopeAndFileCleanResult._2).forall(_.ok)
       } match {
         case true => Ok
         case false => InternalServerError
@@ -51,7 +44,7 @@ class TestOnlyController(fileRepo: FileRepository, envelopeRepo: EnvelopeReposit
   }
 
   private def cleanupEnvelopeAndFiles: Future[(WriteResult, List[WriteResult])] = {
-    envelopeRepo.removeAll() zip fileRepo.removeAll()
+    removeAllEnvelopes() zip removeAllFiles()
   }
 
   private def emptyEvents: Future[WriteResult] = {

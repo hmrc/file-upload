@@ -167,13 +167,9 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   }
 
   lazy val testOnlyController = {
-    val fileRepository = uk.gov.hmrc.fileupload.read.file.Repository.apply(db)
-    val envelopeRepository = uk.gov.hmrc.fileupload.read.envelope.Repository.apply(db)
-    val allEnvelopes = envelopeRepository.all _
-    implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
-    implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
-    val eventStore = new MongoEventStore(db)
-    new TestOnlyController(fileRepository, envelopeRepository, allEnvelopes, eventStore, statsRepository)
+    val removeAllEnvelopes = () => envelopeRepository.removeAll()
+    val removeAllFiles = () => fileRepository.removeAll()
+    new TestOnlyController(removeAllFiles, removeAllEnvelopes, eventStore, statsRepository)
   }
 
   lazy val routingController = {
@@ -199,7 +195,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
     // notifier
     Akka.system.actorOf(NotifierActor.props(subscribe, find, sendNotification), "notifierActor")
-    Akka.system.actorOf(StatsActor.props(subscribe, find, sendNotification, saveFileQuarantinedStat, deleteVirusDetectedStat, deleteFileStoredStat), "statsActor")
+    Akka.system.actorOf(StatsActor.props(subscribe, find, sendNotification, saveFileQuarantinedStat,
+      deleteVirusDetectedStat, deleteFileStoredStat), "statsActor")
 
     eventController
     envelopeController
