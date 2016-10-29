@@ -24,7 +24,6 @@ import net.ceedubs.ficus.Ficus._
 import play.api.mvc.{EssentialFilter, RequestHeader, Result}
 import play.api.{Application, Configuration, Logger, Play}
 import reactivemongo.api.commands
-import reactivemongo.api.commands._
 import uk.gov.hmrc.fileupload.controllers._
 import uk.gov.hmrc.fileupload.controllers.routing.RoutingController
 import uk.gov.hmrc.fileupload.controllers.transfer.TransferController
