@@ -90,7 +90,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   var subscribe: (ActorRef, Class[_]) => Boolean = _
   var publish: (AnyRef) => Unit = _
 
-  var withBasicAuth: AuthBasicModule = _
+  var withBasicAuth: BasicAuthModule = _
 
   lazy val db = DefaultMongoConnection.db
 
@@ -214,7 +214,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       eventStore = new MongoEventStore(db)
     }
 
-    withBasicAuth = new AuthBasicModuleImpl(getUsers(app.configuration))
+    withBasicAuth = new BasicAuthModuleImpl(getUsers(app.configuration))
 
     // notifier
     Akka.system.actorOf(NotifierActor.props(subscribe, find, sendNotification), "notifierActor")

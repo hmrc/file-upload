@@ -24,7 +24,7 @@ import play.api.mvc.{RequestHeader, Result}
 
 import scala.concurrent.Future
 
-trait AuthBasicModule {
+trait BasicAuthModule {
   def userAuthorised(credentials: Option[String]): Boolean
 
   def apply(block: => Future[Result])(implicit request: RequestHeader) = {
@@ -37,7 +37,7 @@ trait AuthBasicModule {
   }
 }
 
-class AuthBasicModuleImpl(users: List[User]) extends AuthBasicModule {
+class BasicAuthModuleImpl(users: List[User]) extends BasicAuthModule {
 
   def userAuthorised(credential: Option[String]): Boolean =
     credential.exists ( cred =>

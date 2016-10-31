@@ -46,7 +46,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
   }
 
-  def newController(withBasicAuth: AuthBasicModule = new AuthBasicModule {
+  def newController(withBasicAuth: BasicAuthModule = new BasicAuthModule {
                       override def userAuthorised(credentials: Option[String]): Boolean = true
                     },
                     nextId: () => EnvelopeId = () => EnvelopeId("abc-def"),
