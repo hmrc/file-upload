@@ -28,15 +28,25 @@ class AuthBasicModuleSpec extends UnitSpec with ScalaFutures {
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
   }
 
-  "a users list" should {
-    "come from the application.conf.basicAuth.authorizedUsers" in {
-      val users = List(User("yuan", "yaunspassword"))
+  val users = List(User("yuan", "yaunspassword"))
+  val module = new AuthBasicModuleImpl(users)
+  val trueResult = module.userAuthorised(Option("Basic " + basic64("yuan:yaunspassword")))
+  val falseResult = module.userAuthorised(Option("Basic " + basic64("paul:paulspassword")))
+  val nonAuthResult = module.userAuthorised(Option(""))
 
-      val module = new AuthBasicModuleImpl(users)
 
-      val result = module.userAuthorised(Option("Basic " + basic64("yuan:yaunspassword")))
-
-      result shouldBe true
+  "The auth function able to take a list of users (users name and password), and check the coming requests authorization is in the list" should {
+    "if the coming authorization is in the users list" in {
+      trueResult shouldBe true
     }
+
+    "if the coming authorization is not in the users list" in {
+      falseResult shouldBe false
+    }
+
+    "if there is no auth" in {
+      nonAuthResult shouldBe false
+    }
+
   }
 }
