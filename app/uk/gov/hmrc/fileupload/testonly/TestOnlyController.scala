@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.fileupload.testonly
 
-import org.joda.time.Duration
 import play.api.mvc.Action
 import play.api.mvc.Results._
 import reactivemongo.api.commands.WriteResult
