@@ -18,6 +18,7 @@ package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
 import play.api.mvc._
+import reactivemongo.api.commands.WriteResult
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.read.file.Service._
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError, FileNotFoundError, StoreFile}
@@ -32,7 +33,8 @@ class FileController(withBasicAuth: AuthBasicModule,
                      uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]],
                      retrieveFile: (Envelope, FileId) => Future[GetFileResult],
                      withValidEnvelope: WithValidEnvelope,
-                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
+                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
+                     clear: () => Future[List[WriteResult]])
                     (implicit executionContext: ExecutionContext) extends BaseController {
 
 
@@ -60,6 +62,17 @@ class FileController(withBasicAuth: AuthBasicModule,
             ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
         }
       }
+    }
+  }
+
+  def expire() = Action.async { request =>
+    clear().map {
+      results =>
+        val errors = results.filter(_.hasErrors)
+        errors match {
+          case Nil => Ok
+          case _ => InternalServerError(errors.flatMap(_.errmsg).mkString(", "))
+        }
     }
   }
 }

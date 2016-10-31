@@ -16,11 +16,14 @@
 
 package uk.gov.hmrc.fileupload.read.file
 
+import org.joda.time.{DateTime, Duration}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.iteratee.{Enumerator, Iteratee}
 import play.api.libs.json.JsString
+import reactivemongo.bson.BSONDocument
+import reactivemongo.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
@@ -35,7 +38,7 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
   val repository = new Repository(mongo)
 
   override def beforeEach {
-    repository.removeAll().futureValue
+    repository.clear(duration = Duration.standardSeconds(0)).futureValue
   }
 
 	"repository" should {
@@ -70,5 +73,40 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplica
 
       fileResult shouldBe None
 		}
-  }
+
+		"Clear files after expiry duration" in {
+			val id = insertAnyFile()
+			val imagineWeAre2DaysInTheFuture = () => DateTime.now().plusDays(3)
+			val expiryDuration = Duration.standardDays(2)
+			repository.clear(expiryDuration, imagineWeAre2DaysInTheFuture).futureValue
+
+			repository.gfs.files.find(BSONDocument("_id" -> id)).one[BSONDocument].futureValue shouldBe None
+			repository.gfs.chunks.find(BSONDocument("files_id" -> id)).one[BSONDocument].futureValue shouldBe None
+		}
+
+		"Do not clear files within expiry duration" in {
+			val id = insertAnyFile()
+			val imagineWeAre2DaysInTheFuture = () => DateTime.now().plusDays(3)
+			val expiryDuration = Duration.standardDays(4)
+			repository.clear(expiryDuration, imagineWeAre2DaysInTheFuture).futureValue
+
+			repository.gfs.files.find(BSONDocument("_id" -> id)).one[BSONDocument].futureValue.isDefined shouldBe true
+			repository.gfs.chunks.find(BSONDocument("files_id" -> id)).one[BSONDocument].futureValue.isDefined shouldBe true
+		}
+	}
+
+	def insertAnyFile(): String = {
+		val text = "I only exists to be stored in mongo :<"
+		val contents = Enumerator[ByteStream](text.getBytes)
+
+		val envelopeId = Support.envelope._id
+		val fileId = FileId()
+		val fileRefId = FileRefId()
+
+		val sink = repository.iterateeForUpload(envelopeId, fileId, fileRefId)
+		contents.run[Future[JSONReadFile]](sink).futureValue.id match {
+			case JsString(v) => v
+			case _ => fail("expected JsString here")
+		}
+	}
 }
