@@ -29,13 +29,14 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
-class TransferController(getEnvelopesByDestination: Option[String] => Future[List[Envelope]],
+class TransferController(withBasicAuth: AuthBasicModule,
+                         getEnvelopesByDestination: Option[String] => Future[List[Envelope]],
                          handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                          zipEnvelope: EnvelopeId => Future[ZipResult])
                         (implicit executionContext: ExecutionContext) extends BaseController {
 
   def list() = Action.async { implicit request =>
-    withBasicAuth{
+    withBasicAuth {
       val maybeDestination = request.getQueryString("destination")
       getEnvelopesByDestination(maybeDestination).map { envelopes =>
         Ok(OutputForTransfer(envelopes))
@@ -65,12 +66,4 @@ class TransferController(getEnvelopesByDestination: Option[String] => Future[Lis
       case Xor.Left(_) => ExceptionHandler(LOCKED, s"Envelope with id: $envelopeId locked")
     }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
   }
-
-  def withBasicAuth(continueProgress: => Future[Result])(implicit request: RequestHeader): Future[Result] = {
-    AuthBasicModule.check(request.headers.get(AUTHORIZATION)) match{
-      case false => Future.successful(Forbidden)
-      case true => continueProgress
-    }
-  }
-
 }

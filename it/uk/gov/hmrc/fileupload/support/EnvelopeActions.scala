@@ -41,7 +41,7 @@ trait EnvelopeActions extends ActionsSupport {
 
   def getEnvelopeFor(id: EnvelopeId): WSResponse =
     WS
-      .url(s"$url/envelopes/$id")
+      .url(s"$url/envelopes/$id").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
       .get()
       .futureValue
 
@@ -59,6 +59,12 @@ trait EnvelopeActions extends ActionsSupport {
   def deleteEnvelopFor(id: EnvelopeId): WSResponse =
     WS
       .url(s"$url/envelopes/$id").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
+      .delete()
+      .futureValue
+
+  def deleteEnvelopWithWrongAuth(id: EnvelopeId): WSResponse =
+    WS
+      .url(s"$url/envelopes/$id").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yua:yaunspassword")))
       .delete()
       .futureValue
 

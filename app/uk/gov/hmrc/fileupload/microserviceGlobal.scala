@@ -89,6 +89,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   var subscribe: (ActorRef, Class[_]) => Boolean = _
   var publish: (AnyRef) => Unit = _
 
+  var withBasicAuth: AuthBasicModule = _
+
   lazy val db = DefaultMongoConnection.db
 
   lazy val auditedHttpExecute = PlayHttp.execute(auditConnector, appName, Some(t => Logger.warn(t.getMessage, t))) _
@@ -140,6 +142,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   lazy val envelopeController = {
     val nextId = () => EnvelopeId(UUID.randomUUID().toString)
     new EnvelopeController(
+      withBasicAuth = withBasicAuth,
       nextId = nextId,
       handleCommand = envelopeCommandHandler,
       findEnvelope = find,
@@ -154,7 +157,9 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   lazy val fileController = {
     import play.api.libs.concurrent.Execution.Implicits._
     val uploadBodyParser = UploadParser.parse(iterateeForUpload) _
-    new FileController(uploadBodyParser = uploadBodyParser,
+    new FileController(
+      withBasicAuth = withBasicAuth,
+      uploadBodyParser = uploadBodyParser,
       retrieveFile = retrieveFile,
       withValidEnvelope = withValidEnvelope,
       handleCommand = envelopeCommandHandler)
@@ -163,7 +168,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   lazy val transferController = {
     val getEnvelopesByDestination = envelopeRepository.getByDestination _
     val zipEnvelope = Zippy.zipEnvelope(find, retrieveFile) _
-    new TransferController(getEnvelopesByDestination, envelopeCommandHandler, zipEnvelope)
+    new TransferController(withBasicAuth, getEnvelopesByDestination, envelopeCommandHandler, zipEnvelope)
   }
 
   lazy val testOnlyController = {
@@ -179,6 +184,20 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   lazy val routingController = {
     new RoutingController(envelopeCommandHandler)
   }
+
+  def getUsers(config: Configuration): List[User] = {
+    config.getString("basicAuth.authorizedUsers").map { s =>
+      s.split(";").flatMap(
+        user => {
+          user.split(":") match {
+            case Array(username, password) => Some(User(username, password))
+            case _ => None
+          }
+        }
+      ).toList
+    }.getOrElse(List.empty)
+  }
+
 
   override def onStart(app: Application): Unit = {
     super.onStart(app)
@@ -196,6 +215,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     } else {
       eventStore = new MongoEventStore(db)
     }
+
+    withBasicAuth = new AuthBasicModuleImpl(getUsers(app.configuration))
 
     // notifier
     Akka.system.actorOf(NotifierActor.props(subscribe, find, sendNotification), "notifierActor")

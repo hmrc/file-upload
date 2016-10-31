@@ -62,11 +62,15 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
 
   def parse = UploadParser.parse(null) _
 
-  def newController(uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]] = parse,
+  def newController(withBasicAuth: AuthBasicModule = new AuthBasicModule {
+                      override def userAuthorised(credentials: Option[String]): Boolean = true
+                    },uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]] = parse,
                     retrieveFile: (Envelope, FileId) => Future[GetFileResult] = (_, _) => failed,
                     withValidEnvelope: WithValidEnvelope = Support.envelopeAvailable(),
                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed) =
-    new FileController(uploadBodyParser = uploadBodyParser,
+    new FileController(
+      withBasicAuth,
+      uploadBodyParser = uploadBodyParser,
       retrieveFile = retrieveFile,
       withValidEnvelope = withValidEnvelope,
       handleCommand = handleCommand)

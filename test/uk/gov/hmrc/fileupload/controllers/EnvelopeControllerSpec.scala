@@ -46,13 +46,16 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
   }
 
-  def newController(nextId: () => EnvelopeId = () => EnvelopeId("abc-def"),
+  def newController(withBasicAuth: AuthBasicModule = new AuthBasicModule {
+                      override def userAuthorised(credentials: Option[String]): Boolean = true
+                    },
+                    nextId: () => EnvelopeId = () => EnvelopeId("abc-def"),
                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
                     findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]] = _ => failed,
                     findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]] = (_, _) => failed,
                     findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed
                    ) =
-    new EnvelopeController(nextId, handleCommand, findEnvelope, findMetadata, findAllInProgressFile)
+    new EnvelopeController(withBasicAuth, nextId, handleCommand, findEnvelope, findMetadata, findAllInProgressFile)
 
   "Create envelope with a request" should {
     "return response with OK status and a Location header specifying the envelope endpoint" in {

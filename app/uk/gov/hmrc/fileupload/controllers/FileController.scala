@@ -28,7 +28,8 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
-class FileController(uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]],
+class FileController(withBasicAuth: AuthBasicModule,
+                     uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]],
                      retrieveFile: (Envelope, FileId) => Future[GetFileResult],
                      withValidEnvelope: WithValidEnvelope,
                      handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
@@ -46,8 +47,8 @@ class FileController(uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyPa
     }
   }
 
-  def downloadFile(id: EnvelopeId, fileId: FileId) = Action.async { request =>
-    withBasicAuth{
+  def downloadFile(id: EnvelopeId, fileId: FileId) = Action.async { implicit request =>
+    withBasicAuth {
       withValidEnvelope(id) { envelope =>
         retrieveFile(envelope, fileId).map {
           case Xor.Right(FileFound(filename, length, data)) =>
@@ -59,13 +60,6 @@ class FileController(uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyPa
             ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
         }
       }
-    }(request)
-  }
-
-  def withBasicAuth(continueProgress: => Future[Result])(request: RequestHeader): Future[Result] = {
-    AuthBasicModule.check(request.headers.get(AUTHORIZATION)) match{
-      case true => continueProgress
-      case false => Future.successful(Forbidden)
     }
   }
 }
