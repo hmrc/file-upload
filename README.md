@@ -347,24 +347,6 @@ Expected response status code: 200
 ## TEST-ONLY ENDPOINTS <a name="testonly"></a>
 These endpoints are not available in production and are used for testing purposes. <i>**PLEASE DO NOT USE THESE WITHOUT PERMISSION**</i>.
 
-#### CLEAN UP TRANSIENT (DO NOT USE)
-Removes all envelopes, files and chunks in their respective collections inside Transient Storage (Only). 
-
-Note: This does not remove event data and inprogress files.
-
-```
-POST    /file-upload/test-only/cleanup-transient
-```
-
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 200   | Successfully cleared Transient.  |
-
-#### EXAMPLE
-Request (POST): localhost:8898/file-upload/test-only/cleanup-transient
-
-Response: 200
-
 #### CLEAR COLLECTIONS (DO NOT USE)
 Removes everything in all collections in both quarantine and transient. 
 
