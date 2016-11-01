@@ -30,11 +30,12 @@ import reactivemongo.api.commands.WriteResult
 import reactivemongo.json.JSONSerializationPack
 import reactivemongo.json.JSONSerializationPack.Document
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.read.file.Service._
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
+import uk.gov.hmrc.fileupload.read.file.Service._
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
+import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -63,9 +64,8 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
 
   def parse = UploadParser.parse(null) _
 
-  def newController(withBasicAuth:BasicAuthModule = new BasicAuthModule {
-                      override def userAuthorised(credentials: Option[String]): Boolean = true
-                    },uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]] = parse,
+  def newController(withBasicAuth:BasicAuth = AlwaysAuthorisedBasicAuth,
+                    uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]] = parse,
                     retrieveFile: (Envelope, FileId) => Future[GetFileResult] = (_, _) => failed,
                     withValidEnvelope: WithValidEnvelope = Support.envelopeAvailable(),
                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed,

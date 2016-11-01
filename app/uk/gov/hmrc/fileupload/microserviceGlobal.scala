@@ -29,7 +29,7 @@ import uk.gov.hmrc.fileupload.controllers._
 import uk.gov.hmrc.fileupload.controllers.routing.RoutingController
 import uk.gov.hmrc.fileupload.controllers.transfer.TransferController
 import uk.gov.hmrc.fileupload.file.zip.Zippy
-import uk.gov.hmrc.fileupload.infrastructure.{DefaultMongoConnection, PlayHttp}
+import uk.gov.hmrc.fileupload.infrastructure._
 import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => EnvelopeService, _}
 import uk.gov.hmrc.fileupload.read.file.{Service => FileService}
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
@@ -90,7 +90,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   var subscribe: (ActorRef, Class[_]) => Boolean = _
   var publish: (AnyRef) => Unit = _
 
-  var withBasicAuth: BasicAuthModule = _
+  var withBasicAuth: BasicAuth = _
 
   lazy val db = DefaultMongoConnection.db
 
@@ -183,19 +183,25 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     new RoutingController(envelopeCommandHandler)
   }
 
-  def getUsers(config: Configuration): List[User] = {
-    config.getString("basicAuth.authorizedUsers").map { s =>
-      s.split(";").flatMap(
-        user => {
-          user.split(":") match {
-            case Array(username, password) => Some(User(username, password))
-            case _ => None
+  def basicAuthConfiguration(config: Configuration): BasicAuthConfiguration = {
+    def getUsers(config: Configuration): List[User] = {
+      config.getString("basicAuth.authorizedUsers").map { s =>
+        s.split(";").flatMap(
+          user => {
+            user.split(":") match {
+              case Array(username, password) => Some(User(username, password))
+              case _ => None
+            }
           }
-        }
-      ).toList
-    }.getOrElse(List.empty)
-  }
+        ).toList
+      }.getOrElse(List.empty)
+    }
 
+    config.getBoolean("feature.basicAuthEnabled").getOrElse(false) match {
+      case true => BasicAuthEnabled(getUsers(config))
+      case false => BasicAuthDisabled
+    }
+  }
 
   override def onStart(app: Application): Unit = {
     super.onStart(app)
@@ -214,7 +220,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       eventStore = new MongoEventStore(db)
     }
 
-    withBasicAuth = new BasicAuthModuleImpl(getUsers(app.configuration))
+    withBasicAuth = BasicAuth(basicAuthConfiguration(app.configuration))
 
     // notifier
     Akka.system.actorOf(NotifierActor.props(subscribe, find, sendNotification), "notifierActor")

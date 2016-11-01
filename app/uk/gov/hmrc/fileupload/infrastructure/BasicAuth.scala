@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.controllers
+package uk.gov.hmrc.fileupload.infrastructure
 
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
@@ -24,7 +24,7 @@ import play.api.mvc.{RequestHeader, Result}
 
 import scala.concurrent.Future
 
-trait BasicAuthModule {
+trait BasicAuth {
   def userAuthorised(credentials: Option[String]): Boolean
 
   def apply(block: => Future[Result])(implicit request: RequestHeader) = {
@@ -37,12 +37,32 @@ trait BasicAuthModule {
   }
 }
 
-class BasicAuthModuleImpl(users: List[User]) extends BasicAuthModule {
+class AuthorisingBasicAuth(users: List[User]) extends BasicAuth {
 
   def userAuthorised(credential: Option[String]): Boolean =
-    credential.exists ( cred =>
+    credential.exists(cred =>
       users.exists(user => "Basic " + BaseEncoding.base64().encode((user.name + ":" + user.password).getBytes(Charsets.UTF_8)) == cred)
     )
 }
+
+object AlwaysAuthorisedBasicAuth extends BasicAuth {
+  override def userAuthorised(credentials: Option[String]): Boolean = true
+}
+
+object BasicAuth {
+
+  def apply(config: BasicAuthConfiguration) = {
+    config match {
+      case BasicAuthDisabled => AlwaysAuthorisedBasicAuth
+      case BasicAuthEnabled(users) => new AuthorisingBasicAuth(users)
+    }
+  }
+}
+
+sealed abstract class BasicAuthConfiguration
+
+case object BasicAuthDisabled extends BasicAuthConfiguration
+
+case class BasicAuthEnabled(users: List[User]) extends BasicAuthConfiguration
 
 case class User(name: String, password: String)

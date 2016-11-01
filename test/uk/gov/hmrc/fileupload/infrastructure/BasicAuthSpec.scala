@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.controllers
+package uk.gov.hmrc.fileupload.infrastructure
 
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
@@ -22,14 +22,14 @@ import org.scalatest.concurrent.ScalaFutures
 import uk.gov.hmrc.play.test.UnitSpec
 
 
-class BasicAuthModuleSpec extends UnitSpec with ScalaFutures {
+class BasicAuthSpec extends UnitSpec with ScalaFutures {
 
   def basic64(s:String): String = {
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
   }
 
   val users = List(User("yuan", "yaunspassword"))
-  val module = new BasicAuthModuleImpl(users)
+  val module = BasicAuth(BasicAuthEnabled(users))
   val trueResult = module.userAuthorised(Option("Basic " + basic64("yuan:yaunspassword")))
   val falseResult = module.userAuthorised(Option("Basic " + basic64("paul:paulspassword")))
   val nonAuthResult = module.userAuthorised(Option(""))

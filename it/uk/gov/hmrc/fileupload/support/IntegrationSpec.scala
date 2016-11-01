@@ -22,7 +22,8 @@ trait IntegrationSpec extends FeatureSpec with GivenWhenThen with OneServerPerSu
   override lazy val app = FakeApplication(
     additionalConfiguration = Map(
       "mongodb.uri" -> s"mongodb://localhost:27017/$databaseName",
-      "auditing.enabled" -> "false"
+      "auditing.enabled" -> "false",
+      "feature.basicAuthEnabled" -> "true"
     )
   )
 
