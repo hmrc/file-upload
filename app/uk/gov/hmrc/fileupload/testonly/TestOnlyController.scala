@@ -29,6 +29,12 @@ class TestOnlyController(removeAllFiles: () => Future[List[WriteResult]], remove
                          mongoEventStore: MongoEventStore, inProgressRepository: InProgressRepository)
                         (implicit executionContext: ExecutionContext) {
 
+  def cleanup() = Action.async { request =>
+    cleanupEnvelopeAndFiles.map {
+      results => if (results._2.forall(_.ok)) Ok else InternalServerError
+    }
+  }
+
   def clearCollections() = Action.async {
     request =>
       for {
