@@ -82,6 +82,23 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
     }
   }
 
+  "Create envelope with id" should {
+    "return response with OK status and a Location header specifying the envelope endpoint" in {
+      val serverUrl = "http://production.com:8000"
+
+      val fakeRequest = new FakeRequest("POST", "/envelopes", FakeHeaders(), body = CreateEnvelopeRequest()){
+        override lazy val host = serverUrl
+      }
+
+      val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
+      val result: Result = controller.createWithId(EnvelopeId("aaa-bbb"))(fakeRequest).futureValue
+
+      result.header.status shouldBe Status.CREATED
+      val location = result.header.headers("Location")
+      location shouldBe s"$serverUrl${routes.EnvelopeController.show(EnvelopeId("aaa-bbb")).url}"
+    }
+  }
+
 	"Delete Envelope" should {
 		"respond with 200 OK status" in {
 			val envelope = Support.envelope

@@ -1,6 +1,7 @@
 # microservice specific routes
 
 POST       /envelopes                                         @uk.gov.hmrc.fileupload.controllers.EnvelopeController.create()
+PUT        /envelopes/:envelopeId                             @uk.gov.hmrc.fileupload.controllers.EnvelopeController.createWithId(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)
 GET        /envelopes/:envelopeId                             @uk.gov.hmrc.fileupload.controllers.EnvelopeController.show(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)
 DELETE     /envelopes/:envelopeId                             @uk.gov.hmrc.fileupload.controllers.EnvelopeController.delete(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)
 DELETE     /envelopes/:envelopeId/files/:fileId               @uk.gov.hmrc.fileupload.controllers.EnvelopeController.deleteFile(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId)
@@ -12,3 +13,5 @@ GET        /events/:streamId                                  @uk.gov.hmrc.fileu
 GET        /files/inprogress                                  @uk.gov.hmrc.fileupload.controllers.EnvelopeController.inProgressFiles()
 
 GET        /events/:streamId/replay                           @uk.gov.hmrc.fileupload.controllers.EventController.replay(streamId: uk.gov.hmrc.fileupload.write.infrastructure.StreamId)
+
+POST       /files/expire                                      @uk.gov.hmrc.fileupload.controllers.FileController.expire()
