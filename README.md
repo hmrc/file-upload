@@ -3,7 +3,7 @@
 
 [![Build Status](https://travis-ci.org/hmrc/file-upload.svg?branch=master)](https://travis-ci.org/hmrc/file-upload) [ ![Download](https://api.bintray.com/packages/hmrc/releases/file-upload/images/download.svg) ](https://bintray.com/hmrc/releases/file-upload/_latestVersion)
 
-This API provides a mechanism whereby a client microservice can define and manage an envelope which can later be filled with files and then optionally routed to another system. The envelope resources are exposed on the /file-upload/envelopes endpoint. Please <i>**DO NOT USE**</i> Test-Only endpoints because they are not available in production and Internal-Use-Only endpoints <i>**WITHOUT PERMISSION.**</i> 
+This API provides a mechanism whereby a client microservice can define and manage an envelope which can later be filled with files and then optionally routed to another system. The envelope resources are exposed on the /file-upload/envelopes endpoint. Please <i>**DO NOT USE**</i> Test-Only endpoints because they are not available in production, Internal endpoints <i>**WITHOUT PERMISSION.**</i> 
 
 
 
@@ -17,16 +17,16 @@ sbt run
 
 The endpoints can then be accessed with the base url http://localhost:8898/
 
-Test-only Endpoints 
-
 ## Table of Contents
 
 *   [Endpoints](#endpoints)
 *   [Callback](#callback)
 *   [Test-Only Endpoints](#testonly)
+*   [Internal Automated Endpoint](#auto)
 *   [Internal-Use-Only Endpoints](#internal)
 
 ## Endpoints <a name="endpoints"></a>
+
 
 ### Envelope
 
@@ -174,117 +174,6 @@ Request (GET): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067
 
 Response: Binary file which contains the selected file.
 
-### EVENTS (DO NOT USE)
-These endpoints are used by the application itself and <i>**DO NOT REQUIRE**</i> end-user input. Please <i>**DO NOT USE**</i> these endpoints <i>**WITHOUT PERMISSION**</i>.
-
-#### UPDATE EVENT OF A FILE (DO NOT USE)
-Updates an event of a file being uploaded to Quarantine and then Scanned. Note: This is automated.
-
-```
-POST    /file-upload/events/{eventType}
-```
-
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 200   | Successfully update event.
-| Bad Request  | 400   | Invalid Event.
-| Locked  | 423   | Cannot update event. Routing request is already received for this envelope.
-
-#### EXAMPLE (FOR FILE IN QUARANTINE)
-Request (POST): localhost:8898/file-upload/events/FileQuarantinedStored
-
-Body:
-```json
-{
-	"envelopeId": "0b215e97-11d4-4006-91db-c067e74fc653",
-	"fileId": "file-id-1",
-	"fileRefId": "file-ref-1",
-	"created": 1477490659794,
-	"name": "myfile.txt",
-	"contentType": "pdf",
-	"metadata": {}
-}
-```
-
-Response: 200
-
-#### EXAMPLE (FOR FILE SCANNED)
-Request (POST): localhost:8898/file-upload/events/FileScanned
-
-Body:
-```json
-{
-	"envelopeId": "0b215e97-11d4-4006-91db-c067e74fc653",
-	"fileId": "file-id-1",
-	"fileRefId": "file-ref-1",
-	"hasVirus": false
-}
-```
-
-Response: 200
-
-Note: "hasVirus" depends on the result from clamAV. If there is a virus, then hasVirus is set to "true" otherwise if not then it would be set to "false".
-
-#### SHOW EVENTS OF AN ENVELOPE (DO NOT USE)
-Retrieves a list of all events based on the stream Id. 
-
-```
-GET     /file-upload/events/{stream-Id}
-```
-
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 200   | Successfully returns a list of events based on stream Id.
-
-#### EXAMPLE
-Request (GET): localhost:8899/file-upload/test-only/events/0b215e97-11d4-4006-91db-c067e74fc653
-
-Response (In Body):
-```json
-[
-  {
-    "eventId": "bbf89c47-ec22-4b5a-917a-fa19f9f2005d",
-    "streamId": "0b215e97-11d4-4006-91db-c067e74fc653",
-    "version": 1,
-    "created": 1477490656518,
-    "eventType": "uk.gov.hmrc.fileupload.write.envelope.EnvelopeCreated",
-    "eventData": {
-      "id": "0b215e97-11d4-4006-91db-c067e74fc653"
-    }
-  },
-  {
-    "eventId": "07ea4682-0c2c-49f8-b01a-6128c18ed30f",
-    "streamId": "0b215e97-11d4-4006-91db-c067e74fc653",
-    "version": 2,
-    "created": 1477490659794,
-    "eventType": "uk.gov.hmrc.fileupload.write.envelope.FileQuarantined",
-    "eventData": {
-      "id": "0b215e97-11d4-4006-91db-c067e74fc653",
-      "fileId": "file-id-1",
-      "fileRefId": "82c1e62c-ddca-468f-a1c9-ca9aa97aa0a2",
-      "created": 1477490659610,
-      "name": "zKv4Qv6366462570363333088.tmp",
-      "contentType": "application/octet-stream",
-      "metadata": {
-        "foo": "bar"
-      }
-    }
-  },
-  {
-    "eventId": "29ab824b-e045-4281-9e40-4fd572a03078",
-    "streamId": "0b215e97-11d4-4006-91db-c067e74fc653",
-    "version": 3,
-    "created": 1477490660074,
-    "eventType": "uk.gov.hmrc.fileupload.write.envelope.EnvelopeSealed",
-    "eventData": {
-      "id": "0b215e97-11d4-4006-91db-c067e74fc653",
-      "routingRequestId": "ec97bbd0-7be5-4727-8d92-441818a63dcd",
-      "destination": "DMS",
-      "application": "foo"
-    }
-  }
-]
-```
 
 ### Routing
 
@@ -312,6 +201,7 @@ Body:
 ```
 
 Response(in Headers): Location -> /file-routing/requests/39e0e07d-7969-44ac-9f9c-4f7cc264b027
+
 
 ### Transfer
 
@@ -432,6 +322,7 @@ Request (DELETE): localhost:8898/file-transfer/envelopes/0b215e97-11d4-4006-91db
 
 Response: 200
 
+
 ## Callback <a name="callback"></a>
 
 The following is an example request to the callbackUrl. Should comprise of:
@@ -451,6 +342,7 @@ Request (POST)
 ```
 
 Expected response status code: 200
+
 
 ## TEST-ONLY ENDPOINTS <a name="testonly"></a>
 These endpoints are not available in production and are used for testing purposes. <i>**PLEASE DO NOT USE THESE WITHOUT PERMISSION**</i>.
@@ -474,7 +366,7 @@ Request (POST): localhost:8898/file-upload/test-only/cleanup-transient
 Response: 200
 
 #### CLEAR COLLECTIONS (DO NOT USE)
-Removes everything in all collection in both quarantine and transient. 
+Removes everything in all collections in both quarantine and transient. 
 
 ```
 POST    /file-upload/test-only/clear-collections
@@ -489,8 +381,121 @@ Request (POST): localhost:8898/file-upload/test-only/clear-collections
 
 Response: 200
 
+## INTERNAL AUTOMATED ENDPOINT (DO NOT USE) <a name="auto"></a>
+The following endpoint is used by the application itself and <i>**DOES NOT REQUIRE**</i> user input. <i>**PLEASE DO NOT USE WITHOUT PERMISSION**</i>
+
+#### UPDATE EVENT OF A FILE (DO NOT USE)
+Updates an event of a file being uploaded to Quarantine and then Scanned.
+
+```
+POST    /file-upload/events/{eventType}
+```
+
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Successfully update event.
+| Bad Request  | 400   | Invalid Event.
+| Locked  | 423   | Cannot update event. Routing request is already received for this envelope.
+
+#### EXAMPLE (FOR FILE IN QUARANTINE)
+Request (POST): localhost:8898/file-upload/events/FileQuarantinedStored
+
+Body:
+```json
+{
+	"envelopeId": "0b215e97-11d4-4006-91db-c067e74fc653",
+	"fileId": "file-id-1",
+	"fileRefId": "file-ref-1",
+	"created": 1477490659794,
+	"name": "myfile.txt",
+	"contentType": "pdf",
+	"metadata": {}
+}
+```
+
+Response: 200
+
+#### EXAMPLE (FOR FILE SCANNED)
+Request (POST): localhost:8898/file-upload/events/FileScanned
+
+Body:
+```json
+{
+	"envelopeId": "0b215e97-11d4-4006-91db-c067e74fc653",
+	"fileId": "file-id-1",
+	"fileRefId": "file-ref-1",
+	"hasVirus": false
+}
+```
+
+Response: 200
+
+Note: "hasVirus" depends on the result from clamAV. If there is a virus, then hasVirus is set to "true" otherwise if not then it would be set to "false".
+
+
 ## INTERNAL USE ONLY ENDPOINTS <a name="internal"></a>
 The following endpoints are for internal use. <i>**PLEASE DO NOT USE THESE ENDPOINTS WITHOUT PERMISSION**</i>.
+
+#### SHOW EVENTS OF AN ENVELOPE (DO NOT USE)
+Retrieves a list of all events based on the stream Id. 
+
+```
+GET     /file-upload/events/{stream-Id}
+```
+
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Successfully returns a list of events based on stream Id.
+
+#### EXAMPLE
+Request (GET): localhost:8899/file-upload/test-only/events/0b215e97-11d4-4006-91db-c067e74fc653
+
+Response (In Body):
+```json
+[
+  {
+    "eventId": "bbf89c47-ec22-4b5a-917a-fa19f9f2005d",
+    "streamId": "0b215e97-11d4-4006-91db-c067e74fc653",
+    "version": 1,
+    "created": 1477490656518,
+    "eventType": "uk.gov.hmrc.fileupload.write.envelope.EnvelopeCreated",
+    "eventData": {
+      "id": "0b215e97-11d4-4006-91db-c067e74fc653"
+    }
+  },
+  {
+    "eventId": "07ea4682-0c2c-49f8-b01a-6128c18ed30f",
+    "streamId": "0b215e97-11d4-4006-91db-c067e74fc653",
+    "version": 2,
+    "created": 1477490659794,
+    "eventType": "uk.gov.hmrc.fileupload.write.envelope.FileQuarantined",
+    "eventData": {
+      "id": "0b215e97-11d4-4006-91db-c067e74fc653",
+      "fileId": "file-id-1",
+      "fileRefId": "82c1e62c-ddca-468f-a1c9-ca9aa97aa0a2",
+      "created": 1477490659610,
+      "name": "zKv4Qv6366462570363333088.tmp",
+      "contentType": "application/octet-stream",
+      "metadata": {
+        "foo": "bar"
+      }
+    }
+  },
+  {
+    "eventId": "29ab824b-e045-4281-9e40-4fd572a03078",
+    "streamId": "0b215e97-11d4-4006-91db-c067e74fc653",
+    "version": 3,
+    "created": 1477490660074,
+    "eventType": "uk.gov.hmrc.fileupload.write.envelope.EnvelopeSealed",
+    "eventData": {
+      "id": "0b215e97-11d4-4006-91db-c067e74fc653",
+      "routingRequestId": "ec97bbd0-7be5-4727-8d92-441818a63dcd",
+      "destination": "DMS",
+      "application": "foo"
+    }
+  }
+]
+```
 
 #### SHOW FILES INPROGRESS (DO NOT USE)
 Returns a list of files that are inprogress which have been uploaded to Quarantine but did not make it to Transient. Note: Be aware that files can reappear and disappear for a short moment. If it occurs, that means the file has been successfully transferred across.
@@ -543,6 +548,22 @@ GET     /file-upload/events/{stream-Id}/replay
 
 #### EXAMPLE
 Request (GET): localhost:8898/file-upload/events/0b215ey97-11d4-4006-91db-c067e74fc653/replay
+
+Response: 200
+
+#### REMOVE EXPIRED FILES (DO NOT USE)
+Removes files and chunks that are older than 35 days in Transient store. 
+
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Successfully removed files and chunks from transient.  |
+
+```
+POST    /files/expire
+```
+
+#### EXAMPLE
+Request (POST): localhost:8898/file-upload/files/expire
 
 Response: 200
 
