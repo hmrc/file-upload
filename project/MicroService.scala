@@ -1,4 +1,4 @@
-import play.PlayImport.PlayKeys
+import play.sbt.PlayImport.PlayKeys
 import sbt.Keys._
 import sbt.Tests.{Group, SubProcess}
 import sbt._
@@ -15,7 +15,7 @@ trait MicroService {
   val appName: String
 
   lazy val appDependencies : Seq[ModuleID] = ???
-  lazy val plugins : Seq[Plugins] = Seq(play.PlayScala)
+  lazy val plugins : Seq[Plugins] = Seq(play.sbt.PlayScala)
   lazy val playSettings : Seq[Setting[_]] = Seq.empty
 
   lazy val scoverageSettings = {
@@ -31,7 +31,7 @@ trait MicroService {
   }
 
   lazy val microservice = Project(appName, file("."))
-    .enablePlugins(Seq(play.PlayScala) ++ plugins : _*)
+    .enablePlugins(Seq(play.sbt.PlayScala) ++ plugins : _*)
     .settings(PlayKeys.playDefaultPort := 8898)
     .settings(playSettings ++ scoverageSettings: _*)
     .settings(playSettings : _*)
@@ -61,7 +61,10 @@ trait MicroService {
       addTestReportOption(IntegrationTest, "int-test-reports"),
       testGrouping in IntegrationTest := oneForkedJvmPerTest((definedTests in IntegrationTest).value),
       parallelExecution in IntegrationTest := false)
-    .settings(resolvers += Resolver.bintrayRepo("hmrc", "releases"))
+    .settings(
+      resolvers += Resolver.bintrayRepo("hmrc", "releases"),
+      resolvers += Resolver.jcenterRepo
+    )
 }
 
 private object TestPhases {
