@@ -20,10 +20,11 @@ import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
 import play.api.test.FakeRequest
+import uk.gov.hmrc.fileupload.Support
+import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
 import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
-import uk.gov.hmrc.fileupload.Support
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -34,9 +35,10 @@ class TransferControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
   val failed = Future.failed(new Exception("not good"))
 
-  def newController(getEnvelopesByDestination: Option[String] => Future[List[Envelope]] = _ => failed,
+  def newController(withBasicAuth:BasicAuth = AlwaysAuthorisedBasicAuth,
+                    getEnvelopesByDestination: Option[String] => Future[List[Envelope]] = _ => failed,
                     handleCommand: EnvelopeCommand => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed) =
-    new TransferController(getEnvelopesByDestination, handleCommand, null)
+    new TransferController(withBasicAuth, getEnvelopesByDestination, handleCommand, null)
 
 
   "Delete envelope" should {

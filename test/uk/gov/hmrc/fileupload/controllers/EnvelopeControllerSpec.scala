@@ -17,17 +17,20 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
+import com.google.common.base.Charsets
+import com.google.common.io.BaseEncoding
 import org.scalatest.concurrent.ScalaFutures
-import play.api.http.Status
+import play.api.http.{HeaderNames, Status}
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.{FakeHeaders, FakeRequest}
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, File, FileStatusQuarantined}
+import uk.gov.hmrc.fileupload._
+import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindError, FindMetadataError}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, File, FileStatusQuarantined}
+import uk.gov.hmrc.fileupload.read.stats.Stats._
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.read.stats.Stats._
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -40,13 +43,18 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
   val failed = Future.failed(new Exception("not good"))
 
-  def newController(nextId: () => EnvelopeId = () => EnvelopeId("abc-def"),
+  def basic64(s:String): String = {
+    BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
+  }
+
+  def newController(withBasicAuth: BasicAuth = AlwaysAuthorisedBasicAuth,
+                    nextId: () => EnvelopeId = () => EnvelopeId("abc-def"),
                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
                     findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]] = _ => failed,
                     findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]] = (_, _) => failed,
                     findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed
                    ) =
-    new EnvelopeController(nextId, handleCommand, findEnvelope, findMetadata, findAllInProgressFile)
+    new EnvelopeController(withBasicAuth, nextId, handleCommand, findEnvelope, findMetadata, findAllInProgressFile)
 
   "Create envelope with a request" should {
     "return response with OK status and a Location header specifying the envelope endpoint" in {
@@ -102,7 +110,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 	"Delete Envelope" should {
 		"respond with 200 OK status" in {
 			val envelope = Support.envelope
-			val request = FakeRequest("DELETE", s"/envelopes/${envelope._id}")
+			val request = FakeRequest("DELETE", s"/envelopes/${envelope._id}").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
 			val result = controller.delete(envelope._id)(request).futureValue
@@ -112,7 +120,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
 		"respond with 404 NOT FOUND status" in {
 			val id = EnvelopeId()
-			val request = FakeRequest()
+			val request = FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.left(EnvelopeNotFoundError)))
 			val result = controller.delete(id)(request).futureValue
@@ -126,7 +134,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
 		"respond with 500 INTERNAL SERVER ERROR status" in {
 			val id = EnvelopeId()
-			val request = FakeRequest()
+			val request = FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
 
       val controller = newController(handleCommand = _ => Future.failed(new Exception()))
       val result = controller.delete(id)(request).futureValue

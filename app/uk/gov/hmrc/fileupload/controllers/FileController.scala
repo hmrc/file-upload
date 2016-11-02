@@ -19,17 +19,19 @@ package uk.gov.hmrc.fileupload.controllers
 import cats.data.Xor
 import play.api.mvc._
 import reactivemongo.api.commands.WriteResult
+import uk.gov.hmrc.fileupload._
+import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.read.file.Service._
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError, FileNotFoundError, StoreFile}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId, JSONReadFile}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
-class FileController(uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]],
+class FileController(withBasicAuth: BasicAuth,
+                     uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]],
                      retrieveFile: (Envelope, FileId) => Future[GetFileResult],
                      withValidEnvelope: WithValidEnvelope,
                      handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
@@ -48,16 +50,18 @@ class FileController(uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyPa
     }
   }
 
-  def downloadFile(id: EnvelopeId, fileId: FileId) = Action.async { request =>
-    withValidEnvelope(id) { envelope =>
-      retrieveFile(envelope, fileId).map {
-        case Xor.Right(FileFound(filename, length, data)) =>
-          Ok.feed(data).withHeaders(
-            CONTENT_LENGTH -> s"${ length }",
-            CONTENT_DISPOSITION -> s"""attachment; filename="${ filename.getOrElse("data") }""""
-          )
-        case Xor.Left(GetFileNotFoundError) =>
-          ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
+  def downloadFile(id: EnvelopeId, fileId: FileId) = Action.async { implicit request =>
+    withBasicAuth {
+      withValidEnvelope(id) { envelope =>
+        retrieveFile(envelope, fileId).map {
+          case Xor.Right(FileFound(filename, length, data)) =>
+            Ok.feed(data).withHeaders(
+              CONTENT_LENGTH -> s"${ length }",
+              CONTENT_DISPOSITION -> s"""attachment; filename="${ filename.getOrElse("data") }""""
+            )
+          case Xor.Left(GetFileNotFoundError) =>
+            ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
+        }
       }
     }
   }
