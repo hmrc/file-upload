@@ -28,7 +28,7 @@ private object AppDependencies {
   private val hmrcTestVersion = "2.0.0"
   private val playReactivemongoVersion = "5.0.0"
   private val simpleReactivemongoVersion = "5.0.0"
-  private val akkaVersion = "2.4.6"
+  private val akkaVersion = "2.4.10"
   private val catsVersion = "0.7.0"
   private val playAuditing = "2.3.0"
 
