@@ -348,7 +348,7 @@ Expected response status code: 200
 These endpoints are not available in production and are used for testing purposes. <i>**PLEASE DO NOT USE THESE WITHOUT PERMISSION**</i>.
 
 #### CLEAR COLLECTIONS (DO NOT USE)
-Removes everything in all collections in both quarantine and transient. 
+Removes everything in all collections of Transient mongo storage.  Note Collections and indexes are not removed.
 
 ```
 POST    /file-upload/test-only/clear-collections
