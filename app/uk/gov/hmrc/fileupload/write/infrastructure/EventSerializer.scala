@@ -61,7 +61,7 @@ object UnitOfWorkSerializer {
         val eventAsJson = BSONFormats.toJSON(event)
         val eventId = EventId((eventAsJson \ "id").as[String])
         val eventType = EventType((eventAsJson \ "eventType").as[String])
-        val eventData = toEventData(eventType, eventAsJson \ "eventData")
+        val eventData = toEventData(eventType, (eventAsJson \ "eventData").as[JsValue])
         Event(eventId, streamId, version, created, eventType, eventData)
       }
 

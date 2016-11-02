@@ -46,7 +46,7 @@ trait MicroService {
       fork in Test := false,
       retrieveManaged := true,
       evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
-      scalacOptions += "-Xfatal-warnings",
+//      scalacOptions += "-Xfatal-warnings",
       // -Xlint:-missing-interpolator is unfortunately necessary due to a bug in Scala which causes a warning to
       // be raised from some Play generated code with paramaterised URL paths.
       // https://gitter.im/playframework/playframework/archives/2015/07/06

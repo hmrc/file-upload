@@ -18,7 +18,7 @@ private object AppDependencies {
   import play.sbt.PlayImport._
   import play.core.PlayVersion
 
-  private val microserviceBootstrapVersion = "7.5.0"
+  private val microserviceBootstrapVersion = "5.5.0"
   private val playAuthVersion = "4.2.0"
   private val playHealthVersion = "2.0.0"
   private val playJsonLoggerVersion = "3.0.0"
@@ -30,6 +30,7 @@ private object AppDependencies {
   private val simpleReactivemongoVersion = "5.0.0"
   private val akkaVersion = "2.4.6"
   private val catsVersion = "0.7.0"
+  private val playAuditing = "2.3.0"
 
 
   val compile = Seq(
@@ -41,6 +42,7 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "play-health" % playHealthVersion,
     "uk.gov.hmrc" %% "play-url-binders" % playUrlBindersVersion,
     "uk.gov.hmrc" %% "play-config" % playConfigVersion,
+    "uk.gov.hmrc" %% "play-auditing" % playAuditing,
     "uk.gov.hmrc" %% "logback-json-logger" % playJsonLoggerVersion,
     "uk.gov.hmrc" %% "domain" % domainVersion,
     "com.typesafe.akka" % "akka-actor_2.11" % akkaVersion,

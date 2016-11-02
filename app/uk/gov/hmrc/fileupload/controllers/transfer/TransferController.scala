@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.controllers.transfer
 
 import cats.data.Xor
-import play.api.mvc.Action
+import play.api.mvc.{Action, Controller}
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.file.zip.Zippy._
@@ -25,7 +25,6 @@ import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, OutputForTransfer}
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeNotFoundError, _}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
-import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -34,7 +33,7 @@ class TransferController(withBasicAuth: BasicAuth,
                          getEnvelopesByDestination: Option[String] => Future[List[Envelope]],
                          handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                          zipEnvelope: EnvelopeId => Future[ZipResult])
-                        (implicit executionContext: ExecutionContext) extends BaseController {
+                        (implicit executionContext: ExecutionContext) extends Controller {
 
   def list() = Action.async { implicit request =>
     withBasicAuth {

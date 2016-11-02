@@ -20,7 +20,7 @@ import cats.data.Xor
 import play.api.Play.current
 import play.api.http.Status
 import play.api.libs.json.{Format, Json}
-import play.api.libs.ws.{WS, WSRequestHolder, WSResponse}
+import play.api.libs.ws.{WS, WSRequest, WSResponse}
 import uk.gov.hmrc.fileupload.infrastructure.PlayHttp.PlayHttpError
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
@@ -38,7 +38,7 @@ object NotifierRepository {
   case class NoConsumerRegisteredError(envelopeId: EnvelopeId, fileId: FileId) extends NotifyError
   case class NotificationFailedError(envelopeId: EnvelopeId, fileId: FileId, reason: String) extends NotifyError
 
-  def notify(httpCall: (WSRequestHolder => Future[Xor[PlayHttpError, WSResponse]]))
+  def notify(httpCall: (WSRequest => Future[Xor[PlayHttpError, WSResponse]]))
             (notification: Notification, url: String)
             (implicit executionContext: ExecutionContext): Future[NotifyResult] =
     httpCall(WS

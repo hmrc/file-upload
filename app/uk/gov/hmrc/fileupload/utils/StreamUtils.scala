@@ -14,25 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.controllers
+package uk.gov.hmrc.fileupload.utils
 
+import akka.util.ByteString
 import play.api.libs.iteratee.Iteratee
-import play.api.mvc.BodyParser
+import play.api.libs.streams.{Accumulator, Streams}
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.utils.StreamUtils.iterateeToAccumulator
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.control.NonFatal
+import scala.concurrent.ExecutionContext
 
-object UploadParser {
+object StreamUtils {
 
-  def parse(uploadFile: (EnvelopeId, FileId, FileRefId) => Iteratee[ByteStream, Future[JSONReadFile]])
-           (envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId)
-           (implicit ex: ExecutionContext): BodyParser[Future[JSONReadFile]] = BodyParser { _ =>
-
-    iterateeToAccumulator(uploadFile(envelopeId, fileId, fileRefId)) map (Right(_)) recover {
-      case NonFatal(e) => Left(ExceptionHandler(e))
-    }
+  def iterateeToAccumulator[T](iteratee: Iteratee[ByteStream, T])(implicit ec: ExecutionContext): Accumulator[ByteString, T] = {
+    val sink = Streams.iterateeToAccumulator(iteratee).toSink
+    Accumulator(sink.contramap[ByteString](_.toArray[Byte]))
   }
 
 }

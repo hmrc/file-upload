@@ -25,7 +25,7 @@ import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.read.file.Service._
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError, FileNotFoundError, StoreFile}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId, JSONReadFile}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -36,7 +36,7 @@ class FileController(withBasicAuth: BasicAuth,
                      withValidEnvelope: WithValidEnvelope,
                      handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                      clear: () => Future[List[WriteResult]])
-                    (implicit executionContext: ExecutionContext) extends BaseController {
+                    (implicit executionContext: ExecutionContext) extends Controller {
 
 
   def upsertFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) = Action.async(uploadBodyParser(id, fileId, fileRefId)) { request =>

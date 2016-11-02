@@ -20,17 +20,18 @@ import java.util.UUID
 
 import cats.data.Xor
 import play.api.Logger
-import play.api.mvc.Action
+import play.api.libs.json.{JsError, JsSuccess, JsValue, Reads}
+import play.api.mvc.{Action, Controller, Request, Result}
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 class RoutingController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                         newId: () => String = () => UUID.randomUUID().toString)
-                       (implicit executionContext: ExecutionContext) extends BaseController {
+                       (implicit executionContext: ExecutionContext) extends Controller {
 
   def createRoutingRequest() = Action.async(parse.json) { implicit request =>
     withJsonBody[RouteEnvelopeRequest] { requestParams =>
@@ -54,6 +55,13 @@ class RoutingController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNo
   def routingStatus(id: String) = Action {
     ExceptionHandler(NOT_IMPLEMENTED, "Not implemented as part of MVP")
   }
+
+  private def withJsonBody[T](f: (T) => Future[Result])(implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]) =
+    Try(request.body.validate[T]) match {
+      case Success(JsSuccess(payload, _)) => f(payload)
+      case Success(JsError(errs)) => Future.successful(BadRequest(s"Invalid ${m.runtimeClass.getSimpleName} payload: $errs"))
+      case Failure(e) => Future.successful(BadRequest(s"could not parse body due to ${e.getMessage}"))
+    }
 
 }
 

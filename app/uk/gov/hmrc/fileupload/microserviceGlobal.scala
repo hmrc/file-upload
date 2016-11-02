@@ -19,9 +19,13 @@ package uk.gov.hmrc.fileupload
 import java.util.UUID
 
 import akka.actor.ActorRef
+import akka.stream.{ActorMaterializer, Materializer}
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
 import org.joda.time.Duration
+import play.api.Play.current
+import play.api.libs.concurrent.Akka
+import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc.{EssentialFilter, RequestHeader, Result}
 import play.api.{Application, Configuration, Logger, Play}
 import reactivemongo.api.commands
@@ -48,6 +52,11 @@ import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 
 import scala.concurrent.{ExecutionContext, Future}
 
+object Streams  {
+  implicit val system = Akka.system
+  val materializer: Materializer = ActorMaterializer()
+}
+
 object ControllerConfiguration extends ControllerConfig {
   lazy val controllerConfigs = Play.current.configuration.underlying.as[Config]("controllers")
 }
@@ -57,16 +66,19 @@ object AuthParamsControllerConfiguration extends AuthParamsControllerConfig {
 }
 
 object MicroserviceAuditFilter extends AuditFilter with AppName {
+  override def mat = Streams.materializer
   override val auditConnector = MicroserviceAuditConnector
 
   override def controllerNeedsAuditing(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsAuditing
 }
 
 object MicroserviceLoggingFilter extends LoggingFilter {
+  override def mat = Streams.materializer
   override def controllerNeedsLogging(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsLogging
 }
 
 object MicroserviceAuthFilter extends AuthorisationFilter {
+  override def mat = Streams.materializer
   override lazy val authParamsConfig = AuthParamsControllerConfiguration
   override lazy val authConnector = MicroserviceAuthConnector
 
@@ -84,8 +96,6 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   override val microserviceAuditFilter = MicroserviceAuditFilter
 
   override val authFilter = None
-
-  import play.api.libs.concurrent.Execution.Implicits._
 
   var subscribe: (ActorRef, Class[_]) => Boolean = _
   var publish: (AnyRef) => Unit = _
@@ -233,25 +243,6 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     transferController
     testOnlyController
     routingController
-  }
-
-  override def getControllerInstance[A](controllerClass: Class[A]): A = {
-    //TODO: optimise to use pattern match
-    if (controllerClass == classOf[EnvelopeController]) {
-      envelopeController.asInstanceOf[A]
-    } else if (controllerClass == classOf[FileController]) {
-      fileController.asInstanceOf[A]
-    } else if (controllerClass == classOf[EventController]) {
-      eventController.asInstanceOf[A]
-    } else if (controllerClass == classOf[TransferController]) {
-      transferController.asInstanceOf[A]
-    } else if (controllerClass == classOf[TestOnlyController]) {
-      testOnlyController.asInstanceOf[A]
-    } else if (controllerClass == classOf[RoutingController]) {
-      routingController.asInstanceOf[A]
-    } else {
-      super.getControllerInstance(controllerClass)
-    }
   }
 
   override def onBadRequest(request: RequestHeader, error: String): Future[Result] = {
