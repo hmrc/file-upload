@@ -22,12 +22,21 @@ import cats.data.Xor
 import play.api.Logger
 import play.api.libs.json.{JsError, JsSuccess, JsValue, Reads}
 import play.api.mvc.{Action, Controller, Request, Result}
+import uk.gov.hmrc.fileupload.MicroserviceGlobal
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
+
+package object impl {
+
+  import play.api.libs.concurrent.Execution.Implicits._
+
+  object RoutingController extends RoutingController(MicroserviceGlobal.envelopeCommandHandler)
+
+}
 
 class RoutingController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                         newId: () => String = () => UUID.randomUUID().toString)
@@ -38,7 +47,7 @@ class RoutingController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNo
       import requestParams._
       val requestId = newId()
       handleCommand(SealEnvelope(envelopeId, requestId, destination, application)).map {
-        case Xor.Right(_) => Created.withHeaders(LOCATION -> uk.gov.hmrc.fileupload.routes.RoutingController.routingStatus(requestId).url)
+        case Xor.Right(_) => Created.withHeaders(LOCATION -> uk.gov.hmrc.fileupload.controllers.routing.impl.routes.RoutingController.routingStatus(requestId).url)
         case Xor.Left(EnvelopeSealedError) | Xor.Left(EnvelopeAlreadyRoutedError) =>
           ExceptionHandler(BAD_REQUEST, s"Routing request already received for envelope: $envelopeId")
         case Xor.Left(FilesWithError(ids)) =>

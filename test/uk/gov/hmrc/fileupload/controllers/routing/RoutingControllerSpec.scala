@@ -53,7 +53,7 @@ class RoutingControllerSpec extends UnitSpec with WithFakeApplication with Scala
       val result = controller.createRoutingRequest()(validRequest).futureValue
 
       result.header.status shouldBe Status.CREATED
-      result.header.headers(LOCATION) shouldBe uk.gov.hmrc.fileupload.routes.RoutingController.routingStatus(routingRequestId).url
+      result.header.headers(LOCATION) shouldBe uk.gov.hmrc.fileupload.controllers.routing.impl.routes.RoutingController.routingStatus(routingRequestId).url
     }
     "return 400 bad request if envelope already routed" in {
       val controller = newController(handleCommand = _ => Future.successful(

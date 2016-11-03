@@ -79,39 +79,6 @@ object MicroserviceAuthFilter extends AuthorisationFilter {
   override def controllerNeedsAuth(controllerName: String): Boolean = ControllerConfiguration.paramsForController(controllerName).needsAuth
 }
 
-object EnvelopeController extends EnvelopeController(
-      nextId = () => EnvelopeId(UUID.randomUUID().toString),
-      handleCommand = MicroserviceGlobal.envelopeCommandHandler,
-      findEnvelope = MicroserviceGlobal.find,
-      findMetadata = MicroserviceGlobal.findMetadata,
-      findAllInProgressFile = MicroserviceGlobal.allInProgressFile )
-
-object TestOnlyController extends TestOnlyController(
-    MicroserviceGlobal.removeAllFiles,
-    MicroserviceGlobal.removeAllEnvelopes,
-    MicroserviceGlobal.eventStore,
-    MicroserviceGlobal.statsRepository)
-
-object RoutingController extends RoutingController(MicroserviceGlobal.envelopeCommandHandler)
-
-object EventController extends EventController (
-    MicroserviceGlobal.envelopeCommandHandler,
-    MicroserviceGlobal.eventStore.unitsOfWorkForAggregate,
-    MicroserviceGlobal.createReportHandler.handle(replay = true))
-
-object FileController extends FileController(
-      uploadBodyParser = MicroserviceGlobal.uploadBodyParser,
-      retrieveFile = MicroserviceGlobal.retrieveFile,
-      withValidEnvelope = MicroserviceGlobal.withValidEnvelope,
-      handleCommand = MicroserviceGlobal.envelopeCommandHandler,
-      clear = MicroserviceGlobal.fileRepository.clear() _)
-
-object TransferController extends TransferController(
-    MicroserviceGlobal.getEnvelopesByDestination,
-    MicroserviceGlobal.envelopeCommandHandler,
-    MicroserviceGlobal.zipEnvelope)
-
-
 object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
   override val auditConnector = MicroserviceAuditConnector

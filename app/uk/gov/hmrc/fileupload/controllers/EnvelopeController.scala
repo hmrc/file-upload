@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import java.util.UUID
+
 import cats.data.Xor
 import play.api.libs.json._
 import play.api.mvc._
@@ -31,6 +33,21 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, _}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
+
+package object envelope {
+
+  import play.api.libs.concurrent.Execution.Implicits._
+
+  object EnvelopeController extends EnvelopeController(
+    withBasicAuth = MicroserviceGlobal.withBasicAuth,
+    nextId = () => EnvelopeId(UUID.randomUUID().toString),
+    handleCommand = MicroserviceGlobal.envelopeCommandHandler,
+    findEnvelope = MicroserviceGlobal.find,
+    findMetadata = MicroserviceGlobal.findMetadata,
+    findAllInProgressFile = MicroserviceGlobal.allInProgressFile)
+
+}
+
 class EnvelopeController(withBasicAuth: BasicAuth,
                          nextId: () => EnvelopeId,
                          handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
@@ -40,13 +57,13 @@ class EnvelopeController(withBasicAuth: BasicAuth,
                         (implicit executionContext: ExecutionContext) extends Controller {
 
   def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
-    def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ routes.EnvelopeController.show(id) }"
+    def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.envelope.routes.EnvelopeController.show(id) }"
     val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata)
     handleCreate(envelopeLocation, command)
   }
 
   def createWithId(id: EnvelopeId) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
-    def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ routes.EnvelopeController.show(id) }"
+    def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.envelope.routes.EnvelopeController.show(id) }"
     val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata)
     handleCreate(envelopeLocation, command)
   }

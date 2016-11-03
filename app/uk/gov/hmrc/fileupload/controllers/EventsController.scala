@@ -22,7 +22,7 @@ import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.Json
 import play.api.libs.streams.Accumulator
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.ByteStream
+import uk.gov.hmrc.fileupload.{ByteStream, MicroserviceGlobal}
 import uk.gov.hmrc.fileupload.controllers.EventFormatters._
 import uk.gov.hmrc.fileupload.utils.StreamUtils
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -33,6 +33,17 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
+
+package object events {
+
+  import play.api.libs.concurrent.Execution.Implicits._
+
+  object EventController extends EventController(
+    MicroserviceGlobal.envelopeCommandHandler,
+    MicroserviceGlobal.eventStore.unitsOfWorkForAggregate,
+    MicroserviceGlobal.createReportHandler.handle(replay = true))
+
+}
 
 class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                       unitOfWorks: StreamId => Future[GetResult], publishAllEvents: Seq[DomainEvent] => Unit)

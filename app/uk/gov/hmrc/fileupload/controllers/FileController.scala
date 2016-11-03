@@ -25,10 +25,25 @@ import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.read.file.Service._
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError, FileNotFoundError, StoreFile}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId, JSONReadFile}
+import uk.gov.hmrc.fileupload._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
+
+
+package object file {
+
+  import play.api.libs.concurrent.Execution.Implicits._
+
+  object FileController extends FileController(
+    withBasicAuth = MicroserviceGlobal.withBasicAuth,
+    uploadBodyParser = MicroserviceGlobal.uploadBodyParser,
+    retrieveFile = MicroserviceGlobal.retrieveFile,
+    withValidEnvelope = MicroserviceGlobal.withValidEnvelope,
+    handleCommand = MicroserviceGlobal.envelopeCommandHandler,
+    clear = MicroserviceGlobal.fileRepository.clear() _)
+
+}
 
 class FileController(withBasicAuth: BasicAuth,
                      uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]],

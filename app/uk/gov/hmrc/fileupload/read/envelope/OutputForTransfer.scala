@@ -84,24 +84,25 @@ object OutputForTransfer {
   object URLs {
     def envelopesPerDestination(implicit rh: RequestHeader): String = {
       val destination = rh.getQueryString("destination").map(d => s"?destination=$d").getOrElse("")
-      uk.gov.hmrc.fileupload.routes.TransferController.list().absoluteURL(rh.secure) + destination
+      uk.gov.hmrc.fileupload.controllers.transfer.impl.routes.TransferController.list().absoluteURL(rh.secure) + destination
     }
 
+
     def fileTransferEnvelope(envelopeId: EnvelopeId): String = {
-      uk.gov.hmrc.fileupload.routes.TransferController.download(envelopeId).url
+      uk.gov.hmrc.fileupload.controllers.transfer.impl.routes.TransferController.download(envelopeId).url
     }
 
     def fileDownloadContent(envelopeId: EnvelopeId, fileId: FileId): String = {
-       uk.gov.hmrc.fileupload.routes.FileController.downloadFile(envelopeId, fileId).url
+       uk.gov.hmrc.fileupload.controllers.file.routes.FileController.downloadFile(envelopeId, fileId).url
     }
 
     def fileUri(envelopeId: EnvelopeId, fileId: FileId): String = {
-      uk.gov.hmrc.fileupload.routes.EnvelopeController.deleteFile(envelopeId, fileId).url
+      uk.gov.hmrc.fileupload.controllers.envelope.routes.EnvelopeController.deleteFile(envelopeId, fileId).url
     }
 
     def fileRelativeToEnvelope(file: File, envelopeId: EnvelopeId): String = {
-      val envelopeUrl =  uk.gov.hmrc.fileupload.routes.EnvelopeController.show(envelopeId).url
-      uk.gov.hmrc.fileupload.routes.EnvelopeController.deleteFile(envelopeId, file.fileId).url.stripPrefix(envelopeUrl)
+      val envelopeUrl =  uk.gov.hmrc.fileupload.controllers.envelope.routes.EnvelopeController.show(envelopeId).url
+      uk.gov.hmrc.fileupload.controllers.envelope.routes.EnvelopeController.deleteFile(envelopeId, file.fileId).url.stripPrefix(envelopeUrl)
     }
   }
 
