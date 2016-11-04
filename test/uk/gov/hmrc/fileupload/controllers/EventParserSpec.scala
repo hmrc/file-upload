@@ -16,16 +16,24 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import akka.stream.scaladsl.Source
+import akka.util.ByteString
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
-import play.api.libs.iteratee.{Enumerator, Iteratee}
 import play.api.libs.json.Json
+import play.api.libs.streams.Accumulator
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 import uk.gov.hmrc.play.test.UnitSpec
 
+import scala.concurrent.duration._
+import scala.concurrent.Await
+
 class EventParserSpec extends UnitSpec with ScalaFutures {
+
+  import uk.gov.hmrc.fileupload.Support.StreamImplicits.materializer
+
   implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
 
   "event parser" should {
@@ -34,8 +42,8 @@ class EventParserSpec extends UnitSpec with ScalaFutures {
       val request = FakeRequest("POST", "/file-upload/events/fileinquarantinestored")
       val body = """{"envelopeId":"env1","fileId":"file1","fileRefId":"fileRef1","created":0,"name":"test.pdf","contentType":"pdf","metadata":{}}""".getBytes
 
-      val parserIteratee: Iteratee[Array[Byte], Either[Result, Event]] = EventParser(request)
-      val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee).futureValue
+      val accumulator: Accumulator[ByteString, Either[Result, Event]] = EventParser(request)
+      val futureValue: Either[Result, Event] = accumulator.run(Source.single(ByteString.fromArray(body))).futureValue
 
       futureValue shouldBe Right(FileInQuarantineStored(EnvelopeId("env1"), FileId("file1"), FileRefId("fileRef1"), 0, "test.pdf", "pdf", Json.obj()))
     }
@@ -44,8 +52,8 @@ class EventParserSpec extends UnitSpec with ScalaFutures {
       val request = FakeRequest("POST", "/file-upload/events/filescanned")
       val body = """{"envelopeId":"env1","fileId":"file1","fileRefId":"fileRef1","hasVirus":true}""".getBytes
 
-      val parserIteratee: Iteratee[Array[Byte], Either[Result, Event]] = EventParser(request)
-      val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee).futureValue
+      val accumulator: Accumulator[ByteString, Either[Result, Event]] = EventParser(request)
+      val futureValue: Either[Result, Event] = accumulator.run(Source.single(ByteString.fromArray(body))).futureValue
 
       futureValue shouldBe Right(FileScanned(EnvelopeId("env1"), FileId("file1"), FileRefId("fileRef1"), hasVirus = true))
     }
@@ -54,8 +62,8 @@ class EventParserSpec extends UnitSpec with ScalaFutures {
       val request = FakeRequest("POST", "/file-upload/events/unexpectedevent")
       val body = """{"envelopeId":"env1","fileId":"file1"}""".getBytes
 
-      val parserIteratee: Iteratee[Array[Byte], Either[Result, Event]] = EventParser(request)
-      val futureValue: Either[Result, Event] = Enumerator(body).run(parserIteratee).futureValue
+      val accumulator: Accumulator[ByteString, Either[Result, Event]] = EventParser(request)
+      val futureValue: Either[Result, Event] = accumulator.run(Source.single(ByteString.fromArray(body))).futureValue
 
       val isLeftResult = futureValue match {
         case Left(result) => true

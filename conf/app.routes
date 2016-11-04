@@ -1,17 +1,18 @@
 # microservice specific routes
+POST       /envelopes                                         uk.gov.hmrc.fileupload.controllers.envelope.EnvelopeController.create()
+PUT        /envelopes/:envelopeId                             uk.gov.hmrc.fileupload.controllers.envelope.EnvelopeController.createWithId(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)
+GET        /envelopes/:envelopeId                             uk.gov.hmrc.fileupload.controllers.envelope.EnvelopeController.show(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)
+DELETE     /envelopes/:envelopeId                             uk.gov.hmrc.fileupload.controllers.envelope.EnvelopeController.delete(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)
+DELETE     /envelopes/:envelopeId/files/:fileId               uk.gov.hmrc.fileupload.controllers.envelope.EnvelopeController.deleteFile(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId)
+GET        /envelopes/:envelopeId/files/:fileId/metadata      uk.gov.hmrc.fileupload.controllers.envelope.EnvelopeController.retrieveMetadata(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId)
+PUT        /envelopes/:envelopeId/files/:fileId/:fileRefId    uk.gov.hmrc.fileupload.controllers.file.FileController.upsertFile(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId, fileRefId: uk.gov.hmrc.fileupload.FileRefId)
+GET        /envelopes/:envelopeId/files/:fileId/content       uk.gov.hmrc.fileupload.controllers.file.FileController.downloadFile(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId)
+POST       /events/:eventType                                 uk.gov.hmrc.fileupload.controllers.events.EventController.collect(eventType: String)
+GET        /events/:streamId                                  uk.gov.hmrc.fileupload.controllers.events.EventController.get(streamId: uk.gov.hmrc.fileupload.write.infrastructure.StreamId)
+GET        /files/inprogress                                  uk.gov.hmrc.fileupload.controllers.envelope.EnvelopeController.inProgressFiles()
 
-POST       /envelopes                                         @uk.gov.hmrc.fileupload.controllers.EnvelopeController.create()
-PUT        /envelopes/:envelopeId                             @uk.gov.hmrc.fileupload.controllers.EnvelopeController.createWithId(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)
-GET        /envelopes/:envelopeId                             @uk.gov.hmrc.fileupload.controllers.EnvelopeController.show(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)
-DELETE     /envelopes/:envelopeId                             @uk.gov.hmrc.fileupload.controllers.EnvelopeController.delete(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)
-DELETE     /envelopes/:envelopeId/files/:fileId               @uk.gov.hmrc.fileupload.controllers.EnvelopeController.deleteFile(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId)
-GET        /envelopes/:envelopeId/files/:fileId/metadata      @uk.gov.hmrc.fileupload.controllers.EnvelopeController.retrieveMetadata(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId)
-PUT        /envelopes/:envelopeId/files/:fileId/:fileRefId    @uk.gov.hmrc.fileupload.controllers.FileController.upsertFile(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId, fileRefId: uk.gov.hmrc.fileupload.FileRefId)
-GET        /envelopes/:envelopeId/files/:fileId/content       @uk.gov.hmrc.fileupload.controllers.FileController.downloadFile(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId)
-POST       /events/:eventType                                 @uk.gov.hmrc.fileupload.controllers.EventController.collect(eventType: String)
-GET        /events/:streamId                                  @uk.gov.hmrc.fileupload.controllers.EventController.get(streamId: uk.gov.hmrc.fileupload.write.infrastructure.StreamId)
-GET        /files/inprogress                                  @uk.gov.hmrc.fileupload.controllers.EnvelopeController.inProgressFiles()
+GET        /events/:streamId/replay                           uk.gov.hmrc.fileupload.controllers.events.EventController.replay(streamId: uk.gov.hmrc.fileupload.write.infrastructure.StreamId)
 
-GET        /events/:streamId/replay                           @uk.gov.hmrc.fileupload.controllers.EventController.replay(streamId: uk.gov.hmrc.fileupload.write.infrastructure.StreamId)
+POST       /files/expire                                      uk.gov.hmrc.fileupload.controllers.file.FileController.expire()
 
-POST       /files/expire                                      @uk.gov.hmrc.fileupload.controllers.FileController.expire()
+

@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.fileupload.utils
 
+import akka.util.ByteString
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.json._
+import play.api.libs.streams.Accumulator
 import play.api.mvc.{BodyParser, RequestHeader, Result}
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 
@@ -35,8 +37,8 @@ object JsonUtils {
     value.map(v => Json.obj(k -> v)).getOrElse(Json.obj())
 
   def jsonBodyParser[A : Reads](implicit ec: ExecutionContext): BodyParser[A] = new BodyParser[A] {
-    def apply(v1: RequestHeader): Iteratee[Array[Byte], Either[Result, A]] = {
-      Iteratee.consume[Array[Byte]]().map { data =>
+    def apply(v1: RequestHeader): Accumulator[ByteString, Either[Result, A]] = {
+      StreamUtils.iterateeToAccumulator(Iteratee.consume[Array[Byte]]()).map { data =>
         Try(Json.fromJson[A](Json.parse(data)).get) match {
           case Success(report) => Right(report)
           case Failure(NonFatal(e)) => Left(ExceptionHandler(e))

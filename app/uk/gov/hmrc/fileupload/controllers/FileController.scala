@@ -25,10 +25,25 @@ import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.read.file.Service._
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError, FileNotFoundError, StoreFile}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.fileupload._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
+
+
+package object file {
+
+  import play.api.libs.concurrent.Execution.Implicits._
+
+  object FileController extends FileController(
+    withBasicAuth = MicroserviceGlobal.withBasicAuth,
+    uploadBodyParser = MicroserviceGlobal.uploadBodyParser,
+    retrieveFile = MicroserviceGlobal.retrieveFile,
+    withValidEnvelope = MicroserviceGlobal.withValidEnvelope,
+    handleCommand = MicroserviceGlobal.envelopeCommandHandler,
+    clear = MicroserviceGlobal.fileRepository.clear() _)
+
+}
 
 class FileController(withBasicAuth: BasicAuth,
                      uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]],
@@ -36,7 +51,7 @@ class FileController(withBasicAuth: BasicAuth,
                      withValidEnvelope: WithValidEnvelope,
                      handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                      clear: () => Future[List[WriteResult]])
-                    (implicit executionContext: ExecutionContext) extends BaseController {
+                    (implicit executionContext: ExecutionContext) extends Controller {
 
 
   def upsertFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) = Action.async(uploadBodyParser(id, fileId, fileRefId)) { request =>
@@ -57,7 +72,8 @@ class FileController(withBasicAuth: BasicAuth,
           case Xor.Right(FileFound(filename, length, data)) =>
             Ok.feed(data).withHeaders(
               CONTENT_LENGTH -> s"${ length }",
-              CONTENT_DISPOSITION -> s"""attachment; filename="${ filename.getOrElse("data") }""""
+              CONTENT_DISPOSITION -> s"""attachment; filename="${ filename.getOrElse("data") }"""",
+              CONTENT_TYPE -> "application/octet-stream"
             )
           case Xor.Left(GetFileNotFoundError) =>
             ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")

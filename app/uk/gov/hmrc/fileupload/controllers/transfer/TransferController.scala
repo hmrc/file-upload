@@ -17,24 +17,35 @@
 package uk.gov.hmrc.fileupload.controllers.transfer
 
 import cats.data.Xor
-import play.api.mvc.Action
-import uk.gov.hmrc.fileupload.EnvelopeId
+import play.api.mvc.{Action, Controller}
+import uk.gov.hmrc.fileupload.{EnvelopeId, MicroserviceGlobal}
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.file.zip.Zippy._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, OutputForTransfer}
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeNotFoundError, _}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
-import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
+
+package object impl {
+
+import play.api.libs.concurrent.Execution.Implicits._
+
+object TransferController extends TransferController(
+  MicroserviceGlobal.withBasicAuth,
+  MicroserviceGlobal.getEnvelopesByDestination,
+  MicroserviceGlobal.envelopeCommandHandler,
+  MicroserviceGlobal.zipEnvelope)
+
+}
 
 class TransferController(withBasicAuth: BasicAuth,
                          getEnvelopesByDestination: Option[String] => Future[List[Envelope]],
                          handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                          zipEnvelope: EnvelopeId => Future[ZipResult])
-                        (implicit executionContext: ExecutionContext) extends BaseController {
+                        (implicit executionContext: ExecutionContext) extends Controller {
 
   def list() = Action.async { implicit request =>
     withBasicAuth {
@@ -67,4 +78,5 @@ class TransferController(withBasicAuth: BasicAuth,
       case Xor.Left(_) => ExceptionHandler(LOCKED, s"Envelope with id: $envelopeId locked")
     }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
   }
+
 }
