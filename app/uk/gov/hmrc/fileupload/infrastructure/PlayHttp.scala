@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.infrastructure
 import java.net.URL
 
 import cats.data.Xor
-import play.api.libs.ws.{WSRequest, WSResponse}
+import play.api.libs.ws.{WSRequestHolder, WSResponse}
 import play.api.mvc.Headers
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -33,7 +33,7 @@ object PlayHttp {
 
   case class PlayHttpError(message: String)
 
-  def execute(connector: AuditConnector, appName: String, errorLogger: Option[(Throwable => Unit)])(request: WSRequest)
+  def execute(connector: AuditConnector, appName: String, errorLogger: Option[(Throwable => Unit)])(request: WSRequestHolder)
              (implicit ec: ExecutionContext): Future[Xor[PlayHttpError, WSResponse]] = {
     val hc = headerCarrier(request)
     val eventualResponse = request.execute()
@@ -55,7 +55,9 @@ object PlayHttp {
       }
   }
 
-  private def headerCarrier(request: WSRequest): HeaderCarrier = {
-    HeaderCarrier.fromHeadersAndSession(new Headers(request.headers.toSeq.map{ case (s, seq) => (s, seq.head) }))
+  private def headerCarrier(request: WSRequestHolder): HeaderCarrier = {
+    HeaderCarrier.fromHeadersAndSession(new Headers {
+      override protected val data: Seq[(String, Seq[String])] = request.headers.toSeq
+    })
   }
 }

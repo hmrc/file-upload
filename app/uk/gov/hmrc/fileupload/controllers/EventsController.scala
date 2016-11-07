@@ -16,38 +16,26 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import akka.util.ByteString
 import cats.data.Xor
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.Json
-import play.api.libs.streams.Accumulator
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.{ByteStream, MicroserviceGlobal}
 import uk.gov.hmrc.fileupload.controllers.EventFormatters._
-import uk.gov.hmrc.fileupload.utils.StreamUtils
 import uk.gov.hmrc.fileupload.write.envelope._
-import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.GetResult
-import uk.gov.hmrc.fileupload.write.infrastructure.{Event => DomainEvent, EventSerializer => _, _}
+import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.{GetError, GetResult}
+import uk.gov.hmrc.fileupload.write.infrastructure.{EventSerializer => _, _}
+import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
-package object events {
-
-  import play.api.libs.concurrent.Execution.Implicits._
-
-  object EventController extends EventController(
-    MicroserviceGlobal.envelopeCommandHandler,
-    MicroserviceGlobal.eventStore.unitsOfWorkForAggregate,
-    MicroserviceGlobal.createReportHandler.handle(replay = true))
-
-}
+import uk.gov.hmrc.fileupload.write.infrastructure.{Event => DomainEvent}
 
 class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                       unitOfWorks: StreamId => Future[GetResult], publishAllEvents: Seq[DomainEvent] => Unit)
-                     (implicit executionContext: ExecutionContext) extends Controller {
+                     (implicit executionContext: ExecutionContext) extends BaseController {
 
   implicit val eventWrites = EventSerializer.eventWrite
 
@@ -95,11 +83,10 @@ class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotA
 
 object EventParser extends BodyParser[Event] {
 
-  def apply(request: RequestHeader): Accumulator[ByteString, Either[Result, Event]] = {
+  def apply(request: RequestHeader): Iteratee[Array[Byte], Either[Result, Event]] = {
     val pattern =  "events/(.+)$".r.unanchored
 
-    import play.api.libs.concurrent.Execution.Implicits._
-    StreamUtils.iterateeToAccumulator(Iteratee.consume[ByteStream]()).map { data =>
+    Iteratee.consume[Array[Byte]]().map { data =>
       val parsedData = Json.parse(data)
 
       val triedEvent: Try[Event] = request.uri match {

@@ -1,6 +1,4 @@
-import play.routes.compiler.StaticRoutesGenerator
-import play.sbt.PlayImport.PlayKeys
-import play.sbt.routes.RoutesKeys.routesGenerator
+import play.PlayImport.PlayKeys
 import sbt.Keys._
 import sbt.Tests.{Group, SubProcess}
 import sbt._
@@ -17,7 +15,7 @@ trait MicroService {
   val appName: String
 
   lazy val appDependencies : Seq[ModuleID] = ???
-  lazy val plugins : Seq[Plugins] = Seq(play.sbt.PlayScala)
+  lazy val plugins : Seq[Plugins] = Seq(play.PlayScala)
   lazy val playSettings : Seq[Setting[_]] = Seq.empty
 
   lazy val scoverageSettings = {
@@ -33,7 +31,7 @@ trait MicroService {
   }
 
   lazy val microservice = Project(appName, file("."))
-    .enablePlugins(Seq(play.sbt.PlayScala) ++ plugins : _*)
+    .enablePlugins(Seq(play.PlayScala) ++ plugins : _*)
     .settings(PlayKeys.playDefaultPort := 8898)
     .settings(playSettings ++ scoverageSettings: _*)
     .settings(playSettings : _*)
@@ -48,13 +46,12 @@ trait MicroService {
       fork in Test := false,
       retrieveManaged := true,
       evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
-//      scalacOptions += "-Xfatal-warnings",
+      scalacOptions += "-Xfatal-warnings",
       // -Xlint:-missing-interpolator is unfortunately necessary due to a bug in Scala which causes a warning to
       // be raised from some Play generated code with paramaterised URL paths.
       // https://gitter.im/playframework/playframework/archives/2015/07/06
       // https://issues.scala-lang.org/browse/SI-9314
-      scalacOptions += "-Xlint:-missing-interpolator,_",
-      routesGenerator := StaticRoutesGenerator
+      scalacOptions += "-Xlint:-missing-interpolator,_"
     )
     .configs(IntegrationTest)
     .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
@@ -64,10 +61,7 @@ trait MicroService {
       addTestReportOption(IntegrationTest, "int-test-reports"),
       testGrouping in IntegrationTest := oneForkedJvmPerTest((definedTests in IntegrationTest).value),
       parallelExecution in IntegrationTest := false)
-    .settings(
-      resolvers += Resolver.bintrayRepo("hmrc", "releases"),
-      resolvers += Resolver.jcenterRepo
-    )
+    .settings(resolvers += Resolver.bintrayRepo("hmrc", "releases"))
 }
 
 private object TestPhases {

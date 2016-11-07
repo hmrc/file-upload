@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload.write.infrastructure
 
-import play.api.libs.json.{JsDefined, JsLookupResult, JsValue, Json}
+import play.api.libs.json.{JsValue, Json}
 import reactivemongo.bson.{BSONArray, BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 import reactivemongo.json.BSONFormats
 
@@ -61,8 +61,7 @@ object UnitOfWorkSerializer {
         val eventAsJson = BSONFormats.toJSON(event)
         val eventId = EventId((eventAsJson \ "id").as[String])
         val eventType = EventType((eventAsJson \ "eventType").as[String])
-        val result = (eventAsJson \ "eventData") match { case JsDefined(value) => value }
-        val eventData = toEventData(eventType, result)
+        val eventData = toEventData(eventType, eventAsJson \ "eventData")
         Event(eventId, streamId, version, created, eventType, eventData)
       }
 

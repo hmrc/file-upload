@@ -19,12 +19,9 @@ package uk.gov.hmrc.fileupload
 import java.util.UUID
 
 import akka.actor.ActorRef
-import akka.stream.{ActorMaterializer, Materializer}
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
 import org.joda.time.Duration
-import play.api.libs.concurrent.Akka
-import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc.{EssentialFilter, RequestHeader, Result}
 import play.api.{Application, Configuration, Logger, Play}
 import reactivemongo.api.commands
@@ -60,19 +57,16 @@ object AuthParamsControllerConfiguration extends AuthParamsControllerConfig {
 }
 
 object MicroserviceAuditFilter extends AuditFilter with AppName {
-  override def mat = Streams.Implicits.materializer
   override val auditConnector = MicroserviceAuditConnector
 
   override def controllerNeedsAuditing(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsAuditing
 }
 
 object MicroserviceLoggingFilter extends LoggingFilter {
-  override def mat = Streams.Implicits.materializer
   override def controllerNeedsLogging(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsLogging
 }
 
 object MicroserviceAuthFilter extends AuthorisationFilter {
-  override def mat = Streams.Implicits.materializer
   override lazy val authParamsConfig = AuthParamsControllerConfiguration
   override lazy val authConnector = MicroserviceAuthConnector
 
@@ -90,6 +84,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   override val microserviceAuditFilter = MicroserviceAuditFilter
 
   override val authFilter = None
+
+  import play.api.libs.concurrent.Execution.Implicits._
 
   var subscribe: (ActorRef, Class[_]) => Boolean = _
   var publish: (AnyRef) => Unit = _
@@ -144,15 +140,48 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
         publishAllEvents = createReportHandler.handle(replay = false))(eventStore, defaultContext).handleCommand(command)
   }
 
-  import play.api.libs.concurrent.Execution.Implicits._
-  val uploadBodyParser = UploadParser.parse(iterateeForUpload) _
+  lazy val envelopeController = {
+    val nextId = () => EnvelopeId(UUID.randomUUID().toString)
+    new EnvelopeController(
+      withBasicAuth = withBasicAuth,
+      nextId = nextId,
+      handleCommand = envelopeCommandHandler,
+      findEnvelope = find,
+      findMetadata = findMetadata,
+      findAllInProgressFile = allInProgressFile )
+  }
 
-  val getEnvelopesByDestination = envelopeRepository.getByDestination _
-  val zipEnvelope = Zippy.zipEnvelope(find, retrieveFile) _
+  lazy val eventController = {
+    new EventController(envelopeCommandHandler, eventStore.unitsOfWorkForAggregate, createReportHandler.handle(replay = true))
+  }
 
-  val removeAllEnvelopes = () => envelopeRepository.removeAll()
-  val removeAllFiles = () => fileRepository.clear(Duration.ZERO)
+  lazy val fileController = {
+    import play.api.libs.concurrent.Execution.Implicits._
+    val uploadBodyParser = UploadParser.parse(iterateeForUpload) _
+    new FileController(
+      withBasicAuth = withBasicAuth,
+      uploadBodyParser = uploadBodyParser,
+      retrieveFile = retrieveFile,
+      withValidEnvelope = withValidEnvelope,
+      handleCommand = envelopeCommandHandler,
+      clear = fileRepository.clear() _)
+  }
 
+  lazy val transferController = {
+    val getEnvelopesByDestination = envelopeRepository.getByDestination _
+    val zipEnvelope = Zippy.zipEnvelope(find, retrieveFile) _
+    new TransferController(withBasicAuth, getEnvelopesByDestination, envelopeCommandHandler, zipEnvelope)
+  }
+
+  lazy val testOnlyController = {
+    val removeAllEnvelopes = () => envelopeRepository.removeAll()
+    val removeAllFiles = () => fileRepository.clear(Duration.ZERO)
+    new TestOnlyController(removeAllFiles, removeAllEnvelopes, eventStore, statsRepository)
+  }
+
+  lazy val routingController = {
+    new RoutingController(envelopeCommandHandler)
+  }
 
   def basicAuthConfiguration(config: Configuration): BasicAuthConfiguration = {
     def getUsers(config: Configuration): List[User] = {
@@ -198,6 +227,31 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     Akka.system.actorOf(StatsActor.props(subscribe, find, sendNotification, saveFileQuarantinedStat,
       deleteVirusDetectedStat, deleteFileStoredStat), "statsActor")
 
+    eventController
+    envelopeController
+    fileController
+    transferController
+    testOnlyController
+    routingController
+  }
+
+  override def getControllerInstance[A](controllerClass: Class[A]): A = {
+    //TODO: optimise to use pattern match
+    if (controllerClass == classOf[EnvelopeController]) {
+      envelopeController.asInstanceOf[A]
+    } else if (controllerClass == classOf[FileController]) {
+      fileController.asInstanceOf[A]
+    } else if (controllerClass == classOf[EventController]) {
+      eventController.asInstanceOf[A]
+    } else if (controllerClass == classOf[TransferController]) {
+      transferController.asInstanceOf[A]
+    } else if (controllerClass == classOf[TestOnlyController]) {
+      testOnlyController.asInstanceOf[A]
+    } else if (controllerClass == classOf[RoutingController]) {
+      routingController.asInstanceOf[A]
+    } else {
+      super.getControllerInstance(controllerClass)
+    }
   }
 
   override def onBadRequest(request: RequestHeader, error: String): Future[Result] = {

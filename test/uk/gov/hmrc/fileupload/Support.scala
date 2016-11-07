@@ -16,14 +16,16 @@
 
 package uk.gov.hmrc.fileupload
 
-import akka.actor.{Actor, ActorRef, ActorSystem}
-import akka.stream.{ActorMaterializer, Materializer}
+import akka.actor.{Actor, ActorRef}
 import akka.testkit.TestActorRef
 import org.joda.time.DateTime
-import play.api.http.HttpEntity
-import play.api.libs.json.Json
+import play.api.libs.iteratee.{Enumerator, Iteratee}
+import play.api.libs.json.{JsString, Json}
+import reactivemongo.api.DBMetaCommands
+import reactivemongo.api.commands.DefaultWriteResult
 import uk.gov.hmrc.fileupload.controllers.EnvelopeReport
 import uk.gov.hmrc.fileupload.read.envelope._
+import uk.gov.hmrc.fileupload.read.file.Repository
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -31,12 +33,10 @@ import scala.util.Try
 
 object Support {
 
-  import scala.concurrent.{ExecutionContext, Future}
+  import reactivemongo.api.commands.WriteResult
+  import reactivemongo.api.{DB, FailoverStrategy, MongoConnection}
 
-  object StreamImplicits {
-    implicit val system = ActorSystem()
-    implicit val materializer: Materializer = ActorMaterializer()
-  }
+  import scala.concurrent.{ExecutionContext, Future}
 
   class BlockingExecutionContext extends ExecutionContext {
 
@@ -47,9 +47,9 @@ object Support {
 
   val blockingExeContext: ExecutionContext = new BlockingExecutionContext()
 
-  def consume(data: HttpEntity)(implicit ec: ExecutionContext) = {
-    import StreamImplicits.materializer
-    Await.result(data.consumeData, 500.millis).toArray
+  def consume(data: Enumerator[Array[Byte]])(implicit ec: ExecutionContext): Array[Byte] = {
+    val futureResult: Future[Array[Byte]] = data |>>> Iteratee.consume[Array[Byte]]()
+    Await.result(futureResult, 500.millis)
   }
 
   def envelope = new Envelope(_id = EnvelopeId(), callbackUrl = Some("http://absolute.callback.url"),

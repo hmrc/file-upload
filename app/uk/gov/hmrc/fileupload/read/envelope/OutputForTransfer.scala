@@ -19,6 +19,8 @@ package uk.gov.hmrc.fileupload.read.envelope
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.RequestHeader
+import uk.gov.hmrc.fileupload.controllers.routes.{EnvelopeController => envelopeRoutes, FileController => fileRoutes}
+import uk.gov.hmrc.fileupload.controllers.transfer.routes.{TransferController => transferRoutes}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 object OutputForTransfer {
@@ -84,25 +86,24 @@ object OutputForTransfer {
   object URLs {
     def envelopesPerDestination(implicit rh: RequestHeader): String = {
       val destination = rh.getQueryString("destination").map(d => s"?destination=$d").getOrElse("")
-      uk.gov.hmrc.fileupload.controllers.transfer.impl.routes.TransferController.list().absoluteURL(rh.secure) + destination
+      transferRoutes.list().absoluteURL(rh.secure) + destination
     }
 
-
     def fileTransferEnvelope(envelopeId: EnvelopeId): String = {
-      uk.gov.hmrc.fileupload.controllers.transfer.impl.routes.TransferController.download(envelopeId).url
+      transferRoutes.download(envelopeId).url
     }
 
     def fileDownloadContent(envelopeId: EnvelopeId, fileId: FileId): String = {
-       uk.gov.hmrc.fileupload.controllers.file.routes.FileController.downloadFile(envelopeId, fileId).url
+       fileRoutes.downloadFile(envelopeId, fileId).url
     }
 
     def fileUri(envelopeId: EnvelopeId, fileId: FileId): String = {
-      uk.gov.hmrc.fileupload.controllers.envelope.routes.EnvelopeController.deleteFile(envelopeId, fileId).url
+      envelopeRoutes.deleteFile(envelopeId, fileId).url
     }
 
     def fileRelativeToEnvelope(file: File, envelopeId: EnvelopeId): String = {
-      val envelopeUrl =  uk.gov.hmrc.fileupload.controllers.envelope.routes.EnvelopeController.show(envelopeId).url
-      uk.gov.hmrc.fileupload.controllers.envelope.routes.EnvelopeController.deleteFile(envelopeId, file.fileId).url.stripPrefix(envelopeUrl)
+      val envelopeUrl =  envelopeRoutes.show(envelopeId).url
+      envelopeRoutes.deleteFile(envelopeId, file.fileId).url.stripPrefix(envelopeUrl)
     }
   }
 

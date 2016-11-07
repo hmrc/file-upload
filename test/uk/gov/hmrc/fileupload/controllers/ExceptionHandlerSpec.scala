@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import akka.actor.ActorSystem
-import akka.stream.{ActorMaterializer, Materializer}
 import play.api.http.Status._
 import play.api.libs.json.Json.parse
 import uk.gov.hmrc.fileupload.read.envelope.ValidationException
@@ -25,8 +23,6 @@ import uk.gov.hmrc.play.http.BadRequestException
 import uk.gov.hmrc.play.test.UnitSpec
 
 class ExceptionHandlerSpec extends UnitSpec {
-
-  import uk.gov.hmrc.fileupload.Support.StreamImplicits.materializer
 
   "exception handler" should {
     "handle an unknown exception as an internal server error" in {
