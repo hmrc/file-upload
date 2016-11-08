@@ -39,5 +39,25 @@ class DeleteFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       Then("I will receive a 200 OK response")
       response.status shouldBe OK
     }
+
+    scenario("Delete an existing in quarantine by fileRefId") {
+      Given("I have a valid envelope-id")
+      val envelopeId = createEnvelope()
+
+      And("I have a valid file-id")
+      val fileId = FileId(s"fileId-${nextId()}")
+
+      And("I have a valid file-ref-id")
+      val fileRefId = FileRefId(s"fileRefId-${nextId()}")
+
+      And("FileInQuarantineStored")
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+
+      When(s"I invoke DELETE /files/inprogress/$fileRefId")
+      val response: WSResponse = deleteFileForFileRef(fileRefId)
+
+      Then("I will receive a 200 OK response")
+      response.status shouldBe OK
+    }
   }
 }

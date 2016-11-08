@@ -28,6 +28,7 @@ import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindError, FindMetadataError}
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, File, FileStatusQuarantined}
+import uk.gov.hmrc.fileupload.read.stats.Repository.{DeleteErrorForRef, DeleteResultForRef, DeleteSuccess}
 import uk.gov.hmrc.fileupload.read.stats.Stats._
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
@@ -52,9 +53,10 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
                     findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]] = _ => failed,
                     findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]] = (_, _) => failed,
-                    findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed
+                    findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed,
+                    deleteByRef:(FileRefId) => Future[DeleteResultForRef] = _ => failed
                    ) =
-    new EnvelopeController(withBasicAuth, nextId, handleCommand, findEnvelope, findMetadata, findAllInProgressFile)
+    new EnvelopeController(withBasicAuth, nextId, handleCommand, findEnvelope, findMetadata, findAllInProgressFile, deleteByRef)
 
   "Create envelope with a request" should {
     "return response with OK status and a Location header specifying the envelope endpoint" in {
@@ -104,6 +106,36 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
       result.header.status shouldBe Status.CREATED
       val location = result.header.headers("Location")
       location shouldBe s"$serverUrl${routes.EnvelopeController.show(EnvelopeId("aaa-bbb")).url}"
+    }
+  }
+
+  "Delete File in progress with FileRefId" should {
+    "respond with 200 OK status" in {
+
+      val envelope = Support.envelopeWithAFile(FileId())
+
+      val request = FakeRequest("DELETE", s"/file-upload/files/inprogress/fileRefId")
+
+      val controller = newController(deleteByRef = _ => Future.successful(Xor.right(DeleteSuccess)))
+
+      val result = controller.deleteFileInProgressFilesByFileRef(envelope.files.get.head.fileRefId)(request).futureValue
+
+      status(result) shouldBe Status.OK
+    }
+  }
+
+  "Delete File in progress with invalid FileRefId" should {
+    "respond with 500 status" in {
+
+      val envelope = Support.envelopeWithAFile(FileId())
+
+      val request = FakeRequest("DELETE", s"/file-upload/files/inprogress/fileRefId")
+
+      val controller = newController(deleteByRef = _ => Future.successful(Xor.Left(DeleteErrorForRef("error"))))
+
+      val result = controller.deleteFileInProgressFilesByFileRef(envelope.files.get.head.fileRefId)(request).futureValue
+
+      status(result) shouldBe Status.INTERNAL_SERVER_ERROR
     }
   }
 

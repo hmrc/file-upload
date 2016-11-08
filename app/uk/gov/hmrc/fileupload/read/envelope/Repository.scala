@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 import cats.data.Xor
+import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.{Result, Results}
 import reactivemongo.api.commands.WriteResult
@@ -24,7 +25,8 @@ import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{DB, DBMetaCommands, ReadPreference}
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.core.errors.DatabaseException
-import uk.gov.hmrc.fileupload.EnvelopeId
+import sun.rmi.runtime.Log
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileRefId}
 import uk.gov.hmrc.mongo.ReactiveRepository
 
 import scala.concurrent.{ExecutionContext, Future}

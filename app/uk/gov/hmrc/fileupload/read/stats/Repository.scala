@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.fileupload.read.stats
 
+import cats.data.Xor
+import play.api.Logger
 import play.api.libs.json.{Format, Json}
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.{DB, DBMetaCommands}
@@ -32,11 +34,26 @@ object InProgressFile {
 case class InProgressFile(_id: FileRefId, envelopeId: EnvelopeId, fileId: FileId, startedAt: Long)
 
 object Repository {
+  type UpdateResult = Xor[UpdateError, UpdateSuccess.type]
+  case object UpdateSuccess
+  sealed trait UpdateError
+  case object NewerVersionAvailable extends UpdateError
+  case class NotUpdatedError(message: String) extends UpdateError
+
+  val updateSuccess = Xor.right(UpdateSuccess)
+
+  type DeleteResultForRef = Xor[DeleteErrorForRef, DeleteSuccess.type]
+  case object DeleteSuccess
+  case class DeleteErrorForRef(message: String)
+
+  val deleteSuccess = Xor.right(DeleteSuccess)
   def apply(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext): Repository = new Repository(mongo)
 }
 
 class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext)
   extends ReactiveRepository[InProgressFile, BSONObjectID](collectionName = "inprogress-files", mongo, domainFormat = InProgressFile.format) {
+
+  import Repository._
 
   def delete(envelopeId: EnvelopeId, fileId: FileId): Future[Boolean] =
     remove("envelopeId" -> envelopeId, "fileId" -> fileId) map toBoolean
@@ -47,4 +64,19 @@ class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionCont
   }
 
   def all() = findAll()
+
+  def deleteByFileRefId(fileRefId: FileRefId)(implicit ec: ExecutionContext): Future[DeleteResultForRef] = {
+    remove("_id" -> fileRefId).map { r =>
+      if (toBoolean(r)) {
+        Logger.debug(message = s"delete ref $fileRefId")
+        deleteSuccess
+      } else {
+        Logger.debug(message = s"Failed to delete from database ref $fileRefId")
+        Xor.left(DeleteErrorForRef("No report deleted"))
+      }
+    }.recover {
+      case f: Throwable =>
+        Xor.left(DeleteErrorForRef(f.getMessage))
+    }
+  }
 }

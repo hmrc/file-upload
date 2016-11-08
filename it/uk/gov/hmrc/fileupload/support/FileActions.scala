@@ -50,4 +50,10 @@ trait FileActions extends ActionsSupport {
       .url(s"$fileTransferUrl/envelopes/$envelopeId")
       .get()
       .futureValue
+
+  def deleteFileForFileRef(fileRefId: FileRefId): WSResponse =
+    WS
+      .url(s"$fileInProgress/$fileRefId")
+      .delete()
+      .futureValue
 }
