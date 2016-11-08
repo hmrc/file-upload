@@ -6,6 +6,7 @@ import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
 import play.api.Play.current
 import play.api.http.HeaderNames
+import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.Json
 import play.api.libs.ws.{WS, WSResponse}
 import uk.gov.hmrc.fileupload.EnvelopeId
@@ -83,6 +84,14 @@ trait EnvelopeActions extends ActionsSupport {
     WS
       .url(s"$fileTransferUrl/envelopes${ destination.map(d => s"?destination=$d").getOrElse("") }").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
       .get()
+      .futureValue
+  }
+
+  def getEnvelopesForStatus(status: List[String], inclusive: Boolean) = {
+    val statuses = status.map(n => s"status=$n").mkString("&")
+    WS
+      .url(s"$url/envelopes?$statuses&inclusive=$inclusive").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
+      .getStream()
       .futureValue
   }
 

@@ -87,21 +87,21 @@ case object EnvelopeStatusDeleted extends EnvelopeStatus {
 }
 
 object EnvelopeStatusWrites extends Writes[EnvelopeStatus] {
-  def writes(c: EnvelopeStatus) = c match {
-    case EnvelopeStatusOpen => Json.toJson(EnvelopeStatusOpen.name)
-    case EnvelopeStatusClosed => Json.toJson(EnvelopeStatusClosed.name)
-    case EnvelopeStatusAvailable => Json.toJson(EnvelopeStatusAvailable.name)
-    case EnvelopeStatusDeleted => Json.toJson(EnvelopeStatusDeleted.name)
-  }
+  def writes(c: EnvelopeStatus) = Json.toJson(c.name)
 }
 
 object EnvelopeStatusReads extends Reads[EnvelopeStatus] {
-  def reads(value: JsValue) = value.as[String] match {
-    case EnvelopeStatusOpen.name => JsSuccess(EnvelopeStatusOpen)
-    case EnvelopeStatusClosed.name => JsSuccess(EnvelopeStatusClosed)
-    case EnvelopeStatusAvailable.name => JsSuccess(EnvelopeStatusAvailable)
-    case EnvelopeStatusDeleted.name => JsSuccess(EnvelopeStatusDeleted)
-  }
+  def reads(value: JsValue) = JsSuccess(EnvelopeStatusTransformer.fromName(value.as[String]))
+}
+
+object EnvelopeStatusTransformer {
+  def fromName(name: String) =
+    name match {
+      case EnvelopeStatusOpen.name => EnvelopeStatusOpen
+      case EnvelopeStatusClosed.name => EnvelopeStatusClosed
+      case EnvelopeStatusAvailable.name => EnvelopeStatusAvailable
+      case EnvelopeStatusDeleted.name => EnvelopeStatusDeleted
+    }
 }
 
 sealed trait FileStatus {
@@ -123,12 +123,7 @@ case object FileStatusError extends FileStatus {
 }
 
 object FileStatusWrites extends Writes[FileStatus] {
-  def writes(c: FileStatus) = c match {
-    case FileStatusQuarantined => Json.toJson(FileStatusQuarantined.name)
-    case FileStatusCleaned => Json.toJson(FileStatusCleaned.name)
-    case FileStatusAvailable => Json.toJson(FileStatusAvailable.name)
-    case FileStatusError => Json.toJson(FileStatusError.name)
-  }
+  def writes(c: FileStatus) = Json.toJson(c.name)
 }
 
 object FileStatusReads extends Reads[FileStatus] {
