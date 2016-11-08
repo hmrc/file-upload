@@ -119,5 +119,4 @@ object OutputForTransfer {
   val contentType = "contentType"
   val length = "length"
   val created = "created"
-
 }

@@ -17,9 +17,9 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
-import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
+import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import uk.gov.hmrc.fileupload.read.envelope.Service._
 import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
@@ -32,7 +32,8 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
-class EnvelopeController(nextId: () => EnvelopeId,
+class EnvelopeController(withBasicAuth: BasicAuth,
+                         nextId: () => EnvelopeId,
                          handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                          findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]],
                          findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]],
@@ -60,13 +61,15 @@ class EnvelopeController(nextId: () => EnvelopeId,
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  def delete(id: EnvelopeId) = Action.async {
-    handleCommand(DeleteEnvelope(id)).map {
-      case Xor.Right(_) => Ok
-      case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
-      case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not deleted")
-    }.recover { case e => ExceptionHandler(e) }
+  def delete(id: EnvelopeId) = Action.async { implicit request =>
+    withBasicAuth {
+      handleCommand(DeleteEnvelope(id)).map {
+        case Xor.Right(_) => Ok
+        case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
+        case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+        case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not deleted")
+      }.recover { case e => ExceptionHandler(e) }
+    }
   }
 
   def deleteFile(id: EnvelopeId, fileId: FileId) = Action.async { request =>
