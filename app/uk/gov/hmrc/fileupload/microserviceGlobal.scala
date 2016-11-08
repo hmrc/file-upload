@@ -142,13 +142,15 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
   lazy val envelopeController = {
     val nextId = () => EnvelopeId(UUID.randomUUID().toString)
+    val getEnvelopesByStatus = envelopeRepository.getByStatus _
     new EnvelopeController(
       withBasicAuth = withBasicAuth,
       nextId = nextId,
       handleCommand = envelopeCommandHandler,
       findEnvelope = find,
       findMetadata = findMetadata,
-      findAllInProgressFile = allInProgressFile )
+      findAllInProgressFile = allInProgressFile,
+      getEnvelopesByStatus = getEnvelopesByStatus)
   }
 
   lazy val eventController = {

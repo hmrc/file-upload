@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 import cats.data.Xor
+import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.Json
 import play.api.mvc.{Result, Results}
 import reactivemongo.api.commands.WriteResult
@@ -107,6 +108,12 @@ class Repository(mongo: () => DB with DBMetaCommands)
       Json.obj("status" -> EnvelopeStatusClosed.name)
     }
     collection.find(query).cursor[Envelope](ReadPreference.secondaryPreferred).collect[List]()
+  }
+
+  def getByStatus(status: List[EnvelopeStatus], inclusive: Boolean)(implicit ec: ExecutionContext): Enumerator[Envelope] = {
+    val operator = if (inclusive) "$in" else "$nin"
+    val query = Json.obj("status" -> Json.obj(operator -> status.map(_.name)))
+    collection.find(query).cursor[Envelope](ReadPreference.secondaryPreferred).enumerate()
   }
 
   def all()(implicit ec: ExecutionContext): Future[List[Envelope]] = {

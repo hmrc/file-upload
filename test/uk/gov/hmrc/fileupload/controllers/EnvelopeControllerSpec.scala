@@ -21,13 +21,14 @@ import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.{HeaderNames, Status}
+import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindError, FindMetadataError}
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, File, FileStatusQuarantined}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, File, FileStatusQuarantined}
 import uk.gov.hmrc.fileupload.read.stats.Stats._
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
@@ -52,9 +53,9 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
                     findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]] = _ => failed,
                     findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]] = (_, _) => failed,
-                    findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed
-                   ) =
-    new EnvelopeController(withBasicAuth, nextId, handleCommand, findEnvelope, findMetadata, findAllInProgressFile)
+                    findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed,
+                    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope] = (_, _) => failed) =
+    new EnvelopeController(withBasicAuth, nextId, handleCommand, findEnvelope, findMetadata, findAllInProgressFile, getEnvelopesByStatus)
 
   "Create envelope with a request" should {
     "return response with OK status and a Location header specifying the envelope endpoint" in {

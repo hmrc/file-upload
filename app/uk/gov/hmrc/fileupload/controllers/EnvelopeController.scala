@@ -17,10 +17,11 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
+import play.api.libs.iteratee.Enumerator
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
-import uk.gov.hmrc.fileupload.read.envelope.Envelope
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.envelope.Service._
 import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
 import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
@@ -37,7 +38,8 @@ class EnvelopeController(withBasicAuth: BasicAuth,
                          handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                          findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]],
                          findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]],
-                         findAllInProgressFile: () => Future[GetInProgressFileResult])
+                         findAllInProgressFile: () => Future[GetInProgressFileResult],
+                         getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope])
                         (implicit executionContext: ExecutionContext) extends BaseController {
 
   def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
@@ -89,6 +91,13 @@ class EnvelopeController(withBasicAuth: BasicAuth,
       case Xor.Left(FindEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
       case Xor.Left(FindServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
     }.recover { case e => ExceptionHandler(e) }
+  }
+
+  def list(getEnvelopesByStatusQuery: GetEnvelopesByStatus) = Action { implicit request =>
+    import EnvelopeReport._
+
+    Ok.feed(
+      getEnvelopesByStatus(getEnvelopesByStatusQuery.status, getEnvelopesByStatusQuery.inclusive).map(e => Json.toJson(fromEnvelope(e))))
   }
 
   def retrieveMetadata(id: EnvelopeId, fileId: FileId) = Action.async { request =>
