@@ -49,6 +49,8 @@ case class DeleteEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
 case class SealEnvelope(id: EnvelopeId, routingRequestId: String, destination: String, application: String) extends EnvelopeCommand
 
+case class UnsealEnvelope(id: EnvelopeId) extends EnvelopeCommand
+
 case class ArchiveEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
 // events
@@ -76,11 +78,15 @@ case class EnvelopeDeleted(id: EnvelopeId) extends EnvelopeEvent
 
 case class EnvelopeSealed(id: EnvelopeId, routingRequestId: String, destination: String, application: String) extends EnvelopeEvent
 
+case class EnvelopeUnsealed(id: EnvelopeId) extends EnvelopeEvent
+
 case class EnvelopeRouted(id: EnvelopeId) extends EnvelopeEvent
 
 case class EnvelopeArchived(id: EnvelopeId) extends EnvelopeEvent
 
 object Formatters {
+  implicit val unsealEnvelopeFormat: Format[UnsealEnvelope] = Json.format[UnsealEnvelope]
+
   implicit val envelopeCreatedFormat: Format[EnvelopeCreated] = Json.format[EnvelopeCreated]
   implicit val fileQuarantinedFormat: Format[FileQuarantined] = Json.format[FileQuarantined]
   implicit val fileNoVirusDetectedFormat: Format[NoVirusDetected] = Json.format[NoVirusDetected]
@@ -89,6 +95,7 @@ object Formatters {
   implicit val fileStoredFormat: Format[FileStored] = Json.format[FileStored]
   implicit val envelopeDeletedFormat: Format[EnvelopeDeleted] = Json.format[EnvelopeDeleted]
   implicit val envelopeSealedFormat: Format[EnvelopeSealed] = Json.format[EnvelopeSealed]
+  implicit val envelopeUnsealedFormat: Format[EnvelopeUnsealed] = Json.format[EnvelopeUnsealed]
   implicit val envelopeRoutedFormat: Format[EnvelopeRouted] = Json.format[EnvelopeRouted]
   implicit val envelopeArchivedFormat: Format[EnvelopeArchived] = Json.format[EnvelopeArchived]
 }
@@ -105,6 +112,7 @@ object EventSerializer {
   private val fileStored = nameOf(FileStored.getClass)
   private val envelopeDeleted = nameOf(EnvelopeDeleted.getClass)
   private val envelopeSealed = nameOf(EnvelopeSealed.getClass)
+  private val envelopeUnsealed = nameOf(EnvelopeUnsealed.getClass)
   private val envelopeRouted = nameOf(EnvelopeRouted.getClass)
   private val envelopeArchived = nameOf(EnvelopeArchived.getClass)
 
@@ -121,6 +129,7 @@ object EventSerializer {
       case `fileStored` => Json.fromJson[FileStored](value).get
       case `envelopeDeleted` => Json.fromJson[EnvelopeDeleted](value).get
       case `envelopeSealed` => Json.fromJson[EnvelopeSealed](value).get
+      case `envelopeUnsealed` => Json.fromJson[EnvelopeUnsealed](value).get
       case `envelopeRouted` => Json.fromJson[EnvelopeRouted](value).get
       case `envelopeArchived`  => Json.fromJson[EnvelopeArchived](value).get
     }
@@ -135,6 +144,7 @@ object EventSerializer {
       case e: FileStored => Json.toJson(e)
       case e: EnvelopeDeleted => Json.toJson(e)
       case e: EnvelopeSealed => Json.toJson(e)
+      case e: EnvelopeUnsealed => Json.toJson(e)
       case e: EnvelopeRouted => Json.toJson(e)
       case e: EnvelopeArchived => Json.toJson(e)
     }
