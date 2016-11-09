@@ -157,6 +157,10 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     new EventController(envelopeCommandHandler, eventStore.unitsOfWorkForAggregate, createReportHandler.handle(replay = true))
   }
 
+  lazy val commandController = {
+    new CommandController(envelopeCommandHandler)
+  }
+
   lazy val fileController = {
     import play.api.libs.concurrent.Execution.Implicits._
     val uploadBodyParser = UploadParser.parse(iterateeForUpload) _
@@ -229,6 +233,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     Akka.system.actorOf(StatsActor.props(subscribe, find, sendNotification, saveFileQuarantinedStat,
       deleteVirusDetectedStat, deleteFileStoredStat), "statsActor")
 
+    commandController
     eventController
     envelopeController
     fileController
@@ -244,7 +249,9 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     } else if (controllerClass == classOf[FileController]) {
       fileController.asInstanceOf[A]
     } else if (controllerClass == classOf[EventController]) {
-      eventController.asInstanceOf[A]
+      eventController.asInstanceOf[A]}
+    else if (controllerClass == classOf[CommandController]) {
+      commandController.asInstanceOf[A]
     } else if (controllerClass == classOf[TransferController]) {
       transferController.asInstanceOf[A]
     } else if (controllerClass == classOf[TestOnlyController]) {

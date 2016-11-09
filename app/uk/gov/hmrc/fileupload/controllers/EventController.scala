@@ -22,7 +22,7 @@ import play.api.libs.json.Json
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.controllers.EventFormatters._
 import uk.gov.hmrc.fileupload.write.envelope._
-import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.{GetError, GetResult}
+import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.GetResult
 import uk.gov.hmrc.fileupload.write.infrastructure.{EventSerializer => _, _}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 

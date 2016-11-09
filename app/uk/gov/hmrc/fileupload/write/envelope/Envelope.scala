@@ -76,6 +76,11 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
         }
       })
 
+    case (command: UnsealEnvelope, envelope: Envelope) =>
+      envelope.canUnseal.map(_ => {
+        EnvelopeUnsealed(command.id)
+      })
+
     case (command: ArchiveEnvelope, envelope: Envelope) =>
       envelope.canArchive.map(_ => EnvelopeArchived(command.id))
   }
@@ -104,6 +109,9 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
       case (envelope: Envelope, e: EnvelopeSealed) =>
         envelope.copy(state = Sealed)
+
+      case (envelope: Envelope, e: EnvelopeUnsealed) =>
+        envelope.copy(state = Open)
 
       case (envelope: Envelope, e: EnvelopeRouted) =>
         envelope.copy(state = Routed)
@@ -152,6 +160,8 @@ case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCrea
 
   def canSeal(destination: String): CanResult = state.canSeal(files.values.toSeq, destination)
 
+  def canUnseal: CanResult = state.canUnseal
+
   def canDelete: CanResult = state.canDelete
 
   def canRoute: CanResult = state.canRoute(files.values.toSeq)
@@ -184,6 +194,8 @@ sealed trait State {
   def canStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult = genericError
 
   def canSeal(files: Seq[File], destination: String): CanResult = genericError
+
+  def canUnseal(): CanResult = genericError
 
   def canDelete: CanResult = genericError
 
@@ -263,6 +275,8 @@ object Sealed extends State {
 
   override def canStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
     checkCanStoreFile(fileId, fileRefId, files)
+
+  override def canUnseal(): CanResult = successResult
 
   override def canRoute(files: Seq[File]): CanResult = {
     val filesNotAvailable = files.filter(!_.isAvailable)

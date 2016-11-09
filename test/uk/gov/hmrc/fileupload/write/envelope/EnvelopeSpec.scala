@@ -38,6 +38,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
   val fileDeleted = FileDeleted(envelopeId, fileId)
   val envelopeDeleted = EnvelopeDeleted(envelopeId)
   val envelopeSealed = EnvelopeSealed(envelopeId, "testRoutingRequestId", "DMS", "testApplication")
+  val envelopeUnsealed = EnvelopeUnsealed(envelopeId)
   val envelopeRouted = EnvelopeRouted(envelopeId)
   val envelopeArchived = EnvelopeArchived(envelopeId)
 
@@ -591,6 +592,81 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
       givenWhenThen(
         envelopeCreated And envelopeArchived,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
+        EnvelopeArchivedError
+      )
+    }
+  }
+
+  feature("UnsealEnvelope") {
+
+    scenario("Unseal sealed envelope") {
+
+      givenWhenThen(
+        envelopeCreated And envelopeSealed,
+        UnsealEnvelope(envelopeId),
+        envelopeUnsealed
+      )
+    }
+
+    scenario("Unseal envelope with quarantined file") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined And envelopeSealed,
+        UnsealEnvelope(envelopeId),
+        envelopeUnsealed
+      )
+    }
+
+    scenario("Unseal envelope with no virus detected file") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined And noVirusDetected And envelopeSealed,
+        UnsealEnvelope(envelopeId),
+        envelopeUnsealed
+      )
+    }
+
+    scenario("Unseal envelope with stored file") {
+
+      givenWhenThen(
+        envelopeCreated And fileQuarantined And fileStored And envelopeSealed,
+        UnsealEnvelope(envelopeId),
+        envelopeUnsealed
+      )
+    }
+
+    scenario("Unseal non existing envelope") {
+
+      givenWhenThen(
+        --,
+        UnsealEnvelope(envelopeId),
+        EnvelopeNotFoundError
+      )
+    }
+
+    scenario("Unseal deleted envelope") {
+
+      givenWhenThen(
+        envelopeCreated And envelopeDeleted,
+        UnsealEnvelope(envelopeId),
+        EnvelopeNotFoundError
+      )
+    }
+
+    scenario("Unseal routed envelope") {
+
+      givenWhenThen(
+        envelopeCreated And envelopeRouted,
+        UnsealEnvelope(envelopeId),
+        EnvelopeAlreadyRoutedError
+      )
+    }
+
+    scenario("Unseal archived envelope") {
+
+      givenWhenThen(
+        envelopeCreated And envelopeArchived,
+        UnsealEnvelope(envelopeId),
         EnvelopeArchivedError
       )
     }
