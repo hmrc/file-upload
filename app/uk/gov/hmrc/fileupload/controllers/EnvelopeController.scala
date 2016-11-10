@@ -97,7 +97,11 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     import EnvelopeReport._
 
     Ok.feed(
-      getEnvelopesByStatus(getEnvelopesByStatusQuery.status, getEnvelopesByStatusQuery.inclusive).map(e => Json.toJson(fromEnvelope(e))))
+      getEnvelopesByStatus(getEnvelopesByStatusQuery.status, getEnvelopesByStatusQuery.inclusive).map(e =>
+        Json.toJson(fromEnvelope(e))
+      )).withHeaders(
+      CONTENT_DISPOSITION -> s"""inline""""
+    )
   }
 
   def retrieveMetadata(id: EnvelopeId, fileId: FileId) = Action.async { request =>
