@@ -100,7 +100,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
       getEnvelopesByStatus(getEnvelopesByStatusQuery.status, getEnvelopesByStatusQuery.inclusive).map(e =>
         Json.toJson(fromEnvelope(e))
       )).withHeaders(
-      CONTENT_DISPOSITION -> s"""inline""""
+      CONTENT_DISPOSITION -> s"""inline"""
     )
   }
 
