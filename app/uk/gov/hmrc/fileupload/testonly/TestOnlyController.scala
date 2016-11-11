@@ -36,7 +36,7 @@ class TestOnlyController(removeAllEnvelopes: () => Future[WriteResult],
         emptyEventsResult <- emptyEvents
         inProgressResult <- inProgressRepository.removeAll()
       } yield {
-        List(inProgressResult,emptyEventsResult,removeAllEnvelopesResult).forall(_.ok)
+        List(inProgressResult, emptyEventsResult, removeAllEnvelopesResult).forall(_.ok)
       } match {
         case true => Ok
         case false => InternalServerError
