@@ -21,7 +21,6 @@ import java.util.UUID
 import akka.actor.ActorRef
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
-import org.joda.time.Duration
 import play.api.mvc.{EssentialFilter, RequestHeader, Result}
 import play.api.{Application, Configuration, Logger, Play}
 import reactivemongo.api.commands
@@ -169,8 +168,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       uploadBodyParser = uploadBodyParser,
       retrieveFile = retrieveFile,
       withValidEnvelope = withValidEnvelope,
-      handleCommand = envelopeCommandHandler,
-      clear = fileRepository.clear() _)
+      handleCommand = envelopeCommandHandler)
   }
 
   lazy val transferController = {
@@ -181,8 +179,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
   lazy val testOnlyController = {
     val removeAllEnvelopes = () => envelopeRepository.removeAll()
-    val removeAllFiles = () => fileRepository.clear(Duration.ZERO)
-    new TestOnlyController(removeAllFiles, removeAllEnvelopes, eventStore, statsRepository)
+    new TestOnlyController(removeAllEnvelopes, eventStore, statsRepository)
   }
 
   lazy val routingController = {
