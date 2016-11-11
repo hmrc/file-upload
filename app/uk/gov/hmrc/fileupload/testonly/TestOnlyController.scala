@@ -47,4 +47,3 @@ class TestOnlyController(removeAllEnvelopes: () => Future[WriteResult],
     mongoEventStore.collection.remove(BSONDocument())
   }
 }
-
