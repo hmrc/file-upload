@@ -32,7 +32,7 @@ class TestOnlyController(removeAllEnvelopes: () => Future[WriteResult],
   def clearCollections() = Action.async {
     request =>
       for {
-        envelopeAndFileCleanResult <- cleanupEnvelopeAndFiles
+        envelopeAndFileCleanResult <- cleanupEnvelope
         emptyEventsResult <- emptyEvents
         inProgressResult <- inProgressRepository.removeAll()
       } yield {
@@ -43,7 +43,7 @@ class TestOnlyController(removeAllEnvelopes: () => Future[WriteResult],
       }
   }
 
-  private def cleanupEnvelopeAndFiles: Future[(WriteResult)] = {
+  private def cleanupEnvelope: Future[(WriteResult)] = {
     removeAllEnvelopes()
   }
 
