@@ -18,7 +18,6 @@ package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
 import play.api.mvc._
-import reactivemongo.api.commands.WriteResult
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
@@ -34,8 +33,7 @@ class FileController(withBasicAuth: BasicAuth,
                      uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]],
                      retrieveFile: (Envelope, FileId) => Future[GetFileResult],
                      withValidEnvelope: WithValidEnvelope,
-                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
-                     clear: () => Future[List[WriteResult]])
+                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
                     (implicit executionContext: ExecutionContext) extends BaseController {
 
 
@@ -66,14 +64,4 @@ class FileController(withBasicAuth: BasicAuth,
     }
   }
 
-  def expire() = Action.async { request =>
-    clear().map {
-      results =>
-        val errors = results.filter(_.hasErrors)
-        errors match {
-          case Nil => Ok
-          case _ => InternalServerError(errors.flatMap(_.errmsg).mkString(", "))
-        }
-    }
-  }
 }

@@ -15,5 +15,3 @@ POST       /commands/:commandType                             @uk.gov.hmrc.fileu
 GET        /files/inprogress                                  @uk.gov.hmrc.fileupload.controllers.EnvelopeController.inProgressFiles()
 
 GET        /events/:streamId/replay                           @uk.gov.hmrc.fileupload.controllers.EventController.replay(streamId: uk.gov.hmrc.fileupload.write.infrastructure.StreamId)
-
-POST       /files/expire                                      @uk.gov.hmrc.fileupload.controllers.FileController.expire()

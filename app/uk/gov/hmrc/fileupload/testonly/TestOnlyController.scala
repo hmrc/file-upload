@@ -25,7 +25,7 @@ import uk.gov.hmrc.fileupload.write.infrastructure.MongoEventStore
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class TestOnlyController(removeAllFiles: () => Future[List[WriteResult]], removeAllEnvelopes: () => Future[WriteResult],
+class TestOnlyController(removeAllEnvelopes: () => Future[WriteResult],
                          mongoEventStore: MongoEventStore, inProgressRepository: InProgressRepository)
                         (implicit executionContext: ExecutionContext) {
 
@@ -36,15 +36,15 @@ class TestOnlyController(removeAllFiles: () => Future[List[WriteResult]], remove
         emptyEventsResult <- emptyEvents
         inProgressResult <- inProgressRepository.removeAll()
       } yield {
-        (inProgressResult :: emptyEventsResult :: envelopeAndFileCleanResult._2).forall(_.ok)
+        List(inProgressResult,emptyEventsResult,envelopeAndFileCleanResult).forall(_.ok)
       } match {
         case true => Ok
         case false => InternalServerError
       }
   }
 
-  private def cleanupEnvelopeAndFiles: Future[(WriteResult, List[WriteResult])] = {
-    removeAllEnvelopes() zip removeAllFiles()
+  private def cleanupEnvelopeAndFiles: Future[(WriteResult)] = {
+    removeAllEnvelopes()
   }
 
   private def emptyEvents: Future[WriteResult] = {

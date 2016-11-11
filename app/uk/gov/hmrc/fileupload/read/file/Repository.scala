@@ -16,18 +16,16 @@
 
 package uk.gov.hmrc.fileupload.read.file
 
-import org.joda.time.{DateTime, Duration}
 import play.api.Logger
 import play.api.libs.iteratee.{Enumerator, Iteratee}
-import play.api.libs.json.{JsString, Json}
+import play.api.libs.json.Json
 import play.modules.reactivemongo.GridFSController._
 import play.modules.reactivemongo.JSONFileToSave
-import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.gridfs.GridFS
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.{DB, DBMetaCommands}
-import reactivemongo.bson.{BSONDateTime, BSONDocument}
+import reactivemongo.bson.BSONDocument
 import reactivemongo.json._
 import uk.gov.hmrc.fileupload._
 
@@ -70,27 +68,4 @@ class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionCont
     }
   }
 
-  def clear(duration: Duration = Duration.standardDays(35), toNow: () => DateTime = () => DateTime.now())()
-           (implicit ec: ExecutionContext): Future[List[WriteResult]] = {
-
-    def remove(fileIds: List[FileId]): Future[List[WriteResult]] = {
-      val ids = fileIds.map(id => id.value)
-      val query = BSONDocument("_id" -> BSONDocument("$in" -> ids))
-      val queryChunks = BSONDocument("files_id" -> BSONDocument("$in" -> ids))
-      val files = gfs.files.remove[BSONDocument](query)
-      val chunks = gfs.chunks.remove[BSONDocument](queryChunks)
-      Future.sequence(List(files, chunks))
-    }
-
-    for {
-      filesOlderThanExpiryDuration <- {
-        val query = BSONDocument("uploadDate" -> BSONDocument("$lt" -> BSONDateTime(toNow().minus(duration).getMillis)))
-        gfs.find[BSONDocument, JSONReadFile](query).collect[List]()
-      }
-      fileIds = filesOlderThanExpiryDuration.map(_.id).collect { case JsString(v) => FileId(v) }
-      removed <- remove(fileIds)
-    } yield {
-      removed
-    }
-  }
 }
