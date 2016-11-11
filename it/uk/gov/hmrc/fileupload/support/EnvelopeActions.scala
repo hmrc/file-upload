@@ -9,7 +9,7 @@ import play.api.http.HeaderNames
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.Json
 import play.api.libs.ws.{WS, WSResponse}
-import uk.gov.hmrc.fileupload.EnvelopeId
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileRefId}
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
 import scala.io.Source

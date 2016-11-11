@@ -23,6 +23,7 @@ import play.api.mvc._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.envelope.Service._
+import uk.gov.hmrc.fileupload.read.stats.Repository.{DeleteErrorForRef, DeleteResultForRef}
 import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
 import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -39,6 +40,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
                          findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]],
                          findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]],
                          findAllInProgressFile: () => Future[GetInProgressFileResult],
+                         deleteByRef:(FileRefId) => Future[DeleteResultForRef],
                          getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope])
                         (implicit executionContext: ExecutionContext) extends BaseController {
 
@@ -117,4 +119,12 @@ class EnvelopeController(withBasicAuth: BasicAuth,
       case Xor.Left(error) => InternalServerError("It was not possible to retrieve in progress files")
     }
   }
+
+  def deleteFileInProgressFilesByFileRef(fileRefId: FileRefId) = Action.async {
+    deleteByRef(fileRefId).map {
+      case Xor.Right(deleteSuccess) => Ok
+      case Xor.Left(DeleteErrorForRef(message)) => InternalServerError(message)
+    }
+  }
+
 }

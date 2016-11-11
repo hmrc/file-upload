@@ -20,21 +20,15 @@ import akka.actor.{Actor, ActorRef}
 import akka.testkit.TestActorRef
 import org.joda.time.DateTime
 import play.api.libs.iteratee.{Enumerator, Iteratee}
-import play.api.libs.json.{JsString, Json}
-import reactivemongo.api.DBMetaCommands
-import reactivemongo.api.commands.DefaultWriteResult
+import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.controllers.EnvelopeReport
 import uk.gov.hmrc.fileupload.read.envelope._
-import uk.gov.hmrc.fileupload.read.file.Repository
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.Try
 
 object Support {
-
-  import reactivemongo.api.commands.WriteResult
-  import reactivemongo.api.{DB, FailoverStrategy, MongoConnection}
 
   import scala.concurrent.{ExecutionContext, Future}
 

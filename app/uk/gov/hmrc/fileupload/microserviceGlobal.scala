@@ -97,6 +97,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
   lazy val envelopeRepository = uk.gov.hmrc.fileupload.read.envelope.Repository.apply(db)
 
+  lazy val inProgressFilesRepository = uk.gov.hmrc.fileupload.read.stats.Repository.apply(db)
+
   lazy val getEnvelope = envelopeRepository.get _
 
   lazy val withValidEnvelope = new WithValidEnvelope(getEnvelope)
@@ -116,6 +118,9 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   lazy val deleteFileStoredStat = Stats.deleteFileStored(statsRepository.delete) _
   lazy val deleteVirusDetectedStat = Stats.deleteVirusDetected(statsRepository.delete) _
   lazy val allInProgressFile = Stats.all(statsRepository.all) _
+
+  lazy val deleteFileByRef = inProgressFilesRepository.deleteByFileRefId _
+
 
   implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
   implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
@@ -149,6 +154,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       findEnvelope = find,
       findMetadata = findMetadata,
       findAllInProgressFile = allInProgressFile,
+      deleteByRef = deleteFileByRef,
       getEnvelopesByStatus = getEnvelopesByStatus)
   }
 
