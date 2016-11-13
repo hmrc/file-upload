@@ -21,6 +21,7 @@ import play.api.libs.iteratee.{Enumerator, Iteratee}
 import play.api.libs.json.Json
 import play.modules.reactivemongo.GridFSController._
 import play.modules.reactivemongo.JSONFileToSave
+import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.api.gridfs.GridFS
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
@@ -66,6 +67,16 @@ class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionCont
     gfs.find[BSONDocument, JSONReadFile](BSONDocument("_id" -> _id.value)).headOption.map { file =>
       file.map( f => FileData(f.length, gfs.enumerate(f)))
     }
+  }
+
+  def dropCollections(): Future[List[Unit]] ={
+    Future.sequence(List(
+      mongo.apply().collection[BSONCollection]("envelopes-read-model").drop(),
+      mongo.apply().collection[BSONCollection]("envelopes.chunks").drop(),
+      mongo.apply().collection[BSONCollection]("envelopes.files").drop(),
+      mongo.apply().collection[BSONCollection]("events").drop(),
+      mongo.apply().collection[BSONCollection]("inprogress-files").drop()
+    ))
   }
 
 }
