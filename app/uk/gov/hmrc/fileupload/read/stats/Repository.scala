@@ -23,7 +23,9 @@ import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 import uk.gov.hmrc.mongo.ReactiveRepository
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 object InProgressFile {
   implicit val format: Format[InProgressFile] = Json.format[InProgressFile]
@@ -47,4 +49,7 @@ class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionCont
   }
 
   def all() = findAll()
+
+  def recreate()(implicit ec: ExecutionContext): Unit =
+    Await.result(drop(ec), 5 seconds)
 }

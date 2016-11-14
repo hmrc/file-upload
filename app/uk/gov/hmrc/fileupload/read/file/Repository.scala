@@ -29,7 +29,9 @@ import reactivemongo.bson.BSONDocument
 import reactivemongo.json._
 import uk.gov.hmrc.fileupload._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration._
+import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
 object Repository {
@@ -68,4 +70,9 @@ class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionCont
     }
   }
 
+  def recreate(): Unit = {
+    Await.result(gfs.files.drop(), 5 seconds)
+    Await.result(gfs.chunks.drop(), 5 seconds)
+    ensureIndex()
+  }
 }

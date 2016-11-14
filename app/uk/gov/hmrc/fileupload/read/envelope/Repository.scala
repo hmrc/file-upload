@@ -28,7 +28,9 @@ import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.mongo.ReactiveRepository
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 object Repository {
 
@@ -118,6 +120,11 @@ class Repository(mongo: () => DB with DBMetaCommands)
 
   def all()(implicit ec: ExecutionContext): Future[List[Envelope]] = {
     findAll()
+  }
+
+  def recreate()(implicit ec: ExecutionContext): Unit = {
+    Await.result(collection.drop(), 5 seconds)
+    Await.result(ensureIndexes(ec), 5 seconds)
   }
 
   def toBoolean(wr: WriteResult): Boolean = wr match {
