@@ -21,7 +21,6 @@ import play.api.libs.iteratee.{Enumerator, Iteratee}
 import play.api.libs.json.Json
 import play.modules.reactivemongo.GridFSController._
 import play.modules.reactivemongo.JSONFileToSave
-import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.api.gridfs.GridFS
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
@@ -30,7 +29,9 @@ import reactivemongo.bson.BSONDocument
 import reactivemongo.json._
 import uk.gov.hmrc.fileupload._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration._
+import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
 object Repository {
@@ -69,14 +70,9 @@ class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionCont
     }
   }
 
-  def dropCollections(): Future[List[Unit]] ={
-    Future.sequence(List(
-      mongo.apply().collection[BSONCollection]("envelopes-read-model").drop(),
-      mongo.apply().collection[BSONCollection]("envelopes.chunks").drop(),
-      mongo.apply().collection[BSONCollection]("envelopes.files").drop(),
-      mongo.apply().collection[BSONCollection]("events").drop(),
-      mongo.apply().collection[BSONCollection]("inprogress-files").drop()
-    ))
+  def recreate(): Unit = {
+    Await.result(gfs.files.drop(), 5 seconds)
+    Await.result(gfs.chunks.drop(), 5 seconds)
+    ensureIndex()
   }
-
 }

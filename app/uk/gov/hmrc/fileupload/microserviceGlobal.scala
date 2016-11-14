@@ -178,10 +178,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   }
 
   lazy val testOnlyController = {
-
-    val dropAllCollections = () => fileRepository.dropCollections()
-
-    new TestOnlyController(dropAllCollections)
+    new TestOnlyController(recreateCollections = List(eventStore.recreate, envelopeRepository.recreate, fileRepository.recreate, statsRepository.recreate))
   }
 
   lazy val routingController = {
