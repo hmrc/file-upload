@@ -20,6 +20,7 @@ The endpoints can then be accessed with the base url http://localhost:8898/
 
 *   [Endpoints](#endpoints)
 *   [Callback](#callback)
+*   [Envelope Event Statuses](#events)
 
 ## Endpoints <a name="endpoints"></a>
 
@@ -78,6 +79,16 @@ Response (in Body):
   "status": "OPEN"
 }
 ```
+
+#### Envelope Statuses
+
+The following are the possible Envelope Statuses that occur for an Envelope.
+
+| Status  | Description  | 
+| --------|---------|
+| Open  |  Envelope is created and open to upload files.  |
+| Closed |  The result of the envelope "Sealed". Any attempts to upload a file will result with a 403 (Locked) |
+| Deleted | Envelope has been deleted. |
 
 #### Hard Delete an Envelope
 Completely deletes an envelope and any files inside.
