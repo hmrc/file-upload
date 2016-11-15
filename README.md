@@ -87,8 +87,8 @@ The following are the possible Envelope Statuses that occur for an Envelope.
 | Status  | Description  | 
 | --------|---------|
 | OPEN  |  Envelope is created and open to upload files. |
-| SEALED | A routing request has been made. However, files are not AVAILABLE for transfer yet. |
-| CLOSED | A routing request has been made and files are AVAILABLE for transfer. (The status "SEALED" will automatically changed to "CLOSED" once the file/s has become AVAILABLE.) |
+| SEALED | A routing request has been made. However, files are not "AVAILABLE" yet. |
+| CLOSED | A routing request has been made and files are "AVAILABLE". (The status "SEALED" will automatically changed to "CLOSED" once the file/s has become "AVAILABLE".) |
 | DELETED | Envelope has been deleted. |
 
 #### Hard Delete an Envelope
