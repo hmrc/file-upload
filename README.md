@@ -86,9 +86,12 @@ The following are the possible Envelope Statuses that occur for an Envelope.
 
 | Status  | Description  | 
 | --------|---------|
-| Open  |  Envelope is created and open to upload files.  |
-| Closed |  The result of the envelope "Sealed". Any attempts to upload a file will result with a 403 (Locked) |
+| Open  |  Envelope is created and open to upload files. |
+| Sealed | A routing request has been made. However, files are not Available for transfer yet. |
+| Closed | A routing request has been made and files are Available for transfer.  |
 | Deleted | Envelope has been deleted. |
+
+Note: The status "Sealed" will automatically changed to "Closed" once the file/s has reached Transient store.
 
 #### Hard Delete an Envelope
 Completely deletes an envelope and any files inside.
