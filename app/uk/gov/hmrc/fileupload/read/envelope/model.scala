@@ -76,11 +76,11 @@ sealed trait EnvelopeStatus {
 case object EnvelopeStatusOpen extends EnvelopeStatus {
   override val name: String = "OPEN"
 }
+case object EnvelopeStatusSealed extends EnvelopeStatus {
+  override val name: String = "SEALED"
+}
 case object EnvelopeStatusClosed extends EnvelopeStatus {
   override val name: String = "CLOSED"
-}
-case object EnvelopeStatusAvailable extends EnvelopeStatus {
-  override val name: String = "AVAILABLE"
 }
 case object EnvelopeStatusDeleted extends EnvelopeStatus {
   override val name: String = "DELETED"
@@ -98,8 +98,8 @@ object EnvelopeStatusTransformer {
   def fromName(name: String) =
     name match {
       case EnvelopeStatusOpen.name => EnvelopeStatusOpen
+      case EnvelopeStatusSealed.name => EnvelopeStatusSealed
       case EnvelopeStatusClosed.name => EnvelopeStatusClosed
-      case EnvelopeStatusAvailable.name => EnvelopeStatusAvailable
       case EnvelopeStatusDeleted.name => EnvelopeStatusDeleted
     }
 }

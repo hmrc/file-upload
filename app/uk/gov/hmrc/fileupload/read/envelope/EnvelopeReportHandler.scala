@@ -53,11 +53,11 @@ class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
     }
 
     case (s: Envelope, e: EnvelopeSealed) => Some {
-      s.copy(destination = Some(e.destination), application = Some(e.application))
+      s.copy(status = EnvelopeStatusSealed, destination = Some(e.destination), application = Some(e.application))
     }
 
     case (s: Envelope, e: EnvelopeUnsealed) => Some {
-      s.copy(destination = None, application = None)
+      s.copy(status = EnvelopeStatusOpen, destination = None, application = None)
     }
 
     case (s: Envelope, e: EnvelopeRouted) => Some {
