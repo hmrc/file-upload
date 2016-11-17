@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.controllers
+package uk.gov.hmrc.fileupload.controllers.adminController
 
 import cats.data.Xor
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.Json
 import play.api.mvc._
+import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{EventSerializer => _, _}
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -30,15 +31,15 @@ import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 class CommandController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
-                     (implicit executionContext: ExecutionContext) extends BaseController {
+                       (implicit executionContext: ExecutionContext) extends BaseController {
 
   def handle(commandType: String) = Action.async(CommandParser) { implicit request =>
     handleCommand(request.body).map {
-          case Xor.Right(_) => Ok
-          case Xor.Left(EnvelopeAlreadyRoutedError | EnvelopeSealedError) =>
-            ExceptionHandler(LOCKED, s"Routing request already received for envelope: ${request.body.id}")
-          case Xor.Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
-        }
+      case Xor.Right(_) => Ok
+      case Xor.Left(EnvelopeAlreadyRoutedError | EnvelopeSealedError) =>
+        ExceptionHandler(LOCKED, s"Routing request already received for envelope: ${request.body.id}")
+      case Xor.Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
+    }
   }
 }
 

@@ -90,7 +90,7 @@ trait EnvelopeActions extends ActionsSupport {
   def getEnvelopesForStatus(status: List[String], inclusive: Boolean) = {
     val statuses = status.map(n => s"status=$n").mkString("&")
     WS
-      .url(s"$url/envelopes?$statuses&inclusive=$inclusive").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
+      .url(s"$adminUrl/envelopes?$statuses&inclusive=$inclusive").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
       .getStream()
       .futureValue
   }

@@ -5,7 +5,7 @@ import java.io.RandomAccessFile
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws._
-import uk.gov.hmrc.fileupload.controllers.{FileInQuarantineStored, FileScanned}
+import uk.gov.hmrc.fileupload.controllers.adminController.{FileInQuarantineStored, FileScanned}
 import uk.gov.hmrc.fileupload.support._
 
 /**

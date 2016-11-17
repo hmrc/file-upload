@@ -22,6 +22,7 @@ import play.api.libs.iteratee.{Enumerator, Iteratee}
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.FakeRequest
+import uk.gov.hmrc.fileupload.controllers.adminController.{Event, EventParser, FileInQuarantineStored, FileScanned}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 import uk.gov.hmrc.play.test.UnitSpec
 

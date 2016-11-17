@@ -4,7 +4,7 @@ import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.json.Json
-import uk.gov.hmrc.fileupload.controllers.{FileInQuarantineStored, FileScanned}
+import uk.gov.hmrc.fileupload.controllers.adminController.{FileInQuarantineStored, FileScanned}
 import uk.gov.hmrc.fileupload.support._
 
 class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {

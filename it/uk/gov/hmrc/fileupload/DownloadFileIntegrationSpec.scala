@@ -4,7 +4,7 @@ import java.io.RandomAccessFile
 
 import play.api.libs.json.Json
 import play.api.libs.ws._
-import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
+import uk.gov.hmrc.fileupload.controllers.adminController.FileInQuarantineStored
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActions, IntegrationSpec}
 
 

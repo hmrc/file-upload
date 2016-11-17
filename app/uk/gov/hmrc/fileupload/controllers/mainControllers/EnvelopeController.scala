@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.controllers
+package uk.gov.hmrc.fileupload.controllers.mainControllers
 
 import cats.data.Xor
-import play.api.libs.iteratee.Enumerator
 import play.api.libs.json._
 import play.api.mvc._
+import uk.gov.hmrc.fileupload.controllers.GetFileMetadataReport.{apply => _, unapply => _}
+import uk.gov.hmrc.fileupload.controllers._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
+import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import uk.gov.hmrc.fileupload.read.envelope.Service._
-import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
 import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
@@ -37,9 +37,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
                          nextId: () => EnvelopeId,
                          handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                          findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]],
-                         findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]],
-                         findAllInProgressFile: () => Future[GetInProgressFileResult],
-                         getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope])
+                         findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]])
                         (implicit executionContext: ExecutionContext) extends BaseController {
 
   def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
@@ -93,12 +91,6 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  def list(getEnvelopesByStatusQuery: GetEnvelopesByStatus) = Action { implicit request =>
-    import EnvelopeReport._
-
-    Ok.chunked(
-      getEnvelopesByStatus(getEnvelopesByStatusQuery.status, getEnvelopesByStatusQuery.inclusive).map(e => Json.toJson(fromEnvelope(e))))
-  }
 
   def retrieveMetadata(id: EnvelopeId, fileId: FileId) = Action.async { request =>
     import GetFileMetadataReport._
@@ -111,10 +103,4 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  def inProgressFiles() = Action.async {
-    findAllInProgressFile().map {
-      case Xor.Right(inProgressFiles) => Ok(Json.toJson(inProgressFiles))
-      case Xor.Left(error) => InternalServerError("It was not possible to retrieve in progress files")
-    }
-  }
 }

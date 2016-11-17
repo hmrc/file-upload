@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.controllers
+package uk.gov.hmrc.fileupload.controllers.adminController
 
 import play.api.libs.json.{Format, JsObject, Json}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
