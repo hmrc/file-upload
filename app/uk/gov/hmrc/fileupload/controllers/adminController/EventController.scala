@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.controllers
+package uk.gov.hmrc.fileupload.controllers.adminController
 
 import cats.data.Xor
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.Json
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.controllers.EventFormatters._
+import EventFormatters._
+import uk.gov.hmrc.fileupload.controllers._
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.GetResult
 import uk.gov.hmrc.fileupload.write.infrastructure.{EventSerializer => _, _}
@@ -30,7 +31,6 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
-
 import uk.gov.hmrc.fileupload.write.infrastructure.{Event => DomainEvent}
 
 class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],

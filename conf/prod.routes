@@ -2,6 +2,7 @@
 ->         /file-upload              app.Routes
 ->         /file-transfer            transfer.Routes
 ->         /file-routing             routing.Routes
+->         /admin                    admin.Routes
 ->         /                         health.Routes
 
-GET        /admin/metrics             com.kenshoo.play.metrics.MetricsController.metrics
+GET        /admin/metrics            com.kenshoo.play.metrics.MetricsController.metrics

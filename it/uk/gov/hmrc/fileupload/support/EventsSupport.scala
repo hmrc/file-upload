@@ -1,7 +1,7 @@
 package uk.gov.hmrc.fileupload.support
 
 import play.api.libs.json.Json
-import uk.gov.hmrc.fileupload.controllers.{FileInQuarantineStored, FileScanned}
+import uk.gov.hmrc.fileupload.controllers.adminController.{FileInQuarantineStored, FileScanned}
 
 object EventsSupport extends Support {
 

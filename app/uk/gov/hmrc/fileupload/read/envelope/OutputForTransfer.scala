@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.read.envelope
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.RequestHeader
-import uk.gov.hmrc.fileupload.controllers.routes.{EnvelopeController => envelopeRoutes, FileController => fileRoutes}
+import uk.gov.hmrc.fileupload.controllers.mainControllers.routes.{EnvelopeController => envelopeRoutes, FileController => fileRoutes}
 import uk.gov.hmrc.fileupload.controllers.transfer.routes.{TransferController => transferRoutes}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
@@ -94,7 +94,7 @@ object OutputForTransfer {
     }
 
     def fileDownloadContent(envelopeId: EnvelopeId, fileId: FileId): String = {
-       fileRoutes.downloadFile(envelopeId, fileId).url
+      fileRoutes.downloadFile(envelopeId, fileId).url
     }
 
     def fileUri(envelopeId: EnvelopeId, fileId: FileId): String = {

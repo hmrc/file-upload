@@ -25,6 +25,8 @@ import play.api.mvc.{EssentialFilter, RequestHeader, Result}
 import play.api.{Application, Configuration, Logger, Play}
 import reactivemongo.api.commands
 import uk.gov.hmrc.fileupload.controllers._
+import uk.gov.hmrc.fileupload.controllers.adminController.{AdminController, CommandController, EventController}
+import uk.gov.hmrc.fileupload.controllers.mainControllers.{EnvelopeController, FileController}
 import uk.gov.hmrc.fileupload.controllers.routing.RoutingController
 import uk.gov.hmrc.fileupload.controllers.transfer.TransferController
 import uk.gov.hmrc.fileupload.file.zip.Zippy
@@ -141,15 +143,12 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
   lazy val envelopeController = {
     val nextId = () => EnvelopeId(UUID.randomUUID().toString)
-    val getEnvelopesByStatus = envelopeRepository.getByStatus _
     new EnvelopeController(
       withBasicAuth = withBasicAuth,
       nextId = nextId,
       handleCommand = envelopeCommandHandler,
       findEnvelope = find,
-      findMetadata = findMetadata,
-      findAllInProgressFile = allInProgressFile,
-      getEnvelopesByStatus = getEnvelopesByStatus)
+      findMetadata = findMetadata)
   }
 
   lazy val eventController = {
@@ -175,6 +174,16 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     val getEnvelopesByDestination = envelopeRepository.getByDestination _
     val zipEnvelope = Zippy.zipEnvelope(find, retrieveFile) _
     new TransferController(withBasicAuth, getEnvelopesByDestination, envelopeCommandHandler, zipEnvelope)
+  }
+
+  lazy val adminController = {
+    val nextId = () => EnvelopeId(UUID.randomUUID().toString)
+    val getEnvelopesByStatus = envelopeRepository.getByStatus _
+    new AdminController(
+      nextId = nextId,
+      handleCommand = envelopeCommandHandler,
+      findAllInProgressFile = allInProgressFile,
+      getEnvelopesByStatus = getEnvelopesByStatus)
   }
 
   lazy val testOnlyController = {
@@ -236,6 +245,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     transferController
     testOnlyController
     routingController
+    adminController
   }
 
   override def getControllerInstance[A](controllerClass: Class[A]): A = {
@@ -254,6 +264,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       testOnlyController.asInstanceOf[A]
     } else if (controllerClass == classOf[RoutingController]) {
       routingController.asInstanceOf[A]
+    } else if (controllerClass == classOf[AdminController]) {
+      adminController.asInstanceOf[A]
     } else {
       super.getControllerInstance(controllerClass)
     }

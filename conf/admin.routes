@@ -1,0 +1,11 @@
+
+GET        /envelopes                                         @uk.gov.hmrc.fileupload.controllers.adminController.AdminController.list(getEnvelopesByStatusQuery: uk.gov.hmrc.fileupload.controllers.GetEnvelopesByStatus)
+GET        /files/inprogress                                  @uk.gov.hmrc.fileupload.controllers.adminController.AdminController.inProgressFiles()
+
+GET        /events/:streamId/replay                           @uk.gov.hmrc.fileupload.controllers.adminController.EventController.replay(streamId: uk.gov.hmrc.fileupload.write.infrastructure.StreamId)
+GET        /events/:streamId                                  @uk.gov.hmrc.fileupload.controllers.adminController.EventController.get(streamId: uk.gov.hmrc.fileupload.write.infrastructure.StreamId)
+POST       /events/:eventType                                 @uk.gov.hmrc.fileupload.controllers.adminController.EventController.collect(eventType: String)
+
+POST       /commands/:commandType                             @uk.gov.hmrc.fileupload.controllers.adminController.CommandController.handle(commandType: String)
+
+

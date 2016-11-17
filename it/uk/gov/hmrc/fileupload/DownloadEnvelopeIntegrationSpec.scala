@@ -3,7 +3,7 @@ package uk.gov.hmrc.fileupload
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.json.Json
 import play.api.libs.ws._
-import uk.gov.hmrc.fileupload.controllers.{FileInQuarantineStored, FileScanned}
+import uk.gov.hmrc.fileupload.controllers.adminController.{FileInQuarantineStored, FileScanned}
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActions, IntegrationSpec}
 
 
