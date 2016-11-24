@@ -54,8 +54,9 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
                     findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]] = _ => failed,
                     findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]] = (_, _) => failed,
                     findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed,
+                    deleteInProgressFile: FileRefId => Future[Boolean] = _ => failed,
                     getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope] = (_, _) => failed) =
-    new EnvelopeController(withBasicAuth, nextId, handleCommand, findEnvelope, findMetadata, findAllInProgressFile, getEnvelopesByStatus)
+    new EnvelopeController(withBasicAuth, nextId, handleCommand, findEnvelope, findMetadata, findAllInProgressFile, deleteInProgressFile, getEnvelopesByStatus)
 
   "Create envelope with a request" should {
     "return response with OK status and a Location header specifying the envelope endpoint" in {
@@ -182,6 +183,30 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
       result.header.status shouldBe Status.OK
       actualResponse shouldBe expectedResponse
+    }
+  }
+
+  "Delete File in progress with FileRefId" should {
+    "respond with 200 OK status" in {
+      val envelope = Support.envelopeWithAFile(FileId())
+
+      val request = FakeRequest("DELETE", s"/file-upload/files/inprogress/fileRefId")
+
+      val controller = newController(deleteInProgressFile = _ => Future.successful(true))
+      val result = controller.deleteInProgressFileByRefId(envelope.files.get.head.fileRefId)(request).futureValue
+
+      result.header.status shouldBe Status.OK
+    }
+
+    "respond with 500 status" in {
+      val envelope = Support.envelopeWithAFile(FileId())
+
+      val request = FakeRequest("DELETE", s"/file-upload/files/inprogress/fileRefId")
+
+      val controller = newController(deleteInProgressFile = _ => Future.successful(false))
+      val result = controller.deleteInProgressFileByRefId(envelope.files.get.head.fileRefId)(request).futureValue
+
+      result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
     }
   }
 }

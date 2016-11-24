@@ -39,6 +39,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
                          findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]],
                          findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]],
                          findAllInProgressFile: () => Future[GetInProgressFileResult],
+                         deleteInProgressFile: (FileRefId) => Future[Boolean],
                          getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope])
                         (implicit executionContext: ExecutionContext) extends BaseController {
 
@@ -116,5 +117,12 @@ class EnvelopeController(withBasicAuth: BasicAuth,
       case Xor.Right(inProgressFiles) => Ok(Json.toJson(inProgressFiles))
       case Xor.Left(error) => InternalServerError("It was not possible to retrieve in progress files")
     }
+  }
+
+  def deleteInProgressFileByRefId(fileRefId: FileRefId) = Action.async {
+    deleteInProgressFile(fileRefId).map {
+      case true => Ok
+      case false => InternalServerError("It was not possible to delete the in progress file")
+    }.recover { case e => ExceptionHandler(e) }
   }
 }
