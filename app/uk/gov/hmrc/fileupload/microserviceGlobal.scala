@@ -106,6 +106,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
 
   lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute) _
 
+  var updateEnvelope: (read.envelope.Envelope, Boolean) => Future[Repository.UpdateResult] = _
+
   lazy val fileRepository = uk.gov.hmrc.fileupload.read.file.Repository.apply(db)
   val iterateeForUpload = fileRepository.iterateeForUpload _
   val getFileFromRepo = fileRepository.retrieveFile _
@@ -125,7 +127,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   // envelope read model
   lazy val createReportHandler = new EnvelopeReportHandler(
     toId = (streamId: StreamId) => EnvelopeId(streamId.value),
-    envelopeRepository.update,
+    updateEnvelope,
     envelopeRepository.delete,
     defaultState = (id: EnvelopeId) => uk.gov.hmrc.fileupload.read.envelope.Envelope(id))
 
@@ -218,8 +220,10 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     // event store
     if (play.Play.isProd && app.configuration.getBoolean("Prod.mongodb.replicaSetInUse").getOrElse(true)) {
       eventStore = new MongoEventStore(db, writeConcern = commands.WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = true))
+      updateEnvelope = envelopeRepository.update(writeConcern = commands.WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = true))
     } else {
       eventStore = new MongoEventStore(db)
+      updateEnvelope = envelopeRepository.update()
     }
 
     withBasicAuth = BasicAuth(basicAuthConfiguration(app.configuration))
