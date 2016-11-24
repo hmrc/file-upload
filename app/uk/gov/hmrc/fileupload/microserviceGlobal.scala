@@ -151,6 +151,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       findEnvelope = find,
       findMetadata = findMetadata,
       findAllInProgressFile = allInProgressFile,
+      deleteInProgressFile = statsRepository.deleteByFileRefId,
       getEnvelopesByStatus = getEnvelopesByStatus)
   }
 

@@ -13,5 +13,6 @@ POST       /events/:eventType                                 @uk.gov.hmrc.fileu
 GET        /events/:streamId                                  @uk.gov.hmrc.fileupload.controllers.EventController.get(streamId: uk.gov.hmrc.fileupload.write.infrastructure.StreamId)
 POST       /commands/:commandType                             @uk.gov.hmrc.fileupload.controllers.CommandController.handle(commandType: String)
 GET        /files/inprogress                                  @uk.gov.hmrc.fileupload.controllers.EnvelopeController.inProgressFiles()
+DELETE     /files/inprogress/:fileRefId                       @uk.gov.hmrc.fileupload.controllers.EnvelopeController.deleteInProgressFileByRefId(fileRefId: uk.gov.hmrc.fileupload.FileRefId)
 
 GET        /events/:streamId/replay                           @uk.gov.hmrc.fileupload.controllers.EventController.replay(streamId: uk.gov.hmrc.fileupload.write.infrastructure.StreamId)
