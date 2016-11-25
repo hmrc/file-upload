@@ -20,7 +20,7 @@ import cats.data.Xor
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.Json
 import play.api.mvc.{Result, Results}
-import reactivemongo.api.commands.WriteResult
+import reactivemongo.api.commands.{WriteConcern, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{DB, DBMetaCommands, ReadPreference}
 import reactivemongo.bson.BSONObjectID
@@ -62,7 +62,9 @@ class Repository(mongo: () => DB with DBMetaCommands)
 
   import Repository._
 
-  def update(envelope: Envelope, checkVersion: Boolean = true)(implicit ex: ExecutionContext): Future[UpdateResult] = {
+  def update(writeConcern: WriteConcern = WriteConcern.Default)
+            (envelope: Envelope, checkVersion: Boolean = true)
+            (implicit ex: ExecutionContext): Future[UpdateResult] = {
     val selector = if (checkVersion) {
       Json.obj(
         _Id -> envelope._id.value,
@@ -72,7 +74,7 @@ class Repository(mongo: () => DB with DBMetaCommands)
         _Id -> envelope._id.value)
     }
 
-    collection.update(selector = selector, update = envelope, upsert = true, multi = false).map { r =>
+    collection.update(selector = selector, update = envelope, writeConcern = writeConcern, upsert = true, multi = false).map { r =>
       if (r.ok) {
         updateSuccess
       } else {

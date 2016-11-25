@@ -43,6 +43,9 @@ class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionCont
   def delete(envelopeId: EnvelopeId, fileId: FileId): Future[Boolean] =
     remove("envelopeId" -> envelopeId, "fileId" -> fileId) map toBoolean
 
+  def deleteByFileRefId(fileRefId: FileRefId)(implicit ec: ExecutionContext): Future[Boolean] =
+    remove("_id" -> fileRefId).map(toBoolean)
+
   def toBoolean(wr: WriteResult): Boolean = wr match {
     case r if r.ok && r.n > 0 => true
     case _ => false
