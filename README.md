@@ -402,7 +402,7 @@ POST    /file-upload/events/{eventType}
 | Locked  | 423   | Cannot update event. Routing request is already received for this envelope.
 
 #### EXAMPLE (FOR FILE IN QUARANTINE)
-Request (POST): localhost:8898/file-upload/events/FileQuarantinedStored
+Request (POST): localhost:8898/file-upload/events/FileQuarantineStored
 
 Body:
 ```json
@@ -479,8 +479,7 @@ Body:
 
 Response (in Headers): Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
-#### MANUALLY CHANGE STATE
-Currently, this endpoint changes the state of only "SEALED" envelopes to "OPEN" to allow resubmissions of files to that envelope. 
+#### MANUALLY SEND COMMANDS
 
 ```
 POST    /file-upload/commands/{commandType}
@@ -494,7 +493,7 @@ POST    /file-upload/commands/{commandType}
 
 
 #### EXAMPLE
-Request (POST): localhost:8898/file-upload/unsealed
+Request (POST): localhost:8898/file-upload/unsealenvelope
 
 In Body:
 ```json
