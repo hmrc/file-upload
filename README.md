@@ -23,8 +23,8 @@ The endpoints can then be accessed with the base url http://localhost:8898/
 *   [Endpoints](#endpoints)
 *   [Callback](#callback)
 *   [Envelope Event Statuses](#events)
+*   [Intercommunications Endpoint](#auto)
 *   [Test-Only Endpoints](#testonly)
-*   [Internal Automated Endpoint](#auto)
 *   [Internal-Use-Only Endpoints](#internal)
 
 ## Endpoints <a name="endpoints"></a>
@@ -32,7 +32,7 @@ The endpoints can then be accessed with the base url http://localhost:8898/
 
 ### Envelope
 
-#### Create An Envelope
+#### Create an Envelope
 Creates an envelope and auto generates an Id. The body in the http request must be json. Successful response is provided in the Location Header which will have the link of the newly created envelope.
 ```
 POST   	/file-upload/envelopes
@@ -154,23 +154,6 @@ Response (in Body):
   "href": "/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1/content"
 }
 ```
-
-#### Upload File (DO NOT USE) 
-Uploads a binary file to Transient Store. This endpoint cannot be used directly to upload a file and any attempts to do so will be rejected. Only files that have been uploaded to the frontend, that have been quarantined and then scanned are accepted.
-```
-PUT     /file-upload/envelopes/{envelope-Id}/files/{file-Id}/{file-Ref-Id}
-```
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 200   | Successfully uploaded file a file.  |
-| Not Found | 404   |  File or Envelope not found. Unable to Upload. |
-
-#### Example
-Request (PUT): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1/file-ref-1
-
-Body: Binary File. 
-
-Response: 200
 
 #### Download File
 Download a file from an envelope.
@@ -357,35 +340,7 @@ Request (POST)
 Expected response status code: 200
 
 
-## TEST-ONLY ENDPOINTS <a name="testonly"></a>
-These endpoints are not available in production and are used for testing purposes. <i>**PLEASE DO NOT USE THESE WITHOUT PERMISSION**</i>.
-
-
-#### RECREATE COLLECTIONS (DO NOT USE)
-Deletes all collections in quarantine and transient. Then recreates the following collections and its indexes.
-
-Quarantine:
-*   quarantine.chunks
-
-Transient:
-*   envelopes-read-model
-*   envelopes.chunks
-*   events
-
-```
-POST    /file-upload/test-only/recreate-collections
-```
-
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 200   | Successfully deleted and recreate collections in both Quarantine and Transient.  |
-
-#### EXAMPLE
-Reques (POST): localhost:8899/file-upload/test-only/recreate-collections
-
-Response: 200
-
-## INTERNAL AUTOMATED ENDPOINT (DO NOT USE) <a name="auto"></a>
+## INTERCOMMUNICATION ENDPOINT (DO NOT USE) <a name="auto"></a>
 The following endpoint is used by the application itself and <i>**DOES NOT REQUIRE**</i> user input. <i>**PLEASE DO NOT USE WITHOUT PERMISSION**</i>
 
 #### UPDATE EVENT OF A FILE (DO NOT USE)
@@ -436,6 +391,51 @@ Response: 200
 
 Note: "hasVirus" depends on the result from clamAV. If there is a virus, then hasVirus is set to "true" otherwise if not then it would be set to "false".
 
+#### UPLOAD FILE (DO NOT USE) 
+Uploads a binary file to Transient Store. This endpoint cannot be used directly to upload a file and any attempts to do so will be rejected. Only files that have been uploaded to the frontend, that have been quarantined and then scanned are accepted.
+```
+PUT     /file-upload/envelopes/{envelope-Id}/files/{file-Id}/{file-Ref-Id}
+```
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Successfully uploaded file a file.  |
+| Not Found | 404   |  File or Envelope not found. Unable to Upload. |
+
+#### EXAMPLE
+Request (PUT): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1/file-ref-1
+
+Body: Binary File. 
+
+Response: 200
+
+## TEST-ONLY ENDPOINTS <a name="testonly"></a>
+These endpoints are not available in production and are used for testing purposes. <i>**PLEASE DO NOT USE THESE WITHOUT PERMISSION**</i>.
+
+
+#### RECREATE COLLECTIONS (DO NOT USE)
+Deletes all collections in quarantine and transient. Then recreates the following collections and its indexes.
+
+Quarantine:
+*   quarantine.chunks
+
+Transient:
+*   envelopes-read-model
+*   envelopes.chunks
+*   events
+
+```
+POST    /file-upload/test-only/recreate-collections
+```
+
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Successfully deleted and recreate collections in both Quarantine and Transient.  |
+
+#### EXAMPLE
+Reques (POST): localhost:8899/file-upload/test-only/recreate-collections
+
+Response: 200
+
 
 ## INTERNAL USE ONLY ENDPOINTS <a name="internal"></a>
 The following endpoints are for internal use. <i>**PLEASE DO NOT USE THESE ENDPOINTS WITHOUT PERMISSION**</i>.
@@ -466,7 +466,7 @@ PUT   	/file-upload/envelopes/{envelopeId}
 | Ok  | 201   | Successfully created envelope. |
 | Bad Request | 400   |  Envelope not created. |  
 
-#### Example
+#### EXAMPLE
 Request (PUT): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
 Body:
