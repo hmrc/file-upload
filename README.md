@@ -457,7 +457,7 @@ Request (GET): localhost:8898/file-upload/envelopes
 Response: 200
 
 #### CREATE ENVELOPE WITH ID
-Creates a substitute envelope with the original envelope's Id for files to upload to. This will only create an envelope if the original endpoint failed to create an envelope.
+
 ```
 PUT   	/file-upload/envelopes/{envelopeId}
 ```
