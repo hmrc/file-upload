@@ -440,6 +440,45 @@ Note: "hasVirus" depends on the result from clamAV. If there is a virus, then ha
 ## INTERNAL USE ONLY ENDPOINTS <a name="internal"></a>
 The following endpoints are for internal use. <i>**PLEASE DO NOT USE THESE ENDPOINTS WITHOUT PERMISSION**</i>.
 
+#### SHOW ENVELOPES BY STATUS
+Returns a list of envelopes by their status.
+
+```
+GET     /file-upload/envelopes
+```
+
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Successfully return list of envelopes
+
+#### EXAMPLE
+Request (GET): localhost:8898/file-upload/envelopes
+
+Response: 200
+
+#### CREATE ENVELOPE WITH ID
+Creates a substitute envelope with the original envelope's Id for files to upload to. This will only create an envelope if the original endpoint failed to create an envelope.
+```
+PUT   	/file-upload/envelopes/{envelopeId}
+```
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 201   | Successfully created envelope. |
+| Bad Request | 400   |  Envelope not created. |  
+
+#### Example
+Request (PUT): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
+
+Body:
+``` json
+{
+    "callbackUrl": "string representing absolute url",
+    "metadata": { "any": "valid json object" }
+}
+```
+
+Response (in Headers): Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
+
 #### MANUALLY CHANGE STATE
 Currently, this endpoint changes the state of only "SEALED" envelopes to "OPEN" to allow resubmissions of files to that envelope. 
 
@@ -564,6 +603,21 @@ Response (in Body):
   }
 ]
 ```
+
+#### DELETE INPROGRESS DATA (DO NOT USE)
+Removes inprogress data by their file reference Id.
+```
+DELETE  /file-upload/"82c1e62c-ddca-468f-a1c9-ca9aa97aa0a2"
+```
+
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Successfully deleted inprogress file data.  |
+
+#### EXAMPLE
+Request (DELETE): localhost:8898/file-upload/82c1e62c-ddca-468f-a1c9-ca9aa97aa0a2
+
+Response: 200
 
 #### REPLAY EVENTS (DO NOT USE)
 Replays events of an envelope.
