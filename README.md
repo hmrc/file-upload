@@ -23,7 +23,7 @@ The endpoints can then be accessed with the base url http://localhost:8898/
 *   [Endpoints](#endpoints)
 *   [Callback](#callback)
 *   [Envelope Event Statuses](#events)
-*   [Intercommunications Endpoint](#auto)
+*   [Intercommunication Endpoints](#auto)
 *   [Test-Only Endpoints](#testonly)
 *   [Internal-Use-Only Endpoints](#internal)
 
