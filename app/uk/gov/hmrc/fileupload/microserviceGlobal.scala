@@ -112,6 +112,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   val iterateeForUpload = fileRepository.iterateeForUpload _
   val getFileFromRepo = fileRepository.retrieveFile _
   lazy val retrieveFile = FileService.retrieveFile(getFileFromRepo) _
+  lazy val retrieveFileMetaData = fileRepository.retrieveFileMetaData _
+  lazy val fileChunksInfo = fileRepository.chunksCount _
 
   lazy val statsRepository = uk.gov.hmrc.fileupload.read.stats.Repository.apply(db)
   lazy val saveFileQuarantinedStat = Stats.save(statsRepository.insert) _
@@ -170,6 +172,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       withBasicAuth = withBasicAuth,
       uploadBodyParser = uploadBodyParser,
       retrieveFile = retrieveFile,
+      getFileInfo = retrieveFileMetaData,
+      getChunks = fileChunksInfo,
       withValidEnvelope = withValidEnvelope,
       handleCommand = envelopeCommandHandler)
   }
