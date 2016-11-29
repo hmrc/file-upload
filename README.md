@@ -340,7 +340,7 @@ Request (POST)
 Expected response status code: 200
 
 
-## INTERCOMMUNICATION ENDPOINT (DO NOT USE) <a name="auto"></a>
+## INTERCOMMUNICATION ENDPOINTS (DO NOT USE) <a name="auto"></a>
 The following endpoint is used by the application itself and <i>**DOES NOT REQUIRE**</i> user input. <i>**PLEASE DO NOT USE WITHOUT PERMISSION**</i>
 
 #### UPDATE EVENT OF A FILE (DO NOT USE)
@@ -391,7 +391,7 @@ Response: 200
 
 Note: "hasVirus" depends on the result from clamAV. If there is a virus, then hasVirus is set to "true" otherwise if not then it would be set to "false".
 
-#### UPLOAD FILE (DO NOT USE) 
+#### UPLOAD FILE (DO NOT USE)
 Uploads a binary file to Transient Store. This endpoint cannot be used directly to upload a file and any attempts to do so will be rejected. Only files that have been uploaded to the frontend, that have been quarantined and then scanned are accepted.
 ```
 PUT     /file-upload/envelopes/{envelope-Id}/files/{file-Id}/{file-Ref-Id}
@@ -408,7 +408,7 @@ Body: Binary File.
 
 Response: 200
 
-## TEST-ONLY ENDPOINTS <a name="testonly"></a>
+## TEST-ONLY ENDPOINTS (DO NOT USE) <a name="testonly"></a>
 These endpoints are not available in production and are used for testing purposes. <i>**PLEASE DO NOT USE THESE WITHOUT PERMISSION**</i>.
 
 
@@ -437,10 +437,10 @@ Reques (POST): localhost:8899/file-upload/test-only/recreate-collections
 Response: 200
 
 
-## INTERNAL USE ONLY ENDPOINTS <a name="internal"></a>
+## INTERNAL USE ONLY ENDPOINTS (DO NOT USE) <a name="internal"></a>
 The following endpoints are for internal use. <i>**PLEASE DO NOT USE THESE ENDPOINTS WITHOUT PERMISSION**</i>.
 
-#### SHOW ENVELOPES BY STATUS
+#### SHOW ENVELOPES BY STATUS (DO NOT USE)
 Returns a list of envelopes by their status.
 
 ```
@@ -456,7 +456,7 @@ Request (GET): localhost:8898/file-upload/envelopes
 
 Response: 200
 
-#### CREATE ENVELOPE WITH ID
+#### CREATE ENVELOPE WITH ID (DO NOT USE)
 
 ```
 PUT   	/file-upload/envelopes/{envelopeId}
@@ -479,7 +479,7 @@ Body:
 
 Response (in Headers): Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
-#### MANUALLY SEND COMMANDS
+#### MANUALLY SEND COMMANDS (DO NOT USE)
 
 ```
 POST    /file-upload/commands/{commandType}
@@ -487,7 +487,7 @@ POST    /file-upload/commands/{commandType}
 
 | Responses    | Status    | Description |
 | --------|---------|-------|
-| Ok  | 200   | Successfully changed a "SEALED" envelope to "OPEN".
+| Ok  | 200   | Command successfully processed.
 | Bad Request | 400   | Incorrect Command.
 | Locked | 423   | Envelope already routed and received.
 
