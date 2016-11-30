@@ -28,8 +28,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.util.control.NonFatal
 
-class AdminController(getFileInfo: (FileRefId) => Future[Option[FileInfo]],
-                      getChunks: (FileRefId) => Future[Int])
+class AdminController(getFileInfo: (FileRefId) => Future[Option[FileInfo]], getChunks: (FileRefId) => Future[Int])
                      (implicit executionContext: ExecutionContext) extends BaseController {
 
   def retrieveFileMetaData(fileRefId: FileRefId) = Action.async { request =>

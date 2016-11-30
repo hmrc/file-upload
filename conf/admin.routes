@@ -1,1 +1,0 @@
-GET        /files/info/:fileRefId        @uk.gov.hmrc.fileupload.controllers.AdminController.retrieveFileMetaData(fileRefId: uk.gov.hmrc.fileupload.FileRefId)
