@@ -172,10 +172,13 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       withBasicAuth = withBasicAuth,
       uploadBodyParser = uploadBodyParser,
       retrieveFile = retrieveFile,
-      getFileInfo = retrieveFileMetaData,
-      getChunks = fileChunksInfo,
       withValidEnvelope = withValidEnvelope,
       handleCommand = envelopeCommandHandler)
+  }
+
+  lazy val adminController = {
+    new AdminController(getFileInfo = retrieveFileMetaData,
+      getChunks = fileChunksInfo)
   }
 
   lazy val transferController = {
@@ -245,6 +248,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     transferController
     testOnlyController
     routingController
+    adminController
   }
 
   override def getControllerInstance[A](controllerClass: Class[A]): A = {
@@ -263,6 +267,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       testOnlyController.asInstanceOf[A]
     } else if (controllerClass == classOf[RoutingController]) {
       routingController.asInstanceOf[A]
+    } else if (controllerClass == classOf[AdminController]) {
+      adminController.asInstanceOf[A]
     } else {
       super.getControllerInstance(controllerClass)
     }

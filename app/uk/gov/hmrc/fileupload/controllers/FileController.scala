@@ -17,28 +17,21 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
-import play.api.Logger
-import play.api.libs.json.Json
 import play.api.mvc._
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
-import uk.gov.hmrc.fileupload.read.file.FileInfo
 import uk.gov.hmrc.fileupload.read.file.Service._
-import uk.gov.hmrc.fileupload.utils.errorAsJson
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError, FileNotFoundError, StoreFile}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
-import scala.util.control.NonFatal
 
 class FileController(withBasicAuth: BasicAuth,
                      uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]],
                      retrieveFile: (Envelope, FileId) => Future[GetFileResult],
-                     getFileInfo: (FileRefId) => Future[Option[FileInfo]],
-                     getChunks: (FileRefId) => Future[Int],
                      withValidEnvelope: WithValidEnvelope,
                      handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
                     (implicit executionContext: ExecutionContext) extends BaseController {
@@ -68,26 +61,6 @@ class FileController(withBasicAuth: BasicAuth,
             ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
         }
       }
-    }
-  }
-
-  def retrieveFileMetaData(fileRefId: FileRefId) = Action.async { request =>
-    getFileInfo(fileRefId).flatMap {
-      case Some(f) => {
-        val expectedNoChunks = math.ceil(f.length.toDouble / f.chunkSize)
-        getChunks(fileRefId).map { actualNoChunks =>
-          if (actualNoChunks == expectedNoChunks) {
-            Ok(Json.toJson(f))
-          } else {
-            Ok(errorAsJson(s"Some file chunks are missing! Number of chunks expected $expectedNoChunks , actual $actualNoChunks"))
-          }
-        }.recover {
-          case NonFatal(ex) =>
-            Logger.warn(s"Retrieval of chunks for the file id $fileRefId failed ${ex.getMessage}")
-            InternalServerError(ex.getMessage)
-        }
-      }
-      case None => Future.successful(NotFound)
     }
   }
 

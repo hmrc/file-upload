@@ -46,7 +46,7 @@ object Repository {
 
 case class FileData(length: Long = 0, data: Enumerator[Array[Byte]] = null)
 
-case class FileInfo(_id: String, chunkSize:Int, length: Long, uploadDate: DateTime)
+case class FileInfo(_id: String, chunkSize:Int, length: Long, uploadDate: DateTime, metadata: JsObject)
 
 object FileInfo {
   implicit val dateReads = implicitly[Reads[BSONDateTime]].map(d => new DateTime(d.value))
