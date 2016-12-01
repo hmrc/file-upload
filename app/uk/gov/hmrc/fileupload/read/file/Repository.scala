@@ -16,16 +16,17 @@
 
 package uk.gov.hmrc.fileupload.read.file
 
+import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.iteratee.{Enumerator, Iteratee}
-import play.api.libs.json.Json
+import play.api.libs.json._
 import play.modules.reactivemongo.GridFSController._
 import play.modules.reactivemongo.JSONFileToSave
 import reactivemongo.api.gridfs.GridFS
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.{DB, DBMetaCommands}
-import reactivemongo.bson.BSONDocument
+import reactivemongo.bson.{BSONDateTime, BSONDocument}
 import reactivemongo.json._
 import uk.gov.hmrc.fileupload._
 
@@ -44,6 +45,14 @@ object Repository {
 }
 
 case class FileData(length: Long = 0, data: Enumerator[Array[Byte]] = null)
+
+case class FileInfo(_id: String, chunkSize:Int, length: Long, uploadDate: DateTime, metadata: JsObject)
+
+object FileInfo {
+  implicit val dateReads = implicitly[Reads[BSONDateTime]].map(d => new DateTime(d.value))
+  implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val fileInfoFormat: Format[FileInfo] = Json.format[FileInfo]
+}
 
 class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext) {
 
@@ -68,6 +77,14 @@ class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionCont
     gfs.find[BSONDocument, JSONReadFile](BSONDocument("_id" -> _id.value)).headOption.map { file =>
       file.map( f => FileData(f.length, gfs.enumerate(f)))
     }
+  }
+
+  def retrieveFileMetaData(fileRefId: FileRefId)(implicit ec: ExecutionContext): Future[Option[FileInfo]] = {
+    gfs.files.find(BSONDocument("_id" -> fileRefId.value)).cursor[FileInfo]().collect[List]().map(_.headOption)
+  }
+
+  def chunksCount(fileRefId: FileRefId)(implicit ec: ExecutionContext): Future[Int] = {
+    gfs.chunks.count(Some(JsObject(Seq("files_id" -> JsString(fileRefId.value)))))
   }
 
   def recreate(): Unit = {

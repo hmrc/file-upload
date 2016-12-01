@@ -112,6 +112,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   val iterateeForUpload = fileRepository.iterateeForUpload _
   val getFileFromRepo = fileRepository.retrieveFile _
   lazy val retrieveFile = FileService.retrieveFile(getFileFromRepo) _
+  lazy val retrieveFileMetaData = fileRepository.retrieveFileMetaData _
+  lazy val fileChunksInfo = fileRepository.chunksCount _
 
   lazy val statsRepository = uk.gov.hmrc.fileupload.read.stats.Repository.apply(db)
   lazy val saveFileQuarantinedStat = Stats.save(statsRepository.insert) _
@@ -172,6 +174,11 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       retrieveFile = retrieveFile,
       withValidEnvelope = withValidEnvelope,
       handleCommand = envelopeCommandHandler)
+  }
+
+  lazy val adminController = {
+    new AdminController(getFileInfo = retrieveFileMetaData,
+      getChunks = fileChunksInfo)
   }
 
   lazy val transferController = {
@@ -241,6 +248,7 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
     transferController
     testOnlyController
     routingController
+    adminController
   }
 
   override def getControllerInstance[A](controllerClass: Class[A]): A = {
@@ -259,6 +267,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
       testOnlyController.asInstanceOf[A]
     } else if (controllerClass == classOf[RoutingController]) {
       routingController.asInstanceOf[A]
+    } else if (controllerClass == classOf[AdminController]) {
+      adminController.asInstanceOf[A]
     } else {
       super.getControllerInstance(controllerClass)
     }

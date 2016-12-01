@@ -45,3 +45,7 @@ object JsonUtils {
     }
   }
 }
+
+object errorAsJson {
+  def apply(msg: String) = JsObject(Seq("error" -> Json.obj("msg" -> msg)))
+}
