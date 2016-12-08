@@ -21,14 +21,11 @@ private object AppDependencies {
   private val microserviceBootstrapVersion = "4.4.0"
   private val playAuthVersion = "3.3.0"
   private val playHealthVersion = "1.1.0"
-  private val playJsonLoggerVersion = "2.1.1"
   private val playUrlBindersVersion = "1.1.0"
   private val playConfigVersion = "2.1.0"
-  private val domainVersion = "3.7.0"
   private val hmrcTestVersion = "1.8.0"
   private val playReactivemongoVersion = "4.8.0"
   private val simpleReactivemongoVersion = "4.8.0"
-  private val akkaVersion = "2.4.6"
   private val catsVersion = "0.7.0"
 
   val compile = Seq(
@@ -40,10 +37,6 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "play-health" % playHealthVersion,
     "uk.gov.hmrc" %% "play-url-binders" % playUrlBindersVersion,
     "uk.gov.hmrc" %% "play-config" % playConfigVersion,
-    "uk.gov.hmrc" %% "play-json-logger" % playJsonLoggerVersion,
-    "uk.gov.hmrc" %% "domain" % domainVersion,
-    "com.typesafe.akka" % "akka-actor_2.11" % akkaVersion,
-    "com.typesafe.akka" % "akka-testkit_2.11" % akkaVersion,
     "org.typelevel" %% "cats" % catsVersion,
     "com.google.code.findbugs" % "jsr305" % "2.0.3")
 
@@ -59,8 +52,7 @@ private object AppDependencies {
         "org.scalatest" %% "scalatest" % "2.2.6" % scope,
         "org.pegdown" % "pegdown" % "1.5.0" % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
-        "uk.gov.hmrc" %% "reactivemongo-test" % "1.6.0" % scope,
-        "com.typesafe.akka" % "akka-testkit_2.11" % akkaVersion % scope
+        "uk.gov.hmrc" %% "reactivemongo-test" % "1.6.0" % scope
       )
     }.test
   }
