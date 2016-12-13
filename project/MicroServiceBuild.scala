@@ -20,7 +20,7 @@ private object AppDependencies {
 
   private val microserviceBootstrapVersion = "4.4.0"
   private val playAuthVersion = "3.3.0"
-  private val playHealthVersion = "1.1.0"
+ private val playHealthVersion = "1.1.0"
   private val playUrlBindersVersion = "1.1.0"
   private val playConfigVersion = "2.1.0"
   private val hmrcTestVersion = "1.8.0"
@@ -37,6 +37,11 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "play-health" % playHealthVersion,
     "uk.gov.hmrc" %% "play-url-binders" % playUrlBindersVersion,
     "uk.gov.hmrc" %% "play-config" % playConfigVersion,
+    "net.logstash.logback" % "logstash-logback-encoder" % "4.8",
+    "ch.qos.logback" % "logback-core" % "1.1.6",
+    "ch.qos.logback" % "logback-classic" % "1.1.6",
+    "ch.qos.logback" % "logback-access" % "1.1.6",
+    "org.slf4j" % "slf4j-api" % "1.7.10",
     "org.typelevel" %% "cats" % catsVersion,
     "com.google.code.findbugs" % "jsr305" % "2.0.3")
 
