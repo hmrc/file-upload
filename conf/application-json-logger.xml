@@ -2,7 +2,35 @@
 <configuration>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="uk.gov.hmrc.play.logging.JsonEncoder"/>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <includeMdcKeyName>included</includeMdcKeyName>
+            <enableContextMap>true</enableContextMap>
+            <providers>
+                <context/>
+                <mdc/>
+                <pattern>
+                    <pattern>
+                        {
+                        "app": "file-upload2",
+                        "timestamp": "%date{ISO8601}",
+                        "level": "%level",
+                        "logger": "%logger",
+                        "thread": "%thread",
+                        "message": "%message"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+            <stackTrace>
+                <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                    <maxDepthPerThrowable>20</maxDepthPerThrowable>
+                    <maxLength>1000</maxLength>
+                    <shortenedClassNameLength>30</shortenedClassNameLength>
+                    <rootCauseFirst>true</rootCauseFirst>
+                    <exclude>excluded</exclude>
+                </throwableConverter>
+            </stackTrace>
+        </encoder>
     </appender>
 
     <logger name="uk.gov" level="DEBUG"/>
