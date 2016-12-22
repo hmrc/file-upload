@@ -22,6 +22,7 @@ import com.google.common.io.BaseEncoding
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.http.{HeaderNames, Status}
+import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.{FakeHeaders, FakeRequest}
@@ -38,6 +39,8 @@ import play.api.libs.iteratee.Enumerator
 import scala.concurrent.{ExecutionContext, Future}
 
 class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with ScalaFutures {
+
+  implicit override val patienceConfig = PatienceConfig(timeout = Span(10, Seconds), interval = Span(10, Millis))
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(10, Seconds), interval = Span(10, Millis))
 
