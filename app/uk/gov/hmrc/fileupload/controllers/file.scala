@@ -19,6 +19,7 @@ package uk.gov.hmrc.fileupload.controllers
 import play.api.libs.iteratee.Iteratee
 import play.api.mvc.BodyParser
 import uk.gov.hmrc.fileupload._
+import uk.gov.hmrc.fileupload.utils.StreamUtils.iterateeToAccumulator
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -29,6 +30,9 @@ object UploadParser {
            (envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId)
            (implicit ex: ExecutionContext): BodyParser[Future[JSONReadFile]] = BodyParser { _ =>
 
-    uploadFile(envelopeId, fileId, fileRefId) map (Right(_)) recover { case NonFatal(e) => Left(ExceptionHandler(e)) }
+    iterateeToAccumulator(uploadFile(envelopeId, fileId, fileRefId)) map (Right(_)) recover {
+      case NonFatal(e) => Left(ExceptionHandler(e))
   }
+}
+
 }

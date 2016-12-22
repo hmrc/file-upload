@@ -18,6 +18,7 @@ package uk.gov.hmrc.fileupload.controllers
 
 import org.joda.time.DateTime
 import play.api.libs.json._
+import play.api.mvc.QueryStringBindable
 import uk.gov.hmrc.fileupload.read.envelope._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
@@ -78,7 +79,7 @@ object GetFileMetadataReport {
   implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val getFileMetaDataReportFormat: Format[GetFileMetadataReport] = Json.format[GetFileMetadataReport]
 
-  def href(envelopeId: EnvelopeId, fileId: FileId) = routes.FileController.downloadFile(envelopeId, fileId).url
+  def href(envelopeId: EnvelopeId, fileId: FileId) = uk.gov.hmrc.fileupload.controllers.routes.FileController.downloadFile(envelopeId, fileId).url
 
   def fromFile(envelopeId: EnvelopeId, file: File): GetFileMetadataReport =
     GetFileMetadataReport(
@@ -91,4 +92,28 @@ object GetFileMetadataReport {
       metadata = file.metadata,
       href = Some(href(envelopeId, file.fileId))
     )
+}
+
+case class GetEnvelopesByStatus(status: List[EnvelopeStatus], inclusive: Boolean)
+
+object GetEnvelopesByStatus {
+
+  implicit def getEnvelopesByStatusQueryStringBindable(implicit booleanBinder: QueryStringBindable[Boolean],
+                                                       listBinder: QueryStringBindable[List[String]]) = new QueryStringBindable[GetEnvelopesByStatus] {
+    override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, GetEnvelopesByStatus]] = {
+      for {
+        status <- listBinder.bind("status", params)
+        inclusive <- booleanBinder.bind("inclusive", params)
+      } yield {
+        (status, inclusive) match {
+          case (Right(s), Right(i)) => Right(GetEnvelopesByStatus(s.map(EnvelopeStatusTransformer.fromName), i))
+          case _ => Left("Unable to bind a GetEnvelopesByStatus")
+        }
+      }
+    }
+    override def unbind(key: String, getEnvelopesByStatus: GetEnvelopesByStatus): String = {
+      val statuses = getEnvelopesByStatus.status.map(n => s"status=$n")
+      statuses.mkString("&") + "&" + booleanBinder.unbind("inclusive", getEnvelopesByStatus.inclusive)
+    }
+  }
 }

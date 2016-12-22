@@ -115,7 +115,19 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
       sendEvent(event)
 
       val expectedEnvelope = initialState.copy(
-        version = Version(1), destination = Some(event.destination), application = Some(event.application)
+        version = Version(1), status = EnvelopeStatusSealed, destination = Some(event.destination), application = Some(event.application)
+      )
+      modifiedEnvelope shouldBe expectedEnvelope
+    }
+    "unseal envelope" in new UpdateEnvelopeFixture {
+      val event = EnvelopeSealed(initialState._id, "testRoutingReqId", "testDestination", "testApplication")
+      val event1 = EnvelopeUnsealed(initialState._id)
+
+      sendEvent(event)
+      sendEvent(event1)
+
+      val expectedEnvelope = initialState.copy(
+        version = Version(1), status = EnvelopeStatusOpen, destination = None, application = None
       )
       modifiedEnvelope shouldBe expectedEnvelope
     }

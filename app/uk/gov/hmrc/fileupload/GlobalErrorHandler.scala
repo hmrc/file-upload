@@ -16,17 +16,16 @@
 
 package uk.gov.hmrc.fileupload
 
+import play.api.http.HttpErrorHandler
+import play.api.mvc.{RequestHeader, Result}
+import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 
-import org.scalatest.{BeforeAndAfterAll, Suite}
-import akka.testkit.TestKit
+import scala.concurrent.{ExecutionContext, Future}
 
-import scala.concurrent.Await
-import scala.concurrent.duration._
+class GlobalErrorHandler extends HttpErrorHandler {
+  override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] =
+    Future(ExceptionHandler(statusCode, message))(ExecutionContext.global)
 
-trait StopSystemAfterAll extends BeforeAndAfterAll {
-  this: TestKit with Suite =>
-  override protected def afterAll() {
-    super.afterAll()
-    Await.result(system.terminate(), 5 seconds)
-  }
+  override def onServerError(request: RequestHeader, exception: Throwable): Future[Result] =
+    Future(ExceptionHandler(exception))(ExecutionContext.global)
 }

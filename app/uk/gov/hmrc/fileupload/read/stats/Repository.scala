@@ -23,7 +23,9 @@ import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 import uk.gov.hmrc.mongo.ReactiveRepository
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 object InProgressFile {
   implicit val format: Format[InProgressFile] = Json.format[InProgressFile]
@@ -41,10 +43,16 @@ class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionCont
   def delete(envelopeId: EnvelopeId, fileId: FileId): Future[Boolean] =
     remove("envelopeId" -> envelopeId, "fileId" -> fileId) map toBoolean
 
+  def deleteByFileRefId(fileRefId: FileRefId)(implicit ec: ExecutionContext): Future[Boolean] =
+    remove("_id" -> fileRefId).map(toBoolean)
+
   def toBoolean(wr: WriteResult): Boolean = wr match {
     case r if r.ok && r.n > 0 => true
     case _ => false
   }
 
   def all() = findAll()
+
+  def recreate()(implicit ec: ExecutionContext): Unit =
+    Await.result(drop(ec), 5 seconds)
 }

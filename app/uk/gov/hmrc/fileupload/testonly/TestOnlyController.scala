@@ -18,36 +18,14 @@ package uk.gov.hmrc.fileupload.testonly
 
 import play.api.mvc.Action
 import play.api.mvc.Results._
-import reactivemongo.api.commands.WriteResult
-import reactivemongo.bson.BSONDocument
-import uk.gov.hmrc.fileupload.read.stats.{Repository => InProgressRepository}
-import uk.gov.hmrc.fileupload.write.infrastructure.MongoEventStore
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
-class TestOnlyController(removeAllFiles: () => Future[List[WriteResult]], removeAllEnvelopes: () => Future[WriteResult],
-                         mongoEventStore: MongoEventStore, inProgressRepository: InProgressRepository)
+class TestOnlyController(recreateCollections: List[() => Unit])
                         (implicit executionContext: ExecutionContext) {
 
-  def clearCollections() = Action.async {
-    request =>
-      for {
-        envelopeAndFileCleanResult <- cleanupEnvelopeAndFiles
-        emptyEventsResult <- emptyEvents
-        inProgressResult <- inProgressRepository.removeAll()
-      } yield {
-        (inProgressResult :: emptyEventsResult :: envelopeAndFileCleanResult._2).forall(_.ok)
-      } match {
-        case true => Ok
-        case false => InternalServerError
-      }
-  }
-
-  private def cleanupEnvelopeAndFiles: Future[(WriteResult, List[WriteResult])] = {
-    removeAllEnvelopes() zip removeAllFiles()
-  }
-
-  private def emptyEvents: Future[WriteResult] = {
-    mongoEventStore.collection.remove(BSONDocument())
+  def recreate() = Action { implicit request =>
+    recreateCollections.foreach(_())
+    Ok
   }
 }

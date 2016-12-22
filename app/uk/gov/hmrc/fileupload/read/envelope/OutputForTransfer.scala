@@ -19,9 +19,8 @@ package uk.gov.hmrc.fileupload.read.envelope
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.RequestHeader
-import uk.gov.hmrc.fileupload.controllers.routes.{EnvelopeController => envelopeRoutes, FileController => fileRoutes}
-import uk.gov.hmrc.fileupload.controllers.transfer.routes.{TransferController => transferRoutes}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
+import uk.gov.hmrc.fileupload.{controllers => controllers}
 
 object OutputForTransfer {
   def apply(envelopes: Seq[Envelope])(implicit rh: RequestHeader): JsValue = {
@@ -86,24 +85,25 @@ object OutputForTransfer {
   object URLs {
     def envelopesPerDestination(implicit rh: RequestHeader): String = {
       val destination = rh.getQueryString("destination").map(d => s"?destination=$d").getOrElse("")
-      transferRoutes.list().absoluteURL(rh.secure) + destination
+      controllers.transfer.routes.TransferController.list().absoluteURL(rh.secure) + destination
     }
 
+
     def fileTransferEnvelope(envelopeId: EnvelopeId): String = {
-      transferRoutes.download(envelopeId).url
+      controllers.transfer.routes.TransferController.download(envelopeId).url
     }
 
     def fileDownloadContent(envelopeId: EnvelopeId, fileId: FileId): String = {
-       fileRoutes.downloadFile(envelopeId, fileId).url
+       controllers.routes.FileController.downloadFile(envelopeId, fileId).url
     }
 
     def fileUri(envelopeId: EnvelopeId, fileId: FileId): String = {
-      envelopeRoutes.deleteFile(envelopeId, fileId).url
+      controllers.routes.EnvelopeController.deleteFile(envelopeId, fileId).url
     }
 
     def fileRelativeToEnvelope(file: File, envelopeId: EnvelopeId): String = {
-      val envelopeUrl =  envelopeRoutes.show(envelopeId).url
-      envelopeRoutes.deleteFile(envelopeId, file.fileId).url.stripPrefix(envelopeUrl)
+      val envelopeUrl =  controllers.routes.EnvelopeController.show(envelopeId).url
+      controllers.routes.EnvelopeController.deleteFile(envelopeId, file.fileId).url.stripPrefix(envelopeUrl)
     }
   }
 
@@ -119,5 +119,4 @@ object OutputForTransfer {
   val contentType = "contentType"
   val length = "length"
   val created = "created"
-
 }

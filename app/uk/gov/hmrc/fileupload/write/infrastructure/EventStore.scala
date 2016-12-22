@@ -25,7 +25,8 @@ import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.fileupload.write.infrastructure.EventStore._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object EventStore {
@@ -46,6 +47,8 @@ trait EventStore {
   def saveUnitOfWork(streamId: StreamId, unitOfWork: UnitOfWork): Future[SaveResult]
 
   def unitsOfWorkForAggregate(streamId: StreamId): Future[GetResult]
+
+  def recreate(): Unit
 }
 
 class MongoEventStore(mongo: () => DB with DBMetaCommands, writeConcern: WriteConcern = WriteConcern.Default)
@@ -55,7 +58,10 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, writeConcern: WriteCo
 
   val collection = mongo().collection[BSONCollection]("events")
 
-  collection.indexesManager.ensure(Index(key = List("streamId" -> IndexType.Hashed), background = true))
+  ensureIndex()
+
+  def ensureIndex() =
+    collection.indexesManager.ensure(Index(key = List("streamId" -> IndexType.Hashed), background = true))
 
   val duplicateKeyErrroCode = Some(11000)
 
@@ -68,14 +74,20 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, writeConcern: WriteCo
       }
     }.recover {
       case e: DatabaseException if e.code == duplicateKeyErrroCode =>
-          Xor.Left(VersionConflictError)
+        Xor.Left(VersionConflictError)
       case e =>
         Xor.left(NotSavedError(e.getMessage))
     }
+
 
   override def unitsOfWorkForAggregate(streamId: StreamId): Future[GetResult] =
     collection.find(BSONDocument("streamId" -> streamId.value)).cursor[UnitOfWork]().collect[List]().map { l =>
       val sortByVersion = l.sortBy(_.version.value)
       Xor.right(sortByVersion)
     }.recover { case e => Xor.left(GetError(e.getMessage)) }
+
+  override def recreate(): Unit = {
+    Await.result(collection.drop(), 5 seconds)
+    Await.result(ensureIndex(), 5 seconds)
+  }
 }

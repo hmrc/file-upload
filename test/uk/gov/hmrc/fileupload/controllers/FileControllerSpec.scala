@@ -26,7 +26,6 @@ import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.{JsString, JsValue}
 import play.api.mvc._
 import play.api.test.{FakeHeaders, FakeRequest}
-import reactivemongo.api.commands.WriteResult
 import reactivemongo.json.JSONSerializationPack
 import reactivemongo.json.JSONSerializationPack.Document
 import uk.gov.hmrc.fileupload._
@@ -35,11 +34,11 @@ import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.read.file.Service._
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFutures {
+class FileControllerSpec extends UnitSpec with ScalaFutures {
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
 
@@ -68,15 +67,13 @@ class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFut
                     uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]] = parse,
                     retrieveFile: (Envelope, FileId) => Future[GetFileResult] = (_, _) => failed,
                     withValidEnvelope: WithValidEnvelope = Support.envelopeAvailable(),
-                    handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
-                    clear: () => Future[List[WriteResult]] = () => failed) =
+                    handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed) =
     new FileController(
       withBasicAuth,
       uploadBodyParser = uploadBodyParser,
       retrieveFile = retrieveFile,
       withValidEnvelope = withValidEnvelope,
-      handleCommand = handleCommand,
-      clear = clear)
+      handleCommand = handleCommand)
 
   "Upload a file" should {
     "return 200 after the file is added to the envelope" in {

@@ -16,16 +16,18 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import akka.stream.scaladsl.Source
+import akka.util.ByteString
 import cats.data.Xor
+import play.api.http.HttpEntity
+import play.api.libs.streams.Streams
 import play.api.mvc._
-import reactivemongo.api.commands.WriteResult
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.read.file.Service._
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError, FileNotFoundError, StoreFile}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -34,9 +36,8 @@ class FileController(withBasicAuth: BasicAuth,
                      uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]],
                      retrieveFile: (Envelope, FileId) => Future[GetFileResult],
                      withValidEnvelope: WithValidEnvelope,
-                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
-                     clear: () => Future[List[WriteResult]])
-                    (implicit executionContext: ExecutionContext) extends BaseController {
+                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
+                    (implicit executionContext: ExecutionContext) extends Controller {
 
 
   def upsertFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) = Action.async(uploadBodyParser(id, fileId, fileRefId)) { request =>
@@ -55,10 +56,11 @@ class FileController(withBasicAuth: BasicAuth,
       withValidEnvelope(id) { envelope =>
         retrieveFile(envelope, fileId).map {
           case Xor.Right(FileFound(filename, length, data)) =>
-            Ok.feed(data).withHeaders(
-              CONTENT_LENGTH -> s"${ length }",
-              CONTENT_DISPOSITION -> s"""attachment; filename="${ filename.getOrElse("data") }""""
-            )
+            val byteArray = Source.fromPublisher(Streams.enumeratorToPublisher(data.map(ByteString.fromArray)))
+            Ok.sendEntity(HttpEntity.Streamed(byteArray, Some(length), Some("application/octet-stream")))
+              .withHeaders(CONTENT_DISPOSITION -> s"""attachment; filename="${filename.getOrElse("data")}"""",
+                CONTENT_LENGTH -> s"$length",
+                CONTENT_TYPE -> "application/octet-stream")
           case Xor.Left(GetFileNotFoundError) =>
             ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
         }
@@ -66,14 +68,4 @@ class FileController(withBasicAuth: BasicAuth,
     }
   }
 
-  def expire() = Action.async { request =>
-    clear().map {
-      results =>
-        val errors = results.filter(_.hasErrors)
-        errors match {
-          case Nil => Ok
-          case _ => InternalServerError(errors.flatMap(_.errmsg).mkString(", "))
-        }
-    }
-  }
 }

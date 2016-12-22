@@ -17,17 +17,17 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
+import play.api.libs.iteratee.Enumerator
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
-import uk.gov.hmrc.fileupload.read.envelope.Envelope
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.envelope.Service._
 import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
 import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, _}
-import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -37,17 +37,19 @@ class EnvelopeController(withBasicAuth: BasicAuth,
                          handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                          findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]],
                          findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]],
-                         findAllInProgressFile: () => Future[GetInProgressFileResult])
-                        (implicit executionContext: ExecutionContext) extends BaseController {
+                         findAllInProgressFile: () => Future[GetInProgressFileResult],
+                         deleteInProgressFile: (FileRefId) => Future[Boolean],
+                         getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope])
+                        (implicit executionContext: ExecutionContext) extends Controller {
 
   def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
-    def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ routes.EnvelopeController.show(id) }"
+    def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
     val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata)
     handleCreate(envelopeLocation, command)
   }
 
   def createWithId(id: EnvelopeId) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
-    def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ routes.EnvelopeController.show(id) }"
+    def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
     val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata)
     handleCreate(envelopeLocation, command)
   }
@@ -91,6 +93,13 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     }.recover { case e => ExceptionHandler(e) }
   }
 
+  def list(getEnvelopesByStatusQuery: GetEnvelopesByStatus) = Action { implicit request =>
+    import EnvelopeReport._
+
+    Ok.chunked(
+      getEnvelopesByStatus(getEnvelopesByStatusQuery.status, getEnvelopesByStatusQuery.inclusive).map(e => Json.toJson(fromEnvelope(e))))
+  }
+
   def retrieveMetadata(id: EnvelopeId, fileId: FileId) = Action.async { request =>
     import GetFileMetadataReport._
 
@@ -107,5 +116,12 @@ class EnvelopeController(withBasicAuth: BasicAuth,
       case Xor.Right(inProgressFiles) => Ok(Json.toJson(inProgressFiles))
       case Xor.Left(error) => InternalServerError("It was not possible to retrieve in progress files")
     }
+  }
+
+  def deleteInProgressFileByRefId(fileRefId: FileRefId) = Action.async {
+    deleteInProgressFile(fileRefId).map {
+      case true => Ok
+      case false => InternalServerError("It was not possible to delete the in progress file")
+    }.recover { case e => ExceptionHandler(e) }
   }
 }

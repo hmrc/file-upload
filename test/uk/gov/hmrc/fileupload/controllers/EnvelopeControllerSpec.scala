@@ -20,6 +20,7 @@ import cats.data.Xor
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.http.{HeaderNames, Status}
 import play.api.libs.json.Json
 import play.api.mvc.Result
@@ -27,15 +28,18 @@ import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindError, FindMetadataError}
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, File, FileStatusQuarantined}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, File, FileStatusQuarantined}
 import uk.gov.hmrc.fileupload.read.stats.Stats._
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import uk.gov.hmrc.play.test.UnitSpec
+import play.api.libs.iteratee.Enumerator
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with ScalaFutures {
+class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with ScalaFutures {
+
+  implicit override val patienceConfig = PatienceConfig(timeout = Span(10, Seconds), interval = Span(10, Millis))
 
   import Support._
 
@@ -52,9 +56,10 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
                     findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]] = _ => failed,
                     findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]] = (_, _) => failed,
-                    findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed
-                   ) =
-    new EnvelopeController(withBasicAuth, nextId, handleCommand, findEnvelope, findMetadata, findAllInProgressFile)
+                    findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed,
+                    deleteInProgressFile: FileRefId => Future[Boolean] = _ => failed,
+                    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope] = (_, _) => failed) =
+    new EnvelopeController(withBasicAuth, nextId, handleCommand, findEnvelope, findMetadata, findAllInProgressFile, deleteInProgressFile, getEnvelopesByStatus)
 
   "Create envelope with a request" should {
     "return response with OK status and a Location header specifying the envelope endpoint" in {
@@ -69,7 +74,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
       result.header.status shouldBe Status.CREATED
 	    val location = result.header.headers("Location")
-	    location shouldBe s"$serverUrl${routes.EnvelopeController.show(EnvelopeId("abc-def")).url}"
+	    location shouldBe s"$serverUrl${uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(EnvelopeId("abc-def")).url}"
     }
   }
 
@@ -86,7 +91,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
       result.header.status shouldBe Status.CREATED
       val location = result.header.headers("Location")
-      location shouldBe s"$serverUrl${routes.EnvelopeController.show(EnvelopeId("abc-def")).url}"
+      location shouldBe s"$serverUrl${uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(EnvelopeId("abc-def")).url}"
     }
   }
 
@@ -103,7 +108,7 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
       result.header.status shouldBe Status.CREATED
       val location = result.header.headers("Location")
-      location shouldBe s"$serverUrl${routes.EnvelopeController.show(EnvelopeId("aaa-bbb")).url}"
+      location shouldBe s"$serverUrl${uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(EnvelopeId("aaa-bbb")).url}"
     }
   }
 
@@ -181,6 +186,30 @@ class EnvelopeControllerSpec extends UnitSpec with WithFakeApplication with Scal
 
       result.header.status shouldBe Status.OK
       actualResponse shouldBe expectedResponse
+    }
+  }
+
+  "Delete File in progress with FileRefId" should {
+    "respond with 200 OK status" in {
+      val envelope = Support.envelopeWithAFile(FileId())
+
+      val request = FakeRequest("DELETE", s"/file-upload/files/inprogress/fileRefId")
+
+      val controller = newController(deleteInProgressFile = _ => Future.successful(true))
+      val result = controller.deleteInProgressFileByRefId(envelope.files.get.head.fileRefId)(request).futureValue
+
+      result.header.status shouldBe Status.OK
+    }
+
+    "respond with 500 status" in {
+      val envelope = Support.envelopeWithAFile(FileId())
+
+      val request = FakeRequest("DELETE", s"/file-upload/files/inprogress/fileRefId")
+
+      val controller = newController(deleteInProgressFile = _ => Future.successful(false))
+      val result = controller.deleteInProgressFileByRefId(envelope.files.get.head.fileRefId)(request).futureValue
+
+      result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
     }
   }
 }

@@ -17,9 +17,10 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 import cats.data.Xor
+import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.Json
 import play.api.mvc.{Result, Results}
-import reactivemongo.api.commands.WriteResult
+import reactivemongo.api.commands.{WriteConcern, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{DB, DBMetaCommands, ReadPreference}
 import reactivemongo.bson.BSONObjectID
@@ -27,7 +28,9 @@ import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.mongo.ReactiveRepository
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 object Repository {
 
@@ -59,7 +62,9 @@ class Repository(mongo: () => DB with DBMetaCommands)
 
   import Repository._
 
-  def update(envelope: Envelope, checkVersion: Boolean = true)(implicit ex: ExecutionContext): Future[UpdateResult] = {
+  def update(writeConcern: WriteConcern = WriteConcern.Default)
+            (envelope: Envelope, checkVersion: Boolean = true)
+            (implicit ex: ExecutionContext): Future[UpdateResult] = {
     val selector = if (checkVersion) {
       Json.obj(
         _Id -> envelope._id.value,
@@ -69,7 +74,7 @@ class Repository(mongo: () => DB with DBMetaCommands)
         _Id -> envelope._id.value)
     }
 
-    collection.update(selector = selector, update = envelope, upsert = true, multi = false).map { r =>
+    collection.update(selector = selector, update = envelope, writeConcern = writeConcern, upsert = true, multi = false).map { r =>
       if (r.ok) {
         updateSuccess
       } else {
@@ -109,8 +114,19 @@ class Repository(mongo: () => DB with DBMetaCommands)
     collection.find(query).cursor[Envelope](ReadPreference.secondaryPreferred).collect[List]()
   }
 
+  def getByStatus(status: List[EnvelopeStatus], inclusive: Boolean)(implicit ec: ExecutionContext): Enumerator[Envelope] = {
+    val operator = if (inclusive) "$in" else "$nin"
+    val query = Json.obj("status" -> Json.obj(operator -> status.map(_.name)))
+    collection.find(query).cursor[Envelope](ReadPreference.secondaryPreferred).enumerate()
+  }
+
   def all()(implicit ec: ExecutionContext): Future[List[Envelope]] = {
     findAll()
+  }
+
+  def recreate()(implicit ec: ExecutionContext): Unit = {
+    Await.result(collection.drop(), 5 seconds)
+    Await.result(ensureIndexes(ec), 5 seconds)
   }
 
   def toBoolean(wr: WriteResult): Boolean = wr match {
