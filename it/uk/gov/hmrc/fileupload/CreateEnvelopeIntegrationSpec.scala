@@ -19,6 +19,7 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
   feature("Create Envelope") {
 
     scenario("Create a new Envelope with empty body") {
+
       Given("I have an empty JSON request")
       val json = "{}"
 

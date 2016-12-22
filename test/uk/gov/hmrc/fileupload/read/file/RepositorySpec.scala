@@ -31,7 +31,7 @@ import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class RepositorySpec extends UnitSpec with MongoSpecSupport with WithFakeApplication with ScalaFutures with BeforeAndAfterEach {
+class RepositorySpec extends UnitSpec with MongoSpecSupport with ScalaFutures with BeforeAndAfterEach {
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
 

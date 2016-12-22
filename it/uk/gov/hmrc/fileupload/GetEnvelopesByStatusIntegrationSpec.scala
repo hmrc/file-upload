@@ -1,11 +1,10 @@
 package uk.gov.hmrc.fileupload
 
-import play.api.libs.iteratee.Iteratee
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
 
 class GetEnvelopesByStatusIntegrationSpec extends IntegrationSpec with EnvelopeActions {
 
-  def countSubstring(str:String, substr:String) = substr.r.findAllMatchIn(str).length
+  def countSubstring(str: String, substr: String) = substr.r.findAllMatchIn(str).length
 
   feature("GetEnvelopesByStatus") {
 
@@ -22,15 +21,12 @@ class GetEnvelopesByStatusIntegrationSpec extends IntegrationSpec with EnvelopeA
 
       eventually {
         When(s"I invoke GET /file-upload/envelopes?status=OPEN&status=CLOSED&inclusive=true")
-        val (header, body) = getEnvelopesForStatus(status, inclusive = true)
+        val response = getEnvelopesForStatus(status, inclusive = true)
 
         Then("I will receive a 200 Ok response")
-        header.status shouldBe OK
+        response.status shouldBe OK
 
-        val chunks = Iteratee.getChunks[Array[Byte]].map(_.map(x => new String(x)))
-
-        val result = body.run(chunks).futureValue.mkString("")
-
+        val result = response.body
         countSubstring(result, "OPEN") shouldBe 2
         countSubstring(result, "CLOSED") shouldBe 1
       }
@@ -49,15 +45,12 @@ class GetEnvelopesByStatusIntegrationSpec extends IntegrationSpec with EnvelopeA
 
       eventually {
         When(s"I invoke GET /file-upload/envelopes?status=OPEN&inclusive=false")
-        val (header, body) = getEnvelopesForStatus(status, inclusive = false)
+        val response = getEnvelopesForStatus(status, inclusive = false)
 
         Then("I will receive a 200 Ok response")
-        header.status shouldBe OK
+        response.status shouldBe OK
 
-        val chunks = Iteratee.getChunks[Array[Byte]].map(_.map(x => new String(x)))
-
-        val result = body.run(chunks).futureValue.mkString("")
-
+        val result = response.body
         countSubstring(result, "OPEN") shouldBe 0
         countSubstring(result, "CLOSED") shouldBe 1
       }

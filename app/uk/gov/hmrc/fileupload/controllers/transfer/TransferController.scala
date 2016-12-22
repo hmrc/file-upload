@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.fileupload.controllers.transfer
 
+import akka.stream.scaladsl.Source
 import cats.data.Xor
-import play.api.mvc.Action
+import play.api.libs.streams.Streams
+import play.api.mvc.{Action, Controller}
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.file.zip.Zippy._
@@ -25,7 +27,6 @@ import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, OutputForTransfer}
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeNotFoundError, _}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
-import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -34,7 +35,7 @@ class TransferController(withBasicAuth: BasicAuth,
                          getEnvelopesByDestination: Option[String] => Future[List[Envelope]],
                          handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                          zipEnvelope: EnvelopeId => Future[ZipResult])
-                        (implicit executionContext: ExecutionContext) extends BaseController {
+                        (implicit executionContext: ExecutionContext) extends Controller {
 
   def list() = Action.async { implicit request =>
     withBasicAuth {
@@ -47,10 +48,10 @@ class TransferController(withBasicAuth: BasicAuth,
 
   def download(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId) = Action.async { implicit request =>
     zipEnvelope(envelopeId) map {
-      case Xor.Right(stream) => Ok.chunked(stream).withHeaders(
-        CONTENT_TYPE -> "application/zip",
-        CONTENT_DISPOSITION -> s"""attachment; filename="$envelopeId.zip""""
-      )
+      case Xor.Right(stream) => val source = Source.fromPublisher(Streams.enumeratorToPublisher(stream))
+        Ok.chunked(source).as("application/zip").withHeaders(
+          CONTENT_DISPOSITION -> s"""attachment; filename="$envelopeId.zip""""
+        )
       case Xor.Left(ZipEnvelopeNotFoundError | EnvelopeNotRoutedYet) =>
         ExceptionHandler(404, s"Envelope with id: $envelopeId not found")
       case Xor.Left(ZipProcessingError(message)) =>
@@ -67,4 +68,5 @@ class TransferController(withBasicAuth: BasicAuth,
       case Xor.Left(_) => ExceptionHandler(LOCKED, s"Envelope with id: $envelopeId locked")
     }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
   }
+
 }

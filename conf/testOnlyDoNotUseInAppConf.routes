@@ -9,7 +9,7 @@
 # !!!WARNING!!! Every route defined in this file MUST be prefixed with "/test-only/". This is because NGINX is blocking every uri containing the string "test-only" in production.
 # Failing to follow this rule may result in test routes deployed in production.
 
-POST        /file-upload/test-only/recreate-collections                     @uk.gov.hmrc.fileupload.testonly.TestOnlyController.recreate()
+POST        /file-upload/test-only/recreate-collections                     uk.gov.hmrc.fileupload.testonly.TestOnlyController.recreate()
 
-# Add all the application routes to the prod.routes file
-->          /                                           prod.Routes
+# Add all the application routes to the hmrc.prod.routes file
+->          /                                           uk.gov.hmrc.fileupload.prod.Routes

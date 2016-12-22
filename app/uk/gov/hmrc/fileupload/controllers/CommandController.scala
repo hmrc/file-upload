@@ -16,10 +16,14 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import akka.util.ByteString
 import cats.data.Xor
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.Json
+import play.api.libs.streams.Accumulator
 import play.api.mvc._
+import uk.gov.hmrc.fileupload._
+import uk.gov.hmrc.fileupload.utils.StreamUtils
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{EventSerializer => _, _}
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -44,11 +48,12 @@ class CommandController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNo
 
 object CommandParser extends BodyParser[EnvelopeCommand] {
 
-  def apply(request: RequestHeader): Iteratee[Array[Byte], Either[Result, EnvelopeCommand]] = {
+  def apply(request: RequestHeader): Accumulator[ByteString, Either[Result, EnvelopeCommand]] = {
     import Formatters._
     val pattern =  "commands/(.+)$".r.unanchored
 
-    Iteratee.consume[Array[Byte]]().map { data =>
+    import play.api.libs.concurrent.Execution.Implicits._
+    StreamUtils.iterateeToAccumulator(Iteratee.consume[ByteStream]()).map { data =>
       val parsedData = Json.parse(data)
 
       val triedEvent: Try[EnvelopeCommand] = request.uri match {

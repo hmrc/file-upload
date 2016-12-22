@@ -16,7 +16,10 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import akka.stream.scaladsl.Source
+import akka.util.ByteString
 import play.api.Logger
+import play.api.http.HttpEntity
 import play.api.http.Status._
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.{JsObject, Json}
@@ -37,7 +40,8 @@ object ExceptionHandler {
 
   def apply(statusCode: Int, responseMessage: String): Result = {
     val response: JsObject = JsObject(Seq("error" -> Json.obj("msg" -> responseMessage)))
-    Result(ResponseHeader(statusCode), Enumerator(Json.stringify(response).getBytes))
+    val source = Source.single(ByteString.fromArray(Json.stringify(response).getBytes))
+    Result(ResponseHeader(statusCode), HttpEntity.Streamed(source, None, None))
   }
 }
 

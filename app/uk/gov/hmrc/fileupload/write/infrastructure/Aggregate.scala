@@ -87,6 +87,9 @@ class Aggregate[C <: Command, S](handler: Handler[C, S],
 
                 case Xor.Left(NotSavedError(m)) =>
                   Xor.left(CommandError(m))
+
+                case Xor.Left(e) =>
+                  Xor.left(CommandError(e.toString))
               }.recover { case e => Xor.left(CommandError(e.getMessage)) }
 
             } else {

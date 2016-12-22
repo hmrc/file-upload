@@ -14,8 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.infrastructure
+package uk.gov.hmrc.fileupload.utils
 
-import play.modules.reactivemongo.MongoDbConnection
+import akka.util.ByteString
+import play.api.libs.iteratee.Iteratee
+import play.api.libs.streams.{Accumulator, Streams}
+import uk.gov.hmrc.fileupload._
 
-object DefaultMongoConnection extends MongoDbConnection
+import scala.concurrent.ExecutionContext
+
+object StreamUtils {
+
+  def iterateeToAccumulator[T](iteratee: Iteratee[ByteStream, T])(implicit ec: ExecutionContext): Accumulator[ByteString, T] = {
+    val sink = Streams.iterateeToAccumulator(iteratee).toSink
+    Accumulator(sink.contramap[ByteString](_.toArray[Byte]))
+  }
+
+}

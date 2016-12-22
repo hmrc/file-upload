@@ -34,11 +34,11 @@ import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.read.file.Service._
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class FileControllerSpec extends UnitSpec with WithFakeApplication with ScalaFutures {
+class FileControllerSpec extends UnitSpec with ScalaFutures {
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
 

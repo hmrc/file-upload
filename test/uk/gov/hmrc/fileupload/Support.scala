@@ -16,8 +16,11 @@
 
 package uk.gov.hmrc.fileupload
 
+import akka.actor.{Actor, ActorRef, ActorSystem}
+import akka.stream.{ActorMaterializer, Materializer}
+import akka.testkit.TestActorRef
 import org.joda.time.DateTime
-import play.api.libs.iteratee.{Enumerator, Iteratee}
+import play.api.http.HttpEntity
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.controllers.EnvelopeReport
 import uk.gov.hmrc.fileupload.read.envelope._
@@ -30,6 +33,11 @@ object Support {
 
   import scala.concurrent.{ExecutionContext, Future}
 
+  object StreamImplicits {
+    implicit val system = ActorSystem()
+    implicit val materializer: Materializer = ActorMaterializer()
+  }
+
   class BlockingExecutionContext extends ExecutionContext {
 
     override def execute(runnable: Runnable): Unit = Try(runnable.run())
@@ -39,9 +47,9 @@ object Support {
 
   val blockingExeContext: ExecutionContext = new BlockingExecutionContext()
 
-  def consume(data: Enumerator[Array[Byte]])(implicit ec: ExecutionContext): Array[Byte] = {
-    val futureResult: Future[Array[Byte]] = data |>>> Iteratee.consume[Array[Byte]]()
-    Await.result(futureResult, 500.millis)
+  def consume(data: HttpEntity)(implicit ec: ExecutionContext) = {
+    import StreamImplicits.materializer
+    Await.result(data.consumeData, 500.millis).toArray
   }
 
   def envelope = new Envelope(_id = EnvelopeId(), callbackUrl = Some("http://absolute.callback.url"),
@@ -71,4 +79,7 @@ object Support {
     _ => Future.successful(None)
   )
 
+  object Implicits {
+    implicit def underLyingActor[T <: Actor](actorRef: ActorRef): T = actorRef.asInstanceOf[TestActorRef[T]].underlyingActor
+  }
 }

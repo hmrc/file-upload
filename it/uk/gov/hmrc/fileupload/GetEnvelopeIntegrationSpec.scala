@@ -1,6 +1,7 @@
 package uk.gov.hmrc.fileupload
 
-import play.api.libs.json._
+import org.scalatest.time.{Millis, Minutes, Seconds, Span}
+import play.api.libs.json.{JsValue, _}
 import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, IntegrationSpec}
 
@@ -10,6 +11,8 @@ import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, Integrati
   *
   */
 class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions with EventsActions {
+
+  implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Minutes), interval = Span(5, Millis))
 
   feature("Retrieve Envelope") {
 
@@ -32,12 +35,12 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
 
         val parsedBody: JsValue = Json.parse(body)
         parsedBody \ "id" match {
-          case JsString(value) =>  value should fullyMatch regex "[A-z0-9-]+"
+          case JsDefined(JsString(value)) =>  value should fullyMatch regex "[A-z0-9-]+"
           case _ => JsError("expectation failed")
         }
 
         parsedBody \ "status" match {
-          case JsString(value) =>  value should fullyMatch regex "OPEN"
+          case JsDefined(JsString(value)) =>  value should fullyMatch regex "OPEN"
           case _ => JsError("expectation failed")
         }
       }
@@ -66,17 +69,17 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
 
         val parsedBody: JsValue = Json.parse(body)
         parsedBody \ "id" match {
-          case JsString(value) => value should fullyMatch regex "[A-z0-9-]+"
+          case JsDefined(JsString(value)) => value should fullyMatch regex "[A-z0-9-]+"
           case _ => JsError("expectation failed")
         }
 
         parsedBody \ "status" match {
-          case JsString(value) => value should fullyMatch regex "OPEN"
+          case JsDefined(JsString(value)) => value should fullyMatch regex "OPEN"
           case _ => JsError("expectation failed")
         }
 
-        (parsedBody \ "files").asInstanceOf[JsArray].value.head \ "id" match {
-          case JsObject(value) =>
+        (parsedBody \\ "files").head \ "id" match {
+          case JsDefined(JsObject(value)) =>
             value shouldBe fileId
           case _ => JsError("expectation failed")
         }
