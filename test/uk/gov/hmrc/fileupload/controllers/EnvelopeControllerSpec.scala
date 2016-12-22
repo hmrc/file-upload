@@ -42,8 +42,6 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(10, Seconds), interval = Span(10, Millis))
 
-  implicit override val patienceConfig = PatienceConfig(timeout = Span(10, Seconds), interval = Span(10, Millis))
-
   import Support._
 
   implicit val ec = ExecutionContext.global
