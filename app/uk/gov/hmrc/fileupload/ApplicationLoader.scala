@@ -29,6 +29,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.ws.ahc.AhcWSComponents
 import play.api.mvc.EssentialFilter
 import play.api.routing.Router
+import play.modules.reactivemongo.ReactiveMongoComponentImpl
 import reactivemongo.api.commands
 import uk.gov.hmrc.fileupload.admin.{Routes => AdminRoutes}
 import uk.gov.hmrc.fileupload.app.{Routes => AppRoutes}
@@ -116,9 +117,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     }
   }
 
-  lazy val database = new ReactiveMongoConnector(configuration, applicationLifecycle, environment)
-
-  lazy val db = database.mongoConnector.db
+  lazy val db = new ReactiveMongoComponentImpl(application, applicationLifecycle).mongoConnector.db
 
   // notifier
   actorSystem.actorOf(NotifierActor.props(subscribe, find, sendNotification), "notifierActor")
@@ -226,26 +225,14 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     override def get() = new uk.gov.hmrc.play.health.AdminController(configuration)
   })
 
-  lazy val appRoutes = new AppRoutes(httpErrorHandler, new Provider[EnvelopeController] {
-    override def get(): EnvelopeController = envelopeController
-  },
-    new Provider[FileController] {
-      override def get(): FileController = fileController
-    }, new Provider[EventController] {
-      override def get(): EventController = eventController
-    }, new Provider[CommandController] {
-      override def get(): CommandController = commandController
-    }, new Provider[AdminController] {
-      override def get(): AdminController = adminController
-    }
-  )
+  lazy val appRoutes = new AppRoutes(httpErrorHandler, envelopeController, fileController, eventController,
+    commandController, adminController)
 
   lazy val transferRoutes = new TransferRoutes(httpErrorHandler, new Provider[TransferController] {
     override def get(): TransferController = transferController
   })
-  lazy val routingRoutes = new RoutingRoutes(httpErrorHandler, new Provider[RoutingController] {
-    override def get(): RoutingController = routingController
-  })
+  lazy val routingRoutes = new RoutingRoutes(httpErrorHandler, routingController)
+
   lazy val metricsController = new MetricsController(new GraphiteMetricsImpl(applicationLifecycle, configuration))
   lazy val adminRoutes = new AdminRoutes(httpErrorHandler, new Provider[MetricsController] {
     override def get(): MetricsController = metricsController
