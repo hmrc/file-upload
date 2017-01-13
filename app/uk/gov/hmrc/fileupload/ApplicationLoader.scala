@@ -221,9 +221,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     new RoutingController(envelopeCommandHandler)
   }
 
-  lazy val healthRoutes = new HealthRoutes(httpErrorHandler, new Provider[uk.gov.hmrc.play.health.AdminController] {
-    override def get() = new uk.gov.hmrc.play.health.AdminController(configuration)
-  })
+  lazy val healthRoutes = new HealthRoutes(httpErrorHandler, new uk.gov.hmrc.play.health.AdminController(configuration))
 
   lazy val appRoutes = new AppRoutes(httpErrorHandler, envelopeController, fileController, eventController,
     commandController, adminController)
