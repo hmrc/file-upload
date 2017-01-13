@@ -228,9 +228,8 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val appRoutes = new AppRoutes(httpErrorHandler, envelopeController, fileController, eventController,
     commandController, adminController)
 
-  lazy val transferRoutes = new TransferRoutes(httpErrorHandler, new Provider[TransferController] {
-    override def get(): TransferController = transferController
-  })
+  lazy val transferRoutes = new TransferRoutes(httpErrorHandler, transferController)
+
   lazy val routingRoutes = new RoutingRoutes(httpErrorHandler, routingController)
 
   lazy val metricsController = new MetricsController(new GraphiteMetricsImpl(applicationLifecycle, configuration))
