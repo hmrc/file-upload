@@ -55,13 +55,11 @@ import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.audit.http.config.LoadAuditingConfig
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
-import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
 import uk.gov.hmrc.play.filters.{NoCacheFilter, RecoveryFilter}
 import uk.gov.hmrc.play.graphite.GraphiteMetricsImpl
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
-import uk.gov.hmrc.play.microservice.bootstrap.JsonErrorHandling
 
 
 class ApplicationLoader extends play.api.ApplicationLoader {
@@ -129,6 +127,8 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     NoCacheFilter,
     RecoveryFilter
   )
+
+  override lazy val httpErrorHandler = new GlobalErrorHandler
 
 
   lazy val auditedHttpExecute = PlayHttp.execute(MicroserviceAuditFilter.auditConnector,
@@ -278,14 +278,6 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     override def controllerNeedsLogging(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsLogging
   }
 
-  object MicroserviceAuthFilter extends AuthorisationFilter {
-    override def mat = materializer
-
-    override lazy val authParamsConfig = AuthParamsControllerConfiguration
-    override lazy val authConnector = MicroserviceAuthConnector
-
-    override def controllerNeedsAuth(controllerName: String): Boolean = ControllerConfiguration.paramsForController(controllerName).needsAuth
-  }
 
   lazy val loggingFilter: LoggingFilter = MicroserviceLoggingFilter
 
