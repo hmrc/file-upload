@@ -43,7 +43,7 @@ db.getCollection('envelopes.files').remove({
 });
 
 db.getCollection('events').remove({
-	"_streamId" : {
+	"streamId" : {
 		"$in" : envelopeIds
   }
 });
