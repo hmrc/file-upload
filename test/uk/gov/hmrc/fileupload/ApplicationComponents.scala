@@ -18,43 +18,30 @@ package uk.gov.hmrc.fileupload
 
 import org.scalatest.{BeforeAndAfterAll, Suite, TestData}
 import org.scalatestplus.play.OneAppPerTest
+import play.api.ApplicationLoader.Context
 import play.api._
-import play.api.test.Helpers._
+import play.api.mvc.EssentialFilter
 
 trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
   this: Suite =>
-  val fakeApplication = new ApplicationModule(context).application
 
   // accessed to get the components in tests
-  final def components: ApplicationModule = new ApplicationModule(context)
+  lazy val components: ApplicationModule = new TestApplicationModule(context)
 
   // creates a new application and sets the components
-  def newApplication: Application = {
-    components.application
-  }
+  lazy val newApplication: Application = components.application
 
-  def context: ApplicationLoader.Context = {
+  lazy val context: ApplicationLoader.Context = {
     val classLoader = ApplicationLoader.getClass.getClassLoader
     val env = new Environment(new java.io.File("."), classLoader, Mode.Test)
     ApplicationLoader.createContext(env)
   }
 
-  override def beforeAll() {
-    super.beforeAll()
-    Play.start(fakeApplication)
+  override def newAppForTest(testData: TestData): Application = {
+    newApplication
   }
+}
 
-  override def afterAll() {
-    super.afterAll()
-    Play.stop(fakeApplication)
-  }
-
-  def evaluateUsingPlay[T](block: => T): T = {
-    running(fakeApplication) {
-      block
-    }
-  }
-
-  override def newAppForTest(testData: TestData): Application = newApplication
-
+class TestApplicationModule(context: Context) extends ApplicationModule(context = context) {
+  override lazy val httpFilters: Seq[EssentialFilter] = Seq()
 }

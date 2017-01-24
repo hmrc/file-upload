@@ -18,23 +18,20 @@ package uk.gov.hmrc.fileupload
 
 import org.scalatest.Suite
 import org.scalatestplus.play.OneServerPerSuite
+import play.api.ApplicationLoader.Context
 import play.api._
+import play.api.mvc.EssentialFilter
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
 trait ITApplicationComponents extends OneServerPerSuite with MongoSpecSupport {
   this: Suite =>
-  override implicit lazy val app = new ApplicationModule(context).application
+  override implicit lazy val app = components.application
   override lazy val port: Int = 9000
 
   // accessed to get the components in tests
-  final def components: ApplicationModule = new ApplicationModule(context)
+  lazy val components: ApplicationModule = new TestApplicationModule(context)
 
-  // creates a new application and sets the components
-  def newApplication: Application = {
-    components.application
-  }
-
-  def context: ApplicationLoader.Context = {
+  lazy val context: ApplicationLoader.Context = {
     val classLoader = ApplicationLoader.getClass.getClassLoader
     val env = new Environment(new java.io.File("."), classLoader, Mode.Test)
     ApplicationLoader.createContext(env, initialSettings = Map(
@@ -44,4 +41,8 @@ trait ITApplicationComponents extends OneServerPerSuite with MongoSpecSupport {
     ))
   }
 
+}
+
+class TestApplicationModule(context: Context) extends ApplicationModule(context = context) {
+  override lazy val httpFilters: Seq[EssentialFilter] = Seq()
 }
