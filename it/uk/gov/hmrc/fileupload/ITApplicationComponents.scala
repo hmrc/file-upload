@@ -29,7 +29,7 @@ trait ITApplicationComponents extends OneServerPerSuite with MongoSpecSupport {
   override lazy val port: Int = 9000
 
   // accessed to get the components in tests
-  lazy val components: ApplicationModule = new TestApplicationModule(context)
+  lazy val components: ApplicationModule = new ITestApplicationModule(context)
 
   lazy val context: ApplicationLoader.Context = {
     val classLoader = ApplicationLoader.getClass.getClassLoader
@@ -43,6 +43,6 @@ trait ITApplicationComponents extends OneServerPerSuite with MongoSpecSupport {
 
 }
 
-class TestApplicationModule(context: Context) extends ApplicationModule(context = context) {
+class ITestApplicationModule(context: Context) extends ApplicationModule(context = context) {
   override lazy val httpFilters: Seq[EssentialFilter] = Seq()
 }
