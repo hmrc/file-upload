@@ -23,13 +23,13 @@ import play.api._
 import play.api.mvc.EssentialFilter
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
-trait ITApplicationComponents extends OneServerPerSuite with MongoSpecSupport {
+trait IntegrationTestApplicationComponents extends OneServerPerSuite with MongoSpecSupport {
   this: Suite =>
   override implicit lazy val app = components.application
   override lazy val port: Int = 9000
 
   // accessed to get the components in tests
-  lazy val components: ApplicationModule = new ITestApplicationModule(context)
+  lazy val components: ApplicationModule = new IntegrationTestApplicationModule(context)
 
   lazy val context: ApplicationLoader.Context = {
     val classLoader = ApplicationLoader.getClass.getClassLoader
@@ -43,6 +43,6 @@ trait ITApplicationComponents extends OneServerPerSuite with MongoSpecSupport {
 
 }
 
-class ITestApplicationModule(context: Context) extends ApplicationModule(context = context) {
+class IntegrationTestApplicationModule(context: Context) extends ApplicationModule(context = context) {
   override lazy val httpFilters: Seq[EssentialFilter] = Seq()
 }
