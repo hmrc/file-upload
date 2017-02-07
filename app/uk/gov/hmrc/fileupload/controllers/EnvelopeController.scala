@@ -16,9 +16,15 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import akka.NotUsed
+import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.Source.fromPublisher
 import cats.data.Xor
+import org.reactivestreams.Publisher
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.json._
+import play.api.libs.streams.Streams
+import play.api.libs.streams.Streams.enumeratorToPublisher
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
@@ -96,8 +102,8 @@ class EnvelopeController(withBasicAuth: BasicAuth,
   def list(getEnvelopesByStatusQuery: GetEnvelopesByStatus) = Action { implicit request =>
     import EnvelopeReport._
 
-    Ok.chunked(
-      getEnvelopesByStatus(getEnvelopesByStatusQuery.status, getEnvelopesByStatusQuery.inclusive).map(e => Json.toJson(fromEnvelope(e))))
+    val enumerator = getEnvelopesByStatus(getEnvelopesByStatusQuery.status, getEnvelopesByStatusQuery.inclusive)
+    Ok.chunked(fromPublisher(enumeratorToPublisher(enumerator.map(e => Json.toJson(fromEnvelope(e))))))
   }
 
   def retrieveMetadata(id: EnvelopeId, fileId: FileId) = Action.async { request =>

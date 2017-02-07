@@ -4,9 +4,9 @@ import org.scalatest.Suite
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.http.Status
-import uk.gov.hmrc.fileupload.ITApplicationComponents
+import uk.gov.hmrc.fileupload.IntegrationTestApplicationComponents
 
-trait ActionsSupport extends ScalaFutures with Status with ITApplicationComponents{
+trait ActionsSupport extends ScalaFutures with Status with IntegrationTestApplicationComponents{
   this: Suite =>
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
