@@ -16,19 +16,15 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import akka.NotUsed
-import akka.stream.scaladsl.Source
 import akka.stream.scaladsl.Source.fromPublisher
 import cats.data.Xor
-import org.reactivestreams.Publisher
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.json._
-import play.api.libs.streams.Streams
 import play.api.libs.streams.Streams.enumeratorToPublisher
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.envelope.Service._
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
 import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
 import uk.gov.hmrc.fileupload.write.envelope._
