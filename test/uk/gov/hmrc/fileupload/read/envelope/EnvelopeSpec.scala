@@ -44,7 +44,8 @@ class EnvelopeSpec extends UnitSpec {
           |    "anything": "the caller wants to add to the envelope"
           |  },
           |  "status": "OPEN",
-          |  "version": 1
+          |  "version": 1,
+          |  "maxNumFiles": 100
           |}
         """.stripMargin)
 

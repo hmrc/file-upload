@@ -23,12 +23,14 @@ import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 
 object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
+  val defaultMaxNumFiles = 100
+
   type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
 
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
-      envelope.canCreate().map(_ =>
-        EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata)
+      envelope.canCreateWithNumFiles(command.maxFiles).map(_ =>
+        EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, command.maxFiles)
       )
 
     case (command: QuarantineFile, envelope: Envelope) =>
@@ -118,6 +120,9 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
       case (envelope: Envelope, e: EnvelopeArchived) =>
         envelope.copy(state = Archived)
+
+      case (envelope: Envelope, e: EnvelopeMaxFiles) =>
+        envelope.copy(state = NotCreated)
   }
 
   private def withEvent(envelope: Envelope, envelopeEvent: EnvelopeEvent): Envelope =
@@ -150,6 +155,8 @@ case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCrea
 
   def canCreate(): CanResult = state.canCreate()
 
+  def canCreateWithNumFiles(maxFiles: Int): CanResult = state.canCreateWithNumFiles(maxFiles)
+
   def canDeleteFile(fileId: FileId): CanResult = state.canDeleteFile(fileId, files)
 
   def canQuarantine(fileId: FileId, fileRefId: FileRefId, name: String): CanResult = state.canQuarantine(fileId, fileRefId, name, files)
@@ -173,6 +180,7 @@ object State {
   val successResult = Xor.right(Unit)
   val envelopeNotFoundError = Xor.left(EnvelopeNotFoundError)
   val envelopeAlreadyCreatedError = Xor.left(EnvelopeAlreadyCreatedError)
+  val envelopeMaxNumFilesExceededError = Xor.left(EnvelopeMaxNumFilesExceededError)
   val fileNotFoundError = Xor.left(FileNotFoundError)
   val envelopeSealedError = Xor.left(EnvelopeSealedError)
   val envelopeAlreadyArchivedError = Xor.left(EnvelopeArchivedError)
@@ -184,6 +192,8 @@ sealed trait State {
   import State._
 
   def canCreate(): CanResult = envelopeAlreadyCreatedError
+
+  def canCreateWithNumFiles(maxFiles: Int): CanResult = envelopeAlreadyCreatedError
 
   def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult = genericError
 
@@ -234,6 +244,12 @@ object NotCreated extends State {
 
   override def canCreate(): CanResult =
     successResult
+
+  override def canCreateWithNumFiles(maxFiles: Int): CanResult =
+    maxFiles match {
+    case num if num <= Envelope.defaultMaxNumFiles => successResult
+    case _ => envelopeMaxNumFilesExceededError
+  }
 }
 
 object Open extends State {

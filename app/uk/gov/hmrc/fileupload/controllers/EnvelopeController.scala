@@ -48,15 +48,19 @@ class EnvelopeController(withBasicAuth: BasicAuth,
                          getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope])
                         (implicit executionContext: ExecutionContext) extends Controller {
 
-  def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
+  val defaultMaxNumFiles = 100
+
+  def create(maxNumFiles: Option[Int]) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
+    val maxFiles = maxNumFiles.getOrElse(defaultMaxNumFiles)
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
-    val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata)
+    val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata, maxFiles)
     handleCreate(envelopeLocation, command)
   }
 
-  def createWithId(id: EnvelopeId) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
+  def createWithId(id: EnvelopeId, maxNumFiles: Option[Int]) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
+    val maxFiles = maxNumFiles.getOrElse(defaultMaxNumFiles)
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
-    val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata)
+    val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata, maxFiles)
     handleCreate(envelopeLocation, command)
   }
 
@@ -65,6 +69,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
       case Xor.Right(_) => Created.withHeaders(envelopeLocation(command.id))
       case Xor.Left(EnvelopeAlreadyCreatedError) => ExceptionHandler(BAD_REQUEST, "Envelope already created")
       case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Xor.Left(EnvelopeMaxNumFilesExceededError) => ExceptionHandler(BAD_REQUEST, "Envelope max number files exceeded")
       case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not created")
     }.recover { case e => ExceptionHandler(e) }
   }

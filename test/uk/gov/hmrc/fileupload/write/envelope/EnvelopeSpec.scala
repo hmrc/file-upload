@@ -30,7 +30,13 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
   val fileId = FileId("fileId-1")
   val fileRefId = FileRefId("fileRefId-1")
 
-  val envelopeCreated = EnvelopeCreated(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")) )
+  val defaultMaxNumFiles = 100
+
+  val envelopeCreated = EnvelopeCreated(envelopeId,
+                                        Some("http://www.callback-url.com"),
+                                        Some(new DateTime(0)),
+                                        Some(Json.obj("foo" -> "bar")),
+                                        defaultMaxNumFiles)
   val fileQuarantined = FileQuarantined(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj())
   val noVirusDetected = NoVirusDetected(envelopeId, fileId, fileRefId)
   val virusDetected = VirusDetected(envelopeId, fileId, fileRefId)
@@ -41,6 +47,8 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
   val envelopeUnsealed = EnvelopeUnsealed(envelopeId)
   val envelopeRouted = EnvelopeRouted(envelopeId)
   val envelopeArchived = EnvelopeArchived(envelopeId)
+  val envelopeMaxFiles = EnvelopeMaxFiles(envelopeId, defaultMaxNumFiles+1)
+
 
   feature("CreateEnvelope") {
 
@@ -48,7 +56,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         --,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar"))),
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), defaultMaxNumFiles),
         envelopeCreated
       )
     }
@@ -57,16 +65,26 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar"))),
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), defaultMaxNumFiles),
         EnvelopeAlreadyCreatedError
       )
+    }
+
+    scenario("Create new envelope with too many files") {
+
+      givenWhenThen(
+        --,
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), defaultMaxNumFiles+1),
+        EnvelopeMaxNumFilesExceededError
+      )
+
     }
 
     scenario("Create new envelope for a deleted envelope") {
 
       givenWhenThen(
         envelopeCreated And envelopeDeleted,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar"))),
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), defaultMaxNumFiles),
         EnvelopeAlreadyCreatedError
       )
     }
