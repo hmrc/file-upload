@@ -33,7 +33,8 @@ case class CreateEnvelope(id: EnvelopeId,
                           callbackUrl: Option[String],
                           expiryDate: Option[DateTime],
                           metadata: Option[JsObject],
-                          maxFiles: Int) extends EnvelopeCommand
+                          currentNumOfFiles: Int,
+                          maxFilesCapacity: Int) extends EnvelopeCommand
 
 case class QuarantineFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
                           created: Long, name: String, contentType: String, metadata: JsObject) extends EnvelopeCommand
@@ -54,6 +55,8 @@ case class UnsealEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
 case class ArchiveEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
+case class MaxFilesReached(id: EnvelopeId) extends EnvelopeCommand
+
 // events
 
 sealed trait EnvelopeEvent extends EventData {
@@ -62,7 +65,8 @@ sealed trait EnvelopeEvent extends EventData {
   def streamId: StreamId = StreamId(id.value)
 }
 
-case class EnvelopeCreated(id: EnvelopeId, callbackUrl: Option[String], expiryDate: Option[DateTime], metadata: Option[JsObject], maxNumFiles: Int) extends EnvelopeEvent
+case class EnvelopeCreated(id: EnvelopeId, callbackUrl: Option[String],
+                           expiryDate: Option[DateTime], metadata: Option[JsObject], currentNumFiles: Int, maxNumFiles: Int) extends EnvelopeEvent
 
 case class FileQuarantined(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
                            created: Long, name: String, contentType: String, metadata: JsObject) extends EnvelopeEvent
@@ -86,6 +90,7 @@ case class EnvelopeUnsealed(id: EnvelopeId) extends EnvelopeEvent
 case class EnvelopeRouted(id: EnvelopeId) extends EnvelopeEvent
 
 case class EnvelopeArchived(id: EnvelopeId) extends EnvelopeEvent
+
 
 object Formatters {
   implicit val unsealEnvelopeFormat: Format[UnsealEnvelope] = Json.format[UnsealEnvelope]

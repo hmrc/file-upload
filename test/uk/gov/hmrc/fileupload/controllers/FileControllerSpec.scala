@@ -97,6 +97,17 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
 
       result.header.status shouldBe Status.NOT_FOUND
     }
+
+    "return 406 if the envelope has reached its max capacity" in {
+      val fakeRequest = new FakeRequest[Future[JSONReadFile]]("PUT", "/envelopes", FakeHeaders(), body = Future.successful(TestJsonReadFile()))
+
+      val envelope = Support.envelope
+
+      val controller = newController(handleCommand = _ => Future.successful(Xor.left(EnvelopeMaxNumFilesExceededError)))
+      val result = controller.upsertFile(envelope._id, FileId(), FileRefId())(fakeRequest).futureValue
+
+      result.header.status shouldBe Status.NOT_ACCEPTABLE
+    }
   }
 
   "Download a file" should {

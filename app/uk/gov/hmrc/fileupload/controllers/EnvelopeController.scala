@@ -28,6 +28,7 @@ import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
 import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
 import uk.gov.hmrc.fileupload.write.envelope._
+import uk.gov.hmrc.fileupload.write.envelope.{Envelope => envelope}
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, _}
 
@@ -44,19 +45,20 @@ class EnvelopeController(withBasicAuth: BasicAuth,
                          getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope])
                         (implicit executionContext: ExecutionContext) extends Controller {
 
-  val defaultMaxNumFiles = 100
+  val defaultMaxNumFilesCapacity = envelope.defaultMaxNumFilesCapacity
+  val initializerNumFiles = envelope.initializerNumFiles
 
   def create(maxNumFiles: Option[Int]) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
-    val maxFiles = maxNumFiles.getOrElse(defaultMaxNumFiles)
+    val maxFiles = maxNumFiles.getOrElse(defaultMaxNumFilesCapacity)
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
-    val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata, maxFiles)
+    val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata, initializerNumFiles, maxFiles)
     handleCreate(envelopeLocation, command)
   }
 
   def createWithId(id: EnvelopeId, maxNumFiles: Option[Int]) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
-    val maxFiles = maxNumFiles.getOrElse(defaultMaxNumFiles)
+    val maxFiles = maxNumFiles.getOrElse(defaultMaxNumFilesCapacity)
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
-    val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata, maxFiles)
+    val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata, initializerNumFiles, maxFiles)
     handleCreate(envelopeLocation, command)
   }
 

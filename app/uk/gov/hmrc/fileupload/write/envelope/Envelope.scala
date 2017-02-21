@@ -23,14 +23,15 @@ import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 
 object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
-  val defaultMaxNumFiles = 100
+  val defaultMaxNumFilesCapacity = 100
+  val initializerNumFiles = 0
 
   type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
 
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
-      envelope.canCreateWithNumFiles(command.maxFiles).map(_ =>
-        EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, command.maxFiles)
+      envelope.canCreateWithNumFiles(command.maxFilesCapacity).map(_ =>
+        EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, command.currentNumOfFiles, command.maxFilesCapacity)
       )
 
     case (command: QuarantineFile, envelope: Envelope) =>
@@ -51,7 +52,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
       )
 
     case (command: StoreFile, envelope: Envelope) =>
-      envelope.canStoreFile(command.fileId, command.fileRefId).map { _ =>
+      envelope.canStoreFile(command.fileId, command.fileRefId, envelope).map { _ =>
         val fileStored = FileStored(command.id, command.fileId, command.fileRefId, command.length)
 
         if (withEvent(envelope, fileStored).canRoute.isRight) {
@@ -163,7 +164,7 @@ case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCrea
 
   def canMarkFileAsCleanOrInfected(fileId: FileId, fileRefId: FileRefId): CanResult = state.canMarkFileAsCleanOrInfected(fileId, fileRefId, files)
 
-  def canStoreFile(fileId: FileId, fileRefId: FileRefId): CanResult = state.canStoreFile(fileId, fileRefId, files)
+  def canStoreFile(fileId: FileId, fileRefId: FileRefId, envelope: Envelope): CanResult = state.canStoreFile(fileId, fileRefId, files, envelope)
 
   def canSeal(destination: String): CanResult = state.canSeal(files.values.toSeq, destination)
 
@@ -201,7 +202,7 @@ sealed trait State {
 
   def canMarkFileAsCleanOrInfected(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult = genericError
 
-  def canStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult = genericError
+  def canStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File], envelope: Envelope): CanResult = genericError
 
   def canSeal(files: Seq[File], destination: String): CanResult = genericError
 
@@ -223,7 +224,8 @@ sealed trait State {
         Xor.left(FileAlreadyProcessed)
       }).getOrElse(fileNotFoundError)
 
-  def checkCanStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
+  def checkCanStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File], envelope: Envelope): CanResult = {
+
     files.get(fileId).filter(_.isSame(fileRefId)).map(f => {
       if (!f.hasError) {
         if (!f.isScanned) {
@@ -237,6 +239,8 @@ sealed trait State {
         Xor.left(FileWithError)
       }
     }).getOrElse(fileNotFoundError)
+  }
+
 }
 
 object NotCreated extends State {
@@ -247,9 +251,9 @@ object NotCreated extends State {
 
   override def canCreateWithNumFiles(maxFiles: Int): CanResult =
     maxFiles match {
-    case num if num <= Envelope.defaultMaxNumFiles => successResult
-    case _ => envelopeMaxNumFilesExceededError
-  }
+      case num if num <= Envelope.defaultMaxNumFilesCapacity => successResult
+      case _ => envelopeMaxNumFilesExceededError
+    }
 }
 
 object Open extends State {
@@ -266,8 +270,8 @@ object Open extends State {
   override def canMarkFileAsCleanOrInfected(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
     checkCanMarkFileAsCleanOrInfected(fileId, fileRefId, files)
 
-  override def canStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
-    checkCanStoreFile(fileId, fileRefId, files)
+  override def canStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File], envelope: Envelope): CanResult =
+    checkCanStoreFile(fileId, fileRefId, files, envelope)
 
   override def canDelete: CanResult = successResult
 
@@ -289,8 +293,8 @@ object Sealed extends State {
   override def canMarkFileAsCleanOrInfected(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
     checkCanMarkFileAsCleanOrInfected(fileId, fileRefId, files)
 
-  override def canStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
-    checkCanStoreFile(fileId, fileRefId, files)
+  override def canStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File], envelope: Envelope): CanResult =
+    checkCanStoreFile(fileId, fileRefId, files, envelope)
 
   override def canUnseal(): CanResult = successResult
 

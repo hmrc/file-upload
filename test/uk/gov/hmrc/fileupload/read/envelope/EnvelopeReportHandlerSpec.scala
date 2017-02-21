@@ -20,6 +20,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.Matchers
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.write.envelope._
+import uk.gov.hmrc.fileupload.write.envelope.{Envelope => envelope}
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 import uk.gov.hmrc.play.test.UnitSpec
@@ -30,7 +31,8 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  val defaultMaxNumFiles = 100
+  val defaultMaxNumFiles = envelope.defaultMaxNumFilesCapacity
+  val initializerNumFiles = envelope.initializerNumFiles
 
   val callbackUrl = Some("callback-url")
   val expiryDate = Some(new DateTime())
@@ -38,7 +40,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
 
   "EnvelopeReportActor" should {
     "create a new envelope" in new UpdateEnvelopeFixture {
-      val event = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, defaultMaxNumFiles)
+      val event = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, initializerNumFiles, defaultMaxNumFiles)
 
       sendEvent(event)
 
@@ -57,7 +59,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
       modifiedEnvelope shouldBe expectedEnvelope
     }
     "create a new envelope and mark file as quarantined" in new UpdateEnvelopeFixture {
-      val envelopeCreated = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, defaultMaxNumFiles)
+      val envelopeCreated = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, initializerNumFiles, defaultMaxNumFiles)
       val fileQuarantined = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", "contentType", Json.obj("abc" -> "xyz"))
 
       val events = List(envelopeCreated, fileQuarantined)
