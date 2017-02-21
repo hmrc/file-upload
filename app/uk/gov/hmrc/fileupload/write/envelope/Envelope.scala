@@ -30,8 +30,8 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
-      envelope.canCreateWithNumFiles(command.maxFilesCapacity).map(_ =>
-        EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, command.currentNumOfFiles, command.maxFilesCapacity)
+      envelope.canCreateWithFilesCapacity(command.maxFilesCapacity).map(_ =>
+        EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, command.maxFilesCapacity)
       )
 
     case (command: QuarantineFile, envelope: Envelope) =>
@@ -124,6 +124,9 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
       case (envelope: Envelope, e: EnvelopeMaxFiles) =>
         envelope.copy(state = NotCreated)
+
+      case (envelope: Envelope, e: EnvelopeIsFull) =>
+        envelope.copy(state = Full)
   }
 
   private def withEvent(envelope: Envelope, envelopeEvent: EnvelopeEvent): Envelope =
@@ -152,11 +155,9 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
   }
 }
 
-case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated) {
+case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated, maxNumFilesCapacity: Int = 100) {
 
-  def canCreate(): CanResult = state.canCreate()
-
-  def canCreateWithNumFiles(maxFiles: Int): CanResult = state.canCreateWithNumFiles(maxFiles)
+  def canCreateWithFilesCapacity(maxFiles: Int): CanResult = state.canCreateWithNumFiles(maxFiles)
 
   def canDeleteFile(fileId: FileId): CanResult = state.canDeleteFile(fileId, files)
 
@@ -175,6 +176,8 @@ case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCrea
   def canRoute: CanResult = state.canRoute(files.values.toSeq)
 
   def canArchive: CanResult = state.canArchive
+
+  def isFull: CanResult = state.isFull
 }
 
 object State {
@@ -191,8 +194,6 @@ object State {
 
 sealed trait State {
   import State._
-
-  def canCreate(): CanResult = envelopeAlreadyCreatedError
 
   def canCreateWithNumFiles(maxFiles: Int): CanResult = envelopeAlreadyCreatedError
 
@@ -214,6 +215,8 @@ sealed trait State {
 
   def canArchive: CanResult = genericError
 
+  def isFull: CanResult = envelopeMaxNumFilesExceededError
+
   def genericError: CanResult = envelopeNotFoundError
 
   def checkCanMarkFileAsCleanOrInfected(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
@@ -225,20 +228,22 @@ sealed trait State {
       }).getOrElse(fileNotFoundError)
 
   def checkCanStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File], envelope: Envelope): CanResult = {
-
-    files.get(fileId).filter(_.isSame(fileRefId)).map(f => {
-      if (!f.hasError) {
-        if (!f.isScanned) {
-          fileNotFoundError
-        } else if (f.isAvailable) {
-          Xor.left(FileAlreadyProcessed)
+    if (envelope.files.size < envelope.maxNumFilesCapacity) {
+      files.get(fileId).filter(_.isSame(fileRefId)).map(f => {
+        if (!f.hasError) {
+          if (!f.isScanned) {
+            fileNotFoundError
+          } else if (f.isAvailable) {
+            Xor.left(FileAlreadyProcessed)
+          } else {
+            successResult
+          }
         } else {
-          successResult
+          Xor.left(FileWithError)
         }
-      } else {
-        Xor.left(FileWithError)
-      }
-    }).getOrElse(fileNotFoundError)
+      }).getOrElse(fileNotFoundError)
+    }
+    else envelopeMaxNumFilesExceededError
   }
 
 }
@@ -246,14 +251,18 @@ sealed trait State {
 object NotCreated extends State {
   import State._
 
-  override def canCreate(): CanResult =
-    successResult
-
   override def canCreateWithNumFiles(maxFiles: Int): CanResult =
     maxFiles match {
       case num if num <= Envelope.defaultMaxNumFilesCapacity => successResult
       case _ => envelopeMaxNumFilesExceededError
     }
+}
+
+object Full extends State {
+  import State._
+
+  override def canStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File], envelope: Envelope): CanResult =
+    envelopeMaxNumFilesExceededError
 }
 
 object Open extends State {

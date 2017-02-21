@@ -33,7 +33,6 @@ case class CreateEnvelope(id: EnvelopeId,
                           callbackUrl: Option[String],
                           expiryDate: Option[DateTime],
                           metadata: Option[JsObject],
-                          currentNumOfFiles: Int,
                           maxFilesCapacity: Int) extends EnvelopeCommand
 
 case class QuarantineFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
@@ -66,7 +65,7 @@ sealed trait EnvelopeEvent extends EventData {
 }
 
 case class EnvelopeCreated(id: EnvelopeId, callbackUrl: Option[String],
-                           expiryDate: Option[DateTime], metadata: Option[JsObject], currentNumFiles: Int, maxNumFiles: Int) extends EnvelopeEvent
+                           expiryDate: Option[DateTime], metadata: Option[JsObject], maxNumFiles: Int) extends EnvelopeEvent
 
 case class FileQuarantined(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
                            created: Long, name: String, contentType: String, metadata: JsObject) extends EnvelopeEvent
@@ -74,6 +73,8 @@ case class FileQuarantined(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
 case class NoVirusDetected(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) extends EnvelopeEvent
 
 case class EnvelopeMaxFiles(id: EnvelopeId, maxNumFiles: Int) extends EnvelopeEvent
+
+case class EnvelopeIsFull(id: EnvelopeId, maxNumFiles: Int, files: Map[FileId, File]) extends EnvelopeEvent
 
 case class VirusDetected(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) extends EnvelopeEvent
 
