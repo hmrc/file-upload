@@ -72,7 +72,7 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
 	    }
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
-      val result: Result = controller.create(Some(defaultMaxNumFiles))(fakeRequest).futureValue
+      val result: Result = controller.create()(fakeRequest).futureValue
 
       result.header.status shouldBe Status.CREATED
 	    val location = result.header.headers("Location")
@@ -89,7 +89,7 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
       }
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
-      val result: Result = controller.create(Some(defaultMaxNumFiles))(fakeRequest).futureValue
+      val result: Result = controller.create()(fakeRequest).futureValue
 
       result.header.status shouldBe Status.CREATED
       val location = result.header.headers("Location")
@@ -106,7 +106,7 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
       }
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
-      val result: Result = controller.createWithId(EnvelopeId("aaa-bbb"), Some(defaultMaxNumFiles))(fakeRequest).futureValue
+      val result: Result = controller.createWithId(EnvelopeId("aaa-bbb"))(fakeRequest).futureValue
 
       result.header.status shouldBe Status.CREATED
       val location = result.header.headers("Location")

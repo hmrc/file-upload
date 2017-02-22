@@ -24,14 +24,13 @@ import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
   val defaultMaxNumFilesCapacity = 100
-  val initializerNumFiles = 0
 
   type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
 
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
-      envelope.canCreateWithFilesCapacity(command.maxFilesCapacity).map(_ =>
-        EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, command.maxFilesCapacity)
+      envelope.canCreateWithFilesCapacity(command.maxFilesCapacity.getOrElse(100)).map(_ =>
+        EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, command.maxFilesCapacity.getOrElse(100))
       )
 
     case (command: QuarantineFile, envelope: Envelope) =>
@@ -155,7 +154,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
   }
 }
 
-case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated, maxNumFilesCapacity: Int = 100) {
+case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated, maxNumFilesCapacity: Int = Envelope.defaultMaxNumFilesCapacity) {
 
   def canCreateWithFilesCapacity(maxFiles: Int): CanResult = state.canCreateWithNumFiles(maxFiles)
 

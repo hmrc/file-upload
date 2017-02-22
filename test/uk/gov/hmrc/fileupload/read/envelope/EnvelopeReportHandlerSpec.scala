@@ -32,7 +32,6 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
   import scala.concurrent.ExecutionContext.Implicits.global
 
   val defaultMaxNumFiles = envelope.defaultMaxNumFilesCapacity
-  val initializerNumFiles = envelope.initializerNumFiles
 
   val callbackUrl = Some("callback-url")
   val expiryDate = Some(new DateTime())

@@ -57,7 +57,8 @@ object EnvelopeReport {
 
 case class CreateEnvelopeRequest(callbackUrl: Option[String] = None,
                                  expiryDate: Option[DateTime] = None,
-                                 metadata: Option[JsObject] = None)
+                                 metadata: Option[JsObject] = None,
+                                 maxNumFiles: Option[Int] = Some(5))
 
 object CreateEnvelopeRequest {
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")

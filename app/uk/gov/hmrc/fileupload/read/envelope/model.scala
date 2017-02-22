@@ -30,7 +30,7 @@ case class Envelope(_id: EnvelopeId = EnvelopeId(),
                     files: Option[Seq[File]] = None,
                     destination: Option[String] = None,
                     application: Option[String] = None,
-                    maxNumFiles:Int = 100) {
+                    maxNumFiles: Option[Int] = Some(50)) {
 
   def getFileById(fileId: FileId): Option[File] = {
     files.flatMap { _.find { file => file.fileId == fileId }}

@@ -1,8 +1,8 @@
 # microservice specific routes
 
-POST       /envelopes                                         uk.gov.hmrc.fileupload.controllers.EnvelopeController.create(maxNumFiles: Option[Int])
+POST       /envelopes                                         uk.gov.hmrc.fileupload.controllers.EnvelopeController.create()
 GET        /envelopes                                         uk.gov.hmrc.fileupload.controllers.EnvelopeController.list(getEnvelopesByStatusQuery: uk.gov.hmrc.fileupload.controllers.GetEnvelopesByStatus)
-PUT        /envelopes/:envelopeId                             uk.gov.hmrc.fileupload.controllers.EnvelopeController.createWithId(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, maxNumFiles: Option[Int])
+PUT        /envelopes/:envelopeId                             uk.gov.hmrc.fileupload.controllers.EnvelopeController.createWithId(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)
 GET        /envelopes/:envelopeId                             uk.gov.hmrc.fileupload.controllers.EnvelopeController.show(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)
 DELETE     /envelopes/:envelopeId                             uk.gov.hmrc.fileupload.controllers.EnvelopeController.delete(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)
 DELETE     /envelopes/:envelopeId/files/:fileId               uk.gov.hmrc.fileupload.controllers.EnvelopeController.deleteFile(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId)

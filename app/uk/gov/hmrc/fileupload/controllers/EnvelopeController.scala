@@ -47,17 +47,15 @@ class EnvelopeController(withBasicAuth: BasicAuth,
 
   val defaultMaxNumFilesCapacity = envelope.defaultMaxNumFilesCapacity
 
-  def create(maxNumFiles: Option[Int]) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
-    val maxFiles = maxNumFiles.getOrElse(defaultMaxNumFilesCapacity)
+  def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
-    val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata, maxFiles)
+    val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata, request.body.maxNumFiles)
     handleCreate(envelopeLocation, command)
   }
 
-  def createWithId(id: EnvelopeId, maxNumFiles: Option[Int]) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
-    val maxFiles = maxNumFiles.getOrElse(defaultMaxNumFilesCapacity)
+  def createWithId(id: EnvelopeId) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
-    val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata, maxFiles)
+    val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata, request.body.maxNumFiles)
     handleCreate(envelopeLocation, command)
   }
 
