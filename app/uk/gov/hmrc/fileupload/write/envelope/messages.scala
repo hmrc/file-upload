@@ -33,7 +33,7 @@ case class CreateEnvelope(id: EnvelopeId,
                           callbackUrl: Option[String],
                           expiryDate: Option[DateTime],
                           metadata: Option[JsObject],
-                          maxFilesCapacity: Option[Int]) extends EnvelopeCommand
+                          maxFilesCapacity: Int) extends EnvelopeCommand
 
 case class QuarantineFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
                           created: Long, name: String, contentType: String, metadata: JsObject) extends EnvelopeCommand
