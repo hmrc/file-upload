@@ -28,7 +28,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
       envelope.canCreate().map(_ =>
-        EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata)
+        EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, command.maxSizePerItem)
       )
 
     case (command: QuarantineFile, envelope: Envelope) =>

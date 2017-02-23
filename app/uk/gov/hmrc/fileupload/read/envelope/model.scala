@@ -29,7 +29,8 @@ case class Envelope(_id: EnvelopeId = EnvelopeId(),
                     metadata: Option[JsObject] = None,
                     files: Option[Seq[File]] = None,
                     destination: Option[String] = None,
-                    application: Option[String] = None) {
+                    application: Option[String] = None,
+                    maxSizePerItem: Option[String] = None) {
 
   def getFileById(fileId: FileId): Option[File] = {
     files.flatMap { _.find { file => file.fileId == fileId }}
