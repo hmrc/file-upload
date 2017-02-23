@@ -28,7 +28,6 @@ import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
 import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
 import uk.gov.hmrc.fileupload.write.envelope._
-import uk.gov.hmrc.fileupload.write.envelope.{Envelope => envelope}
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, _}
 
@@ -45,17 +44,15 @@ class EnvelopeController(withBasicAuth: BasicAuth,
                          getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope])
                         (implicit executionContext: ExecutionContext) extends Controller {
 
-  val defaultMaxNumFilesCapacity = envelope.defaultMaxNumFilesCapacity
-
   def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
-    val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata, request.body.maxNumFiles.getOrElse(100))
+    val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata, request.body.maxNumFiles.getOrElse(Envelope.defaultMaxCapacity))
     handleCreate(envelopeLocation, command)
   }
 
   def createWithId(id: EnvelopeId) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
-    val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata, request.body.maxNumFiles.getOrElse(100))
+    val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata, request.body.maxNumFiles.getOrElse(Envelope.defaultMaxCapacity))
     handleCreate(envelopeLocation, command)
   }
 

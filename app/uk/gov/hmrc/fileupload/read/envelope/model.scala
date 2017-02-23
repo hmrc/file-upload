@@ -30,7 +30,7 @@ case class Envelope(_id: EnvelopeId = EnvelopeId(),
                     files: Option[Seq[File]] = None,
                     destination: Option[String] = None,
                     application: Option[String] = None,
-                    maxNumFiles: Int = 100) {
+                    maxNumFiles: Int = Envelope.defaultMaxCapacity) {
 
   def getFileById(fileId: FileId): Option[File] = {
     files.flatMap { _.find { file => file.fileId == fileId }}
@@ -49,6 +49,8 @@ case class File(fileId: FileId,
                 rel: Option[String] = Some("file"))
 
 object Envelope {
+
+  val defaultMaxCapacity = 100
 
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")

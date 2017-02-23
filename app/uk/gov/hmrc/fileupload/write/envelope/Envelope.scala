@@ -154,7 +154,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
   }
 }
 
-case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated, maxNumFilesCapacity: Int = Envelope.defaultMaxNumFilesCapacity) {
+case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated) {
 
   def canCreateWithFilesCapacity(maxFiles: Int): CanResult = state.canCreateWithNumFiles(maxFiles)
 
@@ -227,7 +227,7 @@ sealed trait State {
       }).getOrElse(fileNotFoundError)
 
   def checkCanStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File], envelope: Envelope): CanResult = {
-    if (envelope.files.size < envelope.maxNumFilesCapacity) {
+    //if (envelope.files.size < envelope.maxNumFilesCapacity) {
       files.get(fileId).filter(_.isSame(fileRefId)).map(f => {
         if (!f.hasError) {
           if (!f.isScanned) {
@@ -241,8 +241,8 @@ sealed trait State {
           Xor.left(FileWithError)
         }
       }).getOrElse(fileNotFoundError)
-    }
-    else envelopeMaxNumFilesExceededError
+//    }
+//    else envelopeMaxNumFilesExceededError
   }
 
 }
