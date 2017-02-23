@@ -54,8 +54,6 @@ case class UnsealEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
 case class ArchiveEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
-case class MaxFilesReached(id: EnvelopeId) extends EnvelopeCommand
-
 // events
 
 sealed trait EnvelopeEvent extends EventData {
@@ -71,10 +69,6 @@ case class FileQuarantined(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
                            created: Long, name: String, contentType: String, metadata: JsObject) extends EnvelopeEvent
 
 case class NoVirusDetected(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) extends EnvelopeEvent
-
-case class EnvelopeMaxFiles(id: EnvelopeId, maxNumFiles: Int) extends EnvelopeEvent
-
-case class EnvelopeIsFull(id: EnvelopeId, maxNumFiles: Int, files: Map[FileId, File]) extends EnvelopeEvent
 
 case class VirusDetected(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) extends EnvelopeEvent
 
@@ -92,6 +86,8 @@ case class EnvelopeRouted(id: EnvelopeId) extends EnvelopeEvent
 
 case class EnvelopeArchived(id: EnvelopeId) extends EnvelopeEvent
 
+case class EnvelopeIsFull(id: EnvelopeId) extends EnvelopeEvent
+
 
 object Formatters {
   implicit val unsealEnvelopeFormat: Format[UnsealEnvelope] = Json.format[UnsealEnvelope]
@@ -107,6 +103,7 @@ object Formatters {
   implicit val envelopeUnsealedFormat: Format[EnvelopeUnsealed] = Json.format[EnvelopeUnsealed]
   implicit val envelopeRoutedFormat: Format[EnvelopeRouted] = Json.format[EnvelopeRouted]
   implicit val envelopeArchivedFormat: Format[EnvelopeArchived] = Json.format[EnvelopeArchived]
+  implicit val envelopeIsFullFormat: Format[EnvelopeIsFull] = Json.format[EnvelopeIsFull]
 }
 
 object EventSerializer {
@@ -124,6 +121,7 @@ object EventSerializer {
   private val envelopeUnsealed = nameOf(EnvelopeUnsealed.getClass)
   private val envelopeRouted = nameOf(EnvelopeRouted.getClass)
   private val envelopeArchived = nameOf(EnvelopeArchived.getClass)
+  private val envelopeIsFull = nameOf(EnvelopeIsFull.getClass)
 
   private def nameOf(clazz: Class[_]) =
     clazz.getName.replace("$", "")
@@ -141,6 +139,7 @@ object EventSerializer {
       case `envelopeUnsealed` => Json.fromJson[EnvelopeUnsealed](value).get
       case `envelopeRouted` => Json.fromJson[EnvelopeRouted](value).get
       case `envelopeArchived`  => Json.fromJson[EnvelopeArchived](value).get
+      case `envelopeIsFull`  => Json.fromJson[EnvelopeIsFull](value).get
     }
 
   def fromEventData(eventData: EventData): JsValue =
@@ -156,6 +155,7 @@ object EventSerializer {
       case e: EnvelopeUnsealed => Json.toJson(e)
       case e: EnvelopeRouted => Json.toJson(e)
       case e: EnvelopeArchived => Json.toJson(e)
+      case e: EnvelopeIsFull => Json.toJson(e)
     }
 
   val eventWrite = new Writes[Event] {
