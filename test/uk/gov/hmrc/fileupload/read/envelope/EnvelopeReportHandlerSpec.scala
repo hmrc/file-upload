@@ -40,8 +40,9 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
 
       sendEvent(event)
 
-      modifiedEnvelope shouldBe initialState.copy(version = newVersion, callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata)
+      modifiedEnvelope shouldBe initialState.copy(version = newVersion, callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata, maxSizePerItem = maxSizePerItem)
     }
+
     "mark file as quarantined" in new UpdateEnvelopeFixture {
       val event = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", "contentType", Json.obj("abc" -> "xyz"))
 
@@ -54,6 +55,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
 
       modifiedEnvelope shouldBe expectedEnvelope
     }
+
     "create a new envelope and mark file as quarantined" in new UpdateEnvelopeFixture {
       val callbackUrl = Some("callback-url")
       val expiryDate = Some(new DateTime())
@@ -66,7 +68,8 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
 
       sendEvents(events)
 
-      val expectedEnvelope = initialState.copy(version = Version(2), callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata,
+      val expectedEnvelope = initialState.copy(version = Version(2), callbackUrl = callbackUrl, expiryDate = expiryDate,
+        metadata = metadata, maxSizePerItem = maxSizePerItem,
         files = Some(List(File(fileQuarantined.fileId, fileRefId = fileQuarantined.fileRefId,
           status = FileStatusQuarantined, name = Some(fileQuarantined.name), contentType = Some(fileQuarantined.contentType),
           length = None, uploadDate = Some(new DateTime(fileQuarantined.created, DateTimeZone.UTC)), revision = None, metadata = Some(fileQuarantined.metadata)))))
