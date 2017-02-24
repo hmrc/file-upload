@@ -31,12 +31,14 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
   val fileRefId = FileRefId("fileRefId-1")
 
   val defaultMaxNumFiles: Int = Envelope.defaultMaxNumFilesCapacity
+  val defaultMaxSize: Int = Envelope.defaultMaxSize
 
   val envelopeCreated = EnvelopeCreated(envelopeId,
                                         Some("http://www.callback-url.com"),
                                         Some(new DateTime(0)),
                                         Some(Json.obj("foo" -> "bar")),
-                                        defaultMaxNumFiles)
+                                        defaultMaxNumFiles,
+                                        defaultMaxSize)
 
   val fileQuarantined = FileQuarantined(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj())
   val noVirusDetected = NoVirusDetected(envelopeId, fileId, fileRefId)
@@ -55,7 +57,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         --,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), defaultMaxNumFiles),
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), defaultMaxNumFiles, defaultMaxSize),
         envelopeCreated
       )
     }
@@ -64,17 +66,27 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), defaultMaxNumFiles),
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), defaultMaxNumFiles, defaultMaxSize),
         EnvelopeAlreadyCreatedError
       )
     }
 
-    scenario("Create new envelope with too many files") {
+    scenario("Create new envelope with capacity higher than maximum envelope capacity") {
 
       givenWhenThen(
         --,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), defaultMaxNumFiles+1),
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), defaultMaxNumFiles+1, defaultMaxSize),
         EnvelopeMaxNumFilesExceededError
+      )
+
+    }
+
+    scenario("Create new envelope with size higher than maximum envelope size") {
+
+      givenWhenThen(
+        --,
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), defaultMaxNumFiles, defaultMaxSize+1),
+        EnvelopeMaxSizeExceededError
       )
 
     }
@@ -83,7 +95,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated And envelopeDeleted,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), defaultMaxNumFiles),
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), defaultMaxNumFiles, defaultMaxSize),
         EnvelopeAlreadyCreatedError
       )
     }

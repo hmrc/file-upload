@@ -24,12 +24,13 @@ import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
   val defaultMaxNumFilesCapacity = 100
+  val defaultMaxSize = 25
 
   type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
 
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
-      envelope.canCreateWithFilesCapacity(command.maxFilesCapacity).map(_ =>
+      envelope.canCreateWithFilesCapacityAndSize(command.maxFilesCapacity, command.maxSize).map(_ =>
         EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, command.maxFilesCapacity, command.maxSize)
       )
 
@@ -153,7 +154,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
 case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated, fileCapacity: Int = 0) {
 
-  def canCreateWithFilesCapacity(maxFiles: Int): CanResult = state.canCreateWithNumFiles(maxFiles)
+  def canCreateWithFilesCapacityAndSize(maxFiles: Int, maxSize: Int): CanResult = state.canCreateWithFilesCapacityAndSize(maxFiles, maxSize)
 
   def canDeleteFile(fileId: FileId): CanResult = state.canDeleteFile(fileId, files)
 
@@ -181,6 +182,7 @@ object State {
   val envelopeNotFoundError = Xor.left(EnvelopeNotFoundError)
   val envelopeAlreadyCreatedError = Xor.left(EnvelopeAlreadyCreatedError)
   val envelopeMaxNumFilesExceededError = Xor.left(EnvelopeMaxNumFilesExceededError)
+  val envelopeMaxSizeExceededError = Xor.left(EnvelopeMaxSizeExceededError)
   val fileNotFoundError = Xor.left(FileNotFoundError)
   val envelopeSealedError = Xor.left(EnvelopeSealedError)
   val envelopeAlreadyArchivedError = Xor.left(EnvelopeArchivedError)
@@ -191,7 +193,7 @@ object State {
 sealed trait State {
   import State._
 
-  def canCreateWithNumFiles(maxFiles: Int): CanResult = envelopeAlreadyCreatedError
+  def canCreateWithFilesCapacityAndSize(maxFiles: Int, maxSize: Int): CanResult = envelopeAlreadyCreatedError
 
   def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult = genericError
 
@@ -251,10 +253,12 @@ sealed trait State {
 object NotCreated extends State {
   import State._
 
-  override def canCreateWithNumFiles(maxFiles: Int): CanResult =
-    maxFiles match {
-      case num if num <= Envelope.defaultMaxNumFilesCapacity => successResult
-      case _ => envelopeMaxNumFilesExceededError
+  override def canCreateWithFilesCapacityAndSize(maxFiles: Int, maxSize: Int): CanResult =
+    (maxFiles, maxSize)match {
+      case (num, size) => if (num > Envelope.defaultMaxNumFilesCapacity) envelopeMaxNumFilesExceededError
+                          else if (size > Envelope.defaultMaxSize) envelopeMaxSizeExceededError
+                          else successResult
+      case _ => successResult
     }
 }
 

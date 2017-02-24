@@ -48,7 +48,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
     val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata,
                                  request.body.maxNumFiles.getOrElse(Envelope.defaultMaxCapacity),
-                                 request.body.MaxSize.getOrElse(Envelope.defaultMaxSize))
+                                 request.body.maxSize.getOrElse(Envelope.defaultMaxSize))
     handleCreate(envelopeLocation, command)
   }
 
@@ -56,7 +56,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
     val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata,
                                  request.body.maxNumFiles.getOrElse(Envelope.defaultMaxCapacity),
-                                 request.body.MaxSize.getOrElse(Envelope.defaultMaxSize))
+                                 request.body.maxSize.getOrElse(Envelope.defaultMaxSize))
     handleCreate(envelopeLocation, command)
   }
 
@@ -66,6 +66,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
       case Xor.Left(EnvelopeAlreadyCreatedError) => ExceptionHandler(BAD_REQUEST, "Envelope already created")
       case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
       case Xor.Left(EnvelopeMaxNumFilesExceededError) => ExceptionHandler(BAD_REQUEST, "Envelope max number files exceeded")
+      case Xor.Left(EnvelopeMaxSizeExceededError) => ExceptionHandler(BAD_REQUEST, "Envelope Size exceeds maximum")
       case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not created")
     }.recover { case e => ExceptionHandler(e) }
   }

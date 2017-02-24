@@ -31,7 +31,8 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  val defaultMaxNumFiles = envelope.defaultMaxNumFilesCapacity
+  val defaultMaxNumFiles: Int = envelope.defaultMaxNumFilesCapacity
+  val defaultMaxSize: Int = envelope.defaultMaxSize
 
   val callbackUrl = Some("callback-url")
   val expiryDate = Some(new DateTime())
@@ -39,7 +40,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
 
   "EnvelopeReportActor" should {
     "create a new envelope" in new UpdateEnvelopeFixture {
-      val event = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, defaultMaxNumFiles)
+      val event = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, defaultMaxNumFiles, defaultMaxSize)
 
       sendEvent(event)
 
@@ -58,7 +59,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
       modifiedEnvelope shouldBe expectedEnvelope
     }
     "create a new envelope and mark file as quarantined" in new UpdateEnvelopeFixture {
-      val envelopeCreated = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, defaultMaxNumFiles)
+      val envelopeCreated = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, defaultMaxNumFiles, defaultMaxSize)
       val fileQuarantined = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", "contentType", Json.obj("abc" -> "xyz"))
 
       val events = List(envelopeCreated, fileQuarantined)

@@ -45,7 +45,8 @@ class EnvelopeSpec extends UnitSpec {
           |  },
           |  "status": "OPEN",
           |  "version": 1,
-          |  "maxNumFiles": 100
+          |  "maxNumFiles": 100,
+          |  "maxSize": 25
           |}
         """.stripMargin)
 

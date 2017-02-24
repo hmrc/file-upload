@@ -63,7 +63,7 @@ case class CreateEnvelopeRequest(callbackUrl: Option[String] = None,
                                  expiryDate: Option[DateTime] = None,
                                  metadata: Option[JsObject] = None,
                                  maxNumFiles: Option[Int] = None,
-                                 MaxSize: Option[Int] = None)
+                                 maxSize: Option[Int] = None)
 
 object CreateEnvelopeRequest {
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
