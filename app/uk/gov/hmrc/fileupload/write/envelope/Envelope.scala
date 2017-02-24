@@ -154,7 +154,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
 case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated, fileCapacity: Int = 0) {
 
-  def canCreateWithFilesCapacityAndSize(maxFiles: Int, maxSize: Int): CanResult = state.canCreateWithFilesCapacityAndSize(maxFiles, maxSize)
+  def canCreateWithFilesCapacityAndSize(maxFiles: Int, maxSize: String): CanResult = state.canCreateWithFilesCapacityAndSize(maxFiles, maxSize)
 
   def canDeleteFile(fileId: FileId): CanResult = state.canDeleteFile(fileId, files)
 
@@ -193,7 +193,7 @@ object State {
 sealed trait State {
   import State._
 
-  def canCreateWithFilesCapacityAndSize(maxFiles: Int, maxSize: Int): CanResult = envelopeAlreadyCreatedError
+  def canCreateWithFilesCapacityAndSize(maxFiles: Int, maxSize: String): CanResult = envelopeAlreadyCreatedError
 
   def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult = genericError
 
@@ -213,7 +213,7 @@ sealed trait State {
 
   def canArchive: CanResult = genericError
 
-  def isFull: CanResult = envelopeMaxNumFilesExceededError
+  def isFull: CanResult = genericError
 
   def genericError: CanResult = envelopeNotFoundError
 
@@ -253,13 +253,29 @@ sealed trait State {
 object NotCreated extends State {
   import State._
 
-  override def canCreateWithFilesCapacityAndSize(maxFiles: Int, maxSize: Int): CanResult =
+  override def canCreateWithFilesCapacityAndSize(maxFiles: Int, maxSize: String): CanResult =
     (maxFiles, maxSize)match {
       case (num, size) => if (num > Envelope.defaultMaxNumFilesCapacity) envelopeMaxNumFilesExceededError
-                          else if (size > Envelope.defaultMaxSize) envelopeMaxSizeExceededError
+                          else if (!isValidEnvelopeSize(size)) envelopeMaxSizeExceededError
                           else successResult
       case _ => successResult
     }
+
+  def isValidEnvelopeSize(size: String): Boolean = {
+
+    val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+
+    size.toUpperCase match {
+      case sizeRegex(num, bytes) => {
+        bytes match {
+          case "KB" => true
+          case "MB" => if (num.toInt <= Envelope.defaultMaxSize) true
+                       else false
+        }
+      }
+      case _ => false
+    }
+  }
 }
 
 object Full extends State {

@@ -34,7 +34,7 @@ case class CreateEnvelope(id: EnvelopeId,
                           expiryDate: Option[DateTime],
                           metadata: Option[JsObject],
                           maxFilesCapacity: Int,
-                          maxSize: Int) extends EnvelopeCommand
+                          maxSize: String) extends EnvelopeCommand
 
 case class QuarantineFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
                           created: Long, name: String, contentType: String, metadata: JsObject) extends EnvelopeCommand
@@ -64,7 +64,7 @@ sealed trait EnvelopeEvent extends EventData {
 }
 
 case class EnvelopeCreated(id: EnvelopeId, callbackUrl: Option[String],
-                           expiryDate: Option[DateTime], metadata: Option[JsObject], maxNumFiles: Int, maxSize: Int) extends EnvelopeEvent
+                           expiryDate: Option[DateTime], metadata: Option[JsObject], maxNumFiles: Int, maxSize: String) extends EnvelopeEvent
 
 case class FileQuarantined(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
                            created: Long, name: String, contentType: String, metadata: JsObject) extends EnvelopeEvent
