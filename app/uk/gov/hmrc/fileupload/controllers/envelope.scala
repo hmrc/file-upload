@@ -27,6 +27,7 @@ case class EnvelopeReport(id: Option[EnvelopeId] = None,
                           expiryDate: Option[DateTime] = None,
                           metadata: Option[JsObject] = None,
                           maxNumFiles: Int = Envelope.defaultMaxCapacity,
+                          maxSize: Int = Envelope.defaultMaxSize,
                           status: Option[String] = None,
                           destination: Option[String] = None,
                           application: Option[String] = None,
@@ -49,6 +50,7 @@ object EnvelopeReport {
       status = Some(envelope.status.name),
       metadata = envelope.metadata,
       maxNumFiles = envelope.maxNumFiles,
+      maxSize = envelope.maxSize,
       destination = envelope.destination,
       application = envelope.application,
       files = fileReports
@@ -60,7 +62,8 @@ object EnvelopeReport {
 case class CreateEnvelopeRequest(callbackUrl: Option[String] = None,
                                  expiryDate: Option[DateTime] = None,
                                  metadata: Option[JsObject] = None,
-                                 maxNumFiles: Option[Int] = None)
+                                 maxNumFiles: Option[Int] = None,
+                                 MaxSize: Option[Int] = None)
 
 object CreateEnvelopeRequest {
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
