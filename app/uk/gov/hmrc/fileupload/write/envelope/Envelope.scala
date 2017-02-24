@@ -90,7 +90,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
   override def on = {
       case (envelope: Envelope, e: EnvelopeCreated) =>
-        envelope.copy(state = Open, fileCapacity = e.maxNumFiles)
+        envelope.copy(state = Open, fileCapacity = e.maxNumFiles, maxSize = e.maxSize)
 
       case (envelope: Envelope, e: FileQuarantined) =>
         envelope.copy(files = envelope.files + (e.fileId -> QuarantinedFile(e.fileRefId, e.fileId, e.name)))
@@ -152,7 +152,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
   }
 }
 
-case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated, fileCapacity: Int = 0) {
+case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated, fileCapacity: Int = 0, maxSize: String = "0MB") {
 
   def canCreateWithFilesCapacityAndSize(maxFiles: Int, maxSize: String): CanResult = state.canCreateWithFilesCapacityAndSize(maxFiles, maxSize)
 
@@ -213,7 +213,7 @@ sealed trait State {
 
   def canArchive: CanResult = genericError
 
-  def isFull: CanResult = genericError
+  def isFull: CanResult = envelopeMaxNumFilesExceededError
 
   def genericError: CanResult = envelopeNotFoundError
 
@@ -226,6 +226,12 @@ sealed trait State {
       }).getOrElse(fileNotFoundError)
 
   def checkCanFileQuarantined(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File], envelope: Envelope): CanResult = {
+    println("========="+envelope.maxSize)
+    println("========="+envelope.maxSize)
+    println("========="+envelope.fileCapacity)
+
+
+
     if (envelope.files.size < envelope.fileCapacity) {
       files.get(fileId).filter(_.isSame(fileRefId)).map(_ => Xor.left(FileAlreadyProcessed)).getOrElse(successResult)
     }
@@ -262,17 +268,14 @@ object NotCreated extends State {
     }
 
   def isValidEnvelopeSize(size: String): Boolean = {
-
     val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
-
     size.toUpperCase match {
-      case sizeRegex(num, bytes) => {
+      case sizeRegex(num, bytes) =>
         bytes match {
           case "KB" => true
           case "MB" => if (num.toInt <= Envelope.defaultMaxSize) true
                        else false
         }
-      }
       case _ => false
     }
   }
@@ -293,7 +296,6 @@ object Open extends State {
   // files.find(f => f.fileId != fileId && f.name == name).map(f => Xor.Left(FileNameDuplicateError(f.fileId))).getOrElse(successResult)
   override def canQuarantine(fileId: FileId, fileRefId: FileRefId, name: String, files: Map[FileId, File], envelope: Envelope): CanResult =
     checkCanFileQuarantined(fileId, fileRefId, files, envelope)
-    //files.get(fileId).filter(_.isSame(fileRefId)).map(_ => Xor.left(FileAlreadyProcessed)).getOrElse(successResult)
 
   override def canMarkFileAsCleanOrInfected(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
     checkCanMarkFileAsCleanOrInfected(fileId, fileRefId, files)

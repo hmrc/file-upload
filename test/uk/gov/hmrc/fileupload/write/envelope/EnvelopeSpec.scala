@@ -31,7 +31,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
   val fileRefId = FileRefId("fileRefId-1")
 
   val defaultMaxNumFiles: Int = Envelope.defaultMaxNumFilesCapacity
-  val defaultMaxSize: Int = Envelope.defaultMaxSize
+  val defaultMaxSize: String = s"${Envelope.defaultMaxSize}MB"
 
   val envelopeCreated = EnvelopeCreated(envelopeId,
                                         Some("http://www.callback-url.com"),
@@ -39,6 +39,13 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
                                         Some(Json.obj("foo" -> "bar")),
                                         defaultMaxNumFiles,
                                         defaultMaxSize)
+
+  val envelopeCreatedWithMaxOneFile = EnvelopeCreated(envelopeId,
+                                                      Some("http://www.callback-url.com"),
+                                                      Some(new DateTime(0)),
+                                                      Some(Json.obj("foo" -> "bar")),
+                                                      1,
+                                                      defaultMaxSize)
 
   val fileQuarantined = FileQuarantined(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj())
   val noVirusDetected = NoVirusDetected(envelopeId, fileId, fileRefId)
@@ -103,7 +110,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
   feature("QuarantineFile") {
 
-    scenario("Quarantine a new file for an open envelope") {
+    scenario("Quarantine a new file for an open envelope and max capacity is not reached") {
 
       givenWhenThen(
         envelopeCreated,
@@ -112,12 +119,21 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
       )
     }
 
-    scenario("Quarantine an additional file") {
+    scenario("Quarantine an additional file and max capacity is not reached") {
 
       givenWhenThen(
         envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = FileRefId(), name = "abc.pdf"),
         QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()),
         fileQuarantined
+      )
+    }
+
+    scenario("Quarantine a new file for an open envelope but max capacity is reached") {
+
+      givenWhenThen(
+        envelopeCreatedWithMaxOneFile And fileQuarantined.copy(fileId = FileId(), fileRefId = FileRefId(), name = "abc.pdf"),
+        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()),
+        EnvelopeMaxNumFilesExceededError
       )
     }
 
