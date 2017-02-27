@@ -14,9 +14,9 @@ trait FileActions extends ActionsSupport {
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
   }
 
-  def upload(data: Array[Byte], envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId): WSResponse =
+  def upload(data: Array[Byte], envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId, fileLength: Long): WSResponse =
     client
-      .url(s"$url/envelopes/$envelopeId/files/$fileId/$fileRefId")
+      .url(s"$url/envelopes/$envelopeId/files/$fileId/$fileRefId/$fileLength")
       .withHeaders("Content-Type" -> "application/octet-stream")
       .put(data)
       .futureValue

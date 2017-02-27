@@ -22,14 +22,14 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActio
 
       And("File has been stored in quarantine on the front-end")
       sendFileInQuarantineStored(
-        FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "file-name", "contentType", Json.obj("metadata" -> "foo"))
+        FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "file-name", 10, "contentType", Json.obj("metadata" -> "foo"))
       )
 
       And("File was scanned and no virus was found")
       sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))
 
       And("File was stored in transient")
-      upload(data.getBytes, envelopeId, fileId, fileRefId)
+      upload(data.getBytes, envelopeId, fileId, fileRefId, data.length)
 
       And("Routing request was submitted")
       submitRoutingRequest(envelopeId, "DMS")

@@ -16,17 +16,14 @@
 
 package uk.gov.hmrc.fileupload.read.file
 
-import org.joda.time.{DateTime, Duration}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.iteratee.{Enumerator, Iteratee}
 import play.api.libs.json.JsString
-import reactivemongo.bson.BSONDocument
-import reactivemongo.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.mongo.MongoSpecSupport
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -45,8 +42,9 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with ScalaFutures wi
 			val envelopeId = Support.envelope._id
 			val fileId = FileId()
 			val fileRefId = FileRefId()
+			val fileLength = 10
 
-			val sink = repository.iterateeForUpload(envelopeId, fileId, fileRefId)
+			val sink = repository.iterateeForUpload(envelopeId, fileId, fileRefId, fileLength)
 			val fsId = contents.run[Future[JSONReadFile]](sink).futureValue.id match {
 				case JsString(v) => FileId(v)
 				case _ => fail("expected JsString here")
@@ -79,8 +77,9 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with ScalaFutures wi
 		val envelopeId = Support.envelope._id
 		val fileId = FileId()
 		val fileRefId = FileRefId()
+		val fileLength = 10
 
-		val sink = repository.iterateeForUpload(envelopeId, fileId, fileRefId)
+		val sink = repository.iterateeForUpload(envelopeId, fileId, fileRefId, fileLength)
 		contents.run[Future[JSONReadFile]](sink).futureValue.id match {
 			case JsString(v) => v
 			case _ => fail("expected JsString here")

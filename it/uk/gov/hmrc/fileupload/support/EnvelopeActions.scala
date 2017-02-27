@@ -1,7 +1,5 @@
 package uk.gov.hmrc.fileupload.support
 
-import java.io.{File => JFile}
-
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
 import org.scalatest.Suite
@@ -9,8 +7,6 @@ import play.api.http.HeaderNames
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.fileupload.EnvelopeId
-
-import scala.io.Source
 
 trait EnvelopeActions extends ActionsSupport {
   this: Suite =>

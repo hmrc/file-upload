@@ -27,17 +27,21 @@ class DeleteFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       And("I have a valid file-ref-id")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
+      And("I have some data")
+      val data = "abc"
+
       And("FileInQuarantineStored")
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", data.length, "pdf", Json.obj()))
 
       And("I uploaded a file")
-      upload("abc".getBytes(), envelopeId, fileId, fileRefId)
+      upload(data.getBytes, envelopeId, fileId, fileRefId, data.length)
 
       When(s"I invoke DELETE envelope/$envelopeId/files/$fileId")
       val response: WSResponse = delete(envelopeId, fileId)
 
       Then("I will receive a 200 OK response")
       response.status shouldBe OK
+
     }
   }
 }

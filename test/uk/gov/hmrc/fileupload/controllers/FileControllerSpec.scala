@@ -46,6 +46,8 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
 
   val failed = Future.failed(new Exception("not good"))
 
+  val fileLength = 10
+
   def basic64(s:String): String = {
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
   }
@@ -64,7 +66,7 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
   def parse = UploadParser.parse(null) _
 
   def newController(withBasicAuth:BasicAuth = AlwaysAuthorisedBasicAuth,
-                    uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]] = parse,
+                    uploadBodyParser: (EnvelopeId, FileId, FileRefId, Long) => BodyParser[Future[JSONReadFile]] = parse,
                     retrieveFile: (Envelope, FileId) => Future[GetFileResult] = (_, _) => failed,
                     withValidEnvelope: WithValidEnvelope = Support.envelopeAvailable(),
                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed) =
@@ -82,7 +84,7 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
       val envelope = Support.envelope
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
-      val result = controller.upsertFile(envelope._id, FileId(), FileRefId())(fakeRequest).futureValue
+      val result = controller.upsertFile(envelope._id, FileId(), FileRefId(), fileLength)(fakeRequest).futureValue
 
       result.header.status shouldBe Status.OK
     }
@@ -93,7 +95,7 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
       val envelopeId = EnvelopeId()
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.left(EnvelopeNotFoundError)))
-      val result: Result = controller.upsertFile(envelopeId, FileId(), FileRefId())(fakeRequest).futureValue
+      val result: Result = controller.upsertFile(envelopeId, FileId(), FileRefId(), fileLength)(fakeRequest).futureValue
 
       result.header.status shouldBe Status.NOT_FOUND
     }
@@ -104,7 +106,7 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
       val envelope = Support.envelope
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.left(EnvelopeMaxNumFilesExceededError)))
-      val result = controller.upsertFile(envelope._id, FileId(), FileRefId())(fakeRequest).futureValue
+      val result = controller.upsertFile(envelope._id, FileId(), FileRefId(), fileLength)(fakeRequest).futureValue
 
       result.header.status shouldBe Status.NOT_FOUND
     }
