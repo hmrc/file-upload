@@ -37,7 +37,7 @@ case class CreateEnvelope(id: EnvelopeId,
                           maxSize: String) extends EnvelopeCommand
 
 case class QuarantineFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
-                          created: Long, name: String, contentType: String, metadata: JsObject) extends EnvelopeCommand
+                          created: Long, name: String, fileLength: Long, contentType: String, metadata: JsObject) extends EnvelopeCommand
 
 case class MarkFileAsClean(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) extends EnvelopeCommand
 
