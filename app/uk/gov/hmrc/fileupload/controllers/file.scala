@@ -26,11 +26,11 @@ import scala.util.control.NonFatal
 
 object UploadParser {
 
-  def parse(uploadFile: (EnvelopeId, FileId, FileRefId, Long) => Iteratee[ByteStream, Future[JSONReadFile]])
-           (envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId, fileLength: Long)
+  def parse(uploadFile: (EnvelopeId, FileId, FileRefId) => Iteratee[ByteStream, Future[JSONReadFile]])
+           (envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId)
            (implicit ex: ExecutionContext): BodyParser[Future[JSONReadFile]] = BodyParser { _ =>
 
-    iterateeToAccumulator(uploadFile(envelopeId, fileId, fileRefId, fileLength)) map (Right(_)) recover {
+    iterateeToAccumulator(uploadFile(envelopeId, fileId, fileRefId)) map (Right(_)) recover {
       case NonFatal(e) => Left(ExceptionHandler(e))
   }
 }

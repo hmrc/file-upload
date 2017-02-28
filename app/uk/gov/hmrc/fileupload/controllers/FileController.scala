@@ -33,14 +33,14 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 class FileController(withBasicAuth: BasicAuth,
-                     uploadBodyParser: (EnvelopeId, FileId, FileRefId, Long) => BodyParser[Future[JSONReadFile]],
+                     uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]],
                      retrieveFile: (Envelope, FileId) => Future[GetFileResult],
                      withValidEnvelope: WithValidEnvelope,
                      handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
                     (implicit executionContext: ExecutionContext) extends Controller {
 
 
-  def upsertFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, fileLength: Long) = Action.async(uploadBodyParser(id, fileId, fileRefId, fileLength)) { request =>
+  def upsertFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) = Action.async(uploadBodyParser(id, fileId, fileRefId)) { request =>
     request.body.flatMap { jsonReadFile =>
       handleCommand(StoreFile(id, fileId, fileRefId, jsonReadFile.length)).map {
         case Xor.Right(_) => Ok

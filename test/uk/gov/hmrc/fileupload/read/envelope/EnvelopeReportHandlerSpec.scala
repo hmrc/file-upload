@@ -47,7 +47,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
       modifiedEnvelope shouldBe initialState.copy(version = newVersion, callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata)
     }
     "mark file as quarantined" in new UpdateEnvelopeFixture {
-      val event = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", "contentType", Json.obj("abc" -> "xyz"))
+      val event = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", 10, "contentType", Json.obj("abc" -> "xyz"))
 
       sendEvent(event)
 
@@ -60,7 +60,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
     }
     "create a new envelope and mark file as quarantined" in new UpdateEnvelopeFixture {
       val envelopeCreated = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, defaultMaxNumFiles, defaultMaxSize)
-      val fileQuarantined = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", "contentType", Json.obj("abc" -> "xyz"))
+      val fileQuarantined = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", 10, "contentType", Json.obj("abc" -> "xyz"))
 
       val events = List(envelopeCreated, fileQuarantined)
 
@@ -93,12 +93,12 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
     }
     "update file status if file was copied from quarantine to transient" in new UpdateEnvelopeFixture {
       override val initialState = Envelope(files = Some(List(file)))
-      val event = FileStored(envelopeId, file.fileId, fileRefId = FileRefId(), length = 1)
+      val event = FileStored(envelopeId, file.fileId, fileRefId = FileRefId(), fileLength = 1)
 
       sendEvent(event)
 
       val expectedEnvelope = initialState.copy(files = Some(
-        Seq(file.copy(status = FileStatusAvailable, length = Some(event.length)))), version = newVersion)
+        Seq(file.copy(status = FileStatusAvailable, length = Some(event.fileLength)))), version = newVersion)
       modifiedEnvelope shouldBe expectedEnvelope
     }
     "delete a file" in new UpdateEnvelopeFixture {

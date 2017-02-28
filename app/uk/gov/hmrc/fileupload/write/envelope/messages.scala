@@ -45,7 +45,7 @@ case class MarkFileAsInfected(id: EnvelopeId, fileId: FileId, fileRefId: FileRef
 
 case class DeleteFile(id: EnvelopeId, fileId: FileId) extends EnvelopeCommand
 
-case class StoreFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, length: Long) extends EnvelopeCommand
+case class StoreFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, fileLength: Long) extends EnvelopeCommand
 
 case class DeleteEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
@@ -67,7 +67,7 @@ case class EnvelopeCreated(id: EnvelopeId, callbackUrl: Option[String],
                            expiryDate: Option[DateTime], metadata: Option[JsObject], maxNumFiles: Int, maxSize: String) extends EnvelopeEvent
 
 case class FileQuarantined(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
-                           created: Long, name: String, contentType: String, metadata: JsObject) extends EnvelopeEvent
+                           created: Long, name: String, fileLength: Long, contentType: String, metadata: JsObject) extends EnvelopeEvent
 
 case class NoVirusDetected(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) extends EnvelopeEvent
 
@@ -75,7 +75,7 @@ case class VirusDetected(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) e
 
 case class FileDeleted(id: EnvelopeId, fileId: FileId) extends EnvelopeEvent
 
-case class FileStored(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, length: Long) extends EnvelopeEvent
+case class FileStored(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, fileLength: Long) extends EnvelopeEvent
 
 case class EnvelopeDeleted(id: EnvelopeId) extends EnvelopeEvent
 

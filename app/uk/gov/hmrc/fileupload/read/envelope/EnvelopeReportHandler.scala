@@ -68,13 +68,17 @@ class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
       s.copy(status = EnvelopeStatusDeleted)
     }
 
+    case (s: Envelope, e: EnvelopeIsFull) => Some {
+      s.copy(status = EnvelopeStatusFull)
+    }
+
     case (s: Envelope, e: FileDeleted) => Some {
       s.copy(files = s.files.orElse(Some(List.empty[File])).map(filterOutFile(_, e.fileId)))
     }
 
     case (s: Envelope, e: FileStored) => Some {
       val withUpdatedStatus = s.copy(files = fileStatusLens(s, e.fileId, FileStatusAvailable))
-      withUpdatedStatus.copy(files = fileLengthLens(withUpdatedStatus, e.fileId, e.length))
+      withUpdatedStatus.copy(files = fileLengthLens(withUpdatedStatus, e.fileId, e.fileLength))
     }
 
     case (s: Envelope, e: EnvelopeDeleted) => None

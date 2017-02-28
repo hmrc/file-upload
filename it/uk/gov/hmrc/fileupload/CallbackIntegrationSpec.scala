@@ -83,7 +83,7 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
 
       sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", fileLength, "pdf", Json.obj()))
       sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))
-      val response = upload("test".getBytes, envelopeId, fileId, fileRefId, fileLength)
+      val response = upload("test".getBytes, envelopeId, fileId, fileRefId)
 
       response.status shouldBe OK
       eventually { verifyAvailableCallbackReceived(callbackPath, envelopeId, fileId ) }

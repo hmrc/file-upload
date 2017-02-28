@@ -33,6 +33,8 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
   val defaultMaxNumFiles: Int = Envelope.defaultMaxNumFilesCapacity
   val defaultMaxSize: String = s"${Envelope.defaultMaxSize}MB"
 
+  val filsSize = 10 //bit
+
   val envelopeCreated = EnvelopeCreated(envelopeId,
                                         Some("http://www.callback-url.com"),
                                         Some(new DateTime(0)),
@@ -47,8 +49,15 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
                                                       1,
                                                       defaultMaxSize)
 
-  val quarantineAFile = QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", 10, "pdf", Json.obj())
-  val fileQuarantined = FileQuarantined(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj())
+  val envelopeCreatedWithNullSize = EnvelopeCreated(envelopeId,
+                                                    Some("http://www.callback-url.com"),
+                                                    Some(new DateTime(0)),
+                                                    Some(Json.obj("foo" -> "bar")),
+                                                    1,
+                                                    "0MB")
+
+  val quarantineAFile = QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", filsSize, "pdf", Json.obj())
+  val fileQuarantined = FileQuarantined(envelopeId, fileId, fileRefId, 0, "test.pdf", filsSize, "pdf", Json.obj())
   val noVirusDetected = NoVirusDetected(envelopeId, fileId, fileRefId)
   val virusDetected = VirusDetected(envelopeId, fileId, fileRefId)
   val fileStored = FileStored(envelopeId, fileId, fileRefId, 100)
@@ -135,6 +144,15 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
         envelopeCreatedWithMaxOneFile And fileQuarantined.copy(fileId = FileId(), fileRefId = FileRefId(), name = "abc.pdf"),
         quarantineAFile,
         EnvelopeMaxNumFilesExceededError
+      )
+    }
+
+    scenario("Quarantine an additional file and max size for the envelope is reached") {
+
+      givenWhenThen(
+        envelopeCreatedWithNullSize,
+        quarantineAFile,
+        EnvelopeMaxSizeExceededError
       )
     }
 

@@ -90,6 +90,9 @@ case object EnvelopeStatusClosed extends EnvelopeStatus {
 case object EnvelopeStatusDeleted extends EnvelopeStatus {
   override val name: String = "DELETED"
 }
+case object EnvelopeStatusFull extends EnvelopeStatus {
+  override val name: String = "FULL"
+}
 
 object EnvelopeStatusWrites extends Writes[EnvelopeStatus] {
   def writes(c: EnvelopeStatus) = Json.toJson(c.name)
@@ -106,6 +109,7 @@ object EnvelopeStatusTransformer {
       case EnvelopeStatusSealed.name => EnvelopeStatusSealed
       case EnvelopeStatusClosed.name => EnvelopeStatusClosed
       case EnvelopeStatusDeleted.name => EnvelopeStatusDeleted
+      case EnvelopeStatusFull.name => EnvelopeStatusFull
     }
 }
 

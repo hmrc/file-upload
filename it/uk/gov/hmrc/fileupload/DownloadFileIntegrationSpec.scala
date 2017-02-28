@@ -34,7 +34,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
 
       And("I have uploaded a file")
       val data = "{'name':'pete'}"
-      upload(data.getBytes, envelopeId, fileId, fileRefId, fileLength)
+      upload(data.getBytes, envelopeId, fileId, fileRefId)
 
       When(s"I invoke GET envelope/$envelopeId/files/$fileId/content")
       val response: WSResponse = download(envelopeId, fileId)
@@ -85,7 +85,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
       file.setLength(1024 * 1024 * 2)
       val data = new Array[Byte](file.length().toInt)
       file.readFully(data)
-      val putFileResponse: WSResponse = upload(data, envelopeId, fileId, fileRefId, fileLength)
+      val putFileResponse: WSResponse = upload(data, envelopeId, fileId, fileRefId)
       val md = java.security.MessageDigest.getInstance("SHA-256")
       md.reset()
       md.update(data)

@@ -68,9 +68,9 @@ class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionCont
       case Failure(t) => Logger.warn(s"Index creation for chunks failed ${ t.getMessage }")
     }
 
-  def iterateeForUpload(envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId, fileLength: Long)
+  def iterateeForUpload(envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId)
                        (implicit ec: ExecutionContext): Iteratee[ByteStream, Future[JSONReadFile]] = {
-    gfs.iteratee(JSONFileToSave(id = Json.toJson(fileRefId.value), filename = None, metadata = Json.obj("envelopeId" -> envelopeId, "fileId" -> fileId, "fileLength" -> fileLength)))
+    gfs.iteratee(JSONFileToSave(id = Json.toJson(fileRefId.value), filename = None, metadata = Json.obj("envelopeId" -> envelopeId, "fileId" -> fileId)))
   }
 
   def retrieveFile(_id: FileRefId)(implicit ec: ExecutionContext): Future[Option[FileData]] = {
