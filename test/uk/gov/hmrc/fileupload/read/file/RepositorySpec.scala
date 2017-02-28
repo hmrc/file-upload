@@ -42,7 +42,6 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with ScalaFutures wi
 			val envelopeId = Support.envelope._id
 			val fileId = FileId()
 			val fileRefId = FileRefId()
-			val fileLength = 10
 
 			val sink = repository.iterateeForUpload(envelopeId, fileId, fileRefId)
 			val fsId = contents.run[Future[JSONReadFile]](sink).futureValue.id match {
@@ -77,7 +76,6 @@ class RepositorySpec extends UnitSpec with MongoSpecSupport with ScalaFutures wi
 		val envelopeId = Support.envelope._id
 		val fileId = FileId()
 		val fileRefId = FileRefId()
-		val fileLength = 10
 
 		val sink = repository.iterateeForUpload(envelopeId, fileId, fileRefId)
 		contents.run[Future[JSONReadFile]](sink).futureValue.id match {
