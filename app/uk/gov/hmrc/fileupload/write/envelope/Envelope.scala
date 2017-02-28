@@ -30,7 +30,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
-      envelope.canCreateWithFilesCapacityAndSize(command.maxFilesCapacity, command.maxSize).map(_ =>
+      envelope.canCreateWithFilesCapacityAndSize(command.maxFilesCapacity.getOrElse(defaultMaxNumFilesCapacity), command.maxSize.getOrElse(s"${defaultMaxSize}MB")).map(_ =>
         EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, command.maxFilesCapacity, command.maxSize)
       )
 
@@ -90,7 +90,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
   override def on = {
       case (envelope: Envelope, e: EnvelopeCreated) =>
-        envelope.copy(state = Open, fileCapacity = e.maxNumFiles, maxSize = e.maxSize)
+        envelope.copy(state = Open, fileCapacity = e.maxNumFiles.getOrElse(defaultMaxNumFilesCapacity), maxSize = e.maxSize.getOrElse(s"${defaultMaxSize}MB"))
 
       case (envelope: Envelope, e: FileQuarantined) =>
         envelope.copy(files = envelope.files + (e.fileId -> QuarantinedFile(e.fileRefId, e.fileId, e.name, e.fileLength)))

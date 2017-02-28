@@ -37,14 +37,16 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
   val callbackUrl = Some("callback-url")
   val expiryDate = Some(new DateTime())
   val metadata = Some(Json.obj("key" -> "value"))
+  val maxNumFiles = Some(100)
+  val maxSize = Some("25MB")
 
   "EnvelopeReportActor" should {
     "create a new envelope" in new UpdateEnvelopeFixture {
-      val event = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, defaultMaxNumFiles, defaultMaxSize)
+      val event = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, Some(defaultMaxNumFiles), Some(defaultMaxSize))
 
       sendEvent(event)
 
-      modifiedEnvelope shouldBe initialState.copy(version = newVersion, callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata)
+      modifiedEnvelope shouldBe initialState.copy(version = newVersion, callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata, maxNumFiles = maxNumFiles, maxSize = maxSize)
     }
     "mark file as quarantined" in new UpdateEnvelopeFixture {
       val event = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", 10, "contentType", Json.obj("abc" -> "xyz"))
@@ -59,14 +61,14 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
       modifiedEnvelope shouldBe expectedEnvelope
     }
     "create a new envelope and mark file as quarantined" in new UpdateEnvelopeFixture {
-      val envelopeCreated = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, defaultMaxNumFiles, defaultMaxSize)
+      val envelopeCreated = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, Some(defaultMaxNumFiles), Some(defaultMaxSize))
       val fileQuarantined = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", 10, "contentType", Json.obj("abc" -> "xyz"))
 
       val events = List(envelopeCreated, fileQuarantined)
 
       sendEvents(events)
 
-      val expectedEnvelope = initialState.copy(version = Version(2), callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata,
+      val expectedEnvelope = initialState.copy(version = Version(2), callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata, maxNumFiles = maxNumFiles, maxSize = maxSize,
         files = Some(List(File(fileQuarantined.fileId, fileRefId = fileQuarantined.fileRefId,
           status = FileStatusQuarantined, name = Some(fileQuarantined.name), contentType = Some(fileQuarantined.contentType),
           length = None, uploadDate = Some(new DateTime(fileQuarantined.created, DateTimeZone.UTC)), revision = None, metadata = Some(fileQuarantined.metadata)))))

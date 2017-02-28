@@ -49,8 +49,8 @@ object EnvelopeReport {
       expiryDate = envelope.expiryDate,
       status = Some(envelope.status.name),
       metadata = envelope.metadata,
-      maxNumFiles = Some(envelope.maxNumFiles),
-      maxSize = Some(envelope.maxSize),
+      maxNumFiles = envelope.maxNumFiles,
+      maxSize = envelope.maxSize,
       destination = envelope.destination,
       application = envelope.application,
       files = fileReports
