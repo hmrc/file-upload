@@ -10,8 +10,6 @@ import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.fileupload.EnvelopeId
 
-import scala.io.Source
-
 trait EnvelopeActions extends ActionsSupport {
   this: Suite =>
 

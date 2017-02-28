@@ -23,19 +23,21 @@ import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 
 object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
+  val defaultMaxSizePerItem = 10 //MB
+
   type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
 
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
-      envelope.canCreate().map(_ =>
+      envelope.canCreateWithFilesCapacityAndSize(command.maxSizePerItem.getOrElse(s"${defaultMaxSizePerItem}MB")).map(_ =>
         EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, command.maxSizePerItem)
       )
 
     case (command: QuarantineFile, envelope: Envelope) =>
-      envelope.canQuarantine(command.fileId, command.fileRefId, command.name).map(_ =>
+      envelope.canQuarantine(command.fileId, command.fileRefId, command.name, command.fileLength, envelope).map(_ =>
         FileQuarantined(
           id = command.id, fileId = command.fileId, fileRefId = command.fileRefId,
-          created = command.created, name = command.name, contentType = command.contentType, metadata = command.metadata)
+          created = command.created, name = command.name, fileLength = command.fileLength, contentType = command.contentType, metadata = command.metadata)
       )
 
     case (command: MarkFileAsClean, envelope: Envelope) =>
@@ -50,7 +52,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
     case (command: StoreFile, envelope: Envelope) =>
       envelope.canStoreFile(command.fileId, command.fileRefId).map { _ =>
-        val fileStored = FileStored(command.id, command.fileId, command.fileRefId, command.length)
+        val fileStored = FileStored(command.id, command.fileId, command.fileRefId, command.fileLength)
 
         if (withEvent(envelope, fileStored).canRoute.isRight) {
           fileStored And EnvelopeRouted(command.id)
@@ -87,22 +89,22 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
   override def on = {
       case (envelope: Envelope, e: EnvelopeCreated) =>
-        envelope.copy(state = Open)
+        envelope.copy(state = Open, maxSizePerItem = e.maxSizePerItem.getOrElse(s"${defaultMaxSizePerItem}MB"))
 
       case (envelope: Envelope, e: FileQuarantined) =>
-        envelope.copy(files = envelope.files + (e.fileId -> QuarantinedFile(e.fileRefId, e.fileId, e.name)))
+        envelope.copy(files = envelope.files + (e.fileId -> QuarantinedFile(e.fileRefId, e.fileId, e.name, e.fileLength)))
 
       case (envelope: Envelope, e: NoVirusDetected) =>
-        envelope.copy(files = envelope.files + (e.fileId -> CleanedFile(e.fileRefId, e.fileId, envelope.files(e.fileId).name)))
+        envelope.copy(files = envelope.files + (e.fileId -> CleanedFile(e.fileRefId, e.fileId, envelope.files(e.fileId).name, envelope.files(e.fileId).fileLength)))
 
       case (envelope: Envelope, e: VirusDetected) =>
-        envelope.copy(files = envelope.files + (e.fileId -> InfectedFile(e.fileRefId, e.fileId, envelope.files(e.fileId).name)))
+        envelope.copy(files = envelope.files + (e.fileId -> InfectedFile(e.fileRefId, e.fileId, envelope.files(e.fileId).name, envelope.files(e.fileId).fileLength)))
 
       case (envelope: Envelope, e: FileDeleted) =>
         envelope.copy(files = envelope.files - e.fileId)
 
       case (envelope: Envelope, e: FileStored) =>
-        envelope.copy(files = envelope.files + (e.fileId -> StoredFile(e.fileRefId, e.fileId, envelope.files(e.fileId).name)))
+        envelope.copy(files = envelope.files + (e.fileId -> StoredFile(e.fileRefId, e.fileId, envelope.files(e.fileId).name, envelope.files(e.fileId).fileLength)))
 
       case (envelope: Envelope, e: EnvelopeDeleted) =>
         envelope.copy(state = Deleted)
@@ -146,13 +148,13 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
   }
 }
 
-case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated) {
+case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated, maxSizePerItem: String = "0MB") {
 
-  def canCreate(): CanResult = state.canCreate()
+  def canCreateWithFilesCapacityAndSize(maxSizePerItem: String): CanResult = state.canCreateWithFilesCapacityAndSize(maxSizePerItem)
 
   def canDeleteFile(fileId: FileId): CanResult = state.canDeleteFile(fileId, files)
 
-  def canQuarantine(fileId: FileId, fileRefId: FileRefId, name: String): CanResult = state.canQuarantine(fileId, fileRefId, name, files)
+  def canQuarantine(fileId: FileId, fileRefId: FileRefId, name: String, fileLength: Long, envelope: Envelope): CanResult = state.canQuarantine(fileId, fileRefId, name, fileLength, files, envelope)
 
   def canMarkFileAsCleanOrInfected(fileId: FileId, fileRefId: FileRefId): CanResult = state.canMarkFileAsCleanOrInfected(fileId, fileRefId, files)
 
@@ -173,6 +175,7 @@ object State {
   val successResult = Xor.right(Unit)
   val envelopeNotFoundError = Xor.left(EnvelopeNotFoundError)
   val envelopeAlreadyCreatedError = Xor.left(EnvelopeAlreadyCreatedError)
+  val envelopeMaxSizePerItemError = Xor.left(EnvelopeMaxSizePerItemError)
   val fileNotFoundError = Xor.left(FileNotFoundError)
   val envelopeSealedError = Xor.left(EnvelopeSealedError)
   val envelopeAlreadyArchivedError = Xor.left(EnvelopeArchivedError)
@@ -183,11 +186,11 @@ object State {
 sealed trait State {
   import State._
 
-  def canCreate(): CanResult = envelopeAlreadyCreatedError
+  def canCreateWithFilesCapacityAndSize(maxSizePerItem: String): CanResult = envelopeAlreadyCreatedError
 
   def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult = genericError
 
-  def canQuarantine(fileId: FileId, fileRefId: FileRefId, name: String, files: Map[FileId, File]): CanResult = genericError
+  def canQuarantine(fileId: FileId, fileRefId: FileRefId, name: String,  fileLength: Long, files: Map[FileId, File], envelope: Envelope): CanResult = genericError
 
   def canMarkFileAsCleanOrInfected(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult = genericError
 
@@ -213,6 +216,30 @@ sealed trait State {
         Xor.left(FileAlreadyProcessed)
       }).getOrElse(fileNotFoundError)
 
+  def checkCanFileQuarantined(fileId: FileId, fileRefId: FileRefId, fileLength: Long, files: Map[FileId, File], envelope: Envelope): CanResult = {
+
+    def sizeToByte(size: String): Long = {
+      val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+      size.toUpperCase match {
+        case sizeRegex(num, unit) =>
+          unit match {
+            case "KB" => (num.toInt * 1024).toLong
+            case "MB" => (num.toInt * 1024 * 1024).toLong
+            case _ => 0
+          }
+        case _ => 0
+      }
+    }
+
+    val maxSizePerItem: Long = sizeToByte(envelope.maxSizePerItem)
+
+    if (fileLength <= maxSizePerItem) {
+      files.get(fileId).filter(_.isSame(fileRefId)).map(_ => Xor.left(FileAlreadyProcessed)).getOrElse(successResult)
+    }
+    else envelopeMaxSizePerItemError
+
+  }
+
   def checkCanStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
     files.get(fileId).filter(_.isSame(fileRefId)).map(f => {
       if (!f.hasError) {
@@ -232,8 +259,22 @@ sealed trait State {
 object NotCreated extends State {
   import State._
 
-  override def canCreate(): CanResult =
-    successResult
+  override def canCreateWithFilesCapacityAndSize(maxSizePerItem: String): CanResult =
+    if (!isValidFileSize(maxSizePerItem)) envelopeMaxSizePerItemError
+    else successResult
+
+  def isValidFileSize(size: String): Boolean = {
+    val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+    size.toUpperCase match {
+      case sizeRegex(num, unit) =>
+        unit match {
+          case "KB" => true
+          case "MB" => if (num.toInt <= Envelope.defaultMaxSizePerItem) true
+          else false
+        }
+      case _ => false
+    }
+  }
 }
 
 object Open extends State {
@@ -244,8 +285,8 @@ object Open extends State {
 
   // Could be useful in the future (should we check for name duplicates):
   // files.find(f => f.fileId != fileId && f.name == name).map(f => Xor.Left(FileNameDuplicateError(f.fileId))).getOrElse(successResult)
-  override def canQuarantine(fileId: FileId, fileRefId: FileRefId, name: String, files: Map[FileId, File]): CanResult =
-    files.get(fileId).filter(_.isSame(fileRefId)).map(_ => Xor.left(FileAlreadyProcessed)).getOrElse(successResult)
+  override def canQuarantine(fileId: FileId, fileRefId: FileRefId, name: String,  fileLength: Long, files: Map[FileId, File], envelope: Envelope): CanResult =
+    checkCanFileQuarantined(fileId, fileRefId, fileLength, files, envelope)
 
   override def canMarkFileAsCleanOrInfected(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
     checkCanMarkFileAsCleanOrInfected(fileId, fileRefId, files)
@@ -308,6 +349,7 @@ trait File {
   def fileRefId: FileRefId
   def fileId: FileId
   def name: String
+  def fileLength: Long
 
   def isSame(otherFileRefId: FileRefId) =
     fileRefId == otherFileRefId
@@ -319,18 +361,18 @@ trait File {
   def isAvailable: Boolean = false
 }
 
-case class QuarantinedFile(fileRefId: FileRefId, fileId: FileId, name: String) extends File
+case class QuarantinedFile(fileRefId: FileRefId, fileId: FileId, name: String, fileLength: Long) extends File
 
-case class CleanedFile(fileRefId: FileRefId, fileId: FileId, name: String) extends File {
+case class CleanedFile(fileRefId: FileRefId, fileId: FileId, name: String, fileLength: Long) extends File {
   override val isScanned: Boolean = true
 }
 
-case class InfectedFile(fileRefId: FileRefId, fileId: FileId, name: String) extends File {
+case class InfectedFile(fileRefId: FileRefId, fileId: FileId, name: String, fileLength: Long) extends File {
   override val isScanned: Boolean = true
   override val hasError: Boolean = true
 }
 
-case class StoredFile(fileRefId: FileRefId, fileId: FileId, name: String) extends File {
+case class StoredFile(fileRefId: FileRefId, fileId: FileId, name: String, fileLength: Long) extends File {
   override val isScanned: Boolean = true
   override val isAvailable: Boolean = true
 }

@@ -50,6 +50,8 @@ case class File(fileId: FileId,
 
 object Envelope {
 
+  val defaultMaxSizePerItem = "25MB"
+
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val fileStatusReads: Reads[FileStatus] = FileStatusReads

@@ -15,6 +15,8 @@ import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActio
   */
 class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
 
+  val fileLength = 10
+
   feature("Download File") {
 
     scenario("Check that a file can be downloaded") {
@@ -28,7 +30,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", fileLength, "pdf", Json.obj()))
 
       And("I have uploaded a file")
       val data = "{'name':'pete'}"
@@ -76,7 +78,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
 
       And("FileInQuarantineStored")
       val newFileName = "new-file-name.pdf"
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, newFileName, "pdf", Json.obj()))
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, newFileName, fileLength, "pdf", Json.obj()))
 
       And("a file has previously been uploaded to the transient store")
       val file = new RandomAccessFile("t", "rw")

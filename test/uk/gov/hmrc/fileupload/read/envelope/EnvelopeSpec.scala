@@ -44,7 +44,8 @@ class EnvelopeSpec extends UnitSpec {
           |    "anything": "the caller wants to add to the envelope"
           |  },
           |  "status": "OPEN",
-          |  "version": 1
+          |  "version": 1,
+          |  "maxSizePerItem": "10MB"
           |}
         """.stripMargin)
 
@@ -55,7 +56,8 @@ class EnvelopeSpec extends UnitSpec {
       val expectedResult = Envelope(id, Version(1), EnvelopeStatusOpen,
                                     callbackUrl = Some("http://absolute.callback.url"),
                                     expiryDate = Some(formatter.parseDateTime(formattedExpiryDate)),
-                                    metadata = Some(Json.obj("anything" -> "the caller wants to add to the envelope")))
+                                    metadata = Some(Json.obj("anything" -> "the caller wants to add to the envelope")),
+                                    maxSizePerItem= Some("10MB"))
 
       result shouldEqual expectedResult
     }
