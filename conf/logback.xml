@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-    <logger name="org.asynchttpclient.netty" level="WARN"/>
-    <logger name="com.codahale.metrics.graphite.GraphiteReporter" level="ERROR"/>
-    <logger name="play.core.netty" level="INFO"/>
-
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
         <file>logs/file-upload.log</file>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">

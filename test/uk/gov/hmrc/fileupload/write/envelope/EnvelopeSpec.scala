@@ -31,7 +31,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
   val fileRefId = FileRefId("fileRefId-1")
 
   val defaultMaxNumFiles: Int = Envelope.defaultMaxNumFilesCapacity
-  val defaultMaxSize: String = s"${Envelope.defaultMaxSize}MB"
+  val defaultMaxSize: String = s"${Envelope.defaultMaxSizeInMB}MB"
 
   val filsSize = 10 //bit
 
