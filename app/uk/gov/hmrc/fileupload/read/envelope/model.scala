@@ -18,6 +18,7 @@ package uk.gov.hmrc.fileupload.read.envelope
 
 import org.joda.time.DateTime
 import play.api.libs.json.{Format, JsObject, _}
+import uk.gov.hmrc.fileupload.controllers.Constraints
 import uk.gov.hmrc.fileupload.write.infrastructure.Version
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
@@ -30,9 +31,7 @@ case class Envelope(_id: EnvelopeId = EnvelopeId(),
                     files: Option[Seq[File]] = None,
                     destination: Option[String] = None,
                     application: Option[String] = None,
-                    maxNumFiles: Option[Int] = None,
-                    maxSize: Option[String] = None,
-                    maxSizePerItem: Option[String] = None) {
+                    constraints: Option[Constraints] = None) {
 
   def getFileById(fileId: FileId): Option[File] = {
     files.flatMap { _.find { file => file.fileId == fileId }}
@@ -63,6 +62,7 @@ object Envelope {
   implicit val fileReads: Format[File] = Json.format[File]
   implicit val envelopeStatusReads: Reads[EnvelopeStatus] = EnvelopeStatusReads
   implicit val envelopeStatusWrites: Writes[EnvelopeStatus] = EnvelopeStatusWrites
+  implicit val constraintsFormats = Json.format[Constraints]
   implicit val envelopeFormat: Format[Envelope] = Json.format[Envelope]
   implicit val envelopeOFormat: OFormat[Envelope] = new OFormat[Envelope] {
     def reads(json: JsValue): JsResult[Envelope] = envelopeFormat.reads(json)
@@ -72,6 +72,18 @@ object Envelope {
   def fromJson(json: JsValue, _id: EnvelopeId): Envelope = {
     val rawData = json.asInstanceOf[JsObject] ++ Json.obj("_id" -> _id)
     Json.fromJson[Envelope](rawData).get
+  }
+
+  def setConstraints(constraints: Option[Constraints]): Constraints = {
+    constraints.getOrElse(Constraints(Some(defaultMaxCapacity), Some(defaultMaxSize), Some(defaultMaxSizePerItem))) match {
+      case Constraints(None,None,None) => Constraints(Some(defaultMaxCapacity), Some(defaultMaxSize), Some(defaultMaxSizePerItem))
+      case Constraints(None,None,maxSizePerItem) => Constraints(Some(defaultMaxCapacity), Some(defaultMaxSize), maxSizePerItem)
+      case Constraints(None,maxSize,None) => Constraints(Some(defaultMaxCapacity), maxSize, Some(defaultMaxSizePerItem))
+      case Constraints(None,maxSize,maxSizePerItem) => Constraints(Some(defaultMaxCapacity), maxSize, maxSizePerItem)
+      case Constraints(maxNumFiles,None,None) => Constraints(maxNumFiles, Some(defaultMaxSize), Some(defaultMaxSizePerItem))
+      case Constraints(maxNumFiles,maxSize,None) => Constraints(maxNumFiles, maxSize, Some(defaultMaxSizePerItem))
+      case Constraints(maxNumFiles,maxSize,maxSizePerItem) => Constraints(maxNumFiles,maxSize,maxSizePerItem)
+    }
   }
 }
 

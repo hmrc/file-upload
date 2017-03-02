@@ -21,6 +21,7 @@ import java.lang.Math._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.json.{JsString, Json}
+import uk.gov.hmrc.fileupload.controllers.Constraints
 import uk.gov.hmrc.fileupload.write.infrastructure.Version
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 import uk.gov.hmrc.play.test.UnitSpec
@@ -45,9 +46,11 @@ class EnvelopeSpec extends UnitSpec {
           |  },
           |  "status": "OPEN",
           |  "version": 1,
-          |  "maxNumFiles": 100,
-          |  "maxSize": "25MB",
-          |  "maxSizePerItem": "10MB"
+          |  "constraints": {
+          |    "maxNumFiles": 100,
+          |    "maxSize": "25MB",
+          |    "maxSizePerItem": "10MB"
+          |  }
           |}
         """.stripMargin)
 
@@ -55,12 +58,13 @@ class EnvelopeSpec extends UnitSpec {
 
 	    val result: Envelope = Envelope.fromJson(json, id)
 
+      val defaultConstraints = Constraints(Some(100), Some("25MB"), Some("10MB"))
+
       val expectedResult = Envelope(id, Version(1), EnvelopeStatusOpen,
                                     callbackUrl = Some("http://absolute.callback.url"),
                                     expiryDate = Some(formatter.parseDateTime(formattedExpiryDate)),
                                     metadata = Some(Json.obj("anything" -> "the caller wants to add to the envelope")),
-                                    maxNumFiles = Some(100), maxSize = Some("25MB"),
-                                    maxSizePerItem= Some("10MB"))
+                                    constraints = Some(defaultConstraints))
 
       result shouldEqual expectedResult
     }

@@ -19,6 +19,7 @@ package uk.gov.hmrc.fileupload.read.envelope
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.Matchers
 import play.api.libs.json.Json
+import uk.gov.hmrc.fileupload.controllers.Constraints
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.envelope.{Envelope => envelope}
 import uk.gov.hmrc.fileupload.write.infrastructure._
@@ -35,6 +36,8 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
   val defaultMaxSize: String = s"${envelope.defaultMaxSizeInMB}MB"
   val defaultSizePerItem: String = s"${envelope.defaultMaxSizePerItemInMB}MB"
 
+  val defaultConstraints = Constraints(Some(defaultMaxNumFiles), Some(defaultMaxSize), Some(defaultSizePerItem))
+
   val callbackUrl = Some("callback-url")
   val expiryDate = Some(new DateTime())
   val metadata = Some(Json.obj("key" -> "value"))
@@ -44,11 +47,11 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
 
   "EnvelopeReportActor" should {
     "create a new envelope" in new UpdateEnvelopeFixture {
-      val event = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, Some(defaultMaxNumFiles), Some(defaultMaxSize), Some(defaultSizePerItem))
+      val event = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, Some(defaultConstraints))
 
       sendEvent(event)
 
-      modifiedEnvelope shouldBe initialState.copy(version = newVersion, callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata, maxNumFiles = maxNumFiles, maxSize = maxSize, maxSizePerItem = maxSizePerItem)
+      modifiedEnvelope shouldBe initialState.copy(version = newVersion, callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata, constraints = Some(defaultConstraints))
     }
 
     "mark file as quarantined" in new UpdateEnvelopeFixture {
@@ -65,14 +68,13 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
     }
 
     "create a new envelope and mark file as quarantined" in new UpdateEnvelopeFixture {
-      val envelopeCreated = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, Some(defaultMaxNumFiles), Some(defaultMaxSize), Some(defaultSizePerItem))
+      val envelopeCreated = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, Some(defaultConstraints))
       val fileQuarantined = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", 10, "contentType", Json.obj("abc" -> "xyz"))
       val events = List(envelopeCreated, fileQuarantined)
 
       sendEvents(events)
 
-      val expectedEnvelope = initialState.copy(version = Version(2), callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata,
-        maxNumFiles = maxNumFiles, maxSize = maxSize, maxSizePerItem = maxSizePerItem,
+      val expectedEnvelope = initialState.copy(version = Version(2), callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata, constraints = Some(defaultConstraints),
         files = Some(List(File(fileQuarantined.fileId, fileRefId = fileQuarantined.fileRefId,
           status = FileStatusQuarantined, name = Some(fileQuarantined.name), contentType = Some(fileQuarantined.contentType),
           length = None, uploadDate = Some(new DateTime(fileQuarantined.created, DateTimeZone.UTC)), revision = None, metadata = Some(fileQuarantined.metadata)))))
