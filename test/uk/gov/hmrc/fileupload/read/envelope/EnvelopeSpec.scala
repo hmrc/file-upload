@@ -46,7 +46,8 @@ class EnvelopeSpec extends UnitSpec {
           |  "status": "OPEN",
           |  "version": 1,
           |  "maxNumFiles": 100,
-          |  "maxSize": "25MB"
+          |  "maxSize": "25MB",
+          |  "maxSizePerItem": "10MB"
           |}
         """.stripMargin)
 
@@ -58,7 +59,8 @@ class EnvelopeSpec extends UnitSpec {
                                     callbackUrl = Some("http://absolute.callback.url"),
                                     expiryDate = Some(formatter.parseDateTime(formattedExpiryDate)),
                                     metadata = Some(Json.obj("anything" -> "the caller wants to add to the envelope")),
-                                    maxNumFiles = Some(100), maxSize = Some("25MB"))
+                                    maxNumFiles = Some(100), maxSize = Some("25MB"),
+                                    maxSizePerItem= Some("10MB"))
 
       result shouldEqual expectedResult
     }

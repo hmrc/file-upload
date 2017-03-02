@@ -34,7 +34,8 @@ case class CreateEnvelope(id: EnvelopeId,
                           expiryDate: Option[DateTime],
                           metadata: Option[JsObject],
                           maxFilesCapacity: Option[Int],
-                          maxSize: Option[String]) extends EnvelopeCommand
+                          maxSize: Option[String],
+                          maxSizePerItem: Option[String]) extends EnvelopeCommand
 
 case class QuarantineFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
                           created: Long, name: String, fileLength: Long, contentType: String, metadata: JsObject) extends EnvelopeCommand
@@ -64,7 +65,8 @@ sealed trait EnvelopeEvent extends EventData {
 }
 
 case class EnvelopeCreated(id: EnvelopeId, callbackUrl: Option[String],
-                           expiryDate: Option[DateTime], metadata: Option[JsObject], maxNumFiles: Option[Int], maxSize: Option[String]) extends EnvelopeEvent
+                           expiryDate: Option[DateTime], metadata: Option[JsObject],
+                           maxNumFiles: Option[Int], maxSize: Option[String], maxSizePerItem: Option[String]) extends EnvelopeEvent
 
 case class FileQuarantined(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
                            created: Long, name: String, fileLength: Long, contentType: String, metadata: JsObject) extends EnvelopeEvent
@@ -179,6 +181,7 @@ case object EnvelopeNotFoundError extends EnvelopeCommandNotAccepted
 case object EnvelopeAlreadyCreatedError extends EnvelopeCommandNotAccepted
 case object EnvelopeMaxNumFilesExceededError extends EnvelopeCommandNotAccepted
 case object EnvelopeMaxSizeExceededError extends EnvelopeCommandNotAccepted
+case object EnvelopeMaxSizePerItemError extends EnvelopeCommandNotAccepted
 case object EnvelopeSealedError extends EnvelopeCommandNotAccepted
 case object FileWithError extends EnvelopeCommandNotAccepted
 case class FilesWithError(fileIds: Seq[FileId]) extends EnvelopeCommandNotAccepted

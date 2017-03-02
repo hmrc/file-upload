@@ -25,13 +25,14 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
   val defaultMaxNumFilesCapacity = 100
   val defaultMaxSizeInMB = 25
+  val defaultMaxSizePerItemInMB = 10
 
   type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
 
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
-      envelope.canCreateWithFilesCapacityAndSize(command.maxFilesCapacity.getOrElse(defaultMaxNumFilesCapacity), command.maxSize.getOrElse(s"${defaultMaxSizeInMB}MB")).map(_ =>
-        EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, command.maxFilesCapacity, command.maxSize)
+      envelope.canCreateWithFilesCapacityAndSize(command.maxFilesCapacity.getOrElse(defaultMaxNumFilesCapacity), command.maxSize.getOrElse(s"${defaultMaxSizeInMB}MB"), command.maxSizePerItem.getOrElse(s"${defaultMaxSizePerItemInMB}MB")).map(_ =>
+        EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, command.maxFilesCapacity, command.maxSize, command.maxSizePerItem)
       )
 
     case (command: QuarantineFile, envelope: Envelope) =>
@@ -90,7 +91,9 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
   override def on = {
       case (envelope: Envelope, e: EnvelopeCreated) =>
-        envelope.copy(state = Open, fileCapacity = e.maxNumFiles.getOrElse(defaultMaxNumFilesCapacity), maxSize = e.maxSize.getOrElse(s"${defaultMaxSizeInMB}MB"))
+        envelope.copy(state = Open, fileCapacity = e.maxNumFiles.getOrElse(defaultMaxNumFilesCapacity),
+                      maxSize = e.maxSize.getOrElse(s"${defaultMaxSizeInMB}MB"),
+                      maxSizePerItem = e.maxSizePerItem.getOrElse(s"${defaultMaxSizePerItemInMB}MB"))
 
       case (envelope: Envelope, e: FileQuarantined) =>
         envelope.copy(files = envelope.files + (e.fileId -> QuarantinedFile(e.fileRefId, e.fileId, e.name, e.fileLength)))
@@ -152,9 +155,9 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
   }
 }
 
-case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated, fileCapacity: Int = 0, maxSize: String = "0MB") {
+case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated, fileCapacity: Int = 0, maxSize: String = "0MB", maxSizePerItem: String = "0MB") {
 
-  def canCreateWithFilesCapacityAndSize(maxFiles: Int, maxSize: String): CanResult = state.canCreateWithFilesCapacityAndSize(maxFiles, maxSize)
+  def canCreateWithFilesCapacityAndSize(maxFiles: Int, maxSize: String, maxSizePerItem: String): CanResult = state.canCreateWithFilesCapacityAndSize(maxFiles, maxSize, maxSizePerItem)
 
   def canDeleteFile(fileId: FileId): CanResult = state.canDeleteFile(fileId, files)
 
@@ -183,6 +186,7 @@ object State {
   val envelopeAlreadyCreatedError = Xor.left(EnvelopeAlreadyCreatedError)
   val envelopeMaxNumFilesExceededError = Xor.left(EnvelopeMaxNumFilesExceededError)
   val envelopeMaxSizeExceededError = Xor.left(EnvelopeMaxSizeExceededError)
+  val envelopeMaxSizePerItemError = Xor.left(EnvelopeMaxSizePerItemError)
   val fileNotFoundError = Xor.left(FileNotFoundError)
   val envelopeSealedError = Xor.left(EnvelopeSealedError)
   val envelopeAlreadyArchivedError = Xor.left(EnvelopeArchivedError)
@@ -193,7 +197,7 @@ object State {
 sealed trait State {
   import State._
 
-  def canCreateWithFilesCapacityAndSize(maxFiles: Int, maxSize: String): CanResult = envelopeAlreadyCreatedError
+  def canCreateWithFilesCapacityAndSize(maxFiles: Int, maxSize: String, maxSizePerItem: String): CanResult = envelopeAlreadyCreatedError
 
   def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult = genericError
 
@@ -241,12 +245,15 @@ sealed trait State {
     }
 
     val envelopeMaxSize: Long = sizeToByte(envelope.maxSize)
+    val maxSizePerItem: Long = sizeToByte(envelope.maxSizePerItem)
     val currentSize: Long = envelope.files.map(file => file._2.fileLength).sum
     val furtherSize: Long = currentSize + fileLength
 
-    if (envelope.files.size < envelope.fileCapacity && furtherSize <= envelopeMaxSize) {
+    if (envelope.files.size < envelope.fileCapacity && furtherSize <= envelopeMaxSize && fileLength <= maxSizePerItem) {
       files.get(fileId).filter(_.isSame(fileRefId)).map(_ => Xor.left(FileAlreadyProcessed)).getOrElse(successResult)
-    } else if (furtherSize > envelopeMaxSize) envelopeMaxSizeExceededError
+    }
+    else if (furtherSize > envelopeMaxSize) envelopeMaxSizeExceededError
+    else if (fileLength > maxSizePerItem) envelopeMaxSizePerItemError
     else isFull
 
   }
@@ -272,26 +279,28 @@ sealed trait State {
 object NotCreated extends State {
   import State._
 
-  override def canCreateWithFilesCapacityAndSize(maxFiles: Int, maxSize: String): CanResult =
-    (maxFiles, maxSize)match {
-      case (num, size) => if (num > Envelope.defaultMaxNumFilesCapacity) envelopeMaxNumFilesExceededError
-                          else if (!isValidEnvelopeSize(size)) envelopeMaxSizeExceededError
+  override def canCreateWithFilesCapacityAndSize(maxFiles: Int, maxSize: String, maxSizePerItem: String): CanResult =
+    (maxFiles, maxSize, maxSizePerItem)match {
+      case (num, envelopSize, itemSize) => if (num > Envelope.defaultMaxNumFilesCapacity) envelopeMaxNumFilesExceededError
+                          else if (!isValidSize(envelopSize, Envelope.defaultMaxSizeInMB)) envelopeMaxSizeExceededError
+                          else if (!isValidSize(itemSize, Envelope.defaultMaxSizePerItemInMB)) envelopeMaxSizePerItemError
                           else successResult
       case _ => successResult
     }
 
-  def isValidEnvelopeSize(size: String): Boolean = {
+  def isValidSize(size: String, limit: Int): Boolean = {
     val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
     size.toUpperCase match {
       case sizeRegex(num, unit) =>
         unit match {
           case "KB" => true
-          case "MB" => if (num.toInt <= Envelope.defaultMaxSizeInMB) true
+          case "MB" => if (num.toInt <= limit) true
                        else false
         }
       case _ => false
     }
   }
+
 }
 
 object Full extends State {

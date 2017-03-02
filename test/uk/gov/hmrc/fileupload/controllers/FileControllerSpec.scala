@@ -32,7 +32,7 @@ import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.read.file.Service._
-import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError, EnvelopeMaxNumFilesExceededError}
+import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError, EnvelopeMaxNumFilesExceededError, EnvelopeMaxSizePerItemError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -109,6 +109,17 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
       val result = controller.upsertFile(envelope._id, FileId(), FileRefId())(fakeRequest).futureValue
 
       result.header.status shouldBe Status.NOT_FOUND
+    }
+
+    "return 413 when try to Upload a too big file" in {
+      val fakeRequest = new FakeRequest[Future[JSONReadFile]]("PUT", "/envelopes", FakeHeaders(), body = Future.successful(TestJsonReadFile()))
+
+      val envelope = Support.envelope
+
+      val controller = newController(handleCommand = _ => Future.successful(Xor.left(EnvelopeMaxSizePerItemError)))
+      val result = controller.upsertFile(envelope._id, FileId(), FileRefId())(fakeRequest).futureValue
+
+      result.header.status shouldBe Status.REQUEST_ENTITY_TOO_LARGE
     }
   }
 

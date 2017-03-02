@@ -35,7 +35,7 @@ class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
   override def apply = {
 
     case (s: Envelope, e: EnvelopeCreated) => Some {
-      s.copy(callbackUrl = e.callbackUrl, expiryDate = e.expiryDate, metadata = e.metadata, maxNumFiles = e.maxNumFiles, maxSize = e.maxSize)
+      s.copy(callbackUrl = e.callbackUrl, expiryDate = e.expiryDate, metadata = e.metadata, maxNumFiles = e.maxNumFiles, maxSize = e.maxSize, maxSizePerItem = e.maxSizePerItem)
     }
 
     case (s: Envelope, e: FileQuarantined) => Some {
