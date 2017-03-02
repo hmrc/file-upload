@@ -98,7 +98,7 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
       result.header.status shouldBe Status.NOT_FOUND
     }
 
-    "return 404 when try to Upload a too big file" in {
+    "return 413 when try to Upload a too big file" in {
       val fakeRequest = new FakeRequest[Future[JSONReadFile]]("PUT", "/envelopes", FakeHeaders(), body = Future.successful(TestJsonReadFile()))
 
       val envelope = Support.envelope
@@ -106,7 +106,7 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
       val controller = newController(handleCommand = _ => Future.successful(Xor.left(EnvelopeMaxSizePerItemError)))
       val result = controller.upsertFile(envelope._id, FileId(), FileRefId())(fakeRequest).futureValue
 
-      result.header.status shouldBe Status.BAD_REQUEST
+      result.header.status shouldBe Status.REQUEST_ENTITY_TOO_LARGE
     }
   }
 
