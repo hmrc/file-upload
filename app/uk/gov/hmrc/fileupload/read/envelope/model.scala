@@ -74,7 +74,7 @@ object Envelope {
     Json.fromJson[Envelope](rawData).get
   }
 
-  def setConstraints(constraints: Option[Constraints]): Constraints = {
+  def loadConstraints(constraints: Option[Constraints]): Constraints = {
     constraints.getOrElse(Constraints(Some(defaultMaxCapacity), Some(defaultMaxSize), Some(defaultMaxSizePerItem))) match {
       case Constraints(None,None,None) => Constraints(Some(defaultMaxCapacity), Some(defaultMaxSize), Some(defaultMaxSizePerItem))
       case Constraints(None,None,maxSizePerItem) => Constraints(Some(defaultMaxCapacity), Some(defaultMaxSize), maxSizePerItem)

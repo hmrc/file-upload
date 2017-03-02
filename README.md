@@ -50,11 +50,17 @@ Body:
 {
     "callbackUrl": "string representing absolute url",
     "metadata": { "any": "valid json object" },
-    "maxSizePerItem": "5MB"
+    "constraints": 	{
+      "maxNumFiles": 100,
+      "maxSize": "25MB",
+      "maxSizePerItem": "10MB"
+    }
 }
 ```
 
-Note: All parameters are optional. A callbackUrl is optional but should be provided in order for the service to provide feedback of the envelope's progress. maxSizePerItem can be specified in the following formats KB|MB|GB|TB|PB, if not specified it defaults to the maximum value of 10MB.
+Note: All parameters are optional. A callbackUrl is optional but should be provided in order for the service to provide feedback of the envelope's progress.
+maxSize and maxSizePerItem can be specified in the following formats KB|MB, if not specified it defaults to the maximum value of 25MB and 10MB.
+maxNumFiles if not specified it defaults to 100.
 
 Response (in Headers): Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 

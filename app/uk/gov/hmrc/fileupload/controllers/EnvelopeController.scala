@@ -46,15 +46,14 @@ class EnvelopeController(withBasicAuth: BasicAuth,
 
   def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
-    val constraints = Envelope.setConstraints(request.body.constraints)
-      //request.body.constraints.getOrElse(Constraints(Some(Envelope.defaultMaxCapacity), Some(Envelope.defaultMaxSize), Some(Envelope.defaultMaxSizePerItem)))
+    val constraints = Envelope.loadConstraints(request.body.constraints)
     val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata, Some(constraints))
     handleCreate(envelopeLocation, command)
   }
 
   def createWithId(id: EnvelopeId) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
-    val constraints = Envelope.setConstraints(request.body.constraints)
+    val constraints = Envelope.loadConstraints(request.body.constraints)
     val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata, Some(constraints))
     handleCreate(envelopeLocation, command)
   }
