@@ -16,9 +16,6 @@
 
 package uk.gov.hmrc.fileupload.read.envelope
 
-/**
-  * Created by paul on 02/03/17.
-  */
 object ValidFileTypes {
 
   val pdf = "application/pdf"
