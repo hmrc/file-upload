@@ -46,7 +46,7 @@ class FileController(withBasicAuth: BasicAuth,
         case Xor.Right(_) => Ok
         case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
         case Xor.Left(FileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found")
-        case Xor.Left(EnvelopeMaxNumFilesExceededError) => ExceptionHandler(NOT_FOUND, s"Envelope Item Count exceeds maximum")
+        case Xor.Left(EnvelopeMaxNumFilesExceededError) => ExceptionHandler(BAD_REQUEST, s"Envelope Item Count exceeds maximum")
         case Xor.Left(EnvelopeMaxSizeExceededError) => ExceptionHandler(BAD_REQUEST, "Envelope Size exceeds maximum")
         case Xor.Left(EnvelopeMaxSizePerItemError) => ExceptionHandler(REQUEST_ENTITY_TOO_LARGE, s"Max size per item reached")
         case Xor.Left(_) => ExceptionHandler(INTERNAL_SERVER_ERROR, "File not added to envelope")
