@@ -34,7 +34,6 @@ import uk.gov.hmrc.fileupload.read.stats.Stats._
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.test.UnitSpec
-import play.api.libs.iteratee.Enumerator
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -54,6 +53,7 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
   }
 
   def newController(withBasicAuth: BasicAuth = AlwaysAuthorisedBasicAuth,
+                    envelopeDefaultConstraints: DefaultEnvelopeConstraints = DefaultEnvelopeConstraints(100, "25MB", "10MB"),
                     nextId: () => EnvelopeId = () => EnvelopeId("abc-def"),
                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
                     findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]] = _ => failed,
@@ -61,7 +61,7 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
                     findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed,
                     deleteInProgressFile: FileRefId => Future[Boolean] = _ => failed,
                     getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope] = (_, _) => failed) =
-    new EnvelopeController(withBasicAuth, nextId, handleCommand, findEnvelope, findMetadata, findAllInProgressFile, deleteInProgressFile, getEnvelopesByStatus)
+    new EnvelopeController(withBasicAuth, envelopeDefaultConstraints, nextId, handleCommand, findEnvelope, findMetadata, findAllInProgressFile, deleteInProgressFile, getEnvelopesByStatus)
 
   "Create envelope with a request" should {
     "return response with OK status and a Location header specifying the envelope endpoint" in {

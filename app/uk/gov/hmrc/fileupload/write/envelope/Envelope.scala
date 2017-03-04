@@ -17,7 +17,6 @@
 package uk.gov.hmrc.fileupload.write.envelope
 
 import cats.data.Xor
-import uk.gov.hmrc.fileupload.controllers.Constraints
 import uk.gov.hmrc.fileupload.write.envelope.Envelope.CanResult
 import uk.gov.hmrc.fileupload.write.infrastructure.{EventData, Handler}
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
@@ -32,7 +31,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
-      val constraints = command.constraints.getOrElse(Constraints(Some(defaultMaxSizePerItemInMB), Some(defaultMaxSizeInMB+"MB"), Some(defaultMaxSizePerItemInMB+"MB")))
+      val constraints = command.constraints
       envelope.canCreateWithFilesCapacityAndSize(constraints.maxNumFiles.getOrElse(defaultMaxNumFilesCapacity),
                                                  constraints.maxSize.getOrElse(s"${defaultMaxSizeInMB}MB"),
                                                  constraints.maxSizePerItem.getOrElse(s"${defaultMaxSizePerItemInMB}MB")).map(_ =>
@@ -95,7 +94,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
   override def on = {
       case (envelope: Envelope, e: EnvelopeCreated) =>
-        val constraints = e.constraints.getOrElse(Constraints(Some(defaultMaxSizePerItemInMB), Some(defaultMaxSizeInMB+"MB"), Some(defaultMaxSizePerItemInMB+"MB")))
+        val constraints = e.constraints
         envelope.copy(state = Open, fileCapacity = constraints.maxNumFiles.getOrElse(defaultMaxNumFilesCapacity),
                       maxSize = constraints.maxSize.getOrElse(s"${defaultMaxSizeInMB}MB"),
                       maxSizePerItem = constraints.maxSizePerItem.getOrElse(s"${defaultMaxSizePerItemInMB}MB"))
@@ -236,19 +235,6 @@ sealed trait State {
 
   def checkCanFileQuarantined(fileId: FileId, fileRefId: FileRefId, fileLength: Long, files: Map[FileId, File], envelope: Envelope): CanResult = {
 
-    def sizeToByte(size: String): Long = {
-      val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
-      size.toUpperCase match {
-        case sizeRegex(num, unit) =>
-          unit match {
-            case "KB" => (num.toInt * 1024).toLong
-            case "MB" => (num.toInt * 1024 * 1024).toLong
-            case _ => 0
-          }
-        case _ => 0
-      }
-    }
-
     val envelopeMaxSize: Long = sizeToByte(envelope.maxSize)
     val maxSizePerItem: Long = sizeToByte(envelope.maxSizePerItem)
     val currentSize: Long = envelope.files.map(file => file._2.fileLength).sum
@@ -277,6 +263,19 @@ sealed trait State {
         Xor.left(FileWithError)
       }
     }).getOrElse(fileNotFoundError)
+  }
+
+  def sizeToByte(size: String): Long = {
+    val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+    size.toUpperCase match {
+      case sizeRegex(num, unit) =>
+        unit match {
+          case "KB" => num.toInt * 1024
+          case "MB" => num.toInt * 1024 * 1024
+          case _ => -1
+        }
+      case _ => -1
+    }
   }
 
 }

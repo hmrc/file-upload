@@ -83,4 +83,14 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       NotCreated.isValidSize("foo", defaultMaxSizeInMB) shouldBe false
     }
   }
+
+  "regex for change size from string to bytes Long" should {
+    "return -1 if input is invalid, otherwise return a long number" in {
+      NotCreated.sizeToByte("26mb") shouldBe 1024*1024*26
+      NotCreated.sizeToByte("26kb") shouldBe 1024*26
+      NotCreated.sizeToByte("0kb") shouldBe -1
+      NotCreated.sizeToByte("kb") shouldBe -1
+      NotCreated.sizeToByte("foo") shouldBe -1
+    }
+  }
 }

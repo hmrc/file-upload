@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 import org.joda.time.DateTime
-import play.api.libs.json.{Format, JsObject, _}
+import play.api.libs.json._
 import uk.gov.hmrc.fileupload.controllers.Constraints
 import uk.gov.hmrc.fileupload.write.infrastructure.Version
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
@@ -51,10 +51,6 @@ case class File(fileId: FileId,
 
 object Envelope {
 
-  val defaultMaxCapacity = 100
-  val defaultMaxSize = "25MB"
-  val defaultMaxSizePerItem = "10MB"
-
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val fileStatusReads: Reads[FileStatus] = FileStatusReads
@@ -74,17 +70,6 @@ object Envelope {
     Json.fromJson[Envelope](rawData).get
   }
 
-  def loadConstraints(constraints: Option[Constraints]): Constraints = {
-    constraints.getOrElse(Constraints(Some(defaultMaxCapacity), Some(defaultMaxSize), Some(defaultMaxSizePerItem))) match {
-      case Constraints(None,None,None) => Constraints(Some(defaultMaxCapacity), Some(defaultMaxSize), Some(defaultMaxSizePerItem))
-      case Constraints(None,None,maxSizePerItem) => Constraints(Some(defaultMaxCapacity), Some(defaultMaxSize), maxSizePerItem)
-      case Constraints(None,maxSize,None) => Constraints(Some(defaultMaxCapacity), maxSize, Some(defaultMaxSizePerItem))
-      case Constraints(None,maxSize,maxSizePerItem) => Constraints(Some(defaultMaxCapacity), maxSize, maxSizePerItem)
-      case Constraints(maxNumFiles,None,None) => Constraints(maxNumFiles, Some(defaultMaxSize), Some(defaultMaxSizePerItem))
-      case Constraints(maxNumFiles,maxSize,None) => Constraints(maxNumFiles, maxSize, Some(defaultMaxSizePerItem))
-      case Constraints(maxNumFiles,maxSize,maxSizePerItem) => Constraints(maxNumFiles,maxSize,maxSizePerItem)
-    }
-  }
 }
 
 case class ValidationException(reason: String) extends IllegalArgumentException(reason)

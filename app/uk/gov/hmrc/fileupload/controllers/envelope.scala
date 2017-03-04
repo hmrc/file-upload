@@ -55,17 +55,35 @@ object EnvelopeReport {
       files = fileReports
     )
   }
-
 }
 
 case class CreateEnvelopeRequest(callbackUrl: Option[String] = None,
                                  expiryDate: Option[DateTime] = None,
                                  metadata: Option[JsObject] = None,
-                                 constraints: Option[Constraints] = None)
+                                 constraints: Option[Constraints] = None) {
+  def constraintsWithDefaultsIfNotProvided(constraints: Option[Constraints], defaultConstraints: DefaultEnvelopeConstraints) = {
+    val defaultMaxCapacity = defaultConstraints.maxNumFiles
+    val defaultMaxSize = defaultConstraints.maxSize
+    val defaultMaxSizePerItem = defaultConstraints.maxSizePerItem
+
+    Constraints(
+      maxNumFiles = Some(constraints.map(_.maxNumFiles.getOrElse(defaultMaxCapacity)).getOrElse(defaultMaxCapacity).toString.toInt),
+      maxSize = Some(constraints.map(_.maxSize.getOrElse(defaultMaxSize)).getOrElse(defaultMaxSize).toString),
+      maxSizePerItem = Some(constraints.map(_.maxSizePerItem.getOrElse(defaultMaxSizePerItem)).getOrElse(defaultMaxSizePerItem).toString)
+    )
+
+  }
+
+}
 
 case class Constraints(maxNumFiles: Option[Int] = None,
                        maxSize: Option[String] = None,
                        maxSizePerItem: Option[String] = None)
+
+case class DefaultEnvelopeConstraints(maxNumFiles: Int,
+                                      maxSize: String,
+                                      maxSizePerItem: String)
+
 
 object CreateEnvelopeRequest {
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")

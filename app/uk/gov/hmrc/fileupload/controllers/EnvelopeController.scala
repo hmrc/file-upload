@@ -28,6 +28,7 @@ import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
 import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
 import uk.gov.hmrc.fileupload.write.envelope._
+import uk.gov.hmrc.fileupload.write.envelope.{Envelope => WriteEnvelope}
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, _}
 
@@ -35,6 +36,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 class EnvelopeController(withBasicAuth: BasicAuth,
+                         envelopeDefaultConstraints: DefaultEnvelopeConstraints,
                          nextId: () => EnvelopeId,
                          handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                          findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]],
@@ -46,15 +48,13 @@ class EnvelopeController(withBasicAuth: BasicAuth,
 
   def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
-    val constraints = Envelope.loadConstraints(request.body.constraints)
-    val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata, Some(constraints))
+    val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata, request.body.constraintsWithDefaultsIfNotProvided(request.body.constraints, envelopeDefaultConstraints))
     handleCreate(envelopeLocation, command)
   }
 
   def createWithId(id: EnvelopeId) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
-    val constraints = Envelope.loadConstraints(request.body.constraints)
-    val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata, Some(constraints))
+    val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata, request.body.constraintsWithDefaultsIfNotProvided(request.body.constraints, envelopeDefaultConstraints))
     handleCreate(envelopeLocation, command)
   }
 
@@ -62,7 +62,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     handleCommand(command).map {
       case Xor.Right(_) => Created.withHeaders(envelopeLocation(command.id))
       case Xor.Left(EnvelopeAlreadyCreatedError) => ExceptionHandler(BAD_REQUEST, "Envelope already created")
-      case Xor.Left(EnvelopeMaxSizePerItemError) => ExceptionHandler(BAD_REQUEST, s"Max size per item is ${Envelope.defaultMaxSizePerItem}")
+      case Xor.Left(EnvelopeMaxSizePerItemError) => ExceptionHandler(BAD_REQUEST, s"Max size per item is ${envelopeDefaultConstraints.maxSizePerItem}")
       case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
       case Xor.Left(EnvelopeMaxNumFilesExceededError) => ExceptionHandler(BAD_REQUEST, "Envelope max number files exceeded")
       case Xor.Left(EnvelopeMaxSizeExceededError) => ExceptionHandler(BAD_REQUEST, "Envelope Size exceeds maximum")
