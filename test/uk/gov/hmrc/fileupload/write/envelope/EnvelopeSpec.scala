@@ -18,12 +18,10 @@ package uk.gov.hmrc.fileupload.write.envelope
 
 import org.joda.time.DateTime
 import play.api.libs.json.Json
-import uk.gov.hmrc.fileupload.controllers.Constraints
+import uk.gov.hmrc.fileupload.controllers.{Constraints, DefaultEnvelopeConstraints}
 import uk.gov.hmrc.fileupload.{EnvelopeId, EventBasedGWTSpec, FileId, FileRefId}
 
 class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
-
-  override val handler = Envelope
 
   override val defaultStatus: Envelope = Envelope()
 
@@ -41,6 +39,8 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
   val maxOneFileConstraints = Constraints(Some(1), Some(defaultMaxSize), Some(defaultMaxFileSize))
   val maxEnvelopeSizeConstraints = Constraints(Some(defaultMaxNumFiles), Some("0MB"), Some(defaultMaxFileSize))
   val maxSizePerItemConstraints = Constraints(Some(defaultMaxNumFiles), Some(defaultMaxSize), Some("0MB"))
+
+  override val handler = new EnvelopeHandler(DefaultEnvelopeConstraints(defaultMaxNumFiles, defaultMaxSize, defaultMaxFileSize))
 
   val envelopeCreated = EnvelopeCreated(envelopeId,
                                         Some("http://www.callback-url.com"),

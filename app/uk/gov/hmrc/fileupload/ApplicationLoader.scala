@@ -81,6 +81,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   val publish: (AnyRef) => Unit = actorSystem.eventStream.publish
   val withBasicAuth: BasicAuth = BasicAuth(basicAuthConfiguration(configuration))
   val envelopeDefaultConstraints = envelopeConstraintsConfiguration(configuration)
+  val envelopeHandler = new EnvelopeHandler(envelopeDefaultConstraints)
 
   val eventStore = if (environment.mode == Mode.Prod && configuration.getBoolean("Prod.mongodb.replicaSetInUse").getOrElse(true)) {
     new MongoEventStore(db, writeConcern = commands.WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = true))
@@ -183,7 +184,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val envelopeCommandHandler = {
     (command: EnvelopeCommand) =>
       new Aggregate[EnvelopeCommand, write.envelope.Envelope](
-        handler = write.envelope.Envelope,
+        handler = envelopeHandler,
         defaultState = () => write.envelope.Envelope(),
         publish = publish,
         publishAllEvents = createReportHandler.handle(replay = false))(eventStore, defaultContext).handleCommand(command)
