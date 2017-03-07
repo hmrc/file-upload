@@ -96,16 +96,13 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   }
 
   def envelopeConstraintsConfiguration(config: Configuration) = {
+    DefaultEnvelopeConstraints(config.getInt("envelopeDefaultConstraints.maxNumFiles").getOrElse(throwRuntimeException("maxNumFiles")),
+                               config.getString("envelopeDefaultConstraints.maxSize").getOrElse(throwRuntimeException("maxSize")),
+                               config.getString("envelopeDefaultConstraints.maxSizePerItem").getOrElse(throwRuntimeException("maxSizePerItem")))
+  }
 
-    def throwException(key: String) = {
-      throw new IllegalStateException(s"default value $key need to define")
-    }
-
-    DefaultEnvelopeConstraints(
-                               config.getInt("envelopeDefaultConstraints.maxNumFiles").getOrElse(throwException("maxNumFiles")),
-                               config.getString("envelopeDefaultConstraints.maxSize").getOrElse(throwException("maxSize")),
-                               config.getString("envelopeDefaultConstraints.maxSizePerItem").getOrElse(throwException("maxSizePerItem"))
-    )
+  def throwRuntimeException(key: String) = {
+    throw new RuntimeException(s"default value $key need to define")
   }
 
   def basicAuthConfiguration(config: Configuration): BasicAuthConfiguration = {
