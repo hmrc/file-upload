@@ -17,11 +17,16 @@
 package uk.gov.hmrc.fileupload.write.envelope
 
 import cats.data.Xor
-import uk.gov.hmrc.fileupload.write.envelope.Envelope.CanResult
+import uk.gov.hmrc.fileupload.controllers.DefaultEnvelopeConstraints
+import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.CanResult
 import uk.gov.hmrc.fileupload.write.infrastructure.{EventData, Handler}
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 
-object Envelope extends Handler[EnvelopeCommand, Envelope] {
+object EnvelopeHandler {
+  type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
+}
+
+class EnvelopeHandler(envelopeDefaultConstraints: DefaultEnvelopeConstraints) extends Handler[EnvelopeCommand, Envelope] {
 
   type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
 

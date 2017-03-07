@@ -80,6 +80,8 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   val subscribe: (ActorRef, Class[_]) => Boolean = actorSystem.eventStream.subscribe
   val publish: (AnyRef) => Unit = actorSystem.eventStream.publish
   val withBasicAuth: BasicAuth = BasicAuth(basicAuthConfiguration(configuration))
+  val envelopeDefaultConstraints = envelopeConstraintsConfiguration(configuration)
+  val envelopeHandler = new EnvelopeHandler(envelopeDefaultConstraints)
 
   val eventStore = if (environment.mode == Mode.Prod && configuration.getBoolean("Prod.mongodb.replicaSetInUse").getOrElse(true)) {
     new MongoEventStore(db, writeConcern = commands.WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = true))
@@ -91,6 +93,19 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     envelopeRepository.update(writeConcern = commands.WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = true)) _
   } else {
     envelopeRepository.update() _
+  }
+
+  def envelopeConstraintsConfiguration(config: Configuration) = {
+
+    def throwException(key: String) = {
+      throw new IllegalStateException(s"default value $key need to define")
+    }
+
+    DefaultEnvelopeConstraints(
+      config.getInt("envelopeDefaultConstraints.maxNumFiles").getOrElse(throwException("maxNumFiles")),
+      config.getString("envelopeDefaultConstraints.maxSize").getOrElse(throwException("maxSize")),
+      config.getString("envelopeDefaultConstraints.maxSizePerItem").getOrElse(throwException("maxSizePerItem"))
+    )
   }
 
   def basicAuthConfiguration(config: Configuration): BasicAuthConfiguration = {
@@ -169,7 +184,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val envelopeCommandHandler = {
     (command: EnvelopeCommand) =>
       new Aggregate[EnvelopeCommand, write.envelope.Envelope](
-        handler = write.envelope.Envelope,
+        handler = envelopeHandler,
         defaultState = () => write.envelope.Envelope(),
         publish = publish,
         publishAllEvents = createReportHandler.handle(replay = false))(eventStore, defaultContext).handleCommand(command)
@@ -180,6 +195,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     val getEnvelopesByStatus = envelopeRepository.getByStatus _
     new EnvelopeController(
       withBasicAuth = withBasicAuth,
+      envelopeDefaultConstraints = envelopeDefaultConstraints,
       nextId = nextId,
       handleCommand = envelopeCommandHandler,
       findEnvelope = find,
