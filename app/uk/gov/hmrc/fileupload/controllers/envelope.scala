@@ -37,7 +37,7 @@ object EnvelopeReport {
   implicit val fileStatusReads: Reads[FileStatus] = FileStatusReads
   implicit val fileStatusWrites: Writes[FileStatus] = FileStatusWrites
   implicit val fileReads: Format[File] = Json.format[File]
-
+  implicit val constraintsReads: Format[Constraints] = Json.format[Constraints]
   implicit val createEnvelopeReads: Format[EnvelopeReport] = Json.format[EnvelopeReport]
 
   def fromEnvelope(envelope: Envelope): EnvelopeReport = {
@@ -62,30 +62,23 @@ case class CreateEnvelopeRequest(callbackUrl: Option[String] = None,
                                  metadata: Option[JsObject] = None,
                                  constraints: Option[Constraints] = None) {
   def constraintsWithDefaultsIfNotProvided(constraints: Option[Constraints], defaultConstraints: DefaultEnvelopeConstraints) = {
-    val defaultMaxCapacity = defaultConstraints.maxNumFiles
-    val defaultMaxSize = defaultConstraints.maxSize
-    val defaultMaxSizePerItem = defaultConstraints.maxSizePerItem
+    val defaultContentTypes = defaultConstraints.defaultContentTypes
 
     Constraints(
-      maxNumFiles = Some(constraints.map(_.maxNumFiles.getOrElse(defaultMaxCapacity)).getOrElse(defaultMaxCapacity).toString.toInt),
-      maxSize = Some(constraints.map(_.maxSize.getOrElse(defaultMaxSize)).getOrElse(defaultMaxSize).toString),
-      maxSizePerItem = Some(constraints.map(_.maxSizePerItem.getOrElse(defaultMaxSizePerItem)).getOrElse(defaultMaxSizePerItem).toString)
+      contentTypes = Some(constraints.map(_.contentTypes.getOrElse(defaultContentTypes)).getOrElse(defaultContentTypes))
     )
 
   }
 
 }
 
-case class Constraints(maxNumFiles: Option[Int] = None,
-                       maxSize: Option[String] = None,
-                       maxSizePerItem: Option[String] = None)
+case class Constraints(contentTypes: Option[String] = None)
 
-case class DefaultEnvelopeConstraints(maxNumFiles: Int,
-                                      maxSize: String,
-                                      maxSizePerItem: String)
+case class DefaultEnvelopeConstraints(defaultContentTypes: String, acceptedContentTypes: String)
 
 object CreateEnvelopeRequest {
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val constraintsFormats = Json.format[Constraints]
   implicit val formats = Json.format[CreateEnvelopeRequest]
 }
 

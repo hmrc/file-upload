@@ -33,7 +33,7 @@ class EnvelopeHandler(envelopeDefaultConstraints: DefaultEnvelopeConstraints) ex
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
       envelope.canCreate().map(_ =>
-        EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata)
+        EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, command.constraints)
       )
 
     case (command: QuarantineFile, envelope: Envelope) =>

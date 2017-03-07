@@ -50,10 +50,17 @@ Body:
 {
     "callbackUrl": "string representing absolute url",
     "metadata": { "any": "valid json object" }
+    "constraints": 	{
+      "contentTypes": "application/pdf,image/jpeg,application/xml"
+    }
 }
 ```
 
 Note: All parameters are optional. A [callbackUrl](#callback) is optional but should be provided in order for the service to provide feedback of the envelope's progress.
+Attribute: constraints.contentTypes: 
+1. Currently, content types are limited to application/pdf, image/jpeg , application/xml, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+2. If the value is not specified in the create envelope call it defaults to application/pdf, image/jpeg , application/xml 
+3. If a content header provided in the /file-upload/upload call is a type other than the above range in #1, it results in an error (415 Unsupported Media Type)
 
 Response (in Headers): Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 

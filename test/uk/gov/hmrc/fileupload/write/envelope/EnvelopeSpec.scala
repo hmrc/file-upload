@@ -18,11 +18,16 @@ package uk.gov.hmrc.fileupload.write.envelope
 
 import org.joda.time.DateTime
 import play.api.libs.json.Json
+import uk.gov.hmrc.fileupload.controllers.{Constraints, DefaultEnvelopeConstraints}
 import uk.gov.hmrc.fileupload.{EnvelopeId, EventBasedGWTSpec, FileId, FileRefId}
 
 class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
-  override val handler = Envelope
+  val defaultContentTypes = "application/pdf,image/jpeg,application/xml"
+  val acceptedContentTypes = "application/pdf,image/jpeg,application/xml,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  val defaultEnvelopeConstraints = DefaultEnvelopeConstraints(defaultContentTypes, acceptedContentTypes)
+
+  override val handler = new EnvelopeHandler(defaultEnvelopeConstraints)
 
   override val defaultStatus: Envelope = Envelope()
 
@@ -30,7 +35,9 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
   val fileId = FileId("fileId-1")
   val fileRefId = FileRefId("fileRefId-1")
 
-  val envelopeCreated = EnvelopeCreated(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")) )
+  val defaultConstraints = Constraints(Some(defaultContentTypes))
+
+  val envelopeCreated = EnvelopeCreated(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), defaultConstraints)
   val fileQuarantined = FileQuarantined(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj())
   val noVirusDetected = NoVirusDetected(envelopeId, fileId, fileRefId)
   val virusDetected = VirusDetected(envelopeId, fileId, fileRefId)
@@ -48,7 +55,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         --,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar"))),
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), defaultConstraints),
         envelopeCreated
       )
     }
@@ -57,7 +64,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar"))),
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), defaultConstraints),
         EnvelopeAlreadyCreatedError
       )
     }
@@ -66,7 +73,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated And envelopeDeleted,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar"))),
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), defaultConstraints),
         EnvelopeAlreadyCreatedError
       )
     }

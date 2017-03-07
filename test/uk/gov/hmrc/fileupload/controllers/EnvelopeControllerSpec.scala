@@ -46,13 +46,18 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
 
   implicit val ec = ExecutionContext.global
 
+  val defaultContentTypes = "application/pdf,image/jpeg,application/xml"
+  val acceptedContentTypes = "application/pdf,image/jpeg,application/xml,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
   val failed = Future.failed(new Exception("not good"))
+  val defaultEnvelopeConstraints = DefaultEnvelopeConstraints(defaultContentTypes, acceptedContentTypes)
 
   def basic64(s:String): String = {
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
   }
 
   def newController(withBasicAuth: BasicAuth = AlwaysAuthorisedBasicAuth,
+                    envelopeDefaultConstraints: DefaultEnvelopeConstraints = defaultEnvelopeConstraints,
                     nextId: () => EnvelopeId = () => EnvelopeId("abc-def"),
                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
                     findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]] = _ => failed,
@@ -60,7 +65,7 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
                     findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed,
                     deleteInProgressFile: FileRefId => Future[Boolean] = _ => failed,
                     getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope] = (_, _) => failed) =
-    new EnvelopeController(withBasicAuth, nextId, handleCommand, findEnvelope, findMetadata, findAllInProgressFile, deleteInProgressFile, getEnvelopesByStatus)
+    new EnvelopeController(withBasicAuth, envelopeDefaultConstraints, nextId, handleCommand, findEnvelope, findMetadata, findAllInProgressFile, deleteInProgressFile, getEnvelopesByStatus)
 
   "Create envelope with a request" should {
     "return response with OK status and a Location header specifying the envelope endpoint" in {

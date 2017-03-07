@@ -39,7 +39,6 @@ class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotA
                      (implicit executionContext: ExecutionContext) extends Controller {
 
   implicit val eventWrites = EventSerializer.eventWrite
-  val a = throw new IllegalStateException(s"")
 
   def collect(eventType: String) = Action.async(EventParser) { implicit request =>
     request.body match {

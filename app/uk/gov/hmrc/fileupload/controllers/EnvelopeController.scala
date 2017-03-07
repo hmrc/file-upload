@@ -63,7 +63,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     handleCommand(command).map {
       case Xor.Right(_) => Created.withHeaders(envelopeLocation(command.id))
       case Xor.Left(EnvelopeAlreadyCreatedError) => ExceptionHandler(BAD_REQUEST, "Envelope already created")
-      case Xor.Left(EnvelopecontentTypesError) => ExceptionHandler(UNSUPPORTED_MEDIA_TYPE, "Unsupported Media Type")
+      case Xor.Left(EnvelopeContentTypesError) => ExceptionHandler(UNSUPPORTED_MEDIA_TYPE, "Unsupported Media Type")
       case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
       case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not created")
     }.recover { case e => ExceptionHandler(e) }
