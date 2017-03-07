@@ -16,7 +16,7 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
   val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
   val today = new DateTime().plusMinutes(10)
 
-  feature("Create Envelope") {
+  feature("Create Envelope without input Max capacity") {
 
     scenario("Create a new Envelope with empty body") {
 
@@ -89,4 +89,26 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       response.status shouldBe BAD_REQUEST
     }
   }
+
+  feature("Create Envelope with input Max capacity") {
+
+    scenario("Create a new Envelope with empty body") {
+
+      Given("I have an empty JSON request")
+      val json = "{}"
+
+      When("I invoke POST /file-upload/envelopes")
+      val response: WSResponse = createEnvelope(json)
+
+      Then("I will receive a 201 Created response")
+      response.status shouldBe CREATED
+
+      And("a new Envelope record with no attributes will be created")
+
+      And("the Envelope ID will be returned in the location header")
+      val locationHeader = response.header("Location").get
+      locationHeader should fullyMatch regex ".*/file-upload/envelopes/[A-z0-9-]+$"
+    }
+  }
+
 }

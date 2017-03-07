@@ -43,7 +43,7 @@ class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotA
   def collect(eventType: String) = Action.async(EventParser) { implicit request =>
     request.body match {
       case e: FileInQuarantineStored =>
-        val command = QuarantineFile(e.envelopeId, e.fileId, e.fileRefId, e.created, e.name, e.contentType, e.metadata)
+        val command = QuarantineFile(e.envelopeId, e.fileId, e.fileRefId, e.created, e.name, e.fileLength, e.contentType, e.metadata)
         handleCommand(command).map {
           case Xor.Right(_) => Ok
           case Xor.Left(EnvelopeAlreadyRoutedError | EnvelopeSealedError) =>

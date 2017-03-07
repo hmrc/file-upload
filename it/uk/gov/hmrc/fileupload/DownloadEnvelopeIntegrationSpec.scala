@@ -22,7 +22,7 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActio
 
       And("File has been stored in quarantine on the front-end")
       sendFileInQuarantineStored(
-        FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "file-name", "contentType", Json.obj("metadata" -> "foo"))
+        FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "file-name", data.length, "contentType", Json.obj("metadata" -> "foo"))
       )
 
       And("File was scanned and no virus was found")

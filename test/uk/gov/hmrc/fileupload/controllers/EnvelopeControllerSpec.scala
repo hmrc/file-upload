@@ -47,6 +47,7 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
   implicit val ec = ExecutionContext.global
 
   val failed = Future.failed(new Exception("not good"))
+  val defaultMaxNumFiles = 100
 
   def basic64(s:String): String = {
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))

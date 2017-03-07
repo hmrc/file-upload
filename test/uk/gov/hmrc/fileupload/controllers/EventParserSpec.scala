@@ -36,16 +36,18 @@ class EventParserSpec extends UnitSpec with ScalaFutures {
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
 
+  val fileLength = 10
+
   "event parser" should {
 
     "should parse a quarantined event" in {
       val request = FakeRequest("POST", "/file-upload/events/fileinquarantinestored")
-      val body = """{"envelopeId":"env1","fileId":"file1","fileRefId":"fileRef1","created":0,"name":"test.pdf","contentType":"pdf","metadata":{}}""".getBytes
+      val body = """{"envelopeId":"env1","fileId":"file1","fileRefId":"fileRef1","created":0,"name":"test.pdf","fileLength":10,"contentType":"pdf","metadata":{}}""".getBytes
 
       val accumulator: Accumulator[ByteString, Either[Result, Event]] = EventParser(request)
       val futureValue: Either[Result, Event] = accumulator.run(Source.single(ByteString.fromArray(body))).futureValue
 
-      futureValue shouldBe Right(FileInQuarantineStored(EnvelopeId("env1"), FileId("file1"), FileRefId("fileRef1"), 0, "test.pdf", "pdf", Json.obj()))
+      futureValue shouldBe Right(FileInQuarantineStored(EnvelopeId("env1"), FileId("file1"), FileRefId("fileRef1"), 0, "test.pdf", fileLength, "pdf", Json.obj()))
     }
 
     "should parse a no virus detected event" in {
