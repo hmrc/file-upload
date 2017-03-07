@@ -18,19 +18,19 @@ private object AppDependencies {
   import play.sbt.PlayImport._
   import play.core.PlayVersion
 
-  private val microserviceBootstrapVersion = "5.5.0"
-  private val playAuthVersion = "4.2.0"
-  private val playHealthVersion = "2.0.0"
+  private val microserviceBootstrapVersion = "5.13.0"
+  private val playAuthVersion = "4.3.0"
+  private val playHealthVersion = "2.1.0"
   private val playJsonLoggerVersion = "3.1.0"
-  private val playUrlBindersVersion = "2.0.0"
-  private val playConfigVersion = "3.0.0"
-  private val domainVersion = "4.0.0"
-  private val hmrcTestVersion = "2.0.0"
-  private val playReactivemongoVersion = "5.0.0"
-  private val simpleReactivemongoVersion = "5.0.0"
+  private val playUrlBindersVersion = "2.1.0"
+  private val playConfigVersion = "4.2.0"
+  private val domainVersion = "4.1.0"
+  private val hmrcTestVersion = "2.3.0"
+  private val playReactivemongoVersion = "5.2.0"
+  private val simpleReactivemongoVersion = "5.2.0"
   private val akkaVersion = "2.4.10"
   private val catsVersion = "0.7.0"
-  private val playAuditing = "2.3.0"
+  private val playAuditing = "2.6.0"
 
 
   val compile = Seq(
