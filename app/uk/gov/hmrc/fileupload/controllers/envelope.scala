@@ -65,7 +65,7 @@ case class CreateEnvelopeRequest(callbackUrl: Option[String] = None,
     val defaultContentTypes = defaultConstraints.defaultContentTypes
 
     Constraints(
-      contentTypes = Some(constraints.map(_.contentTypes.getOrElse(defaultContentTypes)).getOrElse(defaultContentTypes))
+      contentTypes = constraints.map(_.contentTypes.getOrElse(defaultContentTypes))
     )
 
   }

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.write.envelope
 
 import cats.data.Xor
-import uk.gov.hmrc.fileupload.controllers.DefaultEnvelopeConstraints
+import uk.gov.hmrc.fileupload.controllers.{Constraints, DefaultEnvelopeConstraints}
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.CanResult
 import uk.gov.hmrc.fileupload.write.infrastructure.{EventData, Handler}
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
@@ -28,11 +28,10 @@ object EnvelopeHandler {
 
 class EnvelopeHandler(envelopeDefaultConstraints: DefaultEnvelopeConstraints) extends Handler[EnvelopeCommand, Envelope] {
 
-  type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
-
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
-      envelope.canCreate().map(_ =>
+      val constraints = command.constraints
+      envelope.canCreateWithFilesContentTypes(constraints, envelopeDefaultConstraints).map(_ =>
         EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, command.constraints)
       )
 
@@ -153,7 +152,9 @@ class EnvelopeHandler(envelopeDefaultConstraints: DefaultEnvelopeConstraints) ex
 
 case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated) {
 
-  def canCreate(): CanResult = state.canCreate()
+  def canCreateWithFilesContentTypes(constraints: Constraints, envelopeDefaultConstraints: DefaultEnvelopeConstraints) = {
+    state.canCreateWithFilesContentTypes(constraints, envelopeDefaultConstraints)
+  }
 
   def canDeleteFile(fileId: FileId): CanResult = state.canDeleteFile(fileId, files)
 
@@ -178,6 +179,7 @@ object State {
   val successResult = Xor.right(Unit)
   val envelopeNotFoundError = Xor.left(EnvelopeNotFoundError)
   val envelopeAlreadyCreatedError = Xor.left(EnvelopeAlreadyCreatedError)
+  val envelopeContentTypesError = Xor.left(EnvelopeContentTypesError)
   val fileNotFoundError = Xor.left(FileNotFoundError)
   val envelopeSealedError = Xor.left(EnvelopeSealedError)
   val envelopeAlreadyArchivedError = Xor.left(EnvelopeArchivedError)
@@ -188,7 +190,7 @@ object State {
 sealed trait State {
   import State._
 
-  def canCreate(): CanResult = envelopeAlreadyCreatedError
+  def canCreateWithFilesContentTypes(constraints: Constraints, envelopeDefaultConstraints: DefaultEnvelopeConstraints): CanResult = envelopeAlreadyCreatedError
 
   def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult = genericError
 
@@ -235,10 +237,27 @@ sealed trait State {
 }
 
 object NotCreated extends State {
+
   import State._
 
-  override def canCreate(): CanResult =
-    successResult
+  override def canCreateWithFilesContentTypes(constraints: Constraints, envelopeDefaultConstraints: DefaultEnvelopeConstraints): CanResult = {
+    constraints.contentTypes match {
+      case Some(contentTypes) => {
+        if (!checkContentTypes(contentTypes.trim.split(",").toList, envelopeDefaultConstraints.acceptedContentTypes.trim.split(",").toList)) envelopeContentTypesError
+        else successResult
+      }
+      case _ => successResult
+    }
+  }
+
+  def checkContentTypes(contentTypes: List[String], acceptedContentTypes: List[String]): Boolean= {
+    contentTypes match {
+      case head :: tail => if (acceptedContentTypes.exists(t => t.equals(head))) checkContentTypes(tail, acceptedContentTypes)
+      else false
+      case head :: Nil => acceptedContentTypes.exists(t => t.equals(head))
+      case _ => true
+    }
+  }
 }
 
 object Open extends State {

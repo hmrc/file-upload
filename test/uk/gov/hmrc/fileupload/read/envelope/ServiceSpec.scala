@@ -20,6 +20,7 @@ import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindEnvelopeNotFoundError, FindServiceError}
+import uk.gov.hmrc.fileupload.write.envelope.NotCreated
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -66,6 +67,20 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       val result = findMetadata(envelope._id, file.fileId).futureValue
 
       result shouldBe Xor.Right(file)
+    }
+  }
+
+  "checkContentTypes" should {
+
+    val acceptedContentTypes = "application/pdf,image/jpeg,application/xml".trim.split(",").toList
+    val notAcceptedContentTypes = "application/pd,image/jpeg,application/xml".trim.split(",").toList
+    val defaultAcceptedContentTypes = "application/pdf,image/jpeg,application/xml".trim.split(",").toList
+
+    "true if input is accepted" in {
+      NotCreated.checkContentTypes(acceptedContentTypes, defaultAcceptedContentTypes) shouldBe true
+    }
+    "false otherwise" in {
+      NotCreated.checkContentTypes(notAcceptedContentTypes, defaultAcceptedContentTypes) shouldBe false
     }
   }
 }

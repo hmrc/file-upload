@@ -2,6 +2,7 @@ package uk.gov.hmrc.fileupload
 
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
+import play.api.libs.json.Json
 import play.api.libs.ws._
 import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport._
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
@@ -87,6 +88,35 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
 
       Then("I will receive a 400 Bad Request response")
       response.status shouldBe BAD_REQUEST
+    }
+  }
+
+  feature("Create Envelope with constraints.contentTypes") {
+
+    scenario("Create a new Envelope with acceptedContentTypes") {
+
+      Given("I have a JSON request with acceptedContentTypes")
+      val json = Json.obj("constraints" -> Json.obj("contentTypes" -> "application/pdf,image/jpeg,application/xml")).toString()
+
+      When("I invoke POST /file-upload/envelopes")
+      val response: WSResponse = createEnvelope(json)
+
+      Then("I will receive a 201 Created response")
+      response.status shouldBe CREATED
+
+    }
+
+    scenario("Create a new Envelope with not acceptedContentTypes") {
+
+      Given("I have a JSON request with not acceptedContentTypes")
+      val json = Json.obj("constraints" -> Json.obj("contentTypes" -> "application/pd,image/jpeg,application/xml")).toString()
+
+      When("I invoke POST /file-upload/envelopes")
+      val response: WSResponse = createEnvelope(json)
+
+      Then("I will receive a 201 Created response")
+      response.status shouldBe UNSUPPORTED_MEDIA_TYPE
+
     }
   }
 }
