@@ -45,7 +45,7 @@ object Zippy {
                  (implicit ec: ExecutionContext): Future[ZipResult] = {
 
     getEnvelope(envelopeId) map {
-      case Xor.Right(envelopeWithFiles @ Envelope(_, _, EnvelopeStatusClosed, _, _, _, Some(files), _, _)) =>
+      case Xor.Right(envelopeWithFiles @ Envelope(_, _, EnvelopeStatusClosed, _, _, _, Some(files), _, _, _)) =>
         val zipFiles = files.collect {
           case f =>
             val fileName = f.name.getOrElse(UUID.randomUUID().toString)
@@ -56,7 +56,7 @@ object Zippy {
         }
         Xor.right( ZipStreamEnumerator(zipFiles))
 
-      case Xor.Right(envelopeWithoutFiles @ Envelope(_, _, EnvelopeStatusClosed, _, _, _, None, _, _)) =>
+      case Xor.Right(envelopeWithoutFiles @ Envelope(_, _, EnvelopeStatusClosed, _, _, _, None, _, _, _)) =>
         Xor.Right(emptyZip())
 
       case Xor.Right(envelopeWithWrongStatus: Envelope) => Xor.left(EnvelopeNotRoutedYet)

@@ -35,7 +35,7 @@ class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
   override def apply = {
 
     case (s: Envelope, e: EnvelopeCreated) => Some {
-      s.copy(callbackUrl = e.callbackUrl, expiryDate = e.expiryDate, metadata = e.metadata)
+      s.copy(callbackUrl = e.callbackUrl, expiryDate = e.expiryDate, metadata = e.metadata, maxSizePerItem = e.maxSizePerItem)
     }
 
     case (s: Envelope, e: FileQuarantined) => Some {
@@ -74,7 +74,7 @@ class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
 
     case (s: Envelope, e: FileStored) => Some {
       val withUpdatedStatus = s.copy(files = fileStatusLens(s, e.fileId, FileStatusAvailable))
-      withUpdatedStatus.copy(files = fileLengthLens(withUpdatedStatus, e.fileId, e.length))
+      withUpdatedStatus.copy(files = fileLengthLens(withUpdatedStatus, e.fileId, e.fileLength))
     }
 
     case (s: Envelope, e: EnvelopeDeleted) => None

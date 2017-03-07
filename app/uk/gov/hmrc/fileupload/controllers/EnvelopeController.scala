@@ -16,19 +16,15 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import akka.NotUsed
-import akka.stream.scaladsl.Source
 import akka.stream.scaladsl.Source.fromPublisher
 import cats.data.Xor
-import org.reactivestreams.Publisher
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.json._
-import play.api.libs.streams.Streams
 import play.api.libs.streams.Streams.enumeratorToPublisher
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.envelope.Service._
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
 import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -50,13 +46,15 @@ class EnvelopeController(withBasicAuth: BasicAuth,
 
   def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
-    val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata)
+    val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata,
+                                 Some(request.body.maxSizePerItem.getOrElse(Envelope.defaultMaxSizePerItem)))
     handleCreate(envelopeLocation, command)
   }
 
   def createWithId(id: EnvelopeId) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
-    val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata)
+    val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata,
+                                 Some(request.body.maxSizePerItem.getOrElse(Envelope.defaultMaxSizePerItem)))
     handleCreate(envelopeLocation, command)
   }
 
@@ -64,6 +62,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     handleCommand(command).map {
       case Xor.Right(_) => Created.withHeaders(envelopeLocation(command.id))
       case Xor.Left(EnvelopeAlreadyCreatedError) => ExceptionHandler(BAD_REQUEST, "Envelope already created")
+      case Xor.Left(EnvelopeMaxSizePerItemError) => ExceptionHandler(BAD_REQUEST, "Max size per item is 10MB")
       case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
       case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not created")
     }.recover { case e => ExceptionHandler(e) }

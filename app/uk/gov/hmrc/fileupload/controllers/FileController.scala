@@ -26,7 +26,7 @@ import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.read.file.Service._
-import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError, FileNotFoundError, StoreFile}
+import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -46,6 +46,7 @@ class FileController(withBasicAuth: BasicAuth,
         case Xor.Right(_) => Ok
         case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
         case Xor.Left(FileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found")
+        case Xor.Left(EnvelopeMaxSizePerItemError) => ExceptionHandler(REQUEST_ENTITY_TOO_LARGE, s"Max size per item reached")
         case Xor.Left(_) => ExceptionHandler(INTERNAL_SERVER_ERROR, "File not added to envelope")
       }.recover { case e => ExceptionHandler(e) }
     }
