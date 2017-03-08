@@ -114,7 +114,7 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       When("I invoke POST /file-upload/envelopes")
       val response: WSResponse = createEnvelope(json)
 
-      Then("I will receive a 201 Created response")
+      Then("I will receive a 415 Created response")
       response.status shouldBe UNSUPPORTED_MEDIA_TYPE
 
     }

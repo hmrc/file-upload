@@ -96,7 +96,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   }
 
   def envelopeConstraintsConfiguration(config: Configuration) = {
-    DefaultEnvelopeConstraints(
+    EnvelopeConstraints(
       config.getString("envelopeDefaultConstraints.defaultContentTypes").getOrElse(throwRuntimeException("defaultContentTypes")),
       config.getString("envelopeDefaultConstraints.acceptedContentTypes").getOrElse(throwRuntimeException("acceptedContentTypes"))
     )

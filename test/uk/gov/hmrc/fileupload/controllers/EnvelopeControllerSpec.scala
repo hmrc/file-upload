@@ -50,14 +50,14 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
   val acceptedContentTypes = "application/pdf,image/jpeg,application/xml,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
   val failed = Future.failed(new Exception("not good"))
-  val defaultEnvelopeConstraints = DefaultEnvelopeConstraints(defaultContentTypes, acceptedContentTypes)
+  val defaultEnvelopeConstraints = EnvelopeConstraints(defaultContentTypes, acceptedContentTypes)
 
   def basic64(s:String): String = {
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
   }
 
   def newController(withBasicAuth: BasicAuth = AlwaysAuthorisedBasicAuth,
-                    envelopeDefaultConstraints: DefaultEnvelopeConstraints = defaultEnvelopeConstraints,
+                    envelopeDefaultConstraints: EnvelopeConstraints = defaultEnvelopeConstraints,
                     nextId: () => EnvelopeId = () => EnvelopeId("abc-def"),
                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
                     findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]] = _ => failed,

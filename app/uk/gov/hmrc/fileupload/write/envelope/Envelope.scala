@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.write.envelope
 
 import cats.data.Xor
-import uk.gov.hmrc.fileupload.controllers.{Constraints, DefaultEnvelopeConstraints}
+import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.CanResult
 import uk.gov.hmrc.fileupload.write.infrastructure.{EventData, Handler}
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
@@ -26,12 +26,12 @@ object EnvelopeHandler {
   type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
 }
 
-class EnvelopeHandler(envelopeDefaultConstraints: DefaultEnvelopeConstraints) extends Handler[EnvelopeCommand, Envelope] {
+class EnvelopeHandler(envelopeConstraints: EnvelopeConstraints) extends Handler[EnvelopeCommand, Envelope] {
 
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
       val constraints = command.constraints
-      envelope.canCreateWithFilesContentTypes(constraints, envelopeDefaultConstraints).map(_ =>
+      envelope.canCreateWithFilesContentTypes(constraints, envelopeConstraints).map(_ =>
         EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, command.constraints)
       )
 
@@ -152,8 +152,8 @@ class EnvelopeHandler(envelopeDefaultConstraints: DefaultEnvelopeConstraints) ex
 
 case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated) {
 
-  def canCreateWithFilesContentTypes(constraints: Constraints, envelopeDefaultConstraints: DefaultEnvelopeConstraints) = {
-    state.canCreateWithFilesContentTypes(constraints, envelopeDefaultConstraints)
+  def canCreateWithFilesContentTypes(userConstraints: EnvelopeConstraints, envelopeConstraints: EnvelopeConstraints) = {
+    state.canCreateWithFilesContentTypes(userConstraints, envelopeConstraints)
   }
 
   def canDeleteFile(fileId: FileId): CanResult = state.canDeleteFile(fileId, files)
@@ -190,7 +190,7 @@ object State {
 sealed trait State {
   import State._
 
-  def canCreateWithFilesContentTypes(constraints: Constraints, envelopeDefaultConstraints: DefaultEnvelopeConstraints): CanResult = envelopeAlreadyCreatedError
+  def canCreateWithFilesContentTypes(userConstraints: EnvelopeConstraints, envelopeConstraints: EnvelopeConstraints): CanResult = envelopeAlreadyCreatedError
 
   def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult = genericError
 
@@ -240,10 +240,10 @@ object NotCreated extends State {
 
   import State._
 
-  override def canCreateWithFilesContentTypes(constraints: Constraints, envelopeDefaultConstraints: DefaultEnvelopeConstraints): CanResult = {
-    constraints.contentTypes match {
-      case Some(contentTypes) => {
-        if (!checkContentTypes(contentTypes.trim.split(",").toList, envelopeDefaultConstraints.acceptedContentTypes.trim.split(",").toList)) envelopeContentTypesError
+  override def canCreateWithFilesContentTypes(userConstraints: EnvelopeConstraints, envelopeConstraints: EnvelopeConstraints): CanResult = {
+    userConstraints.contentTypes match {
+      case contentTypes => {
+        if (!checkContentTypes(contentTypes.trim.split(",").toList, envelopeConstraints.acceptedContentTypes.trim.split(",").toList)) envelopeContentTypesError
         else successResult
       }
       case _ => successResult
