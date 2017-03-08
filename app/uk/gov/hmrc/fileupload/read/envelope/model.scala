@@ -17,7 +17,8 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 import org.joda.time.DateTime
-import play.api.libs.json.{Format, JsObject, _}
+import play.api.libs.json._
+import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraintsO
 import uk.gov.hmrc.fileupload.write.infrastructure.Version
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
@@ -29,7 +30,8 @@ case class Envelope(_id: EnvelopeId = EnvelopeId(),
                     metadata: Option[JsObject] = None,
                     files: Option[Seq[File]] = None,
                     destination: Option[String] = None,
-                    application: Option[String] = None) {
+                    application: Option[String] = None,
+                    constraints: Option[EnvelopeConstraintsO] = None) {
 
   def getFileById(fileId: FileId): Option[File] = {
     files.flatMap { _.find { file => file.fileId == fileId }}
@@ -56,6 +58,7 @@ object Envelope {
   implicit val fileReads: Format[File] = Json.format[File]
   implicit val envelopeStatusReads: Reads[EnvelopeStatus] = EnvelopeStatusReads
   implicit val envelopeStatusWrites: Writes[EnvelopeStatus] = EnvelopeStatusWrites
+  implicit val constraintsFormats = Json.format[EnvelopeConstraintsO]
   implicit val envelopeFormat: Format[Envelope] = Json.format[Envelope]
   implicit val envelopeOFormat: OFormat[Envelope] = new OFormat[Envelope] {
     def reads(json: JsValue): JsResult[Envelope] = envelopeFormat.reads(json)
@@ -66,6 +69,7 @@ object Envelope {
     val rawData = json.asInstanceOf[JsObject] ++ Json.obj("_id" -> _id)
     Json.fromJson[Envelope](rawData).get
   }
+
 }
 
 case class ValidationException(reason: String) extends IllegalArgumentException(reason)
@@ -85,6 +89,9 @@ case object EnvelopeStatusClosed extends EnvelopeStatus {
 case object EnvelopeStatusDeleted extends EnvelopeStatus {
   override val name: String = "DELETED"
 }
+case object EnvelopeStatusFull extends EnvelopeStatus {
+  override val name: String = "FULL"
+}
 
 object EnvelopeStatusWrites extends Writes[EnvelopeStatus] {
   def writes(c: EnvelopeStatus) = Json.toJson(c.name)
@@ -101,6 +108,7 @@ object EnvelopeStatusTransformer {
       case EnvelopeStatusSealed.name => EnvelopeStatusSealed
       case EnvelopeStatusClosed.name => EnvelopeStatusClosed
       case EnvelopeStatusDeleted.name => EnvelopeStatusDeleted
+      case EnvelopeStatusFull.name => EnvelopeStatusFull
     }
 }
 

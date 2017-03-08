@@ -20,6 +20,7 @@ import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindEnvelopeNotFoundError, FindServiceError}
+import uk.gov.hmrc.fileupload.write.envelope.NotCreated
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -66,6 +67,29 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
       val result = findMetadata(envelope._id, file.fileId).futureValue
 
       result shouldBe Xor.Right(file)
+    }
+  }
+
+  "regex for envelope size input" should {
+    "be true if enter is a valid size between 1kb to 25mb" in {
+      NotCreated.isValidSize("25mb", "25mb") shouldBe true
+      NotCreated.isValidSize("1kb", "25mb") shouldBe true
+    }
+    "be false if enter is an invalid size no between 1kb to 25mb" in {
+      NotCreated.isValidSize("26mb", "25mb") shouldBe false
+      NotCreated.isValidSize("0kb", "25mb") shouldBe false
+      NotCreated.isValidSize("kb", "25mb") shouldBe false
+      NotCreated.isValidSize("foo", "25mb") shouldBe false
+    }
+  }
+
+  "regex for change size from string to bytes Long" should {
+    "return -1 if input is invalid, otherwise return a long number" in {
+      NotCreated.sizeToByte("26mb") shouldBe 1024*1024*26
+      NotCreated.sizeToByte("26kb") shouldBe 1024*26
+      NotCreated.sizeToByte("0kb") shouldBe -1
+      NotCreated.sizeToByte("kb") shouldBe -1
+      NotCreated.sizeToByte("foo") shouldBe -1
     }
   }
 }

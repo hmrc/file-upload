@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import akka.actor.ActorSystem
-import akka.stream.{ActorMaterializer, Materializer}
 import play.api.http.Status._
 import play.api.libs.json.Json.parse
 import uk.gov.hmrc.fileupload.read.envelope.ValidationException

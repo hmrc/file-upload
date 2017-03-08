@@ -32,7 +32,7 @@ import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.read.file.Service._
-import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError}
+import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError, EnvelopeMaxNumFilesExceededError, EnvelopeMaxSizePerItemError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -45,6 +45,8 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
   implicit val ec = ExecutionContext.global
 
   val failed = Future.failed(new Exception("not good"))
+
+  val fileLength = 10
 
   def basic64(s:String): String = {
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
@@ -96,6 +98,28 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
       val result: Result = controller.upsertFile(envelopeId, FileId(), FileRefId())(fakeRequest).futureValue
 
       result.header.status shouldBe Status.NOT_FOUND
+    }
+
+    "return 400 if the envelope has reached its max capacity" in {
+      val fakeRequest = new FakeRequest[Future[JSONReadFile]]("PUT", "/envelopes", FakeHeaders(), body = Future.successful(TestJsonReadFile()))
+
+      val envelope = Support.envelope
+
+      val controller = newController(handleCommand = _ => Future.successful(Xor.left(EnvelopeMaxNumFilesExceededError)))
+      val result = controller.upsertFile(envelope._id, FileId(), FileRefId())(fakeRequest).futureValue
+
+      result.header.status shouldBe Status.BAD_REQUEST
+    }
+
+    "return 413 when try to Upload a too big file" in {
+      val fakeRequest = new FakeRequest[Future[JSONReadFile]]("PUT", "/envelopes", FakeHeaders(), body = Future.successful(TestJsonReadFile()))
+
+      val envelope = Support.envelope
+
+      val controller = newController(handleCommand = _ => Future.successful(Xor.left(EnvelopeMaxSizePerItemError)))
+      val result = controller.upsertFile(envelope._id, FileId(), FileRefId())(fakeRequest).futureValue
+
+      result.header.status shouldBe Status.REQUEST_ENTITY_TOO_LARGE
     }
   }
 

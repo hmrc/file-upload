@@ -14,6 +14,7 @@ object EventsSupport extends Support {
      |	"fileRefId": "${e.fileRefId.value}",
      |	"created": ${e.created},
      |	"name": "${e.name}",
+     |	"fileLength": ${e.fileLength},
      |	"contentType": "${e.contentType}",
      |	"metadata": ${Json.stringify(e.metadata)}
      |}
