@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.read.envelope
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.Matchers
 import play.api.libs.json.Json
-import uk.gov.hmrc.fileupload.controllers.Constraints
+import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, EnvelopeConstraintsO}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
@@ -35,14 +35,16 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
   val defaultMaxSize: String = "25MB"
   val defaultSizePerItem: String = "10MB"
 
-  val defaultConstraints = Constraints(Some(defaultMaxNumFiles), Some(defaultMaxSize), Some(defaultSizePerItem))
+  val defaultConstraints = EnvelopeConstraints(defaultMaxNumFiles, defaultMaxSize, defaultSizePerItem)
 
   val callbackUrl = Some("callback-url")
   val expiryDate = Some(new DateTime())
   val metadata = Some(Json.obj("key" -> "value"))
-  val maxNumFiles = Some(100)
-  val maxSize = Some("25MB")
-  val maxSizePerItem = Some("10MB")
+
+  val maxNumFiles = Some(defaultMaxNumFiles)
+  val maxSize = Some(defaultMaxSize)
+  val maxSizePerItem = Some(defaultSizePerItem)
+  val constraintsWhenCreate = Some(EnvelopeConstraintsO(maxNumFiles, maxSize, maxSizePerItem))
 
   "EnvelopeReportActor" should {
     "create a new envelope" in new UpdateEnvelopeFixture {
@@ -50,7 +52,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
 
       sendEvent(event)
 
-      modifiedEnvelope shouldBe initialState.copy(version = newVersion, callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata, constraints = Some(defaultConstraints))
+      modifiedEnvelope shouldBe initialState.copy(version = newVersion, callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata, constraints = constraintsWhenCreate)
     }
 
     "mark file as quarantined" in new UpdateEnvelopeFixture {
@@ -73,7 +75,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
 
       sendEvents(events)
 
-      val expectedEnvelope = initialState.copy(version = Version(2), callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata, constraints = Some(defaultConstraints),
+      val expectedEnvelope = initialState.copy(version = Version(2), callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata, constraints = constraintsWhenCreate,
         files = Some(List(File(fileQuarantined.fileId, fileRefId = fileQuarantined.fileRefId,
           status = FileStatusQuarantined, name = Some(fileQuarantined.name), contentType = Some(fileQuarantined.contentType),
           length = None, uploadDate = Some(new DateTime(fileQuarantined.created, DateTimeZone.UTC)), revision = None, metadata = Some(fileQuarantined.metadata)))))

@@ -2,6 +2,7 @@ package uk.gov.hmrc.fileupload
 
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
+import play.api.libs.json.Json
 import play.api.libs.ws._
 import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport._
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
@@ -90,24 +91,84 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
     }
   }
 
-  feature("Create Envelope with input Max capacity") {
+  feature("Create Envelope with constraints.maxNumFiles") {
 
-    scenario("Create a new Envelope with empty body") {
+    scenario("Create a new Envelope with accepted maxNumFiles") {
 
-      Given("I have an empty JSON request")
-      val json = "{}"
+      Given("I have a JSON request with accepted maxNumFiles")
+      val json = Json.obj("constraints" -> Json.obj("maxNumFiles" -> 100)).toString()
 
       When("I invoke POST /file-upload/envelopes")
       val response: WSResponse = createEnvelope(json)
 
       Then("I will receive a 201 Created response")
       response.status shouldBe CREATED
+    }
 
-      And("a new Envelope record with no attributes will be created")
+    scenario("Create a new Envelope with not accepted maxNumFiles") {
 
-      And("the Envelope ID will be returned in the location header")
-      val locationHeader = response.header("Location").get
-      locationHeader should fullyMatch regex ".*/file-upload/envelopes/[A-z0-9-]+$"
+      Given("I have a JSON request with not accepted maxNumFiles")
+      val json = Json.obj("constraints" -> Json.obj("maxNumFiles" -> 101)).toString()
+
+      When("I invoke POST /file-upload/envelopes")
+      val response: WSResponse = createEnvelope(json)
+
+      Then("I will receive a 404 Created response")
+      response.status shouldBe BAD_REQUEST
+    }
+  }
+
+  feature("Create Envelope with constraints.maxSize") {
+
+    scenario("Create a new Envelope with accepted maxSize") {
+
+      Given("I have a JSON request with accepted maxSize")
+      val json = Json.obj("constraints" -> Json.obj("maxSize" -> "25MB")).toString()
+
+      When("I invoke POST /file-upload/envelopes")
+      val response: WSResponse = createEnvelope(json)
+
+      Then("I will receive a 201 Created response")
+      response.status shouldBe CREATED
+    }
+
+    scenario("Create a new Envelope with not accepted maxSize") {
+
+      Given("I have a JSON request with not accepted maxSize")
+      val json = Json.obj("constraints" -> Json.obj("maxSize" -> "26MB")).toString()
+
+      When("I invoke POST /file-upload/envelopes")
+      val response: WSResponse = createEnvelope(json)
+
+      Then("I will receive a 404 Created response")
+      response.status shouldBe BAD_REQUEST
+    }
+  }
+
+  feature("Create Envelope with constraints.maxSizePerItem") {
+
+    scenario("Create a new Envelope with accepted maxSizePerItem") {
+
+      Given("I have a JSON request with accepted maxSizePerItem")
+      val json = Json.obj("constraints" -> Json.obj("maxSizePerItem" -> "5MB")).toString()
+
+      When("I invoke POST /file-upload/envelopes")
+      val response: WSResponse = createEnvelope(json)
+
+      Then("I will receive a 201 Created response")
+      response.status shouldBe CREATED
+    }
+
+    scenario("Create a new Envelope with not accepted maxSizePerItem") {
+
+      Given("I have a JSON request with not accepted maxSizePerItem")
+      val json = Json.obj("constraints" -> Json.obj("maxSizePerItem" -> "26")).toString()
+
+      When("I invoke POST /file-upload/envelopes")
+      val response: WSResponse = createEnvelope(json)
+
+      Then("I will receive a 404 Created response")
+      response.status shouldBe BAD_REQUEST
     }
   }
 

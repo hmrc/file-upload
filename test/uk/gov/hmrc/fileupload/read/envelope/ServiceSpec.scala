@@ -71,7 +71,6 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
   }
 
   "regex for envelope size input" should {
-    val defaultMaxSizeInMB = 25
     "be true if enter is a valid size between 1kb to 25mb" in {
       NotCreated.isValidSize("25mb", "25mb") shouldBe true
       NotCreated.isValidSize("1kb", "25mb") shouldBe true

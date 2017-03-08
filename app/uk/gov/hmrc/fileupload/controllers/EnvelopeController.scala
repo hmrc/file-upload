@@ -36,7 +36,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 class EnvelopeController(withBasicAuth: BasicAuth,
-                         envelopeDefaultConstraints: DefaultEnvelopeConstraints,
+                         envelopeDefaultConstraints: EnvelopeConstraints,
                          nextId: () => EnvelopeId,
                          handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                          findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]],
@@ -48,13 +48,13 @@ class EnvelopeController(withBasicAuth: BasicAuth,
 
   def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
-    val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata, request.body.constraintsWithDefaultsIfNotProvided(request.body.constraints, envelopeDefaultConstraints))
+    val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata, CreateEnvelopeRequest.constraintsWithDefaultsIfNotProvided(request.body.constraints, envelopeDefaultConstraints))
     handleCreate(envelopeLocation, command)
   }
 
   def createWithId(id: EnvelopeId) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
-    val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata, request.body.constraintsWithDefaultsIfNotProvided(request.body.constraints, envelopeDefaultConstraints))
+    val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata, CreateEnvelopeRequest.constraintsWithDefaultsIfNotProvided(request.body.constraints, envelopeDefaultConstraints))
     handleCreate(envelopeLocation, command)
   }
 

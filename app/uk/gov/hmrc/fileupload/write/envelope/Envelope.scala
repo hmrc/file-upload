@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.write.envelope
 
 import cats.data.Xor
-import uk.gov.hmrc.fileupload.controllers.DefaultEnvelopeConstraints
+import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.CanResult
 import uk.gov.hmrc.fileupload.write.infrastructure.{EventData, Handler}
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
@@ -26,19 +26,12 @@ object EnvelopeHandler {
   type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
 }
 
-class EnvelopeHandler(envelopeDefaultConstraints: DefaultEnvelopeConstraints) extends Handler[EnvelopeCommand, Envelope] {
-
-  val defaultMaxNumFilesCapacity = envelopeDefaultConstraints.maxNumFiles
-  val defaultMaxSizeInMB = envelopeDefaultConstraints.maxSize
-  val defaultMaxSizePerItemInMB = envelopeDefaultConstraints.maxSizePerItem
+class EnvelopeHandler(envelopeConstraints: EnvelopeConstraints) extends Handler[EnvelopeCommand, Envelope] {
 
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
       val constraints = command.constraints
-      envelope.canCreateWithFilesCapacityAndSize(constraints.maxNumFiles.getOrElse(defaultMaxNumFilesCapacity),
-                                                 constraints.maxSize.getOrElse(s"$defaultMaxSizeInMB"),
-                                                 constraints.maxSizePerItem.getOrElse(s"$defaultMaxSizePerItemInMB"),
-                                                 envelopeDefaultConstraints).map(_ =>
+      envelope.canCreateWithFilesCapacityAndSize(constraints, envelopeConstraints).map(_ =>
         EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, command.constraints)
       )
 
@@ -98,10 +91,7 @@ class EnvelopeHandler(envelopeDefaultConstraints: DefaultEnvelopeConstraints) ex
 
   override def on = {
       case (envelope: Envelope, e: EnvelopeCreated) =>
-        val constraints = e.constraints
-        envelope.copy(state = Open, fileCapacity = constraints.maxNumFiles.getOrElse(defaultMaxNumFilesCapacity),
-                      maxSize = constraints.maxSize.getOrElse(s"${defaultMaxSizeInMB}MB"),
-                      maxSizePerItem = constraints.maxSizePerItem.getOrElse(s"${defaultMaxSizePerItemInMB}MB"))
+        envelope.copy(state = Open, constraints = e.constraints)
 
       case (envelope: Envelope, e: FileQuarantined) =>
         envelope.copy(files = envelope.files + (e.fileId -> QuarantinedFile(e.fileRefId, e.fileId, e.name, e.fileLength)))
@@ -163,11 +153,11 @@ class EnvelopeHandler(envelopeDefaultConstraints: DefaultEnvelopeConstraints) ex
   }
 }
 
-case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated, fileCapacity: Int = 0, maxSize: String = "", maxSizePerItem: String = "") {
+case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated, constraints: EnvelopeConstraints = EnvelopeConstraints(0,"","")) {
 
-  def canCreateWithFilesCapacityAndSize(maxFiles: Int, maxSize: String, maxSizePerItem: String,
-                                        envelopeDefaultConstraints: DefaultEnvelopeConstraints): CanResult = {
-    state.canCreateWithFilesCapacityAndSize(maxFiles, maxSize, maxSizePerItem, envelopeDefaultConstraints)
+  def canCreateWithFilesCapacityAndSize(userConstraints: EnvelopeConstraints,
+                                        envelopeConstraints: EnvelopeConstraints): CanResult = {
+    state.canCreateWithFilesCapacityAndSize(userConstraints, envelopeConstraints)
   }
 
   def canDeleteFile(fileId: FileId): CanResult = state.canDeleteFile(fileId, files)
@@ -210,12 +200,12 @@ object State {
 sealed trait State {
   import State._
 
-  def canCreateWithFilesCapacityAndSize(maxFiles: Int, maxSize: String, maxSizePerItem: String,
-                                        envelopeDefaultConstraints: DefaultEnvelopeConstraints): CanResult = envelopeAlreadyCreatedError
+  def canCreateWithFilesCapacityAndSize(userConstraints: EnvelopeConstraints,
+                                        envelopeConstraints: EnvelopeConstraints): CanResult = envelopeAlreadyCreatedError
 
   def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult = genericError
 
-  def canQuarantine(fileId: FileId, fileRefId: FileRefId, name: String,  fileLength: Long, files: Map[FileId, File], envelope: Envelope): CanResult = genericError
+  def canQuarantine(fileId: FileId, fileRefId: FileRefId, name: String, fileLength: Long, files: Map[FileId, File], envelope: Envelope): CanResult = genericError
 
   def canMarkFileAsCleanOrInfected(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult = genericError
 
@@ -245,15 +235,14 @@ sealed trait State {
 
   def checkCanFileQuarantined(fileId: FileId, fileRefId: FileRefId, fileLength: Long, files: Map[FileId, File], envelope: Envelope): CanResult = {
 
-    val envelopeMaxSize: Long = sizeToByte(envelope.maxSize)
-    val maxSizePerItem: Long = sizeToByte(envelope.maxSizePerItem)
+    val envelopeMaxSize: Long = sizeToByte(envelope.constraints.maxSize)
+    val maxSizePerItem: Long = sizeToByte(envelope.constraints.maxSizePerItem)
     val currentSize: Long = envelope.files.map(file => file._2.fileLength).sum
     val furtherSize: Long = currentSize + fileLength
 
-    if (envelope.files.size < envelope.fileCapacity && furtherSize <= envelopeMaxSize && fileLength <= maxSizePerItem) {
+    if (envelope.files.size < envelope.constraints.maxNumFiles && furtherSize <= envelopeMaxSize && fileLength <= maxSizePerItem) {
       files.get(fileId).filter(_.isSame(fileRefId)).map(_ => Xor.left(FileAlreadyProcessed)).getOrElse(successResult)
-    }
-    else if (furtherSize > envelopeMaxSize) envelopeMaxSizeExceededError
+    } else if (furtherSize > envelopeMaxSize) envelopeMaxSizeExceededError
     else if (fileLength > maxSizePerItem) envelopeMaxSizePerItemError
     else isFull
 
@@ -305,12 +294,12 @@ sealed trait State {
 object NotCreated extends State {
   import State._
 
-  override def canCreateWithFilesCapacityAndSize(maxFiles: Int, maxSize: String, maxSizePerItem: String, envelopeDefaultConstraints: DefaultEnvelopeConstraints): CanResult =
-    (maxFiles, maxSize, maxSizePerItem)match {
+  override def canCreateWithFilesCapacityAndSize(userConstraints: EnvelopeConstraints, envelopeConstraints: EnvelopeConstraints): CanResult =
+    (userConstraints.maxNumFiles, userConstraints.maxSize, userConstraints.maxSizePerItem)match {
       case (num, envelopSize, itemSize) =>
-                          if (num > envelopeDefaultConstraints.maxNumFiles) envelopeMaxNumFilesExceededError
-                          else if (!isValidSize(envelopSize, envelopeDefaultConstraints.maxSize)) envelopeMaxSizeExceededError
-                          else if (!isValidSize(itemSize, envelopeDefaultConstraints.maxSizePerItem)) envelopeMaxSizePerItemError
+                          if (num > envelopeConstraints.maxNumFiles) envelopeMaxNumFilesExceededError
+                          else if (!isValidSize(envelopSize, envelopeConstraints.maxSize)) envelopeMaxSizeExceededError
+                          else if (!isValidSize(itemSize, envelopeConstraints.maxSizePerItem)) envelopeMaxSizePerItemError
                           else successResult
       case _ => successResult
     }

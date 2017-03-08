@@ -21,7 +21,7 @@ import java.lang.Math._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.json.{JsString, Json}
-import uk.gov.hmrc.fileupload.controllers.Constraints
+import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraintsO
 import uk.gov.hmrc.fileupload.write.infrastructure.Version
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 import uk.gov.hmrc.play.test.UnitSpec
@@ -58,7 +58,7 @@ class EnvelopeSpec extends UnitSpec {
 
 	    val result: Envelope = Envelope.fromJson(json, id)
 
-      val defaultConstraints = Constraints(Some(100), Some("25MB"), Some("10MB"))
+      val defaultConstraints = EnvelopeConstraintsO(Some(100), Some("25MB"), Some("10MB"))
 
       val expectedResult = Envelope(id, Version(1), EnvelopeStatusOpen,
                                     callbackUrl = Some("http://absolute.callback.url"),

@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 import org.joda.time.{DateTime, DateTimeZone}
+import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraintsO
 import uk.gov.hmrc.fileupload.read.envelope.Repository.{DeleteResult, UpdateResult}
 import uk.gov.hmrc.fileupload.read.infrastructure.ReportHandler
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -35,7 +36,11 @@ class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
   override def apply = {
 
     case (s: Envelope, e: EnvelopeCreated) => Some {
-      s.copy(callbackUrl = e.callbackUrl, expiryDate = e.expiryDate, metadata = e.metadata, constraints = Some(e.constraints))
+      val maxNumFiles = Some(e.constraints.maxNumFiles)
+      val maxSize = Some(e.constraints.maxSize)
+      val maxSizePerItem = Some(e.constraints.maxSizePerItem)
+      val constraints = Some(EnvelopeConstraintsO(maxNumFiles, maxSize, maxSizePerItem))
+      s.copy(callbackUrl = e.callbackUrl, expiryDate = e.expiryDate, metadata = e.metadata, constraints = constraints)
     }
 
     case (s: Envelope, e: FileQuarantined) => Some {

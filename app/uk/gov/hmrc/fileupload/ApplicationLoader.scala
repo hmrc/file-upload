@@ -96,7 +96,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   }
 
   def envelopeConstraintsConfiguration(config: Configuration) = {
-    DefaultEnvelopeConstraints(config.getInt("envelopeDefaultConstraints.maxNumFiles").getOrElse(throwRuntimeException("maxNumFiles")),
+    EnvelopeConstraints(config.getInt("envelopeDefaultConstraints.maxNumFiles").getOrElse(throwRuntimeException("maxNumFiles")),
                                config.getString("envelopeDefaultConstraints.maxSize").getOrElse(throwRuntimeException("maxSize")),
                                config.getString("envelopeDefaultConstraints.maxSizePerItem").getOrElse(throwRuntimeException("maxSizePerItem")))
   }

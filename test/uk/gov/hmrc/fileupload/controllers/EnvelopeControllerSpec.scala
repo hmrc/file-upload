@@ -53,7 +53,7 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
   }
 
   def newController(withBasicAuth: BasicAuth = AlwaysAuthorisedBasicAuth,
-                    envelopeDefaultConstraints: DefaultEnvelopeConstraints = DefaultEnvelopeConstraints(100, "25MB", "10MB"),
+                    envelopeDefaultConstraints: EnvelopeConstraints = EnvelopeConstraints(100, "25MB", "10MB"),
                     nextId: () => EnvelopeId = () => EnvelopeId("abc-def"),
                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
                     findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]] = _ => failed,
