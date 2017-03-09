@@ -62,10 +62,17 @@ Body:
 Note: All parameters are optional. 
 A [callbackUrl](#callback) is optional but should be provided in order for the service to provide feedback of the envelope's progress.
 All constraints are optional for users, default constraints apply if the value is not specified in the create envelope call.
-maxSize and maxSizePerItem can be specified in the following formats ([1-9][0-9]{0,3})([KB,MB]{2}), but can not over 25MB(maxSize per enverlope) and 10MB(maxSizePerItem), if not specified it defaults to the maximum value of 25MB and 10MB.
-maxNumFiles is the max capacity for an envelope to have, the max capacity is 100 items per envelope, if not specified it defaults to 100.
-contentTypes are limited to application/pdf, image/jpeg , application/xml, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.
-If the value is not specified in the create envelope call it defaults to application/pdf, image/jpeg , application/xml
+
+| Attribute    | Options    | Accepted Values | Default    | Description |
+| --------|---------|-------|-------|-------|
+| constraints.contentTypes  | optional   | List of MIME Types delimited by comma  | application/pdf<br/>image/jpeg<br/>application/xml  | MIME types accepted by this envelope  | 
+| constraints.maxNumFiles | optional   |  1-100 |  100  | Number of items allowed in this envelope  | 
+| constraints.maxSize | optional   |  0-999KB/MB |  25MB  | Maximum Size for the envelope  | 
+| constraints.maxSizePerItem | optional   |  0-999KB/MB |  10MB  | Maximum Size for each file  | 
+
+1. constraints.contentTypes and constraints.maxSizePerItem are applied when the file is uploaded. If validation fails, the user will receive an error.
+2. constraints.maxNumFiles and constraints.maxSize are applied when the file is routed. Your application may be able to exceed these limits during upload but will not be able to route the envelope.
+
 
 Response (in Headers): Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
