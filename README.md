@@ -40,7 +40,7 @@ POST   	/file-upload/envelopes
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 201   | Successfully created envelope. |
-| Bad Request | 400   |  Envelope not created. |  
+| Bad Request | 400   |  Envelope not created, with some reason message |  
 
 #### Example
 Request (POST): localhost:8898/file-upload/envelopes
@@ -49,11 +49,23 @@ Body:
 ``` json
 {
     "callbackUrl": "string representing absolute url",
-    "metadata": { "any": "valid json object" }
+    "metadata": { "any": "valid json object" },
+    "constraints": 	{
+          "maxNumFiles": 5,
+          "maxSize": "25MB",
+          "maxSizePerItem": "10kB",
+          "contentTypes": "application/pdf,image/jpeg,application/xml"
+        }   
 }
 ```
 
-Note: All parameters are optional. A [callbackUrl](#callback) is optional but should be provided in order for the service to provide feedback of the envelope's progress.
+Note: All parameters are optional. 
+A [callbackUrl](#callback) is optional but should be provided in order for the service to provide feedback of the envelope's progress.
+All constraints are optional for users, default constraints apply if the value is not specified in the create envelope call.
+maxSize and maxSizePerItem can be specified in the following formats ([1-9][0-9]{0,3})([KB,MB]{2}), but can not over 25MB(maxSize per enverlope) and 10MB(maxSizePerItem), if not specified it defaults to the maximum value of 25MB and 10MB.
+maxNumFiles is the max capacity for an envelope to have, the max capacity is 100 items per envelope, if not specified it defaults to 100.
+contentTypes are limited to application/pdf, image/jpeg , application/xml, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.
+If the value is not specified in the create envelope call it defaults to application/pdf, image/jpeg , application/xml
 
 Response (in Headers): Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
