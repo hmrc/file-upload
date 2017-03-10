@@ -21,7 +21,7 @@ import java.lang.Math._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.json.{JsString, Json}
-import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraintsO
+import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, EnvelopeConstraintsUserO}
 import uk.gov.hmrc.fileupload.write.infrastructure.Version
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 import uk.gov.hmrc.play.test.UnitSpec
@@ -32,6 +32,12 @@ class EnvelopeSpec extends UnitSpec {
 
   val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
   val today = new DateTime().plusMinutes(10)
+
+  val defaultMaxNumFiles: Int = 100
+  val defaultMaxSize: Long = 1024 * 1024 * 25
+  val defaultSizePerItem: Long = 1024 * 1024 * 10
+
+  val defaultConstraints = EnvelopeConstraints(defaultMaxNumFiles, defaultMaxSize, defaultSizePerItem)
 
   "a json value" should {
     "be parsed to an envelope object" in {
@@ -48,8 +54,8 @@ class EnvelopeSpec extends UnitSpec {
           |  "version": 1,
           |  "constraints": {
           |    "maxNumFiles": 100,
-          |    "maxSize": "25MB",
-          |    "maxSizePerItem": "10MB"
+          |    "maxSize": ${25*1024*1024},
+          |    "maxSizePerItem": ${10*1024*1024}
           |  }
           |}
         """.stripMargin)
@@ -58,13 +64,11 @@ class EnvelopeSpec extends UnitSpec {
 
 	    val result: Envelope = Envelope.fromJson(json, id)
 
-      val defaultConstraints = EnvelopeConstraintsO(Some(100), Some("25MB"), Some("10MB"))
-
       val expectedResult = Envelope(id, Version(1), EnvelopeStatusOpen,
                                     callbackUrl = Some("http://absolute.callback.url"),
                                     expiryDate = Some(formatter.parseDateTime(formattedExpiryDate)),
                                     metadata = Some(Json.obj("anything" -> "the caller wants to add to the envelope")),
-                                    constraints = Some(defaultConstraints))
+                                    constraints = defaultConstraints)
 
       result shouldEqual expectedResult
     }
@@ -78,7 +82,7 @@ class EnvelopeSpec extends UnitSpec {
       File(fileId = FileId("foo"), fileRefId = FileRefId("foo-rf"), FileStatusQuarantined),
       file,
       File(fileId = FileId("bar"), fileRefId = FileRefId("bar-rf"), FileStatusQuarantined)))
-    val envelope = Envelope(files = Some(files))
+    val envelope = Envelope(files = Some(files), constraints = defaultConstraints)
 
     envelope.getFileById(fileId) shouldBe Some(file)
   }
@@ -87,7 +91,7 @@ class EnvelopeSpec extends UnitSpec {
     val files = Random.shuffle(Seq(
       File(fileId = FileId("foo"), fileRefId = FileRefId("foo-rf"), FileStatusQuarantined),
       File(fileId = FileId("bar"), fileRefId = FileRefId("bar-rf"), FileStatusQuarantined)))
-    val envelope = Envelope(files = Some(files))
+    val envelope = Envelope(files = Some(files), constraints = defaultConstraints)
 
     envelope.getFileById(FileId("wrongid")) shouldBe None
   }

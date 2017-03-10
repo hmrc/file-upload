@@ -26,7 +26,7 @@ case class EnvelopeReport(id: Option[EnvelopeId] = None,
                           callbackUrl: Option[String] = None,
                           expiryDate: Option[DateTime] = None,
                           metadata: Option[JsObject] = None,
-                          constraints: Option[EnvelopeConstraintsO] = None,
+                          constraints: Option[EnvelopeConstraints] = None,
                           status: Option[String] = None,
                           destination: Option[String] = None,
                           application: Option[String] = None,
@@ -37,8 +37,8 @@ object EnvelopeReport {
   implicit val fileStatusReads: Reads[FileStatus] = FileStatusReads
   implicit val fileStatusWrites: Writes[FileStatus] = FileStatusWrites
   implicit val fileReads: Format[File] = Json.format[File]
-
-  implicit val constraintsReads: Format[EnvelopeConstraintsO] = Json.format[EnvelopeConstraintsO]
+  implicit val envelopeConstraintsReads: Format[EnvelopeConstraints] = Json.format[EnvelopeConstraints]
+  implicit val constraintsReads: Format[EnvelopeConstraintsUserO] = Json.format[EnvelopeConstraintsUserO]
   implicit val createEnvelopeReads: Format[EnvelopeReport] = Json.format[EnvelopeReport]
 
   def fromEnvelope(envelope: Envelope): EnvelopeReport = {
@@ -49,7 +49,7 @@ object EnvelopeReport {
       expiryDate = envelope.expiryDate,
       status = Some(envelope.status.name),
       metadata = envelope.metadata,
-      constraints = envelope.constraints,
+      constraints = Some(envelope.constraints),
       destination = envelope.destination,
       application = envelope.application,
       files = fileReports
@@ -60,40 +60,47 @@ object EnvelopeReport {
 case class CreateEnvelopeRequest(callbackUrl: Option[String] = None,
                                  expiryDate: Option[DateTime] = None,
                                  metadata: Option[JsObject] = None,
-                                 constraints: Option[EnvelopeConstraintsO] = None)
+                                 constraints: Option[EnvelopeConstraintsUserO] = None)
 
-case class EnvelopeConstraintsO(maxNumFiles: Option[Int] = None,
-                                maxSize: Option[String] = None,
-                                maxSizePerItem: Option[String] = None)
+case class EnvelopeConstraintsUserO(maxNumFiles: Option[Int] = None,
+                                    maxSize: Option[String] = None,
+                                    maxSizePerItem: Option[String] = None)
+
+case class EnvelopeConstraintsO(maxNumFiles: Option[Int],
+                                maxSize: Option[Long],
+                                maxSizePerItem: Option[Long])
 
 case class EnvelopeConstraints(maxNumFiles: Int,
-                               maxSize: String,
-                               maxSizePerItem: String)
+                               maxSize: Long,
+                               maxSizePerItem: Long)
 
 
 object CreateEnvelopeRequest {
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  implicit val constraintsFormats = Json.format[EnvelopeConstraintsO]
+  implicit val envelopeConstraintsReads = Json.format[EnvelopeConstraints]
+  implicit val constraintsFormats = Json.format[EnvelopeConstraintsUserO]
+  implicit val constraintsOFormats = Json.format[EnvelopeConstraintsO]
   implicit val formats = Json.format[CreateEnvelopeRequest]
 
-  def constraintsWithDefaultsIfNotProvided(constraints: Option[EnvelopeConstraintsO], defaultConstraints: EnvelopeConstraints): EnvelopeConstraints = {
-    val defaultMaxCapacity = defaultConstraints.maxNumFiles
-    val defaultMaxSize = defaultConstraints.maxSize
-    val defaultMaxSizePerItem = defaultConstraints.maxSizePerItem
-
-    constraints match {
-      case Some(constraints) => {
-        EnvelopeConstraints(
-          maxNumFiles = constraints.maxNumFiles.getOrElse(defaultMaxCapacity),
-          maxSize = constraints.maxSize.getOrElse(defaultMaxSize),
-          maxSizePerItem = constraints.maxSizePerItem.getOrElse(defaultMaxSizePerItem)
-        )
-      }
-      case _ => defaultConstraints
+  def sizeToByte(size: String): Option[Long]= {
+    val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+    size.toUpperCase match {
+      case sizeRegex(num, unit) =>
+        unit match {
+          case "KB" => Some(num.toInt * 1024)
+          case "MB" => Some(num.toInt * 1024 * 1024)
+          case _ => None
+        }
+      case _ => None
     }
-
-
   }
+
+  def changeUserOToConsO(constraintsO: Option[EnvelopeConstraintsUserO]): Option[EnvelopeConstraintsO] = {
+    constraintsO.map(c => EnvelopeConstraintsO(c.maxNumFiles,
+      c.maxSize.map(sizeToByte(_).getOrElse(throw new IllegalArgumentException(s"EnvelopeMaxSizeExceededError"))),
+      c.maxSizePerItem.map(sizeToByte(_).getOrElse(throw new IllegalArgumentException(s"EnvelopeMaxSizePerItemError")))))
+  }
+
 }
 
 case class GetFileMetadataReport(id: FileId,

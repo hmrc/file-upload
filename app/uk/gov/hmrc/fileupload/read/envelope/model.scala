@@ -18,20 +18,21 @@ package uk.gov.hmrc.fileupload.read.envelope
 
 import org.joda.time.DateTime
 import play.api.libs.json._
-import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraintsO
+import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, EnvelopeConstraintsO, EnvelopeConstraintsUserO}
 import uk.gov.hmrc.fileupload.write.infrastructure.Version
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
 case class Envelope(_id: EnvelopeId = EnvelopeId(),
                     version: Version = Version(0),
                     status: EnvelopeStatus = EnvelopeStatusOpen,
+                    constraints: EnvelopeConstraints,
                     callbackUrl: Option[String] = None,
                     expiryDate: Option[DateTime] = None,
                     metadata: Option[JsObject] = None,
                     files: Option[Seq[File]] = None,
                     destination: Option[String] = None,
-                    application: Option[String] = None,
-                    constraints: Option[EnvelopeConstraintsO] = None) {
+                    application: Option[String] = None
+                    ) {
 
   def getFileById(fileId: FileId): Option[File] = {
     files.flatMap { _.find { file => file.fileId == fileId }}
@@ -58,7 +59,9 @@ object Envelope {
   implicit val fileReads: Format[File] = Json.format[File]
   implicit val envelopeStatusReads: Reads[EnvelopeStatus] = EnvelopeStatusReads
   implicit val envelopeStatusWrites: Writes[EnvelopeStatus] = EnvelopeStatusWrites
-  implicit val constraintsFormats = Json.format[EnvelopeConstraintsO]
+  implicit val constraintsFormats = Json.format[EnvelopeConstraintsUserO]
+  implicit val constraintsOFormats = Json.format[EnvelopeConstraintsO]
+  implicit val envelopeConstraintsFormats = Json.format[EnvelopeConstraints]
   implicit val envelopeFormat: Format[Envelope] = Json.format[Envelope]
   implicit val envelopeOFormat: OFormat[Envelope] = new OFormat[Envelope] {
     def reads(json: JsValue): JsResult[Envelope] = envelopeFormat.reads(json)

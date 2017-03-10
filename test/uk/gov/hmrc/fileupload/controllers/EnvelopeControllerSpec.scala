@@ -47,13 +47,15 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
 
   val failed = Future.failed(new Exception("not good"))
   val defaultMaxNumFiles = 100
+  val defaultMaxSize = 1024 * 1024 * 25
+  val defaultMaxSizePerItem = 1024 * 1024 * 10
 
   def basic64(s:String): String = {
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
   }
 
   def newController(withBasicAuth: BasicAuth = AlwaysAuthorisedBasicAuth,
-                    envelopeDefaultConstraints: EnvelopeConstraints = EnvelopeConstraints(100, "25MB", "10MB"),
+                    envelopeDefaultConstraints: EnvelopeConstraints = EnvelopeConstraints(defaultMaxNumFiles, defaultMaxSize, defaultMaxSizePerItem),
                     nextId: () => EnvelopeId = () => EnvelopeId("abc-def"),
                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
                     findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]] = _ => failed,

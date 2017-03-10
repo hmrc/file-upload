@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.read.envelope
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.Matchers
 import play.api.libs.json.Json
-import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, EnvelopeConstraintsO}
+import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, EnvelopeConstraintsO, EnvelopeConstraintsUserO}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
@@ -32,8 +32,8 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
   import scala.concurrent.ExecutionContext.Implicits.global
 
   val defaultMaxNumFiles: Int = 100
-  val defaultMaxSize: String = "25MB"
-  val defaultSizePerItem: String = "10MB"
+  val defaultMaxSize: Long = 1024 * 1024 * 25
+  val defaultSizePerItem: Long = 1024 * 1024 * 10
 
   val defaultConstraints = EnvelopeConstraints(defaultMaxNumFiles, defaultMaxSize, defaultSizePerItem)
 
@@ -52,7 +52,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
 
       sendEvent(event)
 
-      modifiedEnvelope shouldBe initialState.copy(version = newVersion, callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata, constraints = constraintsWhenCreate)
+      modifiedEnvelope shouldBe initialState.copy(version = newVersion, callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata, constraints = defaultConstraints)
     }
 
     "mark file as quarantined" in new UpdateEnvelopeFixture {
@@ -75,7 +75,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
 
       sendEvents(events)
 
-      val expectedEnvelope = initialState.copy(version = Version(2), callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata, constraints = constraintsWhenCreate,
+      val expectedEnvelope = initialState.copy(version = Version(2), callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata, constraints = defaultConstraints,
         files = Some(List(File(fileQuarantined.fileId, fileRefId = fileQuarantined.fileRefId,
           status = FileStatusQuarantined, name = Some(fileQuarantined.name), contentType = Some(fileQuarantined.contentType),
           length = None, uploadDate = Some(new DateTime(fileQuarantined.created, DateTimeZone.UTC)), revision = None, metadata = Some(fileQuarantined.metadata)))))
@@ -83,7 +83,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
       modifiedEnvelope shouldBe expectedEnvelope
     }
     "update file status if virus was detected" in new UpdateEnvelopeFixture {
-      override val initialState = Envelope(files = Some(List(file)))
+      override val initialState = Envelope(files = Some(List(file)), constraints = defaultConstraints)
       val event = VirusDetected(envelopeId, file.fileId, fileRefId = FileRefId())
 
       sendEvent(event)
@@ -92,7 +92,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
       modifiedEnvelope shouldBe expectedEnvelope
     }
     "update file status if file was clean" in new UpdateEnvelopeFixture {
-      override val initialState = Envelope(files = Some(List(file)))
+      override val initialState = Envelope(files = Some(List(file)), constraints = defaultConstraints)
       val event = NoVirusDetected(envelopeId, file.fileId, fileRefId = FileRefId())
 
       sendEvent(event)
@@ -101,7 +101,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
       modifiedEnvelope shouldBe expectedEnvelope
     }
     "update file status if file was copied from quarantine to transient" in new UpdateEnvelopeFixture {
-      override val initialState = Envelope(files = Some(List(file)))
+      override val initialState = Envelope(files = Some(List(file)), constraints = defaultConstraints)
       val event = FileStored(envelopeId, file.fileId, fileRefId = FileRefId(), fileLength = 1)
 
       sendEvent(event)
@@ -112,7 +112,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
     }
     "delete a file" in new UpdateEnvelopeFixture {
       val otherFile = file.copy(fileId = FileId())
-      override val initialState = Envelope(envelopeId, files = Some(Seq(file, otherFile)))
+      override val initialState = Envelope(envelopeId, files = Some(Seq(file, otherFile)), constraints = defaultConstraints)
       val event = FileDeleted(envelopeId, file.fileId)
 
       sendEvent(event)
@@ -184,7 +184,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
       status = FileStatusQuarantined, name = Some("name"), contentType = Some("contentType"),
       length = None, uploadDate = Some(new DateTime(DateTimeZone.UTC)), revision = None, metadata = None)
 
-    val initialState = Envelope(envelopeId)
+    val initialState = Envelope(envelopeId, constraints = defaultConstraints)
     val newVersion = Version(1)
 
     def handler = new EnvelopeReportHandler(
