@@ -88,6 +88,8 @@ object Formatters {
   implicit val unsealEnvelopeFormat: Format[UnsealEnvelope] = Json.format[UnsealEnvelope]
   implicit val storeFileFormat = Json.format[StoreFile]
   implicit val quarantineFileFormat = Json.format[QuarantineFile]
+  implicit val markFileAsCleanFormat = Json.format[MarkFileAsClean]
+  implicit val markFileAsInfectedFormat = Json.format[MarkFileAsInfected]
 
   implicit val envelopeCreatedFormat: Format[EnvelopeCreated] = Json.format[EnvelopeCreated]
   implicit val fileQuarantinedFormat: Format[FileQuarantined] = Json.format[FileQuarantined]

@@ -4,6 +4,7 @@ import org.scalatest.time.{Millis, Minutes, Seconds, Span}
 import play.api.libs.json.{JsValue, _}
 import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, IntegrationSpec}
+import uk.gov.hmrc.fileupload.write.envelope.QuarantineFile
 
 /**
   * Integration tests for FILE-63 & FILE-64
@@ -54,7 +55,7 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       val envelopeId = envelopeIdFromHeader(createResponse)
       val fileId = FileId("myfileid")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
 
       eventually {
         When("I call GET /file-upload/envelopes/:envelope-id")

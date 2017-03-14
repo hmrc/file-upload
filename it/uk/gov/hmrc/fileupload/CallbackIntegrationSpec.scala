@@ -4,9 +4,8 @@ import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.json.Json
-import uk.gov.hmrc.fileupload.controllers.{FileInQuarantineStored, FileScanned}
 import uk.gov.hmrc.fileupload.support._
-import uk.gov.hmrc.fileupload.write.envelope.StoreFile
+import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, MarkFileAsInfected, QuarantineFile, StoreFile}
 
 class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
 
@@ -28,7 +27,7 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
       val fileId = FileId("1")
       val fileRefId = FileRefId("1")
 
-      val response = sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      val response = sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
 
       response.status shouldBe OK
       eventually { verifyQuarantinedCallbackReceived(callbackPath, envelopeId, fileId ) }
@@ -45,8 +44,8 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
       val fileId = FileId("1")
       val fileRefId = FileRefId("1")
 
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
-      val response = sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      val response = sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
 
       response.status shouldBe OK
       eventually { verifyNoVirusDetectedCallbackReceived(callbackPath, envelopeId, fileId ) }
@@ -63,8 +62,8 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
       val fileId = FileId("1")
       val fileRefId = FileRefId("1")
 
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
-      val response = sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = true))
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      val response = sendCommandMarkFileAsInfected(MarkFileAsInfected(envelopeId, fileId, fileRefId))
 
       response.status shouldBe OK
       eventually { verifyVirusDetectedCallbackReceived(callbackPath, envelopeId, fileId ) }
@@ -81,9 +80,9 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
       val fileId = FileId("1")
       val fileRefId = FileRefId()
 
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
-      sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))
-      sendStoreFile(StoreFile(envelopeId, fileId, fileRefId, 0))
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
+      sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, 0))
 
       eventually { verifyAvailableCallbackReceived(callbackPath, envelopeId, fileId ) }
     }

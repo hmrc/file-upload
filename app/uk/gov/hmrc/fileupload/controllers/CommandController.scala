@@ -19,58 +19,43 @@ package uk.gov.hmrc.fileupload.controllers
 import cats.data.Xor
 import play.api.libs.json.{JsValue, Json, Reads}
 import play.api.mvc._
-import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.write.envelope.Formatters._
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.postfixOps
-
 
 class CommandController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
                      (implicit executionContext: ExecutionContext) extends BaseController {
 
-  def unsealEnvelope = Action.async(parse.json) { implicit req =>
-    withCommand[UnsealEnvelope] { unsealEnvelope =>
-      handleCommand(unsealEnvelope).map {
+  def unsealEnvelope = process[UnsealEnvelope]
+
+  def storeFile = process[StoreFile]
+
+  def quarantineFile = process[QuarantineFile]
+
+  def markFileAsClean = process[MarkFileAsClean]
+
+  def markFileAsInfected = process[MarkFileAsInfected]
+
+  def process[T <: EnvelopeCommand : Reads : Manifest] = Action.async(parse.json) { implicit req =>
+    bindCommandFromRequest[T] { command =>
+      handleCommand(command).map {
         case Xor.Right(_) => Ok
-        case Xor.Left(EnvelopeNotFoundError) => envelopeNotFoundError(unsealEnvelope.id)
-        case Xor.Left(EnvelopeAlreadyRoutedError | EnvelopeSealedError) => alreadyRoutedError(unsealEnvelope.id)
+        case Xor.Left(EnvelopeNotFoundError) =>
+          ExceptionHandler(LOCKED, s"Envelope with id: ${command.id} not found")
+        case Xor.Left(FileAlreadyProcessed) =>
+          ExceptionHandler(BAD_REQUEST, s"File already processed, command was: $command")
+        case Xor.Left(EnvelopeAlreadyRoutedError | EnvelopeSealedError) =>
+          ExceptionHandler(LOCKED, s"Routing request already received for envelope: ${command.id}")
         case Xor.Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
       }
     }
   }
 
-  def storeFile = Action.async(parse.json) { implicit req =>
-    withCommand[StoreFile] { storeFile =>
-      handleCommand(storeFile).map {
-        case Xor.Right(_) => Ok
-        case Xor.Left(EnvelopeNotFoundError) => envelopeNotFoundError(storeFile.id)
-        case Xor.Left(EnvelopeAlreadyRoutedError | EnvelopeSealedError) => alreadyRoutedError(storeFile.id)
-        case Xor.Left(FileAlreadyProcessed) => ExceptionHandler(BAD_REQUEST, s"File already processed, command was: $storeFile")
-        case Xor.Left(error) => ExceptionHandler(BAD_REQUEST, error.toString)
-      }
-    }
-  }
-
-  def quarantineFile = Action.async(parse.json) { implicit req =>
-    withCommand[QuarantineFile] { quarantineFile =>
-      handleCommand(quarantineFile).map {
-        case Xor.Right(_) => Ok
-        case Xor.Left(EnvelopeAlreadyRoutedError | EnvelopeSealedError) => alreadyRoutedError(quarantineFile.id)
-        case Xor.Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
-      }
-    }
-  }
-
-  def alreadyRoutedError(id: EnvelopeId) = ExceptionHandler(LOCKED, s"Routing request already received for envelope: $id")
-
-  def envelopeNotFoundError(id: EnvelopeId) = ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
-
-  def withCommand[T <: EnvelopeCommand](f: EnvelopeCommand => Future[Result])
-                                       (implicit r: Reads[T], m: Manifest[T], req: Request[JsValue]) = {
+  def bindCommandFromRequest[T <: EnvelopeCommand](f: EnvelopeCommand => Future[Result])
+                                                  (implicit r: Reads[T], m: Manifest[T], req: Request[JsValue]) = {
     Json.fromJson[T](req.body).asOpt.map { command =>
       f(command)
     }.getOrElse {

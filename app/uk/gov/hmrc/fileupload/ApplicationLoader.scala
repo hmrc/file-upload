@@ -190,7 +190,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   }
 
   lazy val eventController = {
-    new EventController(envelopeCommandHandler, eventStore.unitsOfWorkForAggregate, createReportHandler.handle(replay = true))
+    new EventController(eventStore.unitsOfWorkForAggregate, createReportHandler.handle(replay = true))
   }
 
   lazy val commandController = {

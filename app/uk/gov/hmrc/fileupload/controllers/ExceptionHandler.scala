@@ -32,7 +32,6 @@ object ExceptionHandler {
     case e: ValidationException => IllegalArgumentHandler(e)
     case e: NoSuchElementException => NoSuchElementHandler(e)
     case e: BadRequestException => BadRequestHandler(e)
-    case e: InvalidEventException => IllegalArgumentHandler(e)
     case e: Throwable => DefaultExceptionHandler(e)
   }
 

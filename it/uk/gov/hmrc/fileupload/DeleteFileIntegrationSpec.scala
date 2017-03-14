@@ -3,8 +3,8 @@ package uk.gov.hmrc.fileupload
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.json.Json
 import play.api.libs.ws._
-import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActions, IntegrationSpec}
+import uk.gov.hmrc.fileupload.write.envelope.{QuarantineFile, StoreFile}
 
 /**
   * Integration tests for FILE-180
@@ -28,10 +28,10 @@ class DeleteFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
 
-      And("I uploaded a file")
-      upload("abc".getBytes(), envelopeId, fileId, fileRefId)
+      And("File is registered as stored")
+      sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, 0))
 
       When(s"I invoke DELETE envelope/$envelopeId/files/$fileId")
       val response: WSResponse = delete(envelopeId, fileId)

@@ -5,6 +5,7 @@ import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
 import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport.prettify
 import uk.gov.hmrc.fileupload.support.FileMetadataReportSupport._
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActions, IntegrationSpec}
+import uk.gov.hmrc.fileupload.write.envelope.QuarantineFile
 
 /**
   * Integration tests for FILE-100
@@ -23,7 +24,7 @@ class GetFileMetadataIntegrationSpec extends IntegrationSpec with EnvelopeAction
 
       And("FileInQuarantineStored")
       val json = (requestBodyAsJson() \ "metadata").as[JsObject]
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.jpg", "application/pdf", json))
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.jpg", "application/pdf", json))
 
       eventually {
 

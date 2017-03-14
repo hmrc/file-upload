@@ -5,6 +5,7 @@ import play.api.libs.json.Json
 import play.api.libs.ws._
 import uk.gov.hmrc.fileupload.controllers.{FileInQuarantineStored, FileScanned}
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActions, IntegrationSpec}
+import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, QuarantineFile}
 
 
 class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
@@ -24,12 +25,12 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActio
       val fileRefId = FileRefId()
 
       And("File has been stored in quarantine on the front-end")
-      sendFileInQuarantineStored(
-        FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "file-name", "contentType", Json.obj("metadata" -> "foo"))
+      sendCommandQuarantineFile(
+        QuarantineFile(envelopeId, fileId, fileRefId, 0, "file-name", "contentType", Json.obj("metadata" -> "foo"))
       )
 
       And("File was scanned and no virus was found")
-      sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))
+      sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
 
       And("File was stored in transient")
       upload(data.getBytes, envelopeId, fileId, fileRefId)

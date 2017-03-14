@@ -4,8 +4,8 @@ import java.io.RandomAccessFile
 
 import play.api.libs.json.Json
 import play.api.libs.ws._
-import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActions, IntegrationSpec}
+import uk.gov.hmrc.fileupload.write.envelope.QuarantineFile
 
 
 /**
@@ -30,7 +30,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
 
       And("I have uploaded a file")
       val data = "{'name':'pete'}"
@@ -84,7 +84,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
 
       And("FileInQuarantineStored")
       val newFileName = "new-file-name.pdf"
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, newFileName, "pdf", Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, newFileName, "pdf", Json.obj()))
 
       And("a file has previously been uploaded to the transient store")
       val file = new RandomAccessFile("t", "rw")

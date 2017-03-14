@@ -65,7 +65,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
       case Xor.Right(_) => Created.withHeaders(envelopeLocation(command.id))
       case Xor.Left(EnvelopeAlreadyCreatedError) => ExceptionHandler(BAD_REQUEST, "Envelope already created")
       case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not created")
+      case Xor.Left(error) => ExceptionHandler(BAD_REQUEST, s"Envelope not created due to: $error")
     }.recover { case e => ExceptionHandler(e) }
   }
 
