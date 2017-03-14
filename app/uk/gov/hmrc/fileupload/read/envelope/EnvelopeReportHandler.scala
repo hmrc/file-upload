@@ -36,7 +36,7 @@ class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
   override def apply = {
 
     case (s: Envelope, e: EnvelopeCreated) => Some {
-      val maxNumFiles = e.constraints.maxNumFiles
+      val maxNumFiles = e.constraints.maxItems
       val maxSize = e.constraints.maxSize
       val maxSizePerItem = e.constraints.maxSizePerItem
       val constraints = EnvelopeConstraints(maxNumFiles, maxSize, maxSizePerItem)

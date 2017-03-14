@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.write.envelope
 
 import cats.data.Xor
-import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, EnvelopeConstraintsO}
+import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.CanResult
 import uk.gov.hmrc.fileupload.write.infrastructure.{EventData, Handler}
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
@@ -26,35 +26,11 @@ object EnvelopeHandler extends Handler[EnvelopeCommand, Envelope] {
 
   type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
 
-  def constraintsWithDefaultsIfNotProvided(constraintsO: Option[EnvelopeConstraintsO], defaultConstraints: EnvelopeConstraints): EnvelopeConstraints = {
-    val defaultMaxCapacity = defaultConstraints.maxNumFiles
-    val defaultMaxSize = defaultConstraints.maxSize
-    val defaultMaxSizePerItem = defaultConstraints.maxSizePerItem
-
-    constraintsO match {
-      case Some(consts) => {
-        EnvelopeConstraints(
-          maxNumFiles = consts.maxNumFiles.getOrElse(defaultMaxCapacity),
-          maxSize = consts.maxSize match {
-            case Some(maxSizeConst) => maxSizeConst
-            case _ => defaultMaxSize
-          },
-          maxSizePerItem = consts.maxSizePerItem match {
-            case Some(maxSizePerItemConst) => maxSizePerItemConst
-            case _ => defaultMaxSizePerItem
-          }
-        )
-      }
-      case _ => defaultConstraints
-    }
-
-  }
-
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
-      val constraints = constraintsWithDefaultsIfNotProvided(command.constraints, envelope.constraints)
-      envelope.canCreateWithFilesCapacityAndSize(constraints, envelope.constraints).map(_ =>
-        EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, constraints)
+      // val constraints = constraintsWithDefaultsIfNotProvided(command.constraints, envelope.constraints)
+      envelope.canCreateWithFilesCapacityAndSize(command.constraints.get, envelope.constraints ).map(_ =>
+        EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, command.constraints.getOrElse(envelope.constraints))
       )
 
     case (command: QuarantineFile, envelope: Envelope) =>
@@ -86,7 +62,7 @@ object EnvelopeHandler extends Handler[EnvelopeCommand, Envelope] {
       }
 
     case (command: DeleteFile, envelope: Envelope) =>
-      envelope.canDeleteFile(command.fileId).map (_ => FileDeleted(command.id, command.fileId))
+      envelope.canDeleteFile(command.fileId).map(_ => FileDeleted(command.id, command.fileId))
 
     case (command: DeleteEnvelope, envelope: Envelope) =>
       envelope.canDelete.map(_ => EnvelopeDeleted(command.id))
@@ -112,41 +88,41 @@ object EnvelopeHandler extends Handler[EnvelopeCommand, Envelope] {
   }
 
   override def on = {
-      case (envelope: Envelope, e: EnvelopeCreated) =>
-        envelope.copy(state = Open, constraints = e.constraints)
+    case (envelope: Envelope, e: EnvelopeCreated) =>
+      envelope.copy(state = Open, constraints = e.constraints)
 
-      case (envelope: Envelope, e: FileQuarantined) =>
-        envelope.copy(files = envelope.files + (e.fileId -> QuarantinedFile(e.fileRefId, e.fileId, e.name, e.fileLength)))
+    case (envelope: Envelope, e: FileQuarantined) =>
+      envelope.copy(files = envelope.files + (e.fileId -> QuarantinedFile(e.fileRefId, e.fileId, e.name, e.fileLength)))
 
-      case (envelope: Envelope, e: NoVirusDetected) =>
-        envelope.copy(files = envelope.files + (e.fileId -> CleanedFile(e.fileRefId, e.fileId, envelope.files(e.fileId).name, envelope.files(e.fileId).fileLength)))
+    case (envelope: Envelope, e: NoVirusDetected) =>
+      envelope.copy(files = envelope.files + (e.fileId -> CleanedFile(e.fileRefId, e.fileId, envelope.files(e.fileId).name, envelope.files(e.fileId).fileLength)))
 
-      case (envelope: Envelope, e: VirusDetected) =>
-        envelope.copy(files = envelope.files + (e.fileId -> InfectedFile(e.fileRefId, e.fileId, envelope.files(e.fileId).name, envelope.files(e.fileId).fileLength)))
+    case (envelope: Envelope, e: VirusDetected) =>
+      envelope.copy(files = envelope.files + (e.fileId -> InfectedFile(e.fileRefId, e.fileId, envelope.files(e.fileId).name, envelope.files(e.fileId).fileLength)))
 
-      case (envelope: Envelope, e: FileDeleted) =>
-        envelope.copy(files = envelope.files - e.fileId)
+    case (envelope: Envelope, e: FileDeleted) =>
+      envelope.copy(files = envelope.files - e.fileId)
 
-      case (envelope: Envelope, e: FileStored) =>
-        envelope.copy(files = envelope.files + (e.fileId -> StoredFile(e.fileRefId, e.fileId, envelope.files(e.fileId).name, envelope.files(e.fileId).fileLength)))
+    case (envelope: Envelope, e: FileStored) =>
+      envelope.copy(files = envelope.files + (e.fileId -> StoredFile(e.fileRefId, e.fileId, envelope.files(e.fileId).name, envelope.files(e.fileId).fileLength)))
 
-      case (envelope: Envelope, e: EnvelopeDeleted) =>
-        envelope.copy(state = Deleted)
+    case (envelope: Envelope, e: EnvelopeDeleted) =>
+      envelope.copy(state = Deleted)
 
-      case (envelope: Envelope, e: EnvelopeSealed) =>
-        envelope.copy(state = Sealed)
+    case (envelope: Envelope, e: EnvelopeSealed) =>
+      envelope.copy(state = Sealed)
 
-      case (envelope: Envelope, e: EnvelopeUnsealed) =>
-        envelope.copy(state = Open)
+    case (envelope: Envelope, e: EnvelopeUnsealed) =>
+      envelope.copy(state = Open)
 
-      case (envelope: Envelope, e: EnvelopeRouted) =>
-        envelope.copy(state = Routed)
+    case (envelope: Envelope, e: EnvelopeRouted) =>
+      envelope.copy(state = Routed)
 
-      case (envelope: Envelope, e: EnvelopeArchived) =>
-        envelope.copy(state = Archived)
+    case (envelope: Envelope, e: EnvelopeArchived) =>
+      envelope.copy(state = Archived)
 
-      case (envelope: Envelope, e: EnvelopeIsFull) =>
-        envelope.copy(state = Full)
+    case (envelope: Envelope, e: EnvelopeIsFull) =>
+      envelope.copy(state = Full)
   }
 
   private def withEvent(envelope: Envelope, envelopeEvent: EnvelopeEvent): Envelope =
@@ -220,6 +196,7 @@ object State {
 }
 
 sealed trait State {
+
   import State._
 
   def canCreateWithFilesCapacityAndSize(userConstraints: EnvelopeConstraints,
@@ -262,7 +239,7 @@ sealed trait State {
     val currentSize: Long = envelope.files.map(file => file._2.fileLength).sum
     val furtherSize: Long = currentSize + fileLength
 
-    if (envelope.files.size < envelope.constraints.maxNumFiles && furtherSize <= envelopeMaxSize && fileLength <= maxSizePerItem) {
+    if (envelope.files.size < envelope.constraints.maxItems && furtherSize <= envelopeMaxSize && fileLength <= maxSizePerItem) {
       files.get(fileId).filter(_.isSame(fileRefId)).map(_ => Xor.left(FileAlreadyProcessed)).getOrElse(successResult)
     } else if (furtherSize > envelopeMaxSize) envelopeMaxSizeExceededError
     else if (fileLength > maxSizePerItem) envelopeMaxSizePerItemError
@@ -287,30 +264,28 @@ sealed trait State {
   }
 
   def isValidSize(size: Long, defaultSize: Long): Boolean = {
-    if ( (size <= defaultSize) && (size > 0)) true
+    if ((size <= defaultSize) && (size > 0)) true
     else false
   }
 
 }
 
 object NotCreated extends State {
+
   import State._
 
-  override def canCreateWithFilesCapacityAndSize(userConstraints: EnvelopeConstraints, maxLimitConstraints: EnvelopeConstraints): CanResult =
-    (userConstraints.maxNumFiles, userConstraints.maxSize, userConstraints.maxSizePerItem)match {
-      case (num, envelopSize, itemSize) =>
-                          if (num > maxLimitConstraints.maxNumFiles) envelopeMaxNumFilesExceededError
-                          else if (!isValidSize(envelopSize, maxLimitConstraints.maxSize)) envelopeMaxSizeExceededError
-                          else if (!isValidSize(itemSize, maxLimitConstraints.maxSizePerItem)) envelopeMaxSizePerItemError
-                          else successResult
-      case _ => successResult
-    }
+  override def canCreateWithFilesCapacityAndSize(userConstraints: EnvelopeConstraints, maxLimitConstraints: EnvelopeConstraints): CanResult = {
+    if (userConstraints.maxItems > maxLimitConstraints.maxItems) envelopeMaxNumFilesExceededError
+    else if (!isValidSize(userConstraints.maxSize, maxLimitConstraints.maxSize)) envelopeMaxSizeExceededError
+    else if (!isValidSize(userConstraints.maxSizePerItem, maxLimitConstraints.maxSizePerItem)) envelopeMaxSizePerItemError
+    else successResult
+  }
 
 }
 
 object Full extends State {
   import State._
-    envelopeMaxNumFilesExceededError
+  envelopeMaxNumFilesExceededError
 }
 
 object Open extends State {
@@ -321,8 +296,8 @@ object Open extends State {
 
   // Could be useful in the future (should we check for name duplicates):
   // files.find(f => f.fileId != fileId && f.name == name).map(f => Xor.Left(FileNameDuplicateError(f.fileId))).getOrElse(successResult)
-  override def canQuarantine(fileId: FileId, fileRefId: FileRefId, name: String,  fileLength: Long, files: Map[FileId, File], envelope: Envelope): CanResult =
-    checkCanFileQuarantined(fileId, fileRefId, fileLength, files, envelope)
+  override def canQuarantine(fileId: FileId, fileRefId: FileRefId, name: String, fileLength: Long, files: Map[FileId, File], envelope: Envelope): CanResult =
+  checkCanFileQuarantined(fileId, fileRefId, fileLength, files, envelope)
 
   override def canMarkFileAsCleanOrInfected(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
     checkCanMarkFileAsCleanOrInfected(fileId, fileRefId, files)

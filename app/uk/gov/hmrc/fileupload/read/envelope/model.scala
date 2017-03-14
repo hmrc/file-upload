@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.read.envelope
 
 import org.joda.time.DateTime
 import play.api.libs.json._
-import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, EnvelopeConstraintsO, EnvelopeConstraintsUserO}
+import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, EnvelopeConstraintsUserO}
 import uk.gov.hmrc.fileupload.write.infrastructure.Version
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
@@ -32,10 +32,12 @@ case class Envelope(_id: EnvelopeId = EnvelopeId(),
                     files: Option[Seq[File]] = None,
                     destination: Option[String] = None,
                     application: Option[String] = None
-                    ) {
+                   ) {
 
   def getFileById(fileId: FileId): Option[File] = {
-    files.flatMap { _.find { file => file.fileId == fileId }}
+    files.flatMap {
+      _.find { file => file.fileId == fileId }
+    }
   }
 }
 
@@ -60,11 +62,11 @@ object Envelope {
   implicit val envelopeStatusReads: Reads[EnvelopeStatus] = EnvelopeStatusReads
   implicit val envelopeStatusWrites: Writes[EnvelopeStatus] = EnvelopeStatusWrites
   implicit val constraintsFormats = Json.format[EnvelopeConstraintsUserO]
-  implicit val constraintsOFormats = Json.format[EnvelopeConstraintsO]
   implicit val envelopeConstraintsFormats = Json.format[EnvelopeConstraints]
   implicit val envelopeFormat: Format[Envelope] = Json.format[Envelope]
   implicit val envelopeOFormat: OFormat[Envelope] = new OFormat[Envelope] {
     def reads(json: JsValue): JsResult[Envelope] = envelopeFormat.reads(json)
+
     def writes(o: Envelope): JsObject = envelopeFormat.writes(o).as[JsObject]
   }
 
@@ -80,18 +82,23 @@ case class ValidationException(reason: String) extends IllegalArgumentException(
 sealed trait EnvelopeStatus {
   def name: String
 }
+
 case object EnvelopeStatusOpen extends EnvelopeStatus {
   override val name: String = "OPEN"
 }
+
 case object EnvelopeStatusSealed extends EnvelopeStatus {
   override val name: String = "SEALED"
 }
+
 case object EnvelopeStatusClosed extends EnvelopeStatus {
   override val name: String = "CLOSED"
 }
+
 case object EnvelopeStatusDeleted extends EnvelopeStatus {
   override val name: String = "DELETED"
 }
+
 case object EnvelopeStatusFull extends EnvelopeStatus {
   override val name: String = "FULL"
 }
@@ -118,12 +125,15 @@ object EnvelopeStatusTransformer {
 sealed trait FileStatus {
   def name: String
 }
+
 case object FileStatusQuarantined extends FileStatus {
   override val name = "QUARANTINED"
 }
+
 case object FileStatusCleaned extends FileStatus {
   override val name = "CLEANED"
 }
+
 case object FileStatusAvailable extends FileStatus {
   override val name = "AVAILABLE"
 }

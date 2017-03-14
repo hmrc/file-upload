@@ -94,6 +94,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     envelopeRepository.update() _
   }
 
+  //TODO Ask Dominic if this read from configuration is needed at all..
   def envelopeConstraintsConfiguration(config: Configuration): EnvelopeConstraints = {
     val defaultMaxNumFiles = config.getInt("envelopeDefaultConstraints.maxNumFiles").getOrElse(throwRuntimeException("maxNumFiles"))
     val defaultMaxSize = config.getString("envelopeDefaultConstraints.maxSize").flatMap(sizeToByte) match {

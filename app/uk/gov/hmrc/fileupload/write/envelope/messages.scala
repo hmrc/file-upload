@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.write.envelope
 
 import org.joda.time.DateTime
 import play.api.libs.json._
-import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, EnvelopeConstraintsO}
+import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
@@ -34,7 +34,7 @@ case class CreateEnvelope(id: EnvelopeId,
                           callbackUrl: Option[String],
                           expiryDate: Option[DateTime],
                           metadata: Option[JsObject],
-                          constraints: Option[EnvelopeConstraintsO]) extends EnvelopeCommand
+                          constraints: Option[EnvelopeConstraints]) extends EnvelopeCommand
 
 case class QuarantineFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
                           created: Long, name: String, fileLength: Long, contentType: String, metadata: JsObject) extends EnvelopeCommand
@@ -140,8 +140,8 @@ object EventSerializer {
       case `envelopeSealed` => Json.fromJson[EnvelopeSealed](value).get
       case `envelopeUnsealed` => Json.fromJson[EnvelopeUnsealed](value).get
       case `envelopeRouted` => Json.fromJson[EnvelopeRouted](value).get
-      case `envelopeArchived`  => Json.fromJson[EnvelopeArchived](value).get
-      case `envelopeIsFull`  => Json.fromJson[EnvelopeIsFull](value).get
+      case `envelopeArchived` => Json.fromJson[EnvelopeArchived](value).get
+      case `envelopeIsFull` => Json.fromJson[EnvelopeIsFull](value).get
     }
 
   def fromEventData(eventData: EventData): JsValue =
@@ -177,16 +177,29 @@ object EventSerializer {
 sealed trait EnvelopeCommandNotAccepted extends CommandNotAccepted
 
 case object EnvelopeNotFoundError extends EnvelopeCommandNotAccepted
+
 case object EnvelopeAlreadyCreatedError extends EnvelopeCommandNotAccepted
+
 case object EnvelopeMaxNumFilesExceededError extends EnvelopeCommandNotAccepted
+
 case object EnvelopeMaxSizeExceededError extends EnvelopeCommandNotAccepted
+
 case object EnvelopeMaxSizePerItemError extends EnvelopeCommandNotAccepted
+
 case object EnvelopeSealedError extends EnvelopeCommandNotAccepted
+
 case object FileWithError extends EnvelopeCommandNotAccepted
+
 case class FilesWithError(fileIds: Seq[FileId]) extends EnvelopeCommandNotAccepted
+
 case class FilesNotAvailableError(fileIds: Seq[FileId]) extends EnvelopeCommandNotAccepted
+
 case class FileNameDuplicateError(fileId: FileId) extends EnvelopeCommandNotAccepted
+
 case object FileNotFoundError extends EnvelopeCommandNotAccepted
+
 case object FileAlreadyProcessed extends EnvelopeCommandNotAccepted
+
 case object EnvelopeArchivedError extends EnvelopeCommandNotAccepted
+
 case object EnvelopeAlreadyRoutedError extends EnvelopeCommandNotAccepted

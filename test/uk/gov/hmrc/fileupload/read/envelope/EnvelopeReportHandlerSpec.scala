@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.read.envelope
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.Matchers
 import play.api.libs.json.Json
-import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, EnvelopeConstraintsO, EnvelopeConstraintsUserO}
+import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, FormattedEnvelopeConstraints, EnvelopeConstraintsUserO}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
@@ -44,7 +44,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
   val maxNumFiles = Some(defaultMaxNumFiles)
   val maxSize = Some(defaultMaxSize)
   val maxSizePerItem = Some(defaultSizePerItem)
-  val constraintsWhenCreate = Some(EnvelopeConstraintsO(maxNumFiles, maxSize, maxSizePerItem))
+  val constraintsWhenCreate = Some(FormattedEnvelopeConstraints(maxNumFiles, maxSize, maxSizePerItem))
 
   "EnvelopeReportActor" should {
     "create a new envelope" in new UpdateEnvelopeFixture {
