@@ -6,6 +6,7 @@ import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.controllers.{FileInQuarantineStored, FileScanned}
 import uk.gov.hmrc.fileupload.support._
+import uk.gov.hmrc.fileupload.write.envelope.StoreFile
 
 class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
 
@@ -82,9 +83,8 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
 
       sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
       sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))
-      val response = upload("test".getBytes, envelopeId, fileId, fileRefId)
+      sendStoreFile(StoreFile(envelopeId, fileId, fileRefId, 0))
 
-      response.status shouldBe OK
       eventually { verifyAvailableCallbackReceived(callbackPath, envelopeId, fileId ) }
     }
   }

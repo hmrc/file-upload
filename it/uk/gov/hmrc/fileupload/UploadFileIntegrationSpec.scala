@@ -19,6 +19,9 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
 
   feature("Upload File") {
 
+    pending // todo(konrad) to be done once we download from s3
+
+
     info("I want to upload a file")
     info("So that I can persist it in the the database")
 

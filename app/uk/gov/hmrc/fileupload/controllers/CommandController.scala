@@ -16,60 +16,66 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import akka.util.ByteString
 import cats.data.Xor
-import play.api.libs.iteratee.Iteratee
-import play.api.libs.json.Json
-import play.api.libs.streams.Accumulator
+import play.api.libs.json.{JsValue, Json, Reads}
 import play.api.mvc._
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.utils.StreamUtils
+import uk.gov.hmrc.fileupload.write.envelope.Formatters._
 import uk.gov.hmrc.fileupload.write.envelope._
-import uk.gov.hmrc.fileupload.write.infrastructure.{EventSerializer => _, _}
+import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
-import scala.util.control.NonFatal
-import scala.util.{Failure, Success, Try}
+
 
 class CommandController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
                      (implicit executionContext: ExecutionContext) extends BaseController {
 
-  def handle(commandType: String) = Action.async(CommandParser) { implicit request =>
-    handleCommand(request.body).map {
-          case Xor.Right(_) => Ok
-          case Xor.Left(EnvelopeAlreadyRoutedError | EnvelopeSealedError) =>
-            ExceptionHandler(LOCKED, s"Routing request already received for envelope: ${request.body.id}")
-          case Xor.Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
-        }
-  }
-}
-
-object CommandParser extends BodyParser[EnvelopeCommand] {
-
-  def apply(request: RequestHeader): Accumulator[ByteString, Either[Result, EnvelopeCommand]] = {
-    import Formatters._
-    val pattern =  "commands/(.+)$".r.unanchored
-
-    import play.api.libs.concurrent.Execution.Implicits._
-    StreamUtils.iterateeToAccumulator(Iteratee.consume[ByteStream]()).map { data =>
-      val parsedData = Json.parse(data)
-
-      val triedEvent: Try[EnvelopeCommand] = request.uri match {
-        case pattern(commandType) =>
-          commandType.toLowerCase match  {
-            case "unsealenvelope" => Try(Json.fromJson[UnsealEnvelope](parsedData).get)
-            case _ => Failure(new InvalidCommandException(s"$commandType is not a valid event"))
-          }
+  def unsealEnvelope = Action.async(parse.json) { implicit req =>
+    withCommand[UnsealEnvelope] { unsealEnvelope =>
+      handleCommand(unsealEnvelope).map {
+        case Xor.Right(_) => Ok
+        case Xor.Left(EnvelopeNotFoundError) => envelopeNotFoundError(unsealEnvelope.id)
+        case Xor.Left(EnvelopeAlreadyRoutedError | EnvelopeSealedError) => alreadyRoutedError(unsealEnvelope.id)
+        case Xor.Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
       }
-
-      triedEvent match {
-        case Success(event) => Right(event)
-        case Failure(NonFatal(e)) => Left(ExceptionHandler(e))
-      }
-    }(ExecutionContext.global)
+    }
   }
-}
 
-class InvalidCommandException(reason: String) extends IllegalArgumentException(reason)
+  def storeFile = Action.async(parse.json) { implicit req =>
+    withCommand[StoreFile] { storeFile =>
+      handleCommand(storeFile).map {
+        case Xor.Right(_) => Ok
+        case Xor.Left(EnvelopeNotFoundError) => envelopeNotFoundError(storeFile.id)
+        case Xor.Left(EnvelopeAlreadyRoutedError | EnvelopeSealedError) => alreadyRoutedError(storeFile.id)
+        case Xor.Left(FileAlreadyProcessed) => ExceptionHandler(BAD_REQUEST, s"File already processed, command was: $storeFile")
+        case Xor.Left(error) => ExceptionHandler(BAD_REQUEST, error.toString)
+      }
+    }
+  }
+
+  def quarantineFile = Action.async(parse.json) { implicit req =>
+    withCommand[QuarantineFile] { quarantineFile =>
+      handleCommand(quarantineFile).map {
+        case Xor.Right(_) => Ok
+        case Xor.Left(EnvelopeAlreadyRoutedError | EnvelopeSealedError) => alreadyRoutedError(quarantineFile.id)
+        case Xor.Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
+      }
+    }
+  }
+
+  def alreadyRoutedError(id: EnvelopeId) = ExceptionHandler(LOCKED, s"Routing request already received for envelope: $id")
+
+  def envelopeNotFoundError(id: EnvelopeId) = ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
+
+  def withCommand[T <: EnvelopeCommand](f: EnvelopeCommand => Future[Result])
+                                       (implicit r: Reads[T], m: Manifest[T], req: Request[JsValue]) = {
+    Json.fromJson[T](req.body).asOpt.map { command =>
+      f(command)
+    }.getOrElse {
+      Future.successful(ExceptionHandler(BAD_REQUEST, s"Unable to parse request as ${m.runtimeClass.getSimpleName}"))
+    }
+  }
+
+}

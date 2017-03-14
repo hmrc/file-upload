@@ -17,6 +17,8 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
 
   feature("Download File") {
 
+    pending // todo(konrad) to be done once we download from s3
+
     scenario("Check that a file can be downloaded") {
       Given("I have a valid envelope id")
       val envelopeId = createEnvelope()
@@ -51,6 +53,9 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
     }
 
     scenario("File can not be found") {
+
+      pending // todo(konrad) to be done once we download from s3
+
       Given("I have a valid envelope id")
       val envelopeId = createEnvelope()
 
@@ -65,6 +70,9 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
     }
     
     scenario("Valid file can be downloaded") {
+
+      pending // todo(konrad) to be done once we download from s3
+
       Given("I have a valid envelope ID")
       val envelopeId = createEnvelope()
 

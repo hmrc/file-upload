@@ -40,6 +40,8 @@ class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotA
 
   implicit val eventWrites = EventSerializer.eventWrite
 
+  //todo (konrad): Remove this controller and handle both file-quarantine and file-scanned in CommandController instead
+
   def collect(eventType: String) = Action.async(EventParser) { implicit request =>
     request.body match {
       case e: FileInQuarantineStored =>

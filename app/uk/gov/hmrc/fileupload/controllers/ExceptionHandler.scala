@@ -21,7 +21,6 @@ import akka.util.ByteString
 import play.api.Logger
 import play.api.http.HttpEntity
 import play.api.http.Status._
-import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{ResponseHeader, Result}
 import uk.gov.hmrc.fileupload.read.envelope.ValidationException
@@ -34,7 +33,6 @@ object ExceptionHandler {
     case e: NoSuchElementException => NoSuchElementHandler(e)
     case e: BadRequestException => BadRequestHandler(e)
     case e: InvalidEventException => IllegalArgumentHandler(e)
-    case e: InvalidCommandException => IllegalArgumentHandler(e)
     case e: Throwable => DefaultExceptionHandler(e)
   }
 

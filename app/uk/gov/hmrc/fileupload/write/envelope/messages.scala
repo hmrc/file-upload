@@ -86,6 +86,8 @@ case class EnvelopeArchived(id: EnvelopeId) extends EnvelopeEvent
 
 object Formatters {
   implicit val unsealEnvelopeFormat: Format[UnsealEnvelope] = Json.format[UnsealEnvelope]
+  implicit val storeFileFormat = Json.format[StoreFile]
+  implicit val quarantineFileFormat = Json.format[QuarantineFile]
 
   implicit val envelopeCreatedFormat: Format[EnvelopeCreated] = Json.format[EnvelopeCreated]
   implicit val fileQuarantinedFormat: Format[FileQuarantined] = Json.format[FileQuarantined]

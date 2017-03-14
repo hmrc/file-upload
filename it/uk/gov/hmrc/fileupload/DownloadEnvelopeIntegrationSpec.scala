@@ -13,7 +13,10 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActio
 
   feature("Download Envelope") {
 
+    pending // todo(konrad) to be done once we download from s3
+
     scenario("A client can download an envelope including its file") {
+
       Given("I have an envelope with files")
       val envelopeId = createEnvelope()
       val data = "my file content"

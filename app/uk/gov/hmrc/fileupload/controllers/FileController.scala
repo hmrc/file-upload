@@ -39,18 +39,7 @@ class FileController(withBasicAuth: BasicAuth,
                      handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
                     (implicit executionContext: ExecutionContext) extends Controller {
 
-
-  def upsertFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) = Action.async(uploadBodyParser(id, fileId, fileRefId)) { request =>
-    request.body.flatMap { jsonReadFile =>
-      handleCommand(StoreFile(id, fileId, fileRefId, jsonReadFile.length)).map {
-        case Xor.Right(_) => Ok
-        case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
-        case Xor.Left(FileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found")
-        case Xor.Left(_) => ExceptionHandler(INTERNAL_SERVER_ERROR, "File not added to envelope")
-      }.recover { case e => ExceptionHandler(e) }
-    }
-  }
-
+  // TODO (konrad-s3-migration): replace this with downloading from S3 however we need to proxy via front-end :(
   def downloadFile(id: EnvelopeId, fileId: FileId) = Action.async { implicit request =>
     withBasicAuth {
       withValidEnvelope(id) { envelope =>

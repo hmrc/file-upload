@@ -75,30 +75,6 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
       withValidEnvelope = withValidEnvelope,
       handleCommand = handleCommand)
 
-  "Upload a file" should {
-    "return 200 after the file is added to the envelope" in {
-      val fakeRequest = new FakeRequest[Future[JSONReadFile]]("PUT", "/envelopes", FakeHeaders(), body = Future.successful(TestJsonReadFile()))
-
-      val envelope = Support.envelope
-
-      val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
-      val result = controller.upsertFile(envelope._id, FileId(), FileRefId())(fakeRequest).futureValue
-
-      result.header.status shouldBe Status.OK
-    }
-
-    "return 404 if envelope does not exist" in {
-      val fakeRequest = new FakeRequest[Future[JSONReadFile]]("PUT", "/envelopes", FakeHeaders(), body = Future.successful(TestJsonReadFile()))
-
-      val envelopeId = EnvelopeId()
-
-      val controller = newController(handleCommand = _ => Future.successful(Xor.left(EnvelopeNotFoundError)))
-      val result: Result = controller.upsertFile(envelopeId, FileId(), FileRefId())(fakeRequest).futureValue
-
-      result.header.status shouldBe Status.NOT_FOUND
-    }
-  }
-
   "Download a file" should {
     "return 200 response with correct headers when file is found" in {
       val fileFound = Xor.Right(FileFound(Some("myfile.txt"), 100, Enumerator.eof[ByteStream]))
