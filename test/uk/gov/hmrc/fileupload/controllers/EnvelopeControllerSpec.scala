@@ -34,7 +34,6 @@ import uk.gov.hmrc.fileupload.read.stats.Stats._
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.test.UnitSpec
-import play.api.libs.iteratee.Enumerator
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -47,12 +46,16 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
   implicit val ec = ExecutionContext.global
 
   val failed = Future.failed(new Exception("not good"))
+  val defaultMaxNumFiles = 100
+  val defaultMaxSize = 1024 * 1024 * 25
+  val defaultMaxSizePerItem = 1024 * 1024 * 10
 
   def basic64(s:String): String = {
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
   }
 
   def newController(withBasicAuth: BasicAuth = AlwaysAuthorisedBasicAuth,
+                    envelopeDefaultConstraints: EnvelopeConstraints = EnvelopeConstraints(defaultMaxNumFiles, defaultMaxSize, defaultMaxSizePerItem),
                     nextId: () => EnvelopeId = () => EnvelopeId("abc-def"),
                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
                     findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]] = _ => failed,
@@ -60,7 +63,7 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
                     findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed,
                     deleteInProgressFile: FileRefId => Future[Boolean] = _ => failed,
                     getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope] = (_, _) => failed) =
-    new EnvelopeController(withBasicAuth, nextId, handleCommand, findEnvelope, findMetadata, findAllInProgressFile, deleteInProgressFile, getEnvelopesByStatus)
+    new EnvelopeController(withBasicAuth, envelopeDefaultConstraints, nextId, handleCommand, findEnvelope, findMetadata, findAllInProgressFile, deleteInProgressFile, getEnvelopesByStatus)
 
   "Create envelope with a request" should {
     "return response with OK status and a Location header specifying the envelope endpoint" in {

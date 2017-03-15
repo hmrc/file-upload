@@ -18,6 +18,7 @@ package uk.gov.hmrc.fileupload.write.envelope
 
 import org.joda.time.DateTime
 import play.api.libs.json._
+import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
@@ -32,10 +33,11 @@ sealed trait EnvelopeCommand extends Command {
 case class CreateEnvelope(id: EnvelopeId,
                           callbackUrl: Option[String],
                           expiryDate: Option[DateTime],
-                          metadata: Option[JsObject]) extends EnvelopeCommand
+                          metadata: Option[JsObject],
+                          constraints: Option[EnvelopeConstraints]) extends EnvelopeCommand
 
 case class QuarantineFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
-                          created: Long, name: String, contentType: String, metadata: JsObject) extends EnvelopeCommand
+                          created: Long, name: String, fileLength: Long, contentType: String, metadata: JsObject) extends EnvelopeCommand
 
 case class MarkFileAsClean(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) extends EnvelopeCommand
 
@@ -43,7 +45,7 @@ case class MarkFileAsInfected(id: EnvelopeId, fileId: FileId, fileRefId: FileRef
 
 case class DeleteFile(id: EnvelopeId, fileId: FileId) extends EnvelopeCommand
 
-case class StoreFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, length: Long) extends EnvelopeCommand
+case class StoreFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, fileLength: Long) extends EnvelopeCommand
 
 case class DeleteEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
@@ -61,10 +63,12 @@ sealed trait EnvelopeEvent extends EventData {
   def streamId: StreamId = StreamId(id.value)
 }
 
-case class EnvelopeCreated(id: EnvelopeId, callbackUrl: Option[String], expiryDate: Option[DateTime], metadata: Option[JsObject]) extends EnvelopeEvent
+case class EnvelopeCreated(id: EnvelopeId, callbackUrl: Option[String],
+                           expiryDate: Option[DateTime], metadata: Option[JsObject],
+                           constraints: EnvelopeConstraints) extends EnvelopeEvent
 
 case class FileQuarantined(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
-                           created: Long, name: String, contentType: String, metadata: JsObject) extends EnvelopeEvent
+                           created: Long, name: String, fileLength: Long, contentType: String, metadata: JsObject) extends EnvelopeEvent
 
 case class NoVirusDetected(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) extends EnvelopeEvent
 
@@ -72,7 +76,7 @@ case class VirusDetected(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) e
 
 case class FileDeleted(id: EnvelopeId, fileId: FileId) extends EnvelopeEvent
 
-case class FileStored(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, length: Long) extends EnvelopeEvent
+case class FileStored(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, fileLength: Long) extends EnvelopeEvent
 
 case class EnvelopeDeleted(id: EnvelopeId) extends EnvelopeEvent
 
@@ -84,9 +88,12 @@ case class EnvelopeRouted(id: EnvelopeId) extends EnvelopeEvent
 
 case class EnvelopeArchived(id: EnvelopeId) extends EnvelopeEvent
 
+case class EnvelopeIsFull(id: EnvelopeId) extends EnvelopeEvent
+
+
 object Formatters {
   implicit val unsealEnvelopeFormat: Format[UnsealEnvelope] = Json.format[UnsealEnvelope]
-
+  implicit val constraintsFormats = Json.format[EnvelopeConstraints]
   implicit val envelopeCreatedFormat: Format[EnvelopeCreated] = Json.format[EnvelopeCreated]
   implicit val fileQuarantinedFormat: Format[FileQuarantined] = Json.format[FileQuarantined]
   implicit val fileNoVirusDetectedFormat: Format[NoVirusDetected] = Json.format[NoVirusDetected]
@@ -98,6 +105,7 @@ object Formatters {
   implicit val envelopeUnsealedFormat: Format[EnvelopeUnsealed] = Json.format[EnvelopeUnsealed]
   implicit val envelopeRoutedFormat: Format[EnvelopeRouted] = Json.format[EnvelopeRouted]
   implicit val envelopeArchivedFormat: Format[EnvelopeArchived] = Json.format[EnvelopeArchived]
+  implicit val envelopeIsFullFormat: Format[EnvelopeIsFull] = Json.format[EnvelopeIsFull]
 }
 
 object EventSerializer {
@@ -115,6 +123,7 @@ object EventSerializer {
   private val envelopeUnsealed = nameOf(EnvelopeUnsealed.getClass)
   private val envelopeRouted = nameOf(EnvelopeRouted.getClass)
   private val envelopeArchived = nameOf(EnvelopeArchived.getClass)
+  private val envelopeIsFull = nameOf(EnvelopeIsFull.getClass)
 
   private def nameOf(clazz: Class[_]) =
     clazz.getName.replace("$", "")
@@ -131,7 +140,8 @@ object EventSerializer {
       case `envelopeSealed` => Json.fromJson[EnvelopeSealed](value).get
       case `envelopeUnsealed` => Json.fromJson[EnvelopeUnsealed](value).get
       case `envelopeRouted` => Json.fromJson[EnvelopeRouted](value).get
-      case `envelopeArchived`  => Json.fromJson[EnvelopeArchived](value).get
+      case `envelopeArchived` => Json.fromJson[EnvelopeArchived](value).get
+      case `envelopeIsFull` => Json.fromJson[EnvelopeIsFull](value).get
     }
 
   def fromEventData(eventData: EventData): JsValue =
@@ -147,6 +157,7 @@ object EventSerializer {
       case e: EnvelopeUnsealed => Json.toJson(e)
       case e: EnvelopeRouted => Json.toJson(e)
       case e: EnvelopeArchived => Json.toJson(e)
+      case e: EnvelopeIsFull => Json.toJson(e)
     }
 
   val eventWrite = new Writes[Event] {
@@ -166,13 +177,29 @@ object EventSerializer {
 sealed trait EnvelopeCommandNotAccepted extends CommandNotAccepted
 
 case object EnvelopeNotFoundError extends EnvelopeCommandNotAccepted
+
 case object EnvelopeAlreadyCreatedError extends EnvelopeCommandNotAccepted
+
+case object EnvelopeMaxNumFilesExceededError extends EnvelopeCommandNotAccepted
+
+case object EnvelopeMaxSizeExceededError extends EnvelopeCommandNotAccepted
+
+case object EnvelopeMaxSizePerItemError extends EnvelopeCommandNotAccepted
+
 case object EnvelopeSealedError extends EnvelopeCommandNotAccepted
+
 case object FileWithError extends EnvelopeCommandNotAccepted
+
 case class FilesWithError(fileIds: Seq[FileId]) extends EnvelopeCommandNotAccepted
+
 case class FilesNotAvailableError(fileIds: Seq[FileId]) extends EnvelopeCommandNotAccepted
+
 case class FileNameDuplicateError(fileId: FileId) extends EnvelopeCommandNotAccepted
+
 case object FileNotFoundError extends EnvelopeCommandNotAccepted
+
 case object FileAlreadyProcessed extends EnvelopeCommandNotAccepted
+
 case object EnvelopeArchivedError extends EnvelopeCommandNotAccepted
+
 case object EnvelopeAlreadyRoutedError extends EnvelopeCommandNotAccepted

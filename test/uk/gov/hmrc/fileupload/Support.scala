@@ -22,7 +22,7 @@ import akka.testkit.TestActorRef
 import org.joda.time.DateTime
 import play.api.http.HttpEntity
 import play.api.libs.json.Json
-import uk.gov.hmrc.fileupload.controllers.EnvelopeReport
+import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, EnvelopeReport}
 import uk.gov.hmrc.fileupload.read.envelope._
 
 import scala.concurrent.Await
@@ -47,6 +47,12 @@ object Support {
 
   val blockingExeContext: ExecutionContext = new BlockingExecutionContext()
 
+  val defaultMaxNumFiles: Int = 100
+  val defaultMaxSize: Long = 1024 * 1024 * 25
+  val defaultSizePerItem: Long = 1024 * 1024 * 10
+
+  val defaultConstraints = EnvelopeConstraints(defaultMaxNumFiles, defaultMaxSize, defaultSizePerItem)
+
   def consume(data: HttpEntity)(implicit ec: ExecutionContext) = {
     import StreamImplicits.materializer
     Await.result(data.consumeData, 500.millis).toArray
@@ -56,7 +62,8 @@ object Support {
     expiryDate = Some(DateTime.now().plusDays(1).withMillisOfSecond(0)),
     metadata = Some(Json.obj("anything" -> "the caller wants to add to the envelope")),
     destination = Some("destination"),
-    application = Some("application")
+    application = Some("application"),
+    constraints = defaultConstraints
   )
 
   def envelopeWithAFile(fileId: FileId) = envelope.copy(files = Some(List(File(fileId, fileRefId = FileRefId("ref"), status = FileStatusQuarantined))))

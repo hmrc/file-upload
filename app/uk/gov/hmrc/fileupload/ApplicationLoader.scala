@@ -80,6 +80,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   val subscribe: (ActorRef, Class[_]) => Boolean = actorSystem.eventStream.subscribe
   val publish: (AnyRef) => Unit = actorSystem.eventStream.publish
   val withBasicAuth: BasicAuth = BasicAuth(basicAuthConfiguration(configuration))
+  val envelopeDefaultConstraints = envelopeConstraintsConfiguration(configuration)
 
   val eventStore = if (environment.mode == Mode.Prod && configuration.getBoolean("Prod.mongodb.replicaSetInUse").getOrElse(true)) {
     new MongoEventStore(db, writeConcern = commands.WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = true))
@@ -91,6 +92,39 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     envelopeRepository.update(writeConcern = commands.WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = true)) _
   } else {
     envelopeRepository.update() _
+  }
+
+  //TODO Ask Dominic if this read from configuration is needed at all..
+  def envelopeConstraintsConfiguration(config: Configuration): EnvelopeConstraints = {
+    val defaultMaxNumFiles = config.getInt("envelopeDefaultConstraints.maxNumFiles").getOrElse(throwRuntimeException("maxNumFiles"))
+    val defaultMaxSize = config.getString("envelopeDefaultConstraints.maxSize").flatMap(sizeToByte) match {
+      case Some(l) => l
+      case _ => throwRuntimeException("maxSize")
+    }
+
+    val defaultMaxSizePerItem = config.getString("envelopeDefaultConstraints.maxSizePerItem").flatMap(sizeToByte) match {
+      case Some(l) => l
+      case _ => throwRuntimeException("SizePerItem")
+    }
+
+    EnvelopeConstraints(defaultMaxNumFiles, defaultMaxSize, defaultMaxSizePerItem)
+  }
+
+  def sizeToByte(size: String): Option[Long]= {
+    val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+    size.toUpperCase match {
+      case sizeRegex(num, unit) =>
+        unit match {
+          case "KB" => Some(num.toInt * 1024)
+          case "MB" => Some(num.toInt * 1024 * 1024)
+          case _ => None
+        }
+      case _ => None
+    }
+  }
+
+  def throwRuntimeException(key: String) = {
+    throw new RuntimeException(s"default value $key need to define")
   }
 
   def basicAuthConfiguration(config: Configuration): BasicAuthConfiguration = {
@@ -163,14 +197,14 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     toId = (streamId: StreamId) => EnvelopeId(streamId.value),
     updateEnvelope,
     envelopeRepository.delete,
-    defaultState = (id: EnvelopeId) => uk.gov.hmrc.fileupload.read.envelope.Envelope(id))
+    defaultState = (id: EnvelopeId) => uk.gov.hmrc.fileupload.read.envelope.Envelope(id, constraints = envelopeDefaultConstraints))
 
   // command handler
   lazy val envelopeCommandHandler = {
     (command: EnvelopeCommand) =>
       new Aggregate[EnvelopeCommand, write.envelope.Envelope](
-        handler = write.envelope.Envelope,
-        defaultState = () => write.envelope.Envelope(),
+        handler = EnvelopeHandler,
+        defaultState = () => write.envelope.Envelope(constraints = envelopeDefaultConstraints),
         publish = publish,
         publishAllEvents = createReportHandler.handle(replay = false))(eventStore, defaultContext).handleCommand(command)
   }
@@ -180,6 +214,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     val getEnvelopesByStatus = envelopeRepository.getByStatus _
     new EnvelopeController(
       withBasicAuth = withBasicAuth,
+      envelopeDefaultConstraints = envelopeDefaultConstraints,
       nextId = nextId,
       handleCommand = envelopeCommandHandler,
       findEnvelope = find,

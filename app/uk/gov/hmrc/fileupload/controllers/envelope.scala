@@ -26,6 +26,7 @@ case class EnvelopeReport(id: Option[EnvelopeId] = None,
                           callbackUrl: Option[String] = None,
                           expiryDate: Option[DateTime] = None,
                           metadata: Option[JsObject] = None,
+                          constraints: Option[EnvelopeConstraints] = None,
                           status: Option[String] = None,
                           destination: Option[String] = None,
                           application: Option[String] = None,
@@ -36,32 +37,81 @@ object EnvelopeReport {
   implicit val fileStatusReads: Reads[FileStatus] = FileStatusReads
   implicit val fileStatusWrites: Writes[FileStatus] = FileStatusWrites
   implicit val fileReads: Format[File] = Json.format[File]
-
+  implicit val envelopeConstraintsReads: Format[EnvelopeConstraints] = Json.format[EnvelopeConstraints]
+  // implicit val constraintsReads: Format[EnvelopeConstraintsUserO] = Json.format[EnvelopeConstraintsUserO]
   implicit val createEnvelopeReads: Format[EnvelopeReport] = Json.format[EnvelopeReport]
 
   def fromEnvelope(envelope: Envelope): EnvelopeReport = {
-    val fileReports = envelope.files.map( _.map(file => GetFileMetadataReport.fromFile(envelope._id, file)) )
+    val fileReports = envelope.files.map(_.map(file => GetFileMetadataReport.fromFile(envelope._id, file)))
     EnvelopeReport(
       id = Some(envelope._id),
       callbackUrl = envelope.callbackUrl,
       expiryDate = envelope.expiryDate,
       status = Some(envelope.status.name),
       metadata = envelope.metadata,
+      constraints = Some(envelope.constraints),
       destination = envelope.destination,
       application = envelope.application,
       files = fileReports
     )
   }
-
 }
 
 case class CreateEnvelopeRequest(callbackUrl: Option[String] = None,
                                  expiryDate: Option[DateTime] = None,
-                                 metadata: Option[JsObject] = None)
+                                 metadata: Option[JsObject] = None,
+                                 constraints: Option[EnvelopeConstraints] = None)
+
+
+case class EnvelopeConstraints(maxItems: Int,
+                               maxSize: Long,
+                               maxSizePerItem: Long)
+
 
 object CreateEnvelopeRequest {
+
+  import play.api.libs.functional.syntax._
+  import play.api.libs.json._
+
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val constraintsWriteFormats = Json.writes[EnvelopeConstraints]
+
+  implicit val constraintsReadFormats: Reads[EnvelopeConstraints] = (
+    (__ \ "maxItems").readNullable[Int].map(_.getOrElse(100)) and
+      readMaxSize(fieldName = "maxSize") and
+      readMaxSize(fieldName = "maxSizePerItem")
+    ) (EnvelopeConstraints.apply _)
+
+  def readMaxSize(fieldName: String) = (__ \ fieldName).readNullable(maxSizeReads).map(convertOrProvideDefault)
+
+  val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+
+  def validateConstraintFormat(s: String) = s match {
+    case sizeRegex(_, _) => true
+    case _ => false
+  }
+
+  def maxSizeReads = new Reads[String] {
+    override def reads(json: JsValue) = json match {
+      case JsString(s) if validateConstraintFormat(s) => JsSuccess(s)
+      case _ => JsError(s"unable to parse $json as a max size constraint")
+    }
+  }
+
+  def translateToByteSize(s: String) : Long = {
+    s match {
+      case sizeRegex(num, unit) =>
+        unit match {
+          case "KB" => num.toLong * 1024
+          case "MB" => num.toLong * 1024 * 1024
+        }
+    }
+  }
+
+  def convertOrProvideDefault(s: Option[String]): Long = s.map(translateToByteSize).getOrElse(25L)
+
   implicit val formats = Json.format[CreateEnvelopeRequest]
+
 }
 
 case class GetFileMetadataReport(id: FileId,
@@ -111,6 +161,7 @@ object GetEnvelopesByStatus {
         }
       }
     }
+
     override def unbind(key: String, getEnvelopesByStatus: GetEnvelopesByStatus): String = {
       val statuses = getEnvelopesByStatus.status.map(n => s"status=$n")
       statuses.mkString("&") + "&" + booleanBinder.unbind("inclusive", getEnvelopesByStatus.inclusive)

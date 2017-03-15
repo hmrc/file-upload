@@ -18,20 +18,58 @@ package uk.gov.hmrc.fileupload.write.envelope
 
 import org.joda.time.DateTime
 import play.api.libs.json.Json
+import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, FormattedEnvelopeConstraints, EnvelopeConstraintsUserO}
 import uk.gov.hmrc.fileupload.{EnvelopeId, EventBasedGWTSpec, FileId, FileRefId}
 
 class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
-
-  override val handler = Envelope
-
-  override val defaultStatus: Envelope = Envelope()
 
   val envelopeId = EnvelopeId("envelopeId-1")
   val fileId = FileId("fileId-1")
   val fileRefId = FileRefId("fileRefId-1")
 
-  val envelopeCreated = EnvelopeCreated(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")) )
-  val fileQuarantined = FileQuarantined(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj())
+  val defaultMaxNumFiles: Int = 100
+  val defaultMaxSize: Long = 1024 * 1024 * 25
+  val defaultSizePerItem: Long = 1024 * 1024 * 10
+
+  val simpleFileSizeInBytesForTest = 10
+
+  val defaultConstraints = EnvelopeConstraints(defaultMaxNumFiles, defaultMaxSize, defaultSizePerItem)
+
+  val userConstraints = FormattedEnvelopeConstraints(Some(defaultMaxNumFiles), Some(defaultMaxSize), Some(defaultSizePerItem))
+
+  val maxOneFileConstraints = EnvelopeConstraints(1, defaultMaxSize, defaultSizePerItem)
+  val maxEnvelopeSizeConstraints = EnvelopeConstraints(defaultMaxNumFiles, 0, defaultSizePerItem)
+  val maxSizePerItemConstraints = EnvelopeConstraints(defaultMaxNumFiles, defaultMaxSize, 0)
+
+  override val defaultStatus: Envelope = Envelope(constraints = defaultConstraints)
+  override val handler = EnvelopeHandler
+
+  val envelopeCreated = EnvelopeCreated(envelopeId,
+                                        Some("http://www.callback-url.com"),
+                                        Some(new DateTime(0)),
+                                        Some(Json.obj("foo" -> "bar")),
+                                        defaultConstraints)
+
+  val envelopeCreatedWithMaxOneFile = EnvelopeCreated(envelopeId,
+                                                      Some("http://www.callback-url.com"),
+                                                      Some(new DateTime(0)),
+                                                      Some(Json.obj("foo" -> "bar")),
+                                                      maxOneFileConstraints)
+
+  val envelopeCreatedWithNullSize = EnvelopeCreated(envelopeId,
+                                                    Some("http://www.callback-url.com"),
+                                                    Some(new DateTime(0)),
+                                                    Some(Json.obj("foo" -> "bar")),
+                                                    maxEnvelopeSizeConstraints)
+
+  val envelopeCreatedWithMaxSizePerItem = EnvelopeCreated(envelopeId,
+                                                          Some("http://www.callback-url.com"),
+                                                          Some(new DateTime(0)),
+                                                          Some(Json.obj("foo" -> "bar")),
+                                                          maxSizePerItemConstraints)
+
+  val quarantineAFile = QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", simpleFileSizeInBytesForTest, "pdf", Json.obj())
+  val fileQuarantined = FileQuarantined(envelopeId, fileId, fileRefId, 0, "test.pdf", simpleFileSizeInBytesForTest, "pdf", Json.obj())
   val noVirusDetected = NoVirusDetected(envelopeId, fileId, fileRefId)
   val virusDetected = VirusDetected(envelopeId, fileId, fileRefId)
   val fileStored = FileStored(envelopeId, fileId, fileRefId, 100)
@@ -48,7 +86,8 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         --,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar"))),
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
+          Some(Json.obj("foo" -> "bar")), Some(userConstraints)),
         envelopeCreated
       )
     }
@@ -57,8 +96,37 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar"))),
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), Some(userConstraints)),
         EnvelopeAlreadyCreatedError
+      )
+    }
+
+    scenario("Create new envelope with capacity higher than maximum envelope capacity") {
+
+      givenWhenThen(
+        --,
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), Some(userConstraints.copy(maxNumFiles = userConstraints.maxNumFiles.map(_+1)))),
+        EnvelopeMaxNumFilesExceededError
+      )
+
+    }
+
+    scenario("Create new envelope with size higher than maximum envelope size") {
+
+      givenWhenThen(
+        --,
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), Some(userConstraints.copy(maxSize = userConstraints.maxSize.map(_+1)))),
+        EnvelopeMaxSizeExceededError
+      )
+
+    }
+
+    scenario("Create new envelope but set the max size per item larger then 10mb") {
+
+      givenWhenThen(
+        --,
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), Some(userConstraints.copy(maxSizePerItem = userConstraints.maxSizePerItem.map(_+1)))),
+        EnvelopeMaxSizePerItemError
       )
     }
 
@@ -66,7 +134,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated And envelopeDeleted,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar"))),
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), Some(userConstraints)),
         EnvelopeAlreadyCreatedError
       )
     }
@@ -74,21 +142,39 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
   feature("QuarantineFile") {
 
-    scenario("Quarantine a new file for an open envelope") {
+    scenario("Quarantine a new file for an open envelope and max capacity is not reached") {
 
       givenWhenThen(
         envelopeCreated,
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()),
+        quarantineAFile,
         fileQuarantined
       )
     }
 
-    scenario("Quarantine an additional file") {
+    scenario("Quarantine an additional file and max capacity is not reached") {
 
       givenWhenThen(
         envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = FileRefId(), name = "abc.pdf"),
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()),
+        quarantineAFile,
         fileQuarantined
+      )
+    }
+
+    scenario("Quarantine a new file for an open envelope but max capacity has been reached") {
+
+      givenWhenThen(
+        envelopeCreatedWithMaxOneFile And fileQuarantined.copy(fileId = FileId(), fileRefId = FileRefId(), name = "abc.pdf"),
+        quarantineAFile,
+        EnvelopeMaxNumFilesExceededError
+      )
+    }
+
+    scenario("Quarantine an additional file and max size for the envelope is reached") {
+
+      givenWhenThen(
+        envelopeCreatedWithNullSize,
+        quarantineAFile,
+        EnvelopeMaxSizeExceededError
       )
     }
 
@@ -96,8 +182,17 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated And fileQuarantined.copy(fileRefId = FileRefId()),
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()),
+        quarantineAFile,
         fileQuarantined
+      )
+    }
+
+    scenario("Quarantine a new file when the file's size is bigger than the setup") {
+
+      givenWhenThen(
+        envelopeCreatedWithMaxSizePerItem,
+        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", simpleFileSizeInBytesForTest, "pdf", Json.obj()),
+        EnvelopeMaxSizePerItemError
       )
     }
 
@@ -105,7 +200,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = FileRefId()),
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()),
+        quarantineAFile,
         fileQuarantined
       )
     }
@@ -114,7 +209,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated And fileQuarantined,
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()),
+        quarantineAFile,
         FileAlreadyProcessed
       )
     }
@@ -123,7 +218,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         --,
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()),
+        quarantineAFile,
         EnvelopeNotFoundError
       )
     }
@@ -132,7 +227,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated And envelopeDeleted,
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()),
+        quarantineAFile,
         EnvelopeNotFoundError
       )
     }
@@ -141,7 +236,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated And envelopeSealed,
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()),
+        quarantineAFile,
         EnvelopeSealedError
       )
     }
@@ -150,7 +245,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated And envelopeRouted,
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()),
+        quarantineAFile,
         EnvelopeAlreadyRoutedError
       )
     }
@@ -159,7 +254,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated And envelopeArchived,
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()),
+        quarantineAFile,
         EnvelopeArchivedError
       )
     }
@@ -406,6 +501,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
         EnvelopeArchivedError
       )
     }
+
   }
 
   feature("DeleteFile") {

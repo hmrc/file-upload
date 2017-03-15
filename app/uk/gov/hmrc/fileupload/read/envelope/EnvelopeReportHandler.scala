@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 import org.joda.time.{DateTime, DateTimeZone}
+import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
 import uk.gov.hmrc.fileupload.read.envelope.Repository.{DeleteResult, UpdateResult}
 import uk.gov.hmrc.fileupload.read.infrastructure.ReportHandler
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -35,12 +36,16 @@ class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
   override def apply = {
 
     case (s: Envelope, e: EnvelopeCreated) => Some {
-      s.copy(callbackUrl = e.callbackUrl, expiryDate = e.expiryDate, metadata = e.metadata)
+      val maxNumFiles = e.constraints.maxItems
+      val maxSize = e.constraints.maxSize
+      val maxSizePerItem = e.constraints.maxSizePerItem
+      val constraints = EnvelopeConstraints(maxNumFiles, maxSize, maxSizePerItem)
+      s.copy(callbackUrl = e.callbackUrl, expiryDate = e.expiryDate, metadata = e.metadata, constraints = constraints)
     }
 
     case (s: Envelope, e: FileQuarantined) => Some {
       val file = File(fileId = e.fileId, fileRefId = e.fileRefId, status = FileStatusQuarantined, name = Some(e.name),
-        contentType = Some(e.contentType), metadata = Some(e.metadata), uploadDate = Some(new DateTime(e.created, DateTimeZone.UTC)) )
+        contentType = Some(e.contentType), metadata = Some(e.metadata), uploadDate = Some(new DateTime(e.created, DateTimeZone.UTC)))
       s.copy(files = s.files.orElse(Some(List.empty[File])).map(replaceOrAddFile(_, file)))
     }
 
@@ -68,13 +73,17 @@ class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
       s.copy(status = EnvelopeStatusDeleted)
     }
 
+    case (s: Envelope, e: EnvelopeIsFull) => Some {
+      s.copy(status = EnvelopeStatusFull)
+    }
+
     case (s: Envelope, e: FileDeleted) => Some {
       s.copy(files = s.files.orElse(Some(List.empty[File])).map(filterOutFile(_, e.fileId)))
     }
 
     case (s: Envelope, e: FileStored) => Some {
       val withUpdatedStatus = s.copy(files = fileStatusLens(s, e.fileId, FileStatusAvailable))
-      withUpdatedStatus.copy(files = fileLengthLens(withUpdatedStatus, e.fileId, e.length))
+      withUpdatedStatus.copy(files = fileLengthLens(withUpdatedStatus, e.fileId, e.fileLength))
     }
 
     case (s: Envelope, e: EnvelopeDeleted) => None

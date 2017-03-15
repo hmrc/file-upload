@@ -26,6 +26,12 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 class OutputForTransferSpec extends UnitSpec with ApplicationComponents {
 
+  val defaultMaxNumFiles: Int = 100
+  val defaultMaxSize: Long = 1024 * 1024 * 25
+  val defaultSizePerItem: Long = 1024 * 1024 * 10
+
+  val defaultConstraints = EnvelopeConstraints(defaultMaxNumFiles, defaultMaxSize, defaultSizePerItem)
+
   "Presenting individual files" should {
     "include all fields if values are present" in {
 
@@ -121,7 +127,8 @@ class OutputForTransferSpec extends UnitSpec with ApplicationComponents {
       val envelope = Envelope(
         destination = Some("DMS"),
         application = Some("app/sth/sthElse"),
-        files = Some(List(file))
+        files = Some(List(file)),
+        constraints = defaultConstraints
       )
 
       val destination = "DMS"
