@@ -38,7 +38,7 @@ object EnvelopeReport {
   implicit val fileStatusWrites: Writes[FileStatus] = FileStatusWrites
   implicit val fileReads: Format[File] = Json.format[File]
   implicit val envelopeConstraintsReads: Format[EnvelopeConstraints] = Json.format[EnvelopeConstraints]
-  implicit val constraintsReads: Format[EnvelopeConstraintsUserO] = Json.format[EnvelopeConstraintsUserO]
+  // implicit val constraintsReads: Format[EnvelopeConstraintsUserO] = Json.format[EnvelopeConstraintsUserO]
   implicit val createEnvelopeReads: Format[EnvelopeReport] = Json.format[EnvelopeReport]
 
   def fromEnvelope(envelope: Envelope): EnvelopeReport = {
@@ -60,11 +60,7 @@ object EnvelopeReport {
 case class CreateEnvelopeRequest(callbackUrl: Option[String] = None,
                                  expiryDate: Option[DateTime] = None,
                                  metadata: Option[JsObject] = None,
-                                 constraints: Option[EnvelopeConstraintsUserO] = Some(EnvelopeConstraintsUserO()))
-
-case class EnvelopeConstraintsUserO(maxItems: Option[Int] = Some(100),
-                                    maxSize: Option[String] = Some("10MB"),
-                                    maxSizePerItem: Option[String] = Some("25MB"))
+                                 constraints: Option[EnvelopeConstraints] = None)
 
 
 case class EnvelopeConstraints(maxItems: Int,
@@ -73,28 +69,48 @@ case class EnvelopeConstraints(maxItems: Int,
 
 
 object CreateEnvelopeRequest {
-  implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  implicit val constraintsFormats = Json.format[EnvelopeConstraintsUserO]
-  implicit val formats = Json.format[CreateEnvelopeRequest]
 
-  //TODO add error handling for invalid user input
-  def sizeToByte(size: String): Long = {
-    val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
-    size.toUpperCase match {
-      case sizeRegex(num, unit) =>
-        unit match {
-          case "KB" => num.toInt * 1024
-          case "MB" => num.toInt * 1024 * 1024
-          case error => throw new RuntimeException(s"Invalid constraint input $error")
-        }
-      case error => throw new RuntimeException(s"Invalid constraint input $error")
+  import play.api.libs.functional.syntax._
+  import play.api.libs.json._
+
+  implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val constraintsWriteFormats = Json.writes[EnvelopeConstraints]
+
+  implicit val constraintsReadFormats: Reads[EnvelopeConstraints] = (
+    (__ \ "maxItems").readNullable[Int].map(_.getOrElse(100)) and
+      readMaxSize(fieldName = "maxSize") and
+      readMaxSize(fieldName = "maxSizePerItem")
+    ) (EnvelopeConstraints.apply _)
+
+  def readMaxSize(fieldName: String) = (__ \ fieldName).readNullable(maxSizeReads).map(convertOrProvideDefault)
+
+  val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+
+  def validateConstraintFormat(s: String) = s match {
+    case sizeRegex(_, _) => true
+    case _ => false
+  }
+
+  def maxSizeReads = new Reads[String] {
+    override def reads(json: JsValue) = json match {
+      case JsString(s) if validateConstraintFormat(s) => JsSuccess(s)
+      case _ => JsError(s"unable to parse $json as a max size constraint")
     }
   }
 
-  def formatUserEnvelopeConstraints(constraintsO: Option[EnvelopeConstraintsUserO]): Option[EnvelopeConstraints] = {
-    constraintsO.map(c => EnvelopeConstraints(c.maxItems.get,
-      sizeToByte(c.maxSize.get), sizeToByte(c.maxSizePerItem.get)))
+  def translateToByteSize(s: String) : Long = {
+    s match {
+      case sizeRegex(num, unit) =>
+        unit match {
+          case "KB" => num.toLong * 1024
+          case "MB" => num.toLong * 1024 * 1024
+        }
+    }
   }
+
+  def convertOrProvideDefault(s: Option[String]): Long = s.map(translateToByteSize).getOrElse(25L)
+
+  implicit val formats = Json.format[CreateEnvelopeRequest]
 
 }
 

@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.utils
 
 import akka.util.ByteString
+import play.api.data.validation.ValidationError
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.json._
 import play.api.libs.streams.Accumulator
@@ -30,22 +31,29 @@ import scala.util.{Failure, Success, Try}
 object JsonUtils {
   def oFormat[A](format: Format[A]): OFormat[A] = new OFormat[A] {
     def reads(json: JsValue): JsResult[A] = format.reads(json)
+
     def writes(o: A): JsObject = format.writes(o).as[JsObject]
   }
 
-  def optional[A : Writes](k: String, value: Option[A]): JsObject =
+  def optional[A: Writes](k: String, value: Option[A]): JsObject =
     value.map(v => Json.obj(k -> v)).getOrElse(Json.obj())
 
-  def jsonBodyParser[A : Reads](implicit ec: ExecutionContext): BodyParser[A] = new BodyParser[A] {
+  def jsonBodyParser[A: Reads](implicit ec: ExecutionContext): BodyParser[A] = new BodyParser[A] {
     def apply(v1: RequestHeader): Accumulator[ByteString, Either[Result, A]] = {
       StreamUtils.iterateeToAccumulator(Iteratee.consume[Array[Byte]]()).map { data =>
-        Try(Json.fromJson[A](Json.parse(data)).get) match {
-          case Success(report) => Right(report)
-          case Failure(NonFatal(e)) => Left(ExceptionHandler(e))
+        Try(Json.parse(data).validate[A]) match {
+          case Success(JsSuccess(a, _)) => Right(a)
+          case Success(JsError(errors)) => Left(ExceptionHandler(400, flattenValidationErrors(errors).mkString))
+          case Failure(NonFatal(ex)) => Left(ExceptionHandler(ex))
         }
       }
     }
   }
+
+  def flattenValidationErrors(errors: Seq[(JsPath, Seq[ValidationError])]) =
+    errors.foldLeft(new StringBuilder) { (obj, error) =>
+      obj append s"${error._1.toJsonString} --> ${error._2.head.messages.flatten.mkString}"
+    }
 }
 
 object errorAsJson {
