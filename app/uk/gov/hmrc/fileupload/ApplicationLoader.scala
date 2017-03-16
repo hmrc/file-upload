@@ -20,7 +20,7 @@ import java.util.UUID
 import javax.inject.Provider
 
 import akka.actor.ActorRef
-import com.kenshoo.play.metrics.{MetricsController, MetricsFilterImpl}
+import com.kenshoo.play.metrics.{MetricsController, MetricsFilterImpl, MetricsImpl}
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
 import play.api.ApplicationLoader.Context
@@ -283,7 +283,8 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   lazy val microserviceAuditFilter: AuditFilter = MicroserviceAuditFilter
 
-  lazy val metrics = new GraphiteMetricsImpl(applicationLifecycle, configuration)
+  // Don't use uk.gov.hmrc.play.graphite.GraphiteMetricsImpl as it won't allow hot reload due to overridden onStop() method
+  lazy val metrics = new MetricsImpl(applicationLifecycle, configuration)
 
   lazy val metricsFilter = new MetricsFilterImpl(metrics)
 

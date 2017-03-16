@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
+import play.api.Logger
 import play.api.libs.json.{JsValue, Json, Reads}
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.write.envelope.Formatters._
@@ -41,6 +42,7 @@ class CommandController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNo
 
   def process[T <: EnvelopeCommand : Reads : Manifest] = Action.async(parse.json) { implicit req =>
     bindCommandFromRequest[T] { command =>
+      Logger.info(s"Requested command: $command to be processed")
       handleCommand(command).map {
         case Xor.Right(_) => Ok
         case Xor.Left(EnvelopeNotFoundError) =>
