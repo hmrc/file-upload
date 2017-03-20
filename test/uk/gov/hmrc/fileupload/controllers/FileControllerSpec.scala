@@ -64,13 +64,11 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
   def parse = UploadParser.parse(null) _
 
   def newController(withBasicAuth:BasicAuth = AlwaysAuthorisedBasicAuth,
-                    uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]] = parse,
                     retrieveFile: (Envelope, FileId) => Future[GetFileResult] = (_, _) => failed,
                     withValidEnvelope: WithValidEnvelope = Support.envelopeAvailable(),
                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed) =
     new FileController(
       withBasicAuth,
-      uploadBodyParser = uploadBodyParser,
       retrieveFile = retrieveFile,
       withValidEnvelope = withValidEnvelope,
       handleCommand = handleCommand)

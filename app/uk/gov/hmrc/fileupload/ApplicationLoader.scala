@@ -202,7 +202,6 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     val uploadBodyParser = UploadParser.parse(iterateeForUpload) _
     new FileController(
       withBasicAuth = withBasicAuth,
-      uploadBodyParser = uploadBodyParser,
       retrieveFile = retrieveFile,
       withValidEnvelope = withValidEnvelope,
       handleCommand = envelopeCommandHandler)

@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.{Source, StreamConverters}
 import akka.util.ByteString
 import cats.data.Xor
 import play.api.http.HttpEntity
 import play.api.libs.streams.Streams
+import play.api.libs.ws.WSClient
 import play.api.mvc._
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
@@ -32,8 +33,26 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotA
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
+//case class FileFound2(name: Option[String], length: Option[Long])
+//
+//class RetrieveFile(wsClient: WSClient, baseUrl: String) {
+//  def apply(envelope: Envelope, fileId: FileId): Future[GetFileResult] = {
+//
+//    val downloadUrl = s"$baseUrl/file-upload/download/envelopes/${envelope._id}/files/$fileId"
+//    wsClient.url(downloadUrl).stream().map(_.body).map { stream =>
+//      Xor.fromOption(envelope.getFileById(fileId).map { f =>
+//        (f.name, f.length)
+//      }, ifNone = GetFileNotFoundError).map {
+//        case (name, length) =>
+//          FileFound(name, length, Streams.publisherToEnumerator(stream.as))
+//
+//      }
+//    }
+//
+//  }
+//}
+
 class FileController(withBasicAuth: BasicAuth,
-                     uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]],
                      retrieveFile: (Envelope, FileId) => Future[GetFileResult],
                      withValidEnvelope: WithValidEnvelope,
                      handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
