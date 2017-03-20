@@ -55,9 +55,8 @@ import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.audit.http.config.LoadAuditingConfig
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
-import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
+import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode, ServicesConfig}
 import uk.gov.hmrc.play.filters.{NoCacheFilter, RecoveryFilter}
-import uk.gov.hmrc.play.graphite.GraphiteMetricsImpl
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 
@@ -72,10 +71,13 @@ class ApplicationLoader extends play.api.ApplicationLoader {
 }
 
 class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(context)
-  with AhcWSComponents with AppName {
+  with AhcWSComponents with AppName with ServicesConfig {
 
   implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
   implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
+
+  override lazy val mode = context.environment.mode
+  override lazy val runModeConfiguration = configuration
 
   val subscribe: (ActorRef, Class[_]) => Boolean = actorSystem.eventStream.subscribe
   val publish: (AnyRef) => Unit = actorSystem.eventStream.publish
@@ -197,12 +199,14 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     new CommandController(envelopeCommandHandler)
   }
 
+  lazy val fileUploadFrontendBaseUrl = baseUrl("file-upload-frontend")
+
+  lazy val getFileFromS3 = new RetrieveFile(wsClient, fileUploadFrontendBaseUrl).download _
+
   lazy val fileController = {
-    import play.api.libs.concurrent.Execution.Implicits._
-    val uploadBodyParser = UploadParser.parse(iterateeForUpload) _
     new FileController(
       withBasicAuth = withBasicAuth,
-      retrieveFile = retrieveFile,
+      retrieveFile = getFileFromS3,
       withValidEnvelope = withValidEnvelope,
       handleCommand = envelopeCommandHandler)
   }

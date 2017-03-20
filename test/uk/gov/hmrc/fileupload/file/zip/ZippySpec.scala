@@ -37,7 +37,7 @@ class ZippySpec extends UnitSpec with ScalaFutures {
   import scala.concurrent.ExecutionContext.Implicits.global
 
   val retrieveFile: (Envelope, FileId) => Future[GetFileResult] = (_, _) => Xor.right(
-    FileFound(name = Some("fileTest"), length = 100, data = Enumerator("one".getBytes(), "two".getBytes(), "three".getBytes()))
+    FileFoundMongo(name = Some("fileTest"), length = 100, data = Enumerator("one".getBytes(), "two".getBytes(), "three".getBytes()))
   )
 
   "Zippy" should {

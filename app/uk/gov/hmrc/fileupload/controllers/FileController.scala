@@ -16,61 +16,51 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import akka.stream.scaladsl.{Source, StreamConverters}
+import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import cats.data.Xor
+import play.api.Logger
 import play.api.http.HttpEntity
-import play.api.libs.streams.Streams
 import play.api.libs.ws.WSClient
 import play.api.mvc._
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
-import uk.gov.hmrc.fileupload.read.file.Service._
-import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError, FileNotFoundError, StoreFile}
+import uk.gov.hmrc.fileupload.read.envelope.WithValidEnvelope
+import uk.gov.hmrc.fileupload.write.envelope.EnvelopeCommand
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
-//case class FileFound2(name: Option[String], length: Option[Long])
-//
-//class RetrieveFile(wsClient: WSClient, baseUrl: String) {
-//  def apply(envelope: Envelope, fileId: FileId): Future[GetFileResult] = {
-//
-//    val downloadUrl = s"$baseUrl/file-upload/download/envelopes/${envelope._id}/files/$fileId"
-//    wsClient.url(downloadUrl).stream().map(_.body).map { stream =>
-//      Xor.fromOption(envelope.getFileById(fileId).map { f =>
-//        (f.name, f.length)
-//      }, ifNone = GetFileNotFoundError).map {
-//        case (name, length) =>
-//          FileFound(name, length, Streams.publisherToEnumerator(stream.as))
-//
-//      }
-//    }
-//
-//  }
-//}
+class RetrieveFile(wsClient: WSClient, baseUrl: String) {
+  def download(envelopeId: EnvelopeId, fileId: FileId)(implicit ec: ExecutionContext): Future[Source[ByteString, _]] = {
+    val downloadUrl = s"$baseUrl/file-upload/download/envelopes/$envelopeId/files/$fileId"
+    Logger.debug(s"Downloading $downloadUrl")
+    wsClient.url(downloadUrl).stream().map(_.body)
+  }
+}
 
 class FileController(withBasicAuth: BasicAuth,
-                     retrieveFile: (Envelope, FileId) => Future[GetFileResult],
+                     retrieveFile: (EnvelopeId, FileId) => Future[Source[ByteString, _]],
                      withValidEnvelope: WithValidEnvelope,
                      handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
                     (implicit executionContext: ExecutionContext) extends Controller {
 
-  // TODO (konrad-s3-migration): replace this with downloading from S3 however we need to proxy via front-end :(
-  def downloadFile(id: EnvelopeId, fileId: FileId) = Action.async { implicit request =>
+  def downloadFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { implicit request =>
     withBasicAuth {
-      withValidEnvelope(id) { envelope =>
-        retrieveFile(envelope, fileId).map {
-          case Xor.Right(FileFound(filename, length, data)) =>
-            val byteArray = Source.fromPublisher(Streams.enumeratorToPublisher(data.map(ByteString.fromArray)))
-            Ok.sendEntity(HttpEntity.Streamed(byteArray, Some(length), Some("application/octet-stream")))
-              .withHeaders(CONTENT_DISPOSITION -> s"""attachment; filename="${filename.getOrElse("data")}"""",
-                CONTENT_LENGTH -> s"$length",
-                CONTENT_TYPE -> "application/octet-stream")
-          case Xor.Left(GetFileNotFoundError) =>
-            ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
+      withValidEnvelope(envelopeId) { envelope =>
+        val maybeFile = envelope.getFileById(fileId).map(f => (f.name, f.length))
+        maybeFile.map {
+          case (filename, Some(length)) =>
+            retrieveFile(envelopeId, fileId).map { source =>
+              Ok.sendEntity(HttpEntity.Streamed(source, Some(length), Some("application/octet-stream")))
+                .withHeaders(CONTENT_DISPOSITION -> s"""attachment; filename="${filename.getOrElse("data")}"""",
+                  CONTENT_LENGTH -> s"$length",
+                  CONTENT_TYPE -> "application/octet-stream")
+            }
+          case unexpectedValues => throw new Exception() //todo (konrad) make sure length is not an Option anymore
+        }.getOrElse {
+          Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId"))
         }
       }
     }

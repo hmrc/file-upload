@@ -46,7 +46,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
       result.isRight shouldBe true
       result.foreach { fileFound =>
-        fileFound shouldBe FileFound(expectedFileName, length, data)
+        fileFound shouldBe FileFoundMongo(expectedFileName, length, data)
       }
     }
     "fail if file was not available" in {

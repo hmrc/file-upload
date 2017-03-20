@@ -26,7 +26,7 @@ import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
 import uk.gov.hmrc.fileupload.file.zip.ZipStream.{ZipFileInfo, ZipStreamEnumerator}
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindEnvelopeNotFoundError, FindResult, FindServiceError}
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatusClosed}
-import uk.gov.hmrc.fileupload.read.file.Service.{FileFound, GetFileResult}
+import uk.gov.hmrc.fileupload.read.file.Service.{FileFoundMongo, GetFileResult}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -50,7 +50,7 @@ object Zippy {
           case f =>
             val fileName = f.name.getOrElse(UUID.randomUUID().toString)
             ZipFileInfo(fileName, isDir = false, new java.util.Date(), Some(() => retrieveFile(envelopeWithFiles, f.fileId).map {
-              case Xor.Right(FileFound(name, length, data)) => data
+              case Xor.Right(FileFoundMongo(name, length, data)) => data
               case Xor.Left(error) => throw new Exception(s"File $envelopeId ${f.fileId} not found in repo" )
             }))
         }
