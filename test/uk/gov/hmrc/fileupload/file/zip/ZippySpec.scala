@@ -19,14 +19,17 @@ package uk.gov.hmrc.fileupload.file.zip
 import java.io.ByteArrayInputStream
 import java.util.zip.ZipInputStream
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Source
+import akka.util.ByteString
 import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
-import play.api.libs.iteratee.{Enumerator, Iteratee}
+import play.api.libs.iteratee.Iteratee
 import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
 import uk.gov.hmrc.fileupload.file.zip.Zippy.{EnvelopeNotRoutedYet, ZipEnvelopeNotFoundError, ZipProcessingError}
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatusClosed, EnvelopeStatusOpen}
 import uk.gov.hmrc.fileupload.read.envelope.Service._
-import uk.gov.hmrc.fileupload.read.file.Service._
+import uk.gov.hmrc.fileupload.read.envelope.{EnvelopeStatusClosed, EnvelopeStatusOpen}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, Support}
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -36,9 +39,11 @@ class ZippySpec extends UnitSpec with ScalaFutures {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  val retrieveFile: (Envelope, FileId) => Future[GetFileResult] = (_, _) => Xor.right(
-    FileFoundMongo(name = Some("fileTest"), length = 100, data = Enumerator("one".getBytes(), "two".getBytes(), "three".getBytes()))
-  )
+  val retrieveFile: (EnvelopeId, FileId) => Future[Source[ByteString, _]] = (_, _) =>
+    Future.successful(Source.fromIterator(() => List(ByteString("one"), ByteString("two")).toIterator))
+
+  implicit val actorSystem = ActorSystem()
+  implicit val materializer = ActorMaterializer()
 
   "Zippy" should {
     "provide a zip file containing an envelope including its files" in {
@@ -52,6 +57,7 @@ class ZippySpec extends UnitSpec with ScalaFutures {
         eventualBytes.futureValue.size shouldNot be(0)
       })
     }
+
     "fail if envelope is not in Closed status" in {
       val envelope = Support.envelopeWithAFile(FileId("myfile")).copy(status = EnvelopeStatusOpen)
       val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Xor.right(envelope))

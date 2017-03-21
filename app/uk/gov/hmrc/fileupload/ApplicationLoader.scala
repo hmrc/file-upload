@@ -42,7 +42,6 @@ import uk.gov.hmrc.fileupload.infrastructure._
 import uk.gov.hmrc.fileupload.manualdihealth.{Routes => HealthRoutes}
 import uk.gov.hmrc.fileupload.prod.Routes
 import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => EnvelopeService, _}
-import uk.gov.hmrc.fileupload.read.file.{Service => FileService}
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
 import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor}
 import uk.gov.hmrc.fileupload.routing.{Routes => RoutingRoutes}
@@ -148,9 +147,6 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute, wsClient) _
 
   lazy val fileRepository = uk.gov.hmrc.fileupload.read.file.Repository.apply(db)
-  val iterateeForUpload = fileRepository.iterateeForUpload _
-  val getFileFromRepo = fileRepository.retrieveFile _
-  lazy val retrieveFile = FileService.retrieveFile(getFileFromRepo) _
   lazy val retrieveFileMetaData = fileRepository.retrieveFileMetaData _
   lazy val fileChunksInfo = fileRepository.chunksCount _
 
@@ -218,7 +214,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   lazy val transferController = {
     val getEnvelopesByDestination = envelopeRepository.getByDestination _
-    val zipEnvelope = Zippy.zipEnvelope(find, retrieveFile) _
+    val zipEnvelope = Zippy.zipEnvelope(find, getFileFromS3) _
     new TransferController(withBasicAuth, getEnvelopesByDestination, envelopeCommandHandler, zipEnvelope)
   }
 

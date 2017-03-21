@@ -66,11 +66,12 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
 
   "Download a file" should {
     "return 200 response with correct headers when file is found" in {
-      val controller = newController(
-        retrieveFile = (_, _) => Future.successful(source),
-        withValidEnvelope = new WithValidEnvelope(
-          _ => Future.successful(Some(envelope))
-        ))
+      val controller =
+        newController(
+          retrieveFile = (_, _) => Future.successful(source),
+          withValidEnvelope = new WithValidEnvelope(
+            _ => Future.successful(Some(envelope))
+          ))
 
       val result = controller.downloadFile(envelopeId, fileId)(FakeRequest().withHeaders(authHeaders)).futureValue
 
@@ -81,14 +82,15 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
       headers("Content-Disposition") shouldBe "attachment; filename=\"myfile.txt\""
     }
     "return filename = `data` in headers if absent in client metadata for a given file" in {
-      val controller = newController(
-        retrieveFile = (_, _) => Future.successful(source),
-        withValidEnvelope = new WithValidEnvelope(
-          _ => {
-            val fileWithoutAName = file.copy(name = None)
-            val envelopeWithoutFileName = envelope.copy(files = Some(Seq(fileWithoutAName)))
-            Future.successful(Some(envelopeWithoutFileName))
-          }))
+      val controller =
+        newController(
+          retrieveFile = (_, _) => Future.successful(source),
+          withValidEnvelope = new WithValidEnvelope(
+            _ => {
+              val fileWithoutAName = file.copy(name = None)
+              val envelopeWithoutFileName = envelope.copy(files = Some(Seq(fileWithoutAName)))
+              Future.successful(Some(envelopeWithoutFileName))
+            }))
 
       val result = controller.downloadFile(envelopeId, fileId)(FakeRequest().withHeaders(authHeaders)).futureValue
 
@@ -118,6 +120,11 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
       val result: Result = controller.downloadFile(envelopeId, fileId)(FakeRequest().withHeaders(authHeaders)).futureValue
 
       result.header.status shouldBe Status.NOT_FOUND
+      implicit val actorSystem = ActorSystem()
+      implicit val materializer = ActorMaterializer()
+
+      status(result) shouldBe Status.NOT_FOUND
+      contentAsString(result) should include (s"Envelope with id: $envelopeId not found")
     }
   }
 }
