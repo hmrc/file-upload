@@ -27,7 +27,7 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
       val fileId = FileId("1")
       val fileRefId = FileRefId("1")
 
-      val response = sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      val response = sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()))
 
       response.status shouldBe OK
       eventually { verifyQuarantinedCallbackReceived(callbackPath, envelopeId, fileId ) }
@@ -44,7 +44,7 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
       val fileId = FileId("1")
       val fileRefId = FileRefId("1")
 
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()))
       val response = sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))
 
       response.status shouldBe OK
@@ -62,7 +62,7 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
       val fileId = FileId("1")
       val fileRefId = FileRefId("1")
 
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()))
       val response = sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = true))
 
       response.status shouldBe OK
@@ -80,7 +80,7 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
       val fileId = FileId("1")
       val fileRefId = FileRefId()
 
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()))
       sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))
       val response = upload("test".getBytes, envelopeId, fileId, fileRefId)
 
