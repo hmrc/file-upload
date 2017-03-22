@@ -38,7 +38,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()))
 
       And("FileScanned")
       sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))
@@ -66,7 +66,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()))
 
       And("FileScanned")
       sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))
@@ -89,7 +89,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val envelopeId = createEnvelope()
       val firstFileId = FileId(s"fileId-${nextId()}")
       val firstFileRefId = FileRefId(s"fileRefId-${nextId()}")
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, firstFileId, firstFileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, firstFileId, firstFileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()))
       upload("{}".getBytes, envelopeId, firstFileId, firstFileRefId)
 
       And("And I have a valid new file-id")
@@ -100,7 +100,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()))
 
       And("FileScanned")
       sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))
@@ -127,7 +127,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()))
 
       And("I have a valid file attached to the request body")
       val data = "{}".getBytes
@@ -150,7 +150,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()))
 
       And("FileScanned")
       sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))

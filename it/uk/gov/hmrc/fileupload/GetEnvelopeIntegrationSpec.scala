@@ -1,6 +1,6 @@
 package uk.gov.hmrc.fileupload
 
-import org.scalatest.time.{Millis, Minutes, Seconds, Span}
+import org.scalatest.time.{Millis, Minutes, Span}
 import play.api.libs.json.{JsValue, _}
 import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, IntegrationSpec}
@@ -35,12 +35,18 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
 
         val parsedBody: JsValue = Json.parse(body)
         parsedBody \ "id" match {
-          case JsDefined(JsString(value)) =>  value should fullyMatch regex "[A-z0-9-]+"
+          case JsDefined(JsString(value)) => value should fullyMatch regex "[A-z0-9-]+"
           case _ => JsError("expectation failed")
         }
 
         parsedBody \ "status" match {
-          case JsDefined(JsString(value)) =>  value should fullyMatch regex "OPEN"
+          case JsDefined(JsString(value)) => value should fullyMatch regex "OPEN"
+          case _ => JsError("expectation failed")
+        }
+
+        (parsedBody \ "constraints") \ "maxItems" match {
+          case JsDefined(JsNumber(const)) =>
+            const shouldBe 100
           case _ => JsError("expectation failed")
         }
       }
@@ -54,7 +60,7 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       val envelopeId = envelopeIdFromHeader(createResponse)
       val fileId = FileId("myfileid")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()))
 
       eventually {
         When("I call GET /file-upload/envelopes/:envelope-id")
@@ -96,6 +102,36 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
 
       Then("I should receive a 404 not found response")
       envelopeResponse.status shouldBe NOT_FOUND
+    }
+
+    scenario("GET Envelope responds with constraints when") {
+      Given("I have an envelope with files")
+      val createResponse = createEnvelope(
+        s"""{"constraints": {"maxItems": 56, "maxSize": "10MB", "maxSizePerItem": "100KB"}}""")
+      createResponse.status should equal(CREATED)
+      val envelopeId = envelopeIdFromHeader(createResponse)
+
+      eventually {
+        When("I call GET /file-upload/envelopes/:envelope-id")
+        val envelopeResponse = getEnvelopeFor(envelopeId)
+
+        Then("I will receive a 200 Ok response")
+        envelopeResponse.status shouldBe OK
+        val json = Json.parse(envelopeResponse.body)
+
+        (json \ "constraints") \ "maxItems" match {
+          case JsDefined(JsNumber(const)) =>
+            const shouldBe 56
+          case _ => JsError("expectation failed")
+        }
+
+        (json \ "constraints") \ "maxSizePerItem" match {
+          case JsDefined(JsNumber(const)) =>
+            const shouldBe 100 * 1024
+          case _ => JsError("expectation failed")
+        }
+
+      }
     }
   }
 }
