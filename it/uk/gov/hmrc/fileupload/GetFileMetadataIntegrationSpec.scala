@@ -23,7 +23,7 @@ class GetFileMetadataIntegrationSpec extends IntegrationSpec with EnvelopeAction
 
       And("FileInQuarantineStored")
       val json = (requestBodyAsJson() \ "metadata").as[JsObject]
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.jpg", "application/pdf", 123L, json))
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.jpg", "application/pdf", Some(123L), json))
 
       eventually {
 
