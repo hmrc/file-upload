@@ -21,6 +21,7 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
 sealed trait Event
 
+//Note that fileLength has been made Option[Long] for backwards compatibility reason.
 case class FileInQuarantineStored(envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
                                   created: Long, name: String, contentType: String, fileLength: Option[Long] = None, metadata: JsObject) extends Event
 
