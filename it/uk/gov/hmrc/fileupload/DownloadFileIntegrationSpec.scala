@@ -28,7 +28,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()))
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
 
       And("I have uploaded a file")
       val data = "{'name':'pete'}"
@@ -76,7 +76,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
 
       And("FileInQuarantineStored")
       val newFileName = "new-file-name.pdf"
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, newFileName, "pdf", 123L, Json.obj()))
+      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, newFileName, "pdf", Some(123L), Json.obj()))
 
       And("a file has previously been uploaded to the transient store")
       val file = new RandomAccessFile("t", "rw")

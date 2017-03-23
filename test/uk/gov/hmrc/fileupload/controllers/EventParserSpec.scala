@@ -45,7 +45,7 @@ class EventParserSpec extends UnitSpec with ScalaFutures {
       val accumulator: Accumulator[ByteString, Either[Result, Event]] = EventParser(request)
       val futureValue: Either[Result, Event] = accumulator.run(Source.single(ByteString.fromArray(body))).futureValue
 
-      futureValue shouldBe Right(FileInQuarantineStored(EnvelopeId("env1"), FileId("file1"), FileRefId("fileRef1"), 0, "test.pdf", "pdf", 123L, Json.obj()))
+      futureValue shouldBe Right(FileInQuarantineStored(EnvelopeId("env1"), FileId("file1"), FileRefId("fileRef1"), 0, "test.pdf", "pdf", Some(123L), Json.obj()))
     }
 
     "should parse a no virus detected event" in {

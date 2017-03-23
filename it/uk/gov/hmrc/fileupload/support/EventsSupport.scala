@@ -16,7 +16,7 @@ object EventsSupport extends Support {
        |	"created": ${e.created},
        |	"name": "${e.name}",
        |	"contentType": "${e.contentType}",
-       |  "fileLength": ${e.fileLength},
+       |  "fileLength": ${e.fileLength.get},
        |	"metadata": ${Json.stringify(e.metadata)}
        |}
 		 """.stripMargin
