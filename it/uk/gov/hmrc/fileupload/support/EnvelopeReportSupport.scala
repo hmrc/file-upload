@@ -15,8 +15,8 @@ object EnvelopeReportSupport extends Support {
      |  },
      |  "constraints": {
      |            "maxItems": 56,
-     |            "maxSize": "08MB",
-     |            "maxSizePerItem": "08KB"
+     |            "maxSize": "8MB",
+     |            "maxSizePerItem": "8KB"
      |  }
      |}
 		 """.stripMargin

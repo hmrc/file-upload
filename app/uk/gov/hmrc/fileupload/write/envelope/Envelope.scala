@@ -186,9 +186,9 @@ object State {
   val successResult = Xor.right(Unit)
   val envelopeNotFoundError = Xor.left(EnvelopeNotFoundError)
   val envelopeAlreadyCreatedError = Xor.left(EnvelopeAlreadyCreatedError)
-  val envelopeMaxSizeExceededError = Xor.left(InvalidMaxSizeConstraintError("constraints.maxSize"))
-  val envelopeMaxSizePerItemExceededError = Xor.left(InvalidMaxSizePerItemConstraintError("constraints.maxSizePerItem"))
-  val envelopeMaxItemCountExceededError = Xor.left(InvalidMaxItemCountConstraintError("constraints.maxItems"))
+  val envelopeMaxSizeExceededError = Xor.left(InvalidMaxSizeConstraintError)
+  val envelopeMaxSizePerItemExceededError = Xor.left(InvalidMaxSizePerItemConstraintError)
+  val envelopeMaxItemCountExceededError = Xor.left(InvalidMaxItemCountConstraintError)
   val fileNotFoundError = Xor.left(FileNotFoundError)
   val envelopeSealedError = Xor.left(EnvelopeSealedError)
   val envelopeAlreadyArchivedError = Xor.left(EnvelopeArchivedError)
@@ -263,7 +263,7 @@ object NotCreated extends State {
     successResult
 
   override def canCreateWithFilesCapacityAndSize(userConstraints: EnvelopeConstraints, maxLimitConstraints: EnvelopeConstraints): CanResult = {
-    if (userConstraints.maxItems > maxLimitConstraints.maxItems) envelopeMaxItemCountExceededError
+    if (userConstraints.maxItems > maxLimitConstraints.maxItems || userConstraints.maxItems < 1) envelopeMaxItemCountExceededError
     else if (!isValidSize(userConstraints.maxSize, maxLimitConstraints.maxSize)) envelopeMaxSizeExceededError
     else if (!isValidSize(userConstraints.maxSizePerItem, maxLimitConstraints.maxSizePerItem)) envelopeMaxSizePerItemExceededError
     else successResult

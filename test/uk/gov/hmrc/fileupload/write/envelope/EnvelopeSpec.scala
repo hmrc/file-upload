@@ -70,11 +70,19 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
       )
     }
 
-    scenario("Create new envelope with out of bounds max item constraint") {
+    scenario("Create new envelope with number of items exceeding limit") {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(122, 1000, 123))),
-        InvalidMaxItemCountConstraintError("constraints.maxItems")
+        InvalidMaxItemCountConstraintError
+      )
+    }
+
+    scenario("Create new envelope with number of items < 1") {
+      givenWhenThen(
+        --,
+        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(0, 1000, 123))),
+        InvalidMaxItemCountConstraintError
       )
     }
 
@@ -82,7 +90,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(12, 1000, Integer.MAX_VALUE))),
-        InvalidMaxSizePerItemConstraintError("constraints.maxSizePerItem")
+        InvalidMaxSizePerItemConstraintError
       )
     }
 
@@ -90,7 +98,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(12, Integer.MAX_VALUE, 23434))),
-        InvalidMaxSizeConstraintError("constraints.maxSize")
+        InvalidMaxSizeConstraintError
       )
     }
 

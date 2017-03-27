@@ -18,31 +18,60 @@ package uk.gov.hmrc.fileupload.controllers
 
 import play.api.libs.json._
 import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.fileupload.controllers.CreateEnvelopeRequest.envelopeConstraintsReads
 
 class EnvelopeConstraintsSpec extends UnitSpec {
 
-  "translatetoByte " should {
+  "constraint format validation" should {
+    "be successful for up to 4 digits followed by either KB or MB (upper case)" in {
+      val validFormats =
+        List(
+          "1MB",
+          "22KB",
+          "333MB",
+          "4444KB"
+        )
 
-    "should parse a constraint in MB or KB to Long" in {
+      validFormats.foreach { f =>
+        CreateEnvelopeRequest.validateConstraintFormat(f) shouldBe true
+      }
+    }
+    "fail for other formats" in {
+      val invalidFormats =
+        List(
+          "",
+          "MB",
+          "KB",
+          "0MB",
+          "01KB",
+          "1kb",
+          "2mb",
+          "3gb",
+          "4GB",
+          "12345MB"
+        )
+      invalidFormats.foreach { c =>
+        CreateEnvelopeRequest.validateConstraintFormat(c) shouldBe false
+      }
+    }
+  }
+
+  "translateToByte " should {
+    "parse a constraint in MB or KB to Long" in {
       CreateEnvelopeRequest translateToByteSize "10MB" shouldBe (10 * 1024 * 1024)
 
       CreateEnvelopeRequest translateToByteSize "100KB" shouldBe (100 * 1024)
-
-      CreateEnvelopeRequest translateToByteSize "08MB" shouldBe (8 * 1024 * 1024)
-
-      an[scala.MatchError] should be thrownBy (CreateEnvelopeRequest translateToByteSize "1000MB")
     }
   }
 
   "envelopeConstraintReader " should {
-    import uk.gov.hmrc.fileupload.controllers.CreateEnvelopeRequest.envelopeConstraintsReads
     "should parse a valid envelope constraint json" in {
       val constraintJson =
         """
           {
             "maxItems": 56,
             "maxSize": "12KB",
-            "maxSizePerItem": "08KB"
+            "maxSizePerItem": "8KB"
           }
           """
       val expectedConstraint = EnvelopeConstraints(56, 12 * 1024, 8 * 1024)
@@ -53,7 +82,6 @@ class EnvelopeConstraintsSpec extends UnitSpec {
   }
 
   "envelopeConstraintReader " should {
-    import uk.gov.hmrc.fileupload.controllers.CreateEnvelopeRequest.envelopeConstraintsReads
     "should parse empty json to default constraint values" in {
       val constraintJson =
         """{}"""
@@ -65,20 +93,19 @@ class EnvelopeConstraintsSpec extends UnitSpec {
   }
 
   "envelopeConstraintReader " should {
-    import uk.gov.hmrc.fileupload.controllers.CreateEnvelopeRequest.envelopeConstraintsReads
     "should fail the parsing when invalid constraint value is passed" in {
       val constraintJson =
         """
           {
             "maxItems": 56,
             "maxSize": "12GB",
-            "maxSizePerItem": "08KB"
+            "maxSizePerItem": "8KB"
           }
           """
 
       val parsedConstraint = Json.parse(constraintJson).validate
       parsedConstraint.isError shouldBe true
-      parsedConstraint.toString.contains("unable to parse") shouldBe true
+      parsedConstraint.toString.contains("Unable to parse") shouldBe true
     }
   }
 

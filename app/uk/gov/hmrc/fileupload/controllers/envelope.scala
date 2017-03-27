@@ -85,7 +85,7 @@ object CreateEnvelopeRequest {
 
   def readMaxSize(fieldName: String, defaultValue: Long) = (__ \ fieldName).readNullable(maxSizeReads).map(convertOrProvideDefault(_, defaultValue))
 
-  val sizeRegex = "([0-9]{0,3})([KB,MB]{2})".r
+  val sizeRegex = """([1-9][0-9]{0,3})(KB|MB)""".r
 
   def validateConstraintFormat(s: String) = s match {
     case sizeRegex(_, _) => true
@@ -95,7 +95,8 @@ object CreateEnvelopeRequest {
   def maxSizeReads = new Reads[String] {
     override def reads(json: JsValue) = json match {
       case JsString(s) if validateConstraintFormat(s) => JsSuccess(s)
-      case _ => JsError(s"unable to parse $json as a max size constraint")
+      case _ => JsError(s"Unable to parse `$json` as size, " +
+        s"expected format is up to four digits followed by KB or MB, e.g. 1024KB")
     }
   }
 

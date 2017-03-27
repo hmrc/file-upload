@@ -67,8 +67,8 @@ All constraints are optional for users, default constraints apply if the value i
 | --------|---------|-------|-------|-------|
 | constraints.contentTypes  | optional   | List of MIME Types delimited by comma  | application/pdf<br/>image/jpeg<br/>application/xml  | MIME types accepted by this envelope  | 
 | constraints.maxNumFiles | optional   |  1-100 |  100  | Number of items allowed in this envelope  | 
-| constraints.maxSize | optional   | ([0-9]{0,3})([KB,MB]{2}) |  25MB  | Maximum Size for the envelope (ceiling is 25mb)  | 
-| constraints.maxSizePerItem | optional   |  ([0-9]{0,3})([KB,MB]{2}) |  10MB  | Maximum Size for each file (ceiling is 10mb)  | 
+| constraints.maxSize | optional   | [1-9][0-9]{0,3}(KB&#124;MB) e.g. 1024KB |  25MB  | Maximum Size (sum of files' sizes) for the envelope (ceiling is 25MB)  | 
+| constraints.maxSizePerItem | optional   |  [1-9][0-9]{0,3}(KB&#124;MB) e.g. 1024KB |  10MB  | Maximum Size for each file (ceiling is 10MB)  | 
 
 1. constraints.contentTypes and constraints.maxSizePerItem are applied when the file is uploaded. If validation fails, the user will receive an error.
 2. constraints.maxNumFiles and constraints.maxSize are applied when the file is routed. Your application may be able to exceed these limits during upload but will not be able to route the envelope.

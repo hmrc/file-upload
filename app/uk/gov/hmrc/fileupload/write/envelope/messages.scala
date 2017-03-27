@@ -19,6 +19,7 @@ package uk.gov.hmrc.fileupload.write.envelope
 import org.joda.time.DateTime
 import play.api.libs.json._
 import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
+import uk.gov.hmrc.fileupload.utils.NumberFormatting.formatAsKiloOrMegabytes
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
@@ -173,15 +174,21 @@ case object EnvelopeNotFoundError extends EnvelopeCommandNotAccepted
 
 case object EnvelopeAlreadyCreatedError extends EnvelopeCommandNotAccepted
 
-sealed trait EnvelopeInvalidConstraintError extends EnvelopeCommandNotAccepted{
-  def field: String
+sealed trait EnvelopeInvalidConstraintError extends EnvelopeCommandNotAccepted
+
+case object InvalidMaxSizeConstraintError extends EnvelopeInvalidConstraintError {
+  override def toString = "constraints.maxSize exceeds maximum allowed value of " +
+    formatAsKiloOrMegabytes(Envelope.defaultConstraints.maxSize)
 }
 
-case class InvalidMaxSizeConstraintError(override val field: String) extends EnvelopeInvalidConstraintError
+case object InvalidMaxSizePerItemConstraintError extends EnvelopeInvalidConstraintError {
+  override def toString = "constraints.maxSizePerItem exceeds maximum allowed value of " +
+    formatAsKiloOrMegabytes(Envelope.defaultConstraints.maxSizePerItem)
+}
 
-case class InvalidMaxSizePerItemConstraintError(override val field: String) extends EnvelopeInvalidConstraintError
-
-case class InvalidMaxItemCountConstraintError(override val field: String) extends EnvelopeInvalidConstraintError
+case object InvalidMaxItemCountConstraintError extends EnvelopeInvalidConstraintError {
+  override def toString = s"constraints.maxItems must be between 1 and ${ Envelope.defaultConstraints.maxItems }"
+}
 
 case object EnvelopeSealedError extends EnvelopeCommandNotAccepted
 

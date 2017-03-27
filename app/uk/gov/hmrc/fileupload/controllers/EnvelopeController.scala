@@ -62,7 +62,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
       case Xor.Right(_) => Created.withHeaders(envelopeLocation(command.id))
       case Xor.Left(EnvelopeAlreadyCreatedError) => ExceptionHandler(BAD_REQUEST, "Envelope already created")
       case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Left(error: EnvelopeInvalidConstraintError) => ExceptionHandler(BAD_REQUEST, s"Constraint out of bounds: ${error.field}")
+      case Xor.Left(error: EnvelopeInvalidConstraintError) => ExceptionHandler(BAD_REQUEST, error.toString)
       case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not created")
     }.recover { case e => ExceptionHandler(e) }
   }
