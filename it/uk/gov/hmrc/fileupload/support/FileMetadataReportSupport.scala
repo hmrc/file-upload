@@ -37,6 +37,7 @@ object FileMetadataReportSupport extends Support {
     |  "status":"QUARANTINED",
     |  "name":"${args.getOrElse("name", "test.jpg")}",
     |  "contentType":"${args.getOrElse("contentType", "application/pdf")}",
+    |  "length" : 123,
     |  "created":"1970-01-01T00:00:00Z",
     |  "metadata":{
     |    "id":"${args.getOrElse("metadata.id", "1234567890")}",

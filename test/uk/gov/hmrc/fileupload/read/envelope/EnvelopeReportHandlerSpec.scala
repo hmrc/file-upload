@@ -51,7 +51,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
       val expectedEnvelope = initialState.copy(version = newVersion,
         files = Some(List(File(event.fileId, fileRefId = event.fileRefId,
           status = FileStatusQuarantined, name = Some(event.name), contentType = Some(event.contentType),
-          length = None, uploadDate = Some(new DateTime(event.created, DateTimeZone.UTC)), revision = None, metadata = Some(event.metadata)))))
+          length = Some(123L), uploadDate = Some(new DateTime(event.created, DateTimeZone.UTC)), revision = None, metadata = Some(event.metadata)))))
 
       modifiedEnvelope shouldBe expectedEnvelope
     }
@@ -70,7 +70,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
       val expectedEnvelope = initialState.copy(version = Version(2), callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata, constraints = constraints,
         files = Some(List(File(fileQuarantined.fileId, fileRefId = fileQuarantined.fileRefId,
           status = FileStatusQuarantined, name = Some(fileQuarantined.name), contentType = Some(fileQuarantined.contentType),
-          length = None, uploadDate = Some(new DateTime(fileQuarantined.created, DateTimeZone.UTC)), revision = None, metadata = Some(fileQuarantined.metadata)))))
+          length = Some(123L), uploadDate = Some(new DateTime(fileQuarantined.created, DateTimeZone.UTC)), revision = None, metadata = Some(fileQuarantined.metadata)))))
 
       modifiedEnvelope shouldBe expectedEnvelope
     }
