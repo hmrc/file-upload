@@ -28,6 +28,7 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotA
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
+import uk.gov.hmrc.fileupload.utils.NumberFormatting.formatAsKiloOrMegabytes
 
 class RoutingController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                         newId: () => String = () => UUID.randomUUID().toString)
@@ -43,6 +44,10 @@ class RoutingController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNo
           ExceptionHandler(BAD_REQUEST, s"Routing request already received for envelope: $envelopeId")
         case Xor.Left(FilesWithError(ids)) =>
           ExceptionHandler(BAD_REQUEST, s"Files: ${ids.mkString("[", ", ", "]")} contain errors")
+        case Xor.Left(EnvelopeItemCountExceededError(allowed, actual)) =>
+          ExceptionHandler(BAD_REQUEST, s"Envelope item count exceeds maximum of $allowed, actual: $actual")
+        case Xor.Left(EnvelopeMaxSizeExceededError(allowedLimit)) =>
+          ExceptionHandler(BAD_REQUEST, s"Envelope size exceeds maximum of ${ formatAsKiloOrMegabytes(allowedLimit) }")
         case Xor.Left(EnvelopeNotFoundError) =>
           ExceptionHandler(BAD_REQUEST, s"Envelope with id: $envelopeId not found")
         case Xor.Left(otherError) =>

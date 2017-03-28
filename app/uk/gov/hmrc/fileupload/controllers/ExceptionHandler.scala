@@ -18,6 +18,7 @@ package uk.gov.hmrc.fileupload.controllers
 
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
+import com.fasterxml.jackson.core.JsonParseException
 import play.api.Logger
 import play.api.http.HttpEntity
 import play.api.http.Status._
@@ -32,6 +33,7 @@ object ExceptionHandler {
     case e: ValidationException => IllegalArgumentHandler(e)
     case e: NoSuchElementException => NoSuchElementHandler(e)
     case e: BadRequestException => BadRequestHandler(e)
+    case e: JsonParseException => BadRequestHandler(new BadRequestException(s"Malformed json: ${e.getMessage}"))
     case e: Throwable => DefaultExceptionHandler(e)
   }
 

@@ -18,6 +18,8 @@ package uk.gov.hmrc.fileupload.write.envelope
 
 import org.joda.time.DateTime
 import play.api.libs.json._
+import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
+import uk.gov.hmrc.fileupload.utils.NumberFormatting.formatAsKiloOrMegabytes
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
@@ -32,10 +34,11 @@ sealed trait EnvelopeCommand extends Command {
 case class CreateEnvelope(id: EnvelopeId,
                           callbackUrl: Option[String],
                           expiryDate: Option[DateTime],
-                          metadata: Option[JsObject]) extends EnvelopeCommand
+                          metadata: Option[JsObject],
+                          constraints: Option[EnvelopeConstraints]) extends EnvelopeCommand
 
 case class QuarantineFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
-                          created: Long, name: String, contentType: String, metadata: JsObject) extends EnvelopeCommand
+                          created: Long, name: String, contentType: String, length: Option[Long], metadata: JsObject) extends EnvelopeCommand
 
 case class MarkFileAsClean(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) extends EnvelopeCommand
 
@@ -61,10 +64,12 @@ sealed trait EnvelopeEvent extends EventData {
   def streamId: StreamId = StreamId(id.value)
 }
 
-case class EnvelopeCreated(id: EnvelopeId, callbackUrl: Option[String], expiryDate: Option[DateTime], metadata: Option[JsObject]) extends EnvelopeEvent
+case class EnvelopeCreated(id: EnvelopeId, callbackUrl: Option[String],
+                           expiryDate: Option[DateTime], metadata: Option[JsObject],
+                           constraints: Option[EnvelopeConstraints]) extends EnvelopeEvent
 
 case class FileQuarantined(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
-                           created: Long, name: String, contentType: String, metadata: JsObject) extends EnvelopeEvent
+                           created: Long, name: String, contentType: String, length: Option[Long] = None, metadata: JsObject) extends EnvelopeEvent
 
 case class NoVirusDetected(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) extends EnvelopeEvent
 
@@ -90,7 +95,7 @@ object Formatters {
   implicit val quarantineFileFormat = Json.format[QuarantineFile]
   implicit val markFileAsCleanFormat = Json.format[MarkFileAsClean]
   implicit val markFileAsInfectedFormat = Json.format[MarkFileAsInfected]
-
+  implicit val constraintsFormats = Json.format[EnvelopeConstraints]
   implicit val envelopeCreatedFormat: Format[EnvelopeCreated] = Json.format[EnvelopeCreated]
   implicit val fileQuarantinedFormat: Format[FileQuarantined] = Json.format[FileQuarantined]
   implicit val fileNoVirusDetectedFormat: Format[NoVirusDetected] = Json.format[NoVirusDetected]
@@ -135,7 +140,7 @@ object EventSerializer {
       case `envelopeSealed` => Json.fromJson[EnvelopeSealed](value).get
       case `envelopeUnsealed` => Json.fromJson[EnvelopeUnsealed](value).get
       case `envelopeRouted` => Json.fromJson[EnvelopeRouted](value).get
-      case `envelopeArchived`  => Json.fromJson[EnvelopeArchived](value).get
+      case `envelopeArchived` => Json.fromJson[EnvelopeArchived](value).get
     }
 
   def fromEventData(eventData: EventData): JsValue =
@@ -170,13 +175,42 @@ object EventSerializer {
 sealed trait EnvelopeCommandNotAccepted extends CommandNotAccepted
 
 case object EnvelopeNotFoundError extends EnvelopeCommandNotAccepted
+
 case object EnvelopeAlreadyCreatedError extends EnvelopeCommandNotAccepted
+
+sealed trait EnvelopeInvalidConstraintError extends EnvelopeCommandNotAccepted
+
+case object InvalidMaxSizeConstraintError extends EnvelopeInvalidConstraintError {
+  override def toString = "constraints.maxSize exceeds maximum allowed value of " +
+    formatAsKiloOrMegabytes(Envelope.defaultConstraints.maxSize)
+}
+
+case object InvalidMaxSizePerItemConstraintError extends EnvelopeInvalidConstraintError {
+  override def toString = "constraints.maxSizePerItem exceeds maximum allowed value of " +
+    formatAsKiloOrMegabytes(Envelope.defaultConstraints.maxSizePerItem)
+}
+
+case object InvalidMaxItemCountConstraintError extends EnvelopeInvalidConstraintError {
+  override def toString = s"constraints.maxItems must be between 1 and ${ Envelope.defaultConstraints.maxItems }"
+}
+
 case object EnvelopeSealedError extends EnvelopeCommandNotAccepted
+
 case object FileWithError extends EnvelopeCommandNotAccepted
+
 case class FilesWithError(fileIds: Seq[FileId]) extends EnvelopeCommandNotAccepted
+
+case class EnvelopeItemCountExceededError(allowedItemCount: Int, actualItemCount: Int) extends EnvelopeCommandNotAccepted
+case class EnvelopeMaxSizeExceededError(maxSizeAllowed: Long) extends EnvelopeCommandNotAccepted
+
 case class FilesNotAvailableError(fileIds: Seq[FileId]) extends EnvelopeCommandNotAccepted
+
 case class FileNameDuplicateError(fileId: FileId) extends EnvelopeCommandNotAccepted
+
 case object FileNotFoundError extends EnvelopeCommandNotAccepted
+
 case object FileAlreadyProcessed extends EnvelopeCommandNotAccepted
+
 case object EnvelopeArchivedError extends EnvelopeCommandNotAccepted
+
 case object EnvelopeAlreadyRoutedError extends EnvelopeCommandNotAccepted

@@ -40,7 +40,7 @@ POST   	/file-upload/envelopes
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 201   | Successfully created envelope. |
-| Bad Request | 400   |  Envelope not created. |  
+| Bad Request | 400   |  Envelope not created, with some reason message |  
 
 #### Example
 Request (POST): localhost:8898/file-upload/envelopes
@@ -49,11 +49,30 @@ Body:
 ``` json
 {
     "callbackUrl": "string representing absolute url",
-    "metadata": { "any": "valid json object" }
+    "metadata": { "any": "valid json object" },
+    "constraints": 	{
+          "maxNumFiles": 5,
+          "maxSize": "25MB",
+          "maxSizePerItem": "10kB",
+          "contentTypes": "application/pdf,image/jpeg,application/xml"
+        }   
 }
 ```
 
-Note: All parameters are optional. A [callbackUrl](#callback) is optional but should be provided in order for the service to provide feedback of the envelope's progress.
+Note: All parameters are optional. 
+A [callbackUrl](#callback) is optional but should be provided in order for the service to provide feedback of the envelope's progress.
+All constraints are optional for users, default constraints apply if the value is not specified in the create envelope call.
+
+| Attribute    | Options    | Accepted Values | Default    | Description |
+| --------|---------|-------|-------|-------|
+| constraints.contentTypes  | optional   | List of MIME Types delimited by comma  | application/pdf<br/>image/jpeg<br/>application/xml  | MIME types accepted by this envelope  | 
+| constraints.maxNumFiles | optional   |  1-100 |  100  | Number of items allowed in this envelope  | 
+| constraints.maxSize | optional   | [1-9][0-9]{0,3}(KB&#124;MB) e.g. 1024KB |  25MB  | Maximum Size (sum of files' sizes) for the envelope (ceiling is 25MB)  | 
+| constraints.maxSizePerItem | optional   |  [1-9][0-9]{0,3}(KB&#124;MB) e.g. 1024KB |  10MB  | Maximum Size for each file (ceiling is 10MB)  | 
+
+1. constraints.contentTypes and constraints.maxSizePerItem are applied when the file is uploaded. If validation fails, the user will receive an error.
+2. constraints.maxNumFiles and constraints.maxSize are applied when the file is routed. Your application may be able to exceed these limits during upload but will not be able to route the envelope.
+
 
 Response (in Headers): Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 

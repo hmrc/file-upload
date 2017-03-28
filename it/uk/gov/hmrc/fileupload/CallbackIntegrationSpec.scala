@@ -27,7 +27,7 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
       val fileId = FileId("1")
       val fileRefId = FileRefId("1")
 
-      val response = sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      val response = sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
 
       response.status shouldBe OK
       eventually { verifyQuarantinedCallbackReceived(callbackPath, envelopeId, fileId ) }
@@ -44,7 +44,7 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
       val fileId = FileId("1")
       val fileRefId = FileRefId("1")
 
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
       val response = sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
 
       response.status shouldBe OK
@@ -62,7 +62,7 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
       val fileId = FileId("1")
       val fileRefId = FileRefId("1")
 
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
       val response = sendCommandMarkFileAsInfected(MarkFileAsInfected(envelopeId, fileId, fileRefId))
 
       response.status shouldBe OK
@@ -80,9 +80,10 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
       val fileId = FileId("1")
       val fileRefId = FileRefId()
 
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
       sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
       sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, 0))
+      val response = upload("test".getBytes, envelopeId, fileId, fileRefId)
 
       eventually { verifyAvailableCallbackReceived(callbackPath, envelopeId, fileId ) }
     }

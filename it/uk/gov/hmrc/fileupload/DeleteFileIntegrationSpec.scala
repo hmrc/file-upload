@@ -28,7 +28,7 @@ class DeleteFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
 
       And("File is registered as stored")
       sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, 0))
