@@ -5,8 +5,8 @@ import java.io.RandomAccessFile
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws._
-import uk.gov.hmrc.fileupload.controllers.{FileInQuarantineStored, FileScanned}
 import uk.gov.hmrc.fileupload.support._
+import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, QuarantineFile}
 
 /**
   * Integration tests for FILE-83
@@ -18,6 +18,9 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
   implicit override val patienceConfig = PatienceConfig(timeout = Span(20, Seconds), interval = Span(5, Millis))
 
   feature("Upload File") {
+
+    pending // todo(konrad) to be done once we download from s3
+
 
     info("I want to upload a file")
     info("So that I can persist it in the the database")
@@ -38,10 +41,10 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
 
       And("FileScanned")
-      sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))
+      sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
 
       And("I have a valid file attached to the request body")
       val data = "{}".getBytes
@@ -66,10 +69,10 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
 
       And("FileScanned")
-      sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))
+      sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
 
       And("I have a valid 3MB file attached to the request body")
       val file = new RandomAccessFile("t", "rw")
@@ -89,7 +92,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val envelopeId = createEnvelope()
       val firstFileId = FileId(s"fileId-${nextId()}")
       val firstFileRefId = FileRefId(s"fileRefId-${nextId()}")
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, firstFileId, firstFileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, firstFileId, firstFileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
       upload("{}".getBytes, envelopeId, firstFileId, firstFileRefId)
 
       And("And I have a valid new file-id")
@@ -100,10 +103,10 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
 
       And("FileScanned")
-      sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))
+      sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
 
       When(s"I invoke PUT envelope/$envelopeId/files/$fileId/$fileRefId")
       val response = upload(data, envelopeId, fileId, fileRefId)
@@ -127,7 +130,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
 
       And("I have a valid file attached to the request body")
       val data = "{}".getBytes
@@ -150,10 +153,10 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendFileInQuarantineStored(FileInQuarantineStored(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
 
       And("FileScanned")
-      sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, hasVirus = false))
+      sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
 
       And("I have no file attached to the request body")
       val data = "".getBytes

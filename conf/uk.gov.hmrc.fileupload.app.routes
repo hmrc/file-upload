@@ -7,11 +7,16 @@ GET        /envelopes/:envelopeId                             uk.gov.hmrc.fileup
 DELETE     /envelopes/:envelopeId                             uk.gov.hmrc.fileupload.controllers.EnvelopeController.delete(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId)
 DELETE     /envelopes/:envelopeId/files/:fileId               uk.gov.hmrc.fileupload.controllers.EnvelopeController.deleteFile(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId)
 GET        /envelopes/:envelopeId/files/:fileId/metadata      uk.gov.hmrc.fileupload.controllers.EnvelopeController.retrieveMetadata(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId)
-PUT        /envelopes/:envelopeId/files/:fileId/:fileRefId    uk.gov.hmrc.fileupload.controllers.FileController.upsertFile(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId, fileRefId: uk.gov.hmrc.fileupload.FileRefId)
 GET        /envelopes/:envelopeId/files/:fileId/content       uk.gov.hmrc.fileupload.controllers.FileController.downloadFile(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId, fileId: uk.gov.hmrc.fileupload.FileId)
-POST       /events/:eventType                                 uk.gov.hmrc.fileupload.controllers.EventController.collect(eventType: String)
 GET        /events/:streamId                                  uk.gov.hmrc.fileupload.controllers.EventController.get(streamId: uk.gov.hmrc.fileupload.write.infrastructure.StreamId)
-POST       /commands/:commandType                             uk.gov.hmrc.fileupload.controllers.CommandController.handle(commandType: String)
+
+# handle commands generated in front-end
+POST       /commands/store-file                               uk.gov.hmrc.fileupload.controllers.CommandController.storeFile
+POST       /commands/unsealenvelope                           uk.gov.hmrc.fileupload.controllers.CommandController.unsealEnvelope
+POST       /commands/quarantine-file                          uk.gov.hmrc.fileupload.controllers.CommandController.quarantineFile
+POST       /commands/mark-file-as-clean                       uk.gov.hmrc.fileupload.controllers.CommandController.markFileAsClean
+POST       /commands/mark-file-as-infected                    uk.gov.hmrc.fileupload.controllers.CommandController.markFileAsInfected
+
 GET        /files/inprogress                                  uk.gov.hmrc.fileupload.controllers.EnvelopeController.inProgressFiles()
 DELETE     /files/inprogress/:fileRefId                       uk.gov.hmrc.fileupload.controllers.EnvelopeController.deleteInProgressFileByRefId(fileRefId: uk.gov.hmrc.fileupload.FileRefId)
 

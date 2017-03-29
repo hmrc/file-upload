@@ -16,60 +16,53 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import akka.util.ByteString
 import cats.data.Xor
-import play.api.libs.iteratee.Iteratee
-import play.api.libs.json.Json
-import play.api.libs.streams.Accumulator
+import play.api.Logger
+import play.api.libs.json.{JsValue, Json, Reads}
 import play.api.mvc._
-import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.utils.StreamUtils
+import uk.gov.hmrc.fileupload.write.envelope.Formatters._
 import uk.gov.hmrc.fileupload.write.envelope._
-import uk.gov.hmrc.fileupload.write.infrastructure.{EventSerializer => _, _}
+import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.postfixOps
-import scala.util.control.NonFatal
-import scala.util.{Failure, Success, Try}
 
 class CommandController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
                      (implicit executionContext: ExecutionContext) extends BaseController {
 
-  def handle(commandType: String) = Action.async(CommandParser) { implicit request =>
-    handleCommand(request.body).map {
-          case Xor.Right(_) => Ok
-          case Xor.Left(EnvelopeAlreadyRoutedError | EnvelopeSealedError) =>
-            ExceptionHandler(LOCKED, s"Routing request already received for envelope: ${request.body.id}")
-          case Xor.Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
-        }
-  }
-}
+  def unsealEnvelope = process[UnsealEnvelope]
 
-object CommandParser extends BodyParser[EnvelopeCommand] {
+  def storeFile = process[StoreFile]
 
-  def apply(request: RequestHeader): Accumulator[ByteString, Either[Result, EnvelopeCommand]] = {
-    import Formatters._
-    val pattern =  "commands/(.+)$".r.unanchored
+  def quarantineFile = process[QuarantineFile]
 
-    import play.api.libs.concurrent.Execution.Implicits._
-    StreamUtils.iterateeToAccumulator(Iteratee.consume[ByteStream]()).map { data =>
-      val parsedData = Json.parse(data)
+  def markFileAsClean = process[MarkFileAsClean]
 
-      val triedEvent: Try[EnvelopeCommand] = request.uri match {
-        case pattern(commandType) =>
-          commandType.toLowerCase match  {
-            case "unsealenvelope" => Try(Json.fromJson[UnsealEnvelope](parsedData).get)
-            case _ => Failure(new InvalidCommandException(s"$commandType is not a valid event"))
-          }
+  def markFileAsInfected = process[MarkFileAsInfected]
+
+  def process[T <: EnvelopeCommand : Reads : Manifest] = Action.async(parse.json) { implicit req =>
+    bindCommandFromRequest[T] { command =>
+      Logger.info(s"Requested command: $command to be processed")
+      handleCommand(command).map {
+        case Xor.Right(_) => Ok
+        case Xor.Left(EnvelopeNotFoundError) =>
+          ExceptionHandler(LOCKED, s"Envelope with id: ${command.id} not found")
+        case Xor.Left(FileAlreadyProcessed) =>
+          ExceptionHandler(BAD_REQUEST, s"File already processed, command was: $command")
+        case Xor.Left(EnvelopeAlreadyRoutedError | EnvelopeSealedError) =>
+          ExceptionHandler(LOCKED, s"Routing request already received for envelope: ${command.id}")
+        case Xor.Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
       }
-
-      triedEvent match {
-        case Success(event) => Right(event)
-        case Failure(NonFatal(e)) => Left(ExceptionHandler(e))
-      }
-    }(ExecutionContext.global)
+    }
   }
-}
 
-class InvalidCommandException(reason: String) extends IllegalArgumentException(reason)
+  def bindCommandFromRequest[T <: EnvelopeCommand](f: EnvelopeCommand => Future[Result])
+                                                  (implicit r: Reads[T], m: Manifest[T], req: Request[JsValue]) = {
+    Json.fromJson[T](req.body).asOpt.map { command =>
+      f(command)
+    }.getOrElse {
+      Future.successful(ExceptionHandler(BAD_REQUEST, s"Unable to parse request as ${m.runtimeClass.getSimpleName}"))
+    }
+  }
+
+}

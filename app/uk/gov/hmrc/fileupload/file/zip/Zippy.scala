@@ -20,13 +20,16 @@ import java.io.{BufferedOutputStream, ByteArrayOutputStream}
 import java.util.UUID
 import java.util.zip.ZipOutputStream
 
+import akka.stream.Materializer
+import akka.stream.scaladsl.{Flow, Sink, Source}
+import akka.util.ByteString
 import cats.data.Xor
 import play.api.libs.iteratee.Enumerator
+import play.api.libs.streams.Streams
 import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
 import uk.gov.hmrc.fileupload.file.zip.ZipStream.{ZipFileInfo, ZipStreamEnumerator}
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindEnvelopeNotFoundError, FindResult, FindServiceError}
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatusClosed}
-import uk.gov.hmrc.fileupload.read.file.Service.{FileFound, GetFileResult}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -40,19 +43,27 @@ object Zippy {
   case class ZipProcessingError(message: String) extends ZipEnvelopeError
 
 
-  def zipEnvelope(getEnvelope: (EnvelopeId) => Future[FindResult], retrieveFile: (Envelope, FileId) => Future[GetFileResult])
+  def zipEnvelope(getEnvelope: (EnvelopeId) => Future[FindResult],
+                  retrieveFile: (EnvelopeId, FileId) => Future[Source[ByteString, _]])
                  (envelopeId: EnvelopeId)
-                 (implicit ec: ExecutionContext): Future[ZipResult] = {
+                 (implicit ec: ExecutionContext, mat: Materializer): Future[ZipResult] = {
+
+    def sourceToEnumerator(source: Source[ByteString, _]) = {
+      val byteStringToArrayOfBytes = Flow[ByteString].map(_.toArray)
+      Streams.publisherToEnumerator(
+        source.via(byteStringToArrayOfBytes).runWith(Sink.asPublisher(fanout = false))
+      )
+    }
 
     getEnvelope(envelopeId) map {
       case Xor.Right(envelopeWithFiles @ Envelope(_, _, EnvelopeStatusClosed, _, _, _, _, Some(files), _, _)) =>
         val zipFiles = files.collect {
           case f =>
             val fileName = f.name.getOrElse(UUID.randomUUID().toString)
-            ZipFileInfo(fileName, isDir = false, new java.util.Date(), Some(() => retrieveFile(envelopeWithFiles, f.fileId).map {
-              case Xor.Right(FileFound(name, length, data)) => data
-              case Xor.Left(error) => throw new Exception(s"File $envelopeId ${f.fileId} not found in repo" )
-            }))
+            ZipFileInfo(
+              fileName, isDir = false, new java.util.Date(),
+              Some(() => retrieveFile(envelopeWithFiles._id, f.fileId).map { sourceToEnumerator })
+            )
         }
         Xor.right( ZipStreamEnumerator(zipFiles))
 

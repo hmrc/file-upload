@@ -16,23 +16,23 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Source
+import akka.util.ByteString
 import cats.data.Xor
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.http.{HeaderNames, Status}
-import play.api.libs.iteratee.Enumerator
-import play.api.libs.json.{JsString, JsValue}
 import play.api.mvc._
-import play.api.test.{FakeHeaders, FakeRequest}
-import reactivemongo.json.JSONSerializationPack
-import reactivemongo.json.JSONSerializationPack.Document
+import play.api.test.FakeRequest
+import play.api.test.Helpers._
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
-import uk.gov.hmrc.fileupload.read.file.Service._
-import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError}
+import uk.gov.hmrc.fileupload.read.envelope.{File, FileStatusQuarantined, WithValidEnvelope}
+import uk.gov.hmrc.fileupload.write.envelope.EnvelopeCommand
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -50,61 +50,30 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
   }
 
-  case class TestJsonReadFile(id: JsValue = JsString("testid")) extends JSONReadFile {
-    val pack = JSONSerializationPack
-    val contentType: Option[String] = None
-    val filename: Option[String] = None
-    val chunkSize: Int = 0
-    val length: Long = 0
-    val uploadDate: Option[Long] = None
-    val md5: Option[String] = None
-    val metadata: Document = null
-  }
-
-  def parse = UploadParser.parse(null) _
-
   def newController(withBasicAuth:BasicAuth = AlwaysAuthorisedBasicAuth,
-                    uploadBodyParser: (EnvelopeId, FileId, FileRefId) => BodyParser[Future[JSONReadFile]] = parse,
-                    retrieveFile: (Envelope, FileId) => Future[GetFileResult] = (_, _) => failed,
+                    retrieveFile: (EnvelopeId, FileId) => Future[Source[ByteString, _]] = (_, _) => failed,
                     withValidEnvelope: WithValidEnvelope = Support.envelopeAvailable(),
                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed) =
-    new FileController(
-      withBasicAuth,
-      uploadBodyParser = uploadBodyParser,
-      retrieveFile = retrieveFile,
-      withValidEnvelope = withValidEnvelope,
-      handleCommand = handleCommand)
+    new FileController(withBasicAuth, retrieveFile, withValidEnvelope, handleCommand)
 
-  "Upload a file" should {
-    "return 200 after the file is added to the envelope" in {
-      val fakeRequest = new FakeRequest[Future[JSONReadFile]]("PUT", "/envelopes", FakeHeaders(), body = Future.successful(TestJsonReadFile()))
 
-      val envelope = Support.envelope
-
-      val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
-      val result = controller.upsertFile(envelope._id, FileId(), FileRefId())(fakeRequest).futureValue
-
-      result.header.status shouldBe Status.OK
-    }
-
-    "return 404 if envelope does not exist" in {
-      val fakeRequest = new FakeRequest[Future[JSONReadFile]]("PUT", "/envelopes", FakeHeaders(), body = Future.successful(TestJsonReadFile()))
-
-      val envelopeId = EnvelopeId()
-
-      val controller = newController(handleCommand = _ => Future.successful(Xor.left(EnvelopeNotFoundError)))
-      val result: Result = controller.upsertFile(envelopeId, FileId(), FileRefId())(fakeRequest).futureValue
-
-      result.header.status shouldBe Status.NOT_FOUND
-    }
-  }
+  val envelopeId = EnvelopeId()
+  val fileId = FileId()
+  val file = File(fileId, FileRefId(), FileStatusQuarantined, name = Some("myfile.txt"), length = Some(100))
+  val envelope = Support.envelope.copy(files = Some(Seq(file))).copy(_id = envelopeId)
+  val source = Source.empty[ByteString]
+  val authHeaders = HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword"))
 
   "Download a file" should {
     "return 200 response with correct headers when file is found" in {
-      val fileFound = Xor.Right(FileFound(Some("myfile.txt"), 100, Enumerator.eof[ByteStream]))
-      val controller = newController(retrieveFile = (_,_) => Future.successful(fileFound))
+      val controller =
+        newController(
+          retrieveFile = (_, _) => Future.successful(source),
+          withValidEnvelope = new WithValidEnvelope(
+            _ => Future.successful(Some(envelope))
+          ))
 
-      val result = controller.downloadFile(EnvelopeId(), FileId())(FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))).futureValue
+      val result = controller.downloadFile(envelopeId, fileId)(FakeRequest().withHeaders(authHeaders)).futureValue
 
       result.header.status shouldBe Status.OK
       val headers = result.header.headers
@@ -113,27 +82,32 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
       headers("Content-Disposition") shouldBe "attachment; filename=\"myfile.txt\""
     }
     "return filename = `data` in headers if absent in client metadata for a given file" in {
-      val fileFound = Xor.Right(FileFound(None, 100, Enumerator.eof[ByteStream]))
-      val controller = newController(retrieveFile = (_,_) => Future.successful(fileFound))
-      val result = controller.downloadFile(EnvelopeId(), FileId())(FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))).futureValue
+      val controller =
+        newController(
+          retrieveFile = (_, _) => Future.successful(source),
+          withValidEnvelope = new WithValidEnvelope(
+            _ => {
+              val fileWithoutAName = file.copy(name = None)
+              val envelopeWithoutFileName = envelope.copy(files = Some(Seq(fileWithoutAName)))
+              Future.successful(Some(envelopeWithoutFileName))
+            }))
+
+      val result = controller.downloadFile(envelopeId, fileId)(FakeRequest().withHeaders(authHeaders)).futureValue
 
       val headers = result.header.headers
       headers("Content-Disposition") shouldBe "attachment; filename=\"data\""
     }
 
     "respond with 404 when a file is not found" in {
-      val envelopeId = EnvelopeId()
-      val fileId = FileId("myFileId")
-      val fakeRequest = new FakeRequest[AnyContentAsJson]("GET", s"/envelopes/$envelopeId/files/$fileId/content", FakeHeaders(), body = null).withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
+      val randomFileId = FileId("myFileId")
+      val controller = newController(retrieveFile = (_,_) => Future.successful(source))
 
-      val fileFound: GetFileResult = Xor.Left(GetFileNotFoundError)
-      val controller = newController(
-        retrieveFile = (_,_) => Future.successful(fileFound)
-      )
+      val result: Result = controller.downloadFile(envelopeId, randomFileId)(FakeRequest().withHeaders(authHeaders))
+      implicit val actorSystem = ActorSystem()
+      implicit val materializer = ActorMaterializer()
 
-      val result: Result = controller.downloadFile(envelopeId, fileId)(fakeRequest).futureValue
-
-      result.header.status shouldBe Status.NOT_FOUND
+      status(result) shouldBe Status.NOT_FOUND
+      contentAsString(result) should include (s"File with id: $randomFileId not found")
     }
 
     "respond with 404 when envelope is not found" in {
@@ -143,9 +117,14 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
         withValidEnvelope = Support.envelopeNotFound
       )
 
-      val result: Result = controller.downloadFile(envelopeId, fileId)(FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))).futureValue
+      val result: Result = controller.downloadFile(envelopeId, fileId)(FakeRequest().withHeaders(authHeaders)).futureValue
 
       result.header.status shouldBe Status.NOT_FOUND
+      implicit val actorSystem = ActorSystem()
+      implicit val materializer = ActorMaterializer()
+
+      status(result) shouldBe Status.NOT_FOUND
+      contentAsString(result) should include (s"Envelope with id: $envelopeId not found")
     }
   }
 }

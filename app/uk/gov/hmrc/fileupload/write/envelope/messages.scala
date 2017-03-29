@@ -38,7 +38,7 @@ case class CreateEnvelope(id: EnvelopeId,
                           constraints: Option[EnvelopeConstraints]) extends EnvelopeCommand
 
 case class QuarantineFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
-                          created: Long, name: String, contentType: String, length: Long, metadata: JsObject) extends EnvelopeCommand
+                          created: Long, name: String, contentType: String, length: Option[Long], metadata: JsObject) extends EnvelopeCommand
 
 case class MarkFileAsClean(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) extends EnvelopeCommand
 
@@ -91,6 +91,10 @@ case class EnvelopeArchived(id: EnvelopeId) extends EnvelopeEvent
 
 object Formatters {
   implicit val unsealEnvelopeFormat: Format[UnsealEnvelope] = Json.format[UnsealEnvelope]
+  implicit val storeFileFormat = Json.format[StoreFile]
+  implicit val quarantineFileFormat = Json.format[QuarantineFile]
+  implicit val markFileAsCleanFormat = Json.format[MarkFileAsClean]
+  implicit val markFileAsInfectedFormat = Json.format[MarkFileAsInfected]
   implicit val constraintsFormats = Json.format[EnvelopeConstraints]
   implicit val envelopeCreatedFormat: Format[EnvelopeCreated] = Json.format[EnvelopeCreated]
   implicit val fileQuarantinedFormat: Format[FileQuarantined] = Json.format[FileQuarantined]

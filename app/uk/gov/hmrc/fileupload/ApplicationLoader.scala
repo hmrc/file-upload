@@ -20,7 +20,7 @@ import java.util.UUID
 import javax.inject.Provider
 
 import akka.actor.ActorRef
-import com.kenshoo.play.metrics.{MetricsController, MetricsFilterImpl}
+import com.kenshoo.play.metrics.{MetricsController, MetricsFilterImpl, MetricsImpl}
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
 import play.api.ApplicationLoader.Context
@@ -42,7 +42,6 @@ import uk.gov.hmrc.fileupload.infrastructure._
 import uk.gov.hmrc.fileupload.manualdihealth.{Routes => HealthRoutes}
 import uk.gov.hmrc.fileupload.prod.Routes
 import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => EnvelopeService, _}
-import uk.gov.hmrc.fileupload.read.file.{Service => FileService}
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
 import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor}
 import uk.gov.hmrc.fileupload.routing.{Routes => RoutingRoutes}
@@ -55,9 +54,8 @@ import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.audit.http.config.LoadAuditingConfig
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
-import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
+import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode, ServicesConfig}
 import uk.gov.hmrc.play.filters.{NoCacheFilter, RecoveryFilter}
-import uk.gov.hmrc.play.graphite.GraphiteMetricsImpl
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 
@@ -72,10 +70,13 @@ class ApplicationLoader extends play.api.ApplicationLoader {
 }
 
 class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(context)
-  with AhcWSComponents with AppName {
+  with AhcWSComponents with AppName with ServicesConfig {
 
   implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
   implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
+
+  override lazy val mode = context.environment.mode
+  override lazy val runModeConfiguration = configuration
 
   val subscribe: (ActorRef, Class[_]) => Boolean = actorSystem.eventStream.subscribe
   val publish: (AnyRef) => Unit = actorSystem.eventStream.publish
@@ -146,9 +147,6 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute, wsClient) _
 
   lazy val fileRepository = uk.gov.hmrc.fileupload.read.file.Repository.apply(db)
-  val iterateeForUpload = fileRepository.iterateeForUpload _
-  val getFileFromRepo = fileRepository.retrieveFile _
-  lazy val retrieveFile = FileService.retrieveFile(getFileFromRepo) _
   lazy val retrieveFileMetaData = fileRepository.retrieveFileMetaData _
   lazy val fileChunksInfo = fileRepository.chunksCount _
 
@@ -190,20 +188,21 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   }
 
   lazy val eventController = {
-    new EventController(envelopeCommandHandler, eventStore.unitsOfWorkForAggregate, createReportHandler.handle(replay = true))
+    new EventController(eventStore.unitsOfWorkForAggregate, createReportHandler.handle(replay = true))
   }
 
   lazy val commandController = {
     new CommandController(envelopeCommandHandler)
   }
 
+  lazy val fileUploadFrontendBaseUrl = baseUrl("file-upload-frontend")
+
+  lazy val getFileFromS3 = new RetrieveFile(wsClient, fileUploadFrontendBaseUrl).download _
+
   lazy val fileController = {
-    import play.api.libs.concurrent.Execution.Implicits._
-    val uploadBodyParser = UploadParser.parse(iterateeForUpload) _
     new FileController(
       withBasicAuth = withBasicAuth,
-      uploadBodyParser = uploadBodyParser,
-      retrieveFile = retrieveFile,
+      retrieveFile = getFileFromS3,
       withValidEnvelope = withValidEnvelope,
       handleCommand = envelopeCommandHandler)
   }
@@ -215,7 +214,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   lazy val transferController = {
     val getEnvelopesByDestination = envelopeRepository.getByDestination _
-    val zipEnvelope = Zippy.zipEnvelope(find, retrieveFile) _
+    val zipEnvelope = Zippy.zipEnvelope(find, getFileFromS3) _
     new TransferController(withBasicAuth, getEnvelopesByDestination, envelopeCommandHandler, zipEnvelope)
   }
 
@@ -283,7 +282,8 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   lazy val microserviceAuditFilter: AuditFilter = MicroserviceAuditFilter
 
-  lazy val metrics = new GraphiteMetricsImpl(applicationLifecycle, configuration)
+  // Don't use uk.gov.hmrc.play.graphite.GraphiteMetricsImpl as it won't allow hot reload due to overridden onStop() method
+  lazy val metrics = new MetricsImpl(applicationLifecycle, configuration)
 
   lazy val metricsFilter = new MetricsFilterImpl(metrics)
 

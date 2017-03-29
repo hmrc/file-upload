@@ -118,7 +118,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated,
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()),
+        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
         fileQuarantined
       )
     }
@@ -127,7 +127,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = FileRefId(), name = "abc.pdf"),
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf",123L, Json.obj()),
+        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
         fileQuarantined
       )
     }
@@ -136,7 +136,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated And fileQuarantined.copy(fileRefId = FileRefId()),
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()),
+        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
         fileQuarantined
       )
     }
@@ -145,7 +145,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = FileRefId()),
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()),
+        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
         fileQuarantined
       )
     }
@@ -154,7 +154,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated And fileQuarantined,
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()),
+        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
         FileAlreadyProcessed
       )
     }
@@ -163,7 +163,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         --,
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()),
+        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
         EnvelopeNotFoundError
       )
     }
@@ -172,7 +172,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated And envelopeDeleted,
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()),
+        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
         EnvelopeNotFoundError
       )
     }
@@ -181,7 +181,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated And envelopeSealed,
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()),
+        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
         EnvelopeSealedError
       )
     }
@@ -190,7 +190,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated And envelopeRouted,
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()),
+        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
         EnvelopeAlreadyRoutedError
       )
     }
@@ -199,7 +199,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
       givenWhenThen(
         envelopeCreated And envelopeArchived,
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", 123L, Json.obj()),
+        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
         EnvelopeArchivedError
       )
     }

@@ -42,7 +42,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
       envelope.canQuarantine(command.fileId, command.fileRefId, command.name).map(_ =>
         FileQuarantined(
           id = command.id, fileId = command.fileId, fileRefId = command.fileRefId,
-          created = command.created, name = command.name, contentType = command.contentType, length = Some(command.length), metadata = command.metadata)
+          created = command.created, name = command.name, contentType = command.contentType, length = command.length, metadata = command.metadata)
       )
 
     case (command: MarkFileAsClean, envelope: Envelope) =>

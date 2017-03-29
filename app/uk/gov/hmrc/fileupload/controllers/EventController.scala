@@ -16,52 +16,21 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import akka.util.ByteString
 import cats.data.Xor
-import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.Json
-import play.api.libs.streams.Accumulator
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.ByteStream
-import uk.gov.hmrc.fileupload.controllers.EventFormatters._
-import uk.gov.hmrc.fileupload.utils.StreamUtils
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.GetResult
 import uk.gov.hmrc.fileupload.write.infrastructure.{Event => DomainEvent, EventSerializer => _, _}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
-import scala.util.control.NonFatal
-import scala.util.{Failure, Success, Try}
 
-class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
-                      unitOfWorks: StreamId => Future[GetResult], publishAllEvents: Seq[DomainEvent] => Unit)
+class EventController(unitOfWorks: StreamId => Future[GetResult],
+                      publishAllEvents: Seq[DomainEvent] => Unit)
                      (implicit executionContext: ExecutionContext) extends Controller {
 
   implicit val eventWrites = EventSerializer.eventWrite
-
-  def collect(eventType: String) = Action.async(EventParser) { implicit request =>
-    request.body match {
-      case e: FileInQuarantineStored =>
-        val command = QuarantineFile(e.envelopeId, e.fileId, e.fileRefId, e.created, e.name, e.contentType, e.fileLength.getOrElse(0L), e.metadata)
-        handleCommand(command).map {
-          case Xor.Right(_) => Ok
-          case Xor.Left(EnvelopeAlreadyRoutedError | EnvelopeSealedError) =>
-            ExceptionHandler(LOCKED, s"Routing request already received for envelope: ${e.envelopeId}")
-          case Xor.Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
-        }
-      case e: FileScanned =>
-        val command = if (e.hasVirus) {
-          MarkFileAsInfected(e.envelopeId, e.fileId, e.fileRefId)
-        } else {
-          MarkFileAsClean(e.envelopeId, e.fileId, e.fileRefId)
-        }
-        handleCommand(command).map {
-          case Xor.Right(_) => Ok
-          case Xor.Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
-        }
-    }
-  }
 
   def get(streamId: StreamId) = Action.async { implicit request =>
     unitOfWorks(streamId) map {
@@ -81,31 +50,3 @@ class EventController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotA
     }
   }
 }
-
-object EventParser extends BodyParser[Event] {
-
-  def apply(request: RequestHeader): Accumulator[ByteString, Either[Result, Event]] = {
-    val pattern = "events/(.+)$".r.unanchored
-
-    import play.api.libs.concurrent.Execution.Implicits._
-    StreamUtils.iterateeToAccumulator(Iteratee.consume[ByteStream]()).map { data =>
-      val parsedData = Json.parse(data)
-
-      val triedEvent: Try[Event] = request.uri match {
-        case pattern(eventType) =>
-          eventType.toLowerCase match {
-            case "filescanned" => Try(Json.fromJson[FileScanned](parsedData).get)
-            case "fileinquarantinestored" => Try(Json.fromJson[FileInQuarantineStored](parsedData).get)
-            case _ => Failure(new InvalidEventException(s"$eventType is not a valid event"))
-          }
-      }
-
-      triedEvent match {
-        case Success(event) => Right(event)
-        case Failure(NonFatal(e)) => Left(ExceptionHandler(e))
-      }
-    }(ExecutionContext.global)
-  }
-}
-
-class InvalidEventException(reason: String) extends IllegalArgumentException(reason)
