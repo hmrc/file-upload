@@ -18,6 +18,7 @@ package uk.gov.hmrc.fileupload.controllers
 
 import akka.stream.scaladsl.Source.fromPublisher
 import cats.data.Xor
+import play.api.Logger
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.json._
 import play.api.libs.streams.Streams.enumeratorToPublisher
@@ -68,6 +69,8 @@ class EnvelopeController(withBasicAuth: BasicAuth,
   }
 
   def delete(id: EnvelopeId) = Action.async { implicit request =>
+    Logger.debug(s"delete: EnvelopeId=$id")
+
     withBasicAuth {
       handleCommand(DeleteEnvelope(id)).map {
         case Xor.Right(_) => Ok
@@ -79,6 +82,8 @@ class EnvelopeController(withBasicAuth: BasicAuth,
   }
 
   def deleteFile(id: EnvelopeId, fileId: FileId) = Action.async { request =>
+    Logger.debug(s"deleteFile: EnvelopeId=$id fileId=$fileId")
+
     handleCommand(DeleteFile(id, fileId)).map {
       case Xor.Right(_) => Ok
       case Xor.Left(FileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
@@ -89,6 +94,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
 
   def show(id: EnvelopeId) = Action.async {
     import EnvelopeReport._
+    Logger.debug(s"show: EnvelopeId=$id")
 
     findEnvelope(id).map {
       case Xor.Right(e) => Ok(Json.toJson(fromEnvelope(e)))
@@ -98,6 +104,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
   }
 
   def list(getEnvelopesByStatusQuery: GetEnvelopesByStatus) = Action { implicit request =>
+    Logger.debug(s"list by status")
     import EnvelopeReport._
 
     val enumerator = getEnvelopesByStatus(getEnvelopesByStatusQuery.status, getEnvelopesByStatusQuery.inclusive)
@@ -105,6 +112,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
   }
 
   def retrieveMetadata(id: EnvelopeId, fileId: FileId) = Action.async { request =>
+    Logger.debug(s"retrieveMetadata: envelopeId=$id fileId=$fileId")
     import GetFileMetadataReport._
 
     findMetadata(id, fileId).map {
