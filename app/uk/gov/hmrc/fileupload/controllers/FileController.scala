@@ -47,6 +47,8 @@ class FileController(withBasicAuth: BasicAuth,
                     (implicit executionContext: ExecutionContext) extends Controller {
 
   def downloadFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { implicit request =>
+    Logger.debug(s"downloadFile: EnvelopeId=$envelopeId fileId=$fileId")
+
     withBasicAuth {
       withValidEnvelope(envelopeId) { envelope =>
         val maybeFile = envelope.getFileById(fileId).map(f => (f.name, f.length))
