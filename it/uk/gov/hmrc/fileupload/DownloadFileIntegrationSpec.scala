@@ -2,10 +2,13 @@ package uk.gov.hmrc.fileupload
 
 import java.io.RandomAccessFile
 
+import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
+import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.json.Json
 import play.api.libs.ws._
-import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActions, IntegrationSpec}
-import uk.gov.hmrc.fileupload.write.envelope.QuarantineFile
+import uk.gov.hmrc.fileupload.support._
+import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, QuarantineFile, StoreFile}
 
 
 /**
@@ -13,13 +16,20 @@ import uk.gov.hmrc.fileupload.write.envelope.QuarantineFile
   * Download File
   *
   */
-class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
+class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions with FakeFrontendService {
+
+  implicit override val patienceConfig = PatienceConfig(timeout = Span(45, Seconds), interval = Span(500, Millis))
+
+  val data = "{'name':'pete'}"
+
+  val uidRegexPattern = "[a-z0-9-]*"
+  mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/file-upload/download/envelopes/$uidRegexPattern/files/$uidRegexPattern"))
+    .willReturn(WireMock.aResponse().withStatus(200).withBody(data.getBytes)))
 
   feature("Download File") {
 
-    pending // todo(konrad) to be done once we download from s3
-
     scenario("Check that a file can be downloaded") {
+
       Given("I have a valid envelope id")
       val envelopeId = createEnvelope()
 
@@ -32,9 +42,11 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
       And("FileInQuarantineStored")
       sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
 
+      And("File was scanned and no virus was found")
+      sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
+
       And("I have uploaded a file")
-      val data = "{'name':'pete'}"
-      upload(data.getBytes, envelopeId, fileId, fileRefId)
+      sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.getBytes().length))
 
       When(s"I invoke GET envelope/$envelopeId/files/$fileId/content")
       val response: WSResponse = download(envelopeId, fileId)
@@ -54,8 +66,6 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
 
     scenario("File can not be found") {
 
-      pending // todo(konrad) to be done once we download from s3
-
       Given("I have a valid envelope id")
       val envelopeId = createEnvelope()
 
@@ -68,7 +78,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
       Then("I will receive a 404 Not Found response")
       response.status shouldBe NOT_FOUND
     }
-    
+
     scenario("Valid file can be downloaded") {
 
       pending // todo(konrad) to be done once we download from s3
@@ -98,13 +108,13 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
       val sourceDigest = md.digest()
 
       When("I call GET /file-upload/envelopes/:envelope-id/files/:file-id/content")
-      val getFileResponse : WSResponse = download(envelopeId, fileId)
+      val getFileResponse: WSResponse = download(envelopeId, fileId)
 
       Then("I will receive a 200 OK response")
       getFileResponse.status shouldBe OK
 
       And("the file is downloaded successfully")
-      val storedFile : Array[Byte] = getFileResponse.body.getBytes
+      val storedFile: Array[Byte] = getFileResponse.body.getBytes
       md.reset()
       md.update(storedFile)
       val storedDigest = md.digest()
