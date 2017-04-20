@@ -1,15 +1,15 @@
 #%RAML 1.0
-title: file-upload-frontend
+title: file-upload
 protocols: [ HTTP, HTTPS ]
 baseUri: https://{environmentHost}/file-upload
 baseUriParameters:
   environmentHost:
     enum: ["www-dev.tax.service.gov.uk","www-qa.tax.service.gov.uk"]
-description: Upload files to the Tax Platform
+description: Upload files to the Tax Platform. (For internal use)
 
-/envelope:
+/envelopes:
   post:
-    description: Create an envelope
+    description: Create an envelope. Body must have an empty json object in order to pass
     body:
       application/json:
         example: {}
@@ -19,13 +19,22 @@ description: Upload files to the Tax Platform
         headers:
           Location:
             description: URI for the resource for showing this envelope
-            example: www-dev.tax.service.gov.uk/file-upload/envelopes/1234567890
-
+            example: www-dev.tax.service.gov.uk/file-upload/envelopes/ff86f4d2-ed32-4313-b42c-e9c9013486f9
+      500:
+        description: Internal Server Error. Occurs when not parse a json object.
+        body:
+            application/json:
+                example: |
+                {
+                    "error":{
+                        "msg":"Internal Server Error"
+                    }
+                }
   /{envelopeId}:
     uriParameters:
       envelopeId:
         displayName: Envelope ID
-        example: "4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa"
+        example: "ff86f4d2-ed32-4313-b42c-e9c9013486f9"
     get:
       description: Check the existence of an Envelope
       responses:
@@ -33,17 +42,26 @@ description: Upload files to the Tax Platform
           description: Envelope exists
           body:
             application/json:
-              example: { "id": "4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa" }
+              example: { "id": "ff86f4d2-ed32-4313-b42c-e9c9013486f9" }
         404:
           description: Envelope with specified ID not found
           body:
             application/json:
-              example: |
-                {
+              example: | {
                   "error": {
                     "msg": "Envelope 4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa not found"
                   }
-                }
+              }
+        500:
+            description: Internal Server Error
+            body:
+                application/json:
+                    example: |
+                    {
+                        "error":{
+                            "msg":"Internal Server Error"
+                        }
+                    }
     delete:
       description: Deletion of an Envelope
       responses:
@@ -54,17 +72,66 @@ description: Upload files to the Tax Platform
           body:
             application/json:
               example: |
-                {
+              {
                   "error": {
                   "msg": "Envelope 4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa not found"
                   }
                 }
+        500:
+            description: Internal Server Error
+            body:
+                application/json:
+                    example: |
+                    {
+                        "error":{
+                            "msg":"Internal Server Error"
+                        }
+                    }
     /files/{fileId}:
       uriParameters:
         fileId:
-          displayName: File ID
-          example: "1234567890"
-      /content:
+            displayName: File ID
+            example: "fileId-61c98b66-81a9-4361-ac71-66c05bc470e1"
+      delete:
+        description: Delete a file
+        responses:
+          200:
+            description: File Deleted
+          400:
+            description:
+            body:
+                application/json:
+                    example: |
+                    {
+                        "error":{
+                            "msg": "Envelope not deleted"
+                        }
+                    }
+          404:
+            description: File not found
+            body:
+                application/json:
+                    example: |
+                    {
+                        "error":{
+                            "msg":"Envelope with id 4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa not found"
+                        }
+                    }
+          500:
+            description: Internal Server Error
+                body:
+                application/json:
+                    example: |
+                    {
+                        "error":{
+                            "msg": "Internal Server Error"
+                        }
+                    }
+      /{fileRefId}:
+        uniParameters:
+          fileRefId:
+            displayName: File Reference ID
+            example: "fileRefId-2868d524-2387-400b-b5a8-e1be3078d0b7"
         put:
           description: Upload a file to an envelope
           responses:
@@ -75,69 +142,64 @@ description: Upload files to the Tax Platform
               body:
                 application/json:
                   example: |
-                    {
+                  {
                       "error": {
-                      "msg": "Envelope 4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa not found"
+                      "msg": "Envelope with id: 4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa not found"
                       }
-                    }
+                  }
+            404:
+              description: File not found
+              body:
+                application/json:
+                  example: |
+                  {
+                      "error": {
+                      "msg": "File with id: fileId-61c98b66-81a9-4361-ac71-66c05bc470e1 not found"
+                      }
+                  }
+            500:
+              description: File not added
+              body:
+                application/json:
+                  example: |
+                  {
+                      "error": {
+                      "msg": "File not added to envelope"
+                      }
+                  }
+      /content:
         get:
           description: Get a files contents
           responses:
             200:
               description: The files body
+                application/json:
+                  example: |
+                  {
+                    "fileId": "fileId-fc2dda4c-a0f1-40a9-8ea5-854cb6850f7a",
+                    "fsReference":"2f2993ae-d7c4-4c95-8f7f-7647b39eab27",
+                    "length":2,
+                    "uploadDate":1473088189142,
+                    "rel":"file",
+                    "status":"AVAILABLE"
+                  }
             404:
               description: File not found
               body:
                 application/json:
                   example: |
-                    {
+                  {
                       "error": {
-                      "msg": "File 123456789 not found in envelope: sss123456-03d6-4ae3-b8c6-3b5c6ad2f748"
+                      "msg": "File fileId-fc2dda4c-a0f1-40a9-8ea5-854cb6850f7a not found in envelope: sss123456-03d6-4ae3-b8c6-3b5c6ad2f748"
                       }
                     }
       /metadata:
-        put:
-          description: Upload file metadata
-          body:
-            application/json:
-              example: |
-                {
-                  "name":"test.jpg",
-                  "contentType":"application/pdf",
-                  "metadata":{
-                    "id":"1234567890",
-                    "origin":{
-                      "nino":"AB123456Z",
-                      "token":"48729348729348732894",
-                      "session":"cd30f8ec-d866-4ae0-82a0-1bc720f1cb09",
-                      "agent":"292929292",
-                      "trustedHelper":"8984293480239480",
-                      "ipAddress":"1.2.3.4"
-                    },
-                    "sender":{
-                      "service":"some-service-identifier/v1.2.33"
-                    }
-                  }
-                }
-          responses:
-            200:
-              description: Metadata uploaded
-            404:
-              description: File not found
-              body:
-                application/json:
-                  example: |
-                    {
-                      "error": {
-                      "msg": "File 123456789 not found in envelope: sss123456-03d6-4ae3-b8c6-3b5c6ad2f748"
-                      }
-                    }
         get:
-          description: Upload file metadata
+          description: Retreive file metadata
           body:
             application/json:
               example: |
-                {
+              {
                   "name":"test.jpg",
                   "contentType":"application/pdf",
                   "metadata":{
@@ -154,14 +216,14 @@ description: Upload files to the Tax Platform
                       "service":"some-service-identifier/v1.2.33"
                     }
                   }
-                }
+             }
           responses:
             200:
               description: The files metadata
               body:
                 application/json:
                   example: |
-                    {
+                  {
                       "id" : "fileId-b690e15e-87cc-47bb-af9c-58c2482f11c4",
                       "name" : "test.jpg",
                       "contentType" : "application/pdf",
@@ -182,15 +244,35 @@ description: Upload files to the Tax Platform
                       "href" : "/file-upload/envelopes/d16ea92c-2345-4552-a6b8-f80144671352/files/fileId-b690e15e-87cc-47bb-af9c-58c2482f11c4/content"
                     }
             404:
+              description: Envelope not found
+              body:
+                application/json:
+                  example: |
+                  {
+                      "error": {
+                        "msg": "Envelope with id: 4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa not found"
+                      }
+                  }
+            404:
               description: File not found
               body:
                 application/json:
                   example: |
-                    {
-                      "error": {
-                      "msg": "File 123456789 not found in envelope: sss123456-03d6-4ae3-b8c6-3b5c6ad2f748"
-                      }
+                  {
+                    "error": {
+                        "msg": "File fileId-b690e15e-87cc-47bb-af9c-58c2482f11c4 not found in envelope: sss123456-03d6-4ae3-b8c6-3b5c6ad2f748"
                     }
+                  }
+            500:
+              description: Internal Server Error
+              body:
+                application/json:
+                  example: |
+                  {
+                     "error":{
+                        "msg": "Internal Server Error"
+                    }
+                  }
   /events/{eventType}:
     uriParameters:
       eventType:
@@ -201,8 +283,8 @@ description: Upload files to the Tax Platform
       body:
         application/json:
           example: |
-            {
-              "envelopeId": "sss123456-03d6-4ae3-b8c6-3b5c6ad2f748,
+          {
+              "envelopeId": "sss123456-03d6-4ae3-b8c6-3b5c6ad2f748",
               "fileId": "123456789",
               "reason": "Some event reason"
             }
