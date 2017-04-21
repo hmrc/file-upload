@@ -36,7 +36,13 @@ class RetrieveFile(wsClient: WSClient, baseUrl: String) {
   def download(envelopeId: EnvelopeId, fileId: FileId)(implicit ec: ExecutionContext): Future[Source[ByteString, _]] = {
     val downloadUrl = s"$baseUrl/file-upload/download/envelopes/$envelopeId/files/$fileId"
     Logger.debug(s"Downloading $downloadUrl")
-    wsClient.url(downloadUrl).stream().map(_.body)
+    val t1 = System.nanoTime()
+    val data = wsClient.url(downloadUrl).stream().map(_.body)
+    data.foreach { _ =>
+      val lapse = (System.nanoTime() - t1) / (1000 * 1000)
+      Logger.info(s"Downloading file: url=$downloadUrl time=$lapse ms")
+    }
+    data
   }
 }
 
