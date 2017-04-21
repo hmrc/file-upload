@@ -25,6 +25,7 @@ import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.iteratee.Iteratee
 import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
 import uk.gov.hmrc.fileupload.file.zip.Zippy.{EnvelopeNotRoutedYet, ZipEnvelopeNotFoundError, ZipProcessingError}
@@ -44,6 +45,7 @@ class ZippySpec extends UnitSpec with ScalaFutures {
 
   implicit val actorSystem = ActorSystem()
   implicit val materializer = ActorMaterializer()
+  implicit override val patienceConfig = PatienceConfig(timeout = Span(20, Seconds), interval = Span(20, Millis))
 
   "Zippy" should {
     "provide a zip file containing an envelope including its files" in {
