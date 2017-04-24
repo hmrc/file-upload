@@ -54,6 +54,9 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActio
 
         And("response should be chunked")
         response.header("Transfer-Encoding") shouldBe Some("chunked")
+
+        And("response body should include file content")
+        response.body.contains("sampleFileContent") shouldBe true
       }
     }
 

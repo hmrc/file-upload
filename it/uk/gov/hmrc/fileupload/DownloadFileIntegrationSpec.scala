@@ -22,10 +22,6 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
 
   val data = "{'name':'pete'}"
 
-  val uidRegexPattern = "[a-z0-9-]*"
-  mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/file-upload/download/envelopes/$uidRegexPattern/files/$uidRegexPattern"))
-    .willReturn(WireMock.aResponse().withStatus(200).withBody(data.getBytes)))
-
   feature("Download File") {
 
     scenario("Check that a file can be downloaded") {
@@ -47,6 +43,9 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
 
       And("I have uploaded a file")
       sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.getBytes().length))
+
+      mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/file-upload/download/envelopes/$envelopeId/files/$fileId"))
+        .willReturn(WireMock.aResponse().withStatus(200).withBody(data.getBytes)))
 
       When(s"I invoke GET envelope/$envelopeId/files/$fileId/content")
       val response: WSResponse = download(envelopeId, fileId)
@@ -81,8 +80,6 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
 
     scenario("Valid file can be downloaded") {
 
-      pending // todo(konrad) to be done once we download from s3
-
       Given("I have a valid envelope ID")
       val envelopeId = createEnvelope()
 
@@ -96,16 +93,21 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
       val newFileName = "new-file-name.pdf"
       sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, newFileName, "pdf", Some(123L), Json.obj()))
 
-      And("a file has previously been uploaded to the transient store")
+      And("a file has previously been uploaded to the transient store after it's marked clean")
       val file = new RandomAccessFile("t", "rw")
       file.setLength(1024 * 1024 * 2)
       val data = new Array[Byte](file.length().toInt)
       file.readFully(data)
-      val putFileResponse: WSResponse = upload(data, envelopeId, fileId, fileRefId)
+      sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
+      sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.length))
+
       val md = java.security.MessageDigest.getInstance("SHA-256")
       md.reset()
       md.update(data)
       val sourceDigest = md.digest()
+
+      mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/file-upload/download/envelopes/$envelopeId/files/$fileId"))
+        .willReturn(WireMock.aResponse().withStatus(200).withBody(data)))
 
       When("I call GET /file-upload/envelopes/:envelope-id/files/:file-id/content")
       val getFileResponse: WSResponse = download(envelopeId, fileId)
