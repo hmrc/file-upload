@@ -35,16 +35,10 @@ object Stats {
   def save(insert: (InProgressFile) => Future[WriteResult])(fileQuarantined: FileQuarantined)
           (implicit ec: ExecutionContext): Unit = {
     Future {
-      Logger.info(
-        s"Currently in progress for file: ${fileQuarantined.fileId}, at: ${fileQuarantined.fileRefId}, started on: ${fileQuarantined.created}, For envelope ${fileQuarantined.id}"
-      )
-      insert(
-        InProgressFile(_id = fileQuarantined.fileRefId, envelopeId = fileQuarantined.id, fileId = fileQuarantined.fileId, startedAt = fileQuarantined.created)
-      )
+      Logger.info(s"Currently in progress for file: ${fileQuarantined.fileId}, at: ${fileQuarantined.fileRefId}, started on: ${fileQuarantined.created}, For envelope ${fileQuarantined.id}")
+      insert(InProgressFile(_id = fileQuarantined.fileRefId, envelopeId = fileQuarantined.id, fileId = fileQuarantined.fileId, startedAt = fileQuarantined.created))
     }.onFailure {
-      case e => Logger.warn(
-        s"It was not possible to store an in progress file for ${fileQuarantined.id} - ${fileQuarantined.fileId} - ${fileQuarantined.fileRefId}", e
-      )
+      case e => Logger.warn(s"It was not possible to store an in progress file for ${fileQuarantined.id} - ${fileQuarantined.fileId} - ${fileQuarantined.fileRefId}", e)
     }
   }
 
