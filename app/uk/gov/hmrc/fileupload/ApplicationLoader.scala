@@ -117,8 +117,8 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val db = new ReactiveMongoComponentImpl(application, applicationLifecycle).mongoConnector.db
 
   // notifier
-  actorSystem.actorOf(NotifierActor.props(subscribe, find, sendNotification), "notifierActor")
-  actorSystem.actorOf(StatsActor.props(subscribe, find, sendNotification, saveFileQuarantinedStat,
+  actorSystem.actorOf(NotifierActor.props(subscribe, findEnvelope, sendNotification), "notifierActor")
+  actorSystem.actorOf(StatsActor.props(subscribe, findEnvelope, sendNotification, saveFileQuarantinedStat,
     deleteVirusDetectedStat, deleteFileStoredStat), "statsActor")
 
   override lazy val httpFilters: Seq[EssentialFilter] = Seq(
@@ -141,8 +141,8 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   lazy val withValidEnvelope = new WithValidEnvelope(getEnvelope)
 
-  lazy val find = EnvelopeService.find(getEnvelope) _
-  lazy val findMetadata = EnvelopeService.findMetadata(find) _
+  lazy val findEnvelope = EnvelopeService.find(getEnvelope) _
+  lazy val findMetadata = EnvelopeService.findMetadata(findEnvelope) _
 
   lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute, wsClient) _
 
@@ -180,7 +180,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
       withBasicAuth = withBasicAuth,
       nextId = nextId,
       handleCommand = envelopeCommandHandler,
-      findEnvelope = find,
+      findEnvelope = findEnvelope,
       findMetadata = findMetadata,
       findAllInProgressFile = allInProgressFile,
       deleteInProgressFile = statsRepository.deleteByFileRefId,
@@ -214,7 +214,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   lazy val transferController = {
     val getEnvelopesByDestination = envelopeRepository.getByDestination _
-    val zipEnvelope = Zippy.zipEnvelope(find, getFileFromS3) _
+    val zipEnvelope = Zippy.zipEnvelope(findEnvelope, getFileFromS3) _
     new TransferController(withBasicAuth, getEnvelopesByDestination, envelopeCommandHandler, zipEnvelope)
   }
 

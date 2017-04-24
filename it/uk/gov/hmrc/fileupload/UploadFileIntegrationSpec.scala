@@ -1,12 +1,10 @@
 package uk.gov.hmrc.fileupload
 
-import java.io.RandomAccessFile
-
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws._
 import uk.gov.hmrc.fileupload.support._
-import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, QuarantineFile}
+import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, QuarantineFile, StoreFile}
 
 /**
   * Integration tests for FILE-83
@@ -18,9 +16,6 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
   implicit override val patienceConfig = PatienceConfig(timeout = Span(20, Seconds), interval = Span(5, Millis))
 
   feature("Upload File") {
-
-    pending // todo(konrad) to be done once we download from s3
-
 
     info("I want to upload a file")
     info("So that I can persist it in the the database")
@@ -46,11 +41,8 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       And("FileScanned")
       sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
 
-      And("I have a valid file attached to the request body")
-      val data = "{}".getBytes
-
-      When(s"I invoke PUT envelope/$envelopeId/files/$fileId/$fileRefId")
-      val response: WSResponse = upload(data, envelopeId, fileId, fileRefId)
+      When(s"StoreFile($envelopeId, $fileId, $fileRefId, 123L) command is sent")
+      val response: WSResponse = sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, 123L))
 
       Then("I will receive a 200 OK response")
       eventually { verifyAvailableCallbackReceived(envelopeId = envelopeId, fileId = fileId) }
@@ -59,6 +51,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
     }
 
     scenario("Add valid 3MB file to envelope") {
+      val fileSize = (1024 * 1024 * 3).toLong
       Given("I have a valid envelope-id")
       val envelopeId = createEnvelope()
 
@@ -75,13 +68,9 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
 
       And("I have a valid 3MB file attached to the request body")
-      val file = new RandomAccessFile("t", "rw")
-      file.setLength(1024 * 1024 * 3)
-      val data = new Array[Byte](file.length().toInt)
-      file.readFully(data)
 
-      When(s"I invoke PUT envelope/$envelopeId/files/$fileId/$fileRefId")
-      val response: WSResponse = upload(data, envelopeId, fileId, fileRefId)
+      When(s"StoreFile($envelopeId, $fileId, $fileRefId, 3MB) command is sent")
+      val response:WSResponse = sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, fileSize))
 
       Then("I will receive a 200 OK response")
       response.status shouldBe OK
@@ -93,23 +82,24 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val firstFileId = FileId(s"fileId-${nextId()}")
       val firstFileRefId = FileRefId(s"fileRefId-${nextId()}")
       sendCommandQuarantineFile(QuarantineFile(envelopeId, firstFileId, firstFileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
-      upload("{}".getBytes, envelopeId, firstFileId, firstFileRefId)
+
+      sendCommandStoreFile(StoreFile(envelopeId, firstFileId, firstFileRefId, "{}".getBytes.length))
 
       And("And I have a valid new file-id")
-      val fileId = FileId(s"fileId-${nextId()}")
+      val secondFileId = FileId(s"fileId-${nextId()}")
       val data = "{}".getBytes
 
       And("I have a valid file-ref-id")
-      val fileRefId = FileRefId(s"fileRefId-${nextId()}")
+      val secondFileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, secondFileId, secondFileRefId, 0, "test.pdf", "pdf", Some(data.length), Json.obj()))
 
       And("FileScanned")
-      sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
+      sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, secondFileId, secondFileRefId))
 
-      When(s"I invoke PUT envelope/$envelopeId/files/$fileId/$fileRefId")
-      val response = upload(data, envelopeId, fileId, fileRefId)
+      When(s"StoreFile($envelopeId, $secondFileId, $secondFileRefId, data.length) command is sent")
+      val response = sendCommandStoreFile(StoreFile(envelopeId, secondFileId, secondFileRefId, data.length))
 
       Then("I will receive a 200 OK response")
       response.status shouldBe OK
@@ -132,11 +122,8 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       And("FileInQuarantineStored")
       sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
 
-      And("I have a valid file attached to the request body")
-      val data = "{}".getBytes
-
-      When(s"I invoke PUT envelope/$envelopeId/files/$fileId/$fileRefId")
-      val response: WSResponse = upload(data, envelopeId, fileId, fileRefId)
+      When(s"StoreFile($envelopeId, $fileId, $fileRefId, 123KB) command is sent")
+      val response: WSResponse = sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, 123L))
 
       Then("I will receive a 404 Not Found response")
       response.status shouldBe NOT_FOUND
@@ -161,8 +148,8 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       And("I have no file attached to the request body")
       val data = "".getBytes
 
-      When(s"I invoke PUT envelope/$envelopeId/files/$fileId/$fileRefId")
-      val response: WSResponse = upload(data, envelopeId, fileId, fileRefId)
+      When(s"StoreFile($envelopeId, $fileId, $fileRefId, 0) command is sent")
+      val response: WSResponse = sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, 0))
 
       Then("I will receive a 200 OK response")
       response.status shouldBe OK

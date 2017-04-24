@@ -45,4 +45,5 @@ trait IntegrationTestApplicationComponents extends OneServerPerSuite with MongoS
 
 class IntegrationTestApplicationModule(context: Context) extends ApplicationModule(context = context) {
   override lazy val httpFilters: Seq[EssentialFilter] = Seq()
+  override lazy val fileUploadFrontendBaseUrl = "http://localhost:8017"
 }
