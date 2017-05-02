@@ -51,7 +51,11 @@ case class File(fileId: FileId,
 
 object Envelope {
 
-  val defaultConstraints = EnvelopeConstraints(maxItems = 100, maxSize = 25 * 1024 * 1024, maxSizePerItem = 10 * 1024 * 1024)
+  val defaultConstraints = EnvelopeConstraints(maxItems = 100, maxSize = 25 * 1024 * 1024,
+    maxSizePerItem = 10 * 1024 * 1024, contentTypes = "application/pdf,image/jpeg,application/xml")
+  val acceptedContentTypes = {
+    "application/pdf,image/jpeg,application/xml,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  }
   implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val fileStatusReads: Reads[FileStatus] = FileStatusReads

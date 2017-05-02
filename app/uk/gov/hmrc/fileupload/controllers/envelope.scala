@@ -64,7 +64,8 @@ case class CreateEnvelopeRequest(callbackUrl: Option[String] = None,
 
 case class EnvelopeConstraints(maxItems: Int,
                                maxSize: Long,
-                               maxSizePerItem: Long)
+                               maxSizePerItem: Long,
+                               contentTypes: String)
 
 
 object CreateEnvelopeRequest {
@@ -78,12 +79,19 @@ object CreateEnvelopeRequest {
   implicit val envelopeConstraintsReads: Reads[EnvelopeConstraints] = (
     (__ \ "maxItems").readNullable[Int].map(_.getOrElse(100)) and
       readMaxSize(fieldName = "maxSize", defaultValue =  25 * 1024 * 1024) and
-      readMaxSize(fieldName = "maxSizePerItem", defaultValue =  10 * 1024 * 1024)
+      readMaxSize(fieldName = "maxSizePerItem", defaultValue =  10 * 1024 * 1024) and
+      readContentTypes(fieldName = "contentTypes", defaultValue = "application/pdf,image/jpeg,application/xml")
     ) (EnvelopeConstraints.apply _)
 
   implicit val formats = Json.format[CreateEnvelopeRequest]
 
-  def readMaxSize(fieldName: String, defaultValue: Long) = (__ \ fieldName).readNullable(maxSizeReads).map(convertOrProvideDefault(_, defaultValue))
+  def readMaxSize(fieldName: String, defaultValue: Long) = {
+    (__ \ fieldName).readNullable(maxSizeReads).map(convertOrProvideDefault(_, defaultValue))
+  }
+
+  def readContentTypes(fieldName: String, defaultValue: String) = {
+    (__ \ fieldName).readNullable(acceptedContentTypesReads).map(readContentTypesOrProvideDefault(_, defaultValue))
+  }
 
   val sizeRegex = """([1-9][0-9]{0,3})(KB|MB)""".r
 
@@ -100,6 +108,13 @@ object CreateEnvelopeRequest {
     }
   }
 
+  def acceptedContentTypesReads = new Reads[String] {
+    override def reads(json: JsValue) = json match {
+      case JsString(s) if validateConstraintFormat(s) => JsSuccess(s)
+      case _ => JsError(s"Unable to parse `$json`")
+    }
+  }
+
   def translateToByteSize(s: String) : Long = {
     s match {
       case sizeRegex(num, unit) =>
@@ -110,7 +125,25 @@ object CreateEnvelopeRequest {
     }
   }
 
+  def checkContentTypes(contentTypes: List[String], acceptedContentTypes: List[String]): Boolean= {
+    contentTypes match {
+      case head :: tail =>
+        if (acceptedContentTypes.exists(t => t.equals(head))) checkContentTypes(tail, acceptedContentTypes)
+        else false
+      case head :: Nil => acceptedContentTypes.exists(t => t.equals(head))
+      case _ => true
+    }
+  }
+
   private def convertOrProvideDefault(s: Option[String], default: Long): Long = s.map(translateToByteSize).getOrElse(default)
+
+  private def readContentTypesOrProvideDefault(s: Option[String], default: String): String = s.map(c => {
+    if (checkContentTypes(c.trim.split(",").toList, Envelope.acceptedContentTypes.trim.split(",").toList)) {
+      c
+    } else {
+      "Unable to parse the content"
+    }
+  }).getOrElse(default)
 }
 
 case class GetFileMetadataReport(id: FileId,

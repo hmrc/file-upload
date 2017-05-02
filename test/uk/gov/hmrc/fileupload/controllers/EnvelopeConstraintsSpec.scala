@@ -71,13 +71,15 @@ class EnvelopeConstraintsSpec extends UnitSpec {
           {
             "maxItems": 56,
             "maxSize": "12KB",
-            "maxSizePerItem": "8KB"
+            "maxSizePerItem": "8KB",
+            "contentTypes": "application/pdf,image/jpeg"
           }
           """
-      val expectedConstraint = EnvelopeConstraints(56, 12 * 1024, 8 * 1024)
+      val expectedConstraint = EnvelopeConstraints(56, 12 * 1024, 8 * 1024, "application/pdf,image/jpeg")
 
-      val parsedConstraint = Json.parse(constraintJson).validate
-      parsedConstraint.get shouldBe expectedConstraint
+      val parsedConstraint = (Json.parse(constraintJson) \ "contentTypes").as[String]
+
+      parsedConstraint shouldBe expectedConstraint.contentTypes
     }
   }
 
@@ -85,7 +87,7 @@ class EnvelopeConstraintsSpec extends UnitSpec {
     "should parse empty json to default constraint values" in {
       val constraintJson =
         """{}"""
-      val expectedConstraint = EnvelopeConstraints(100, 25 * 1024 * 1024, 10 * 1024 * 1024)
+      val expectedConstraint = EnvelopeConstraints(100, 25 * 1024 * 1024, 10 * 1024 * 1024, "application/pdf,image/jpeg,application/xml")
 
       val parsedConstraint = Json.parse(constraintJson).validate
       parsedConstraint.get shouldBe expectedConstraint
