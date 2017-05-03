@@ -127,11 +127,11 @@ object CreateEnvelopeRequest {
 
   def checkContentTypes(contentTypes: List[String], acceptedContentTypes: List[String]): Boolean= {
     contentTypes match {
+      case Nil => true
       case head :: tail =>
-        if (acceptedContentTypes.exists(t => t.equals(head))) checkContentTypes(tail, acceptedContentTypes)
+        if (acceptedContentTypes.contains(head))
+          checkContentTypes(tail, acceptedContentTypes)
         else false
-      case head :: Nil => acceptedContentTypes.exists(t => t.equals(head))
-      case _ => true
     }
   }
 
