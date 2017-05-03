@@ -16,9 +16,11 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import org.apache.http.entity.ContentType
 import play.api.libs.json._
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.fileupload.controllers.CreateEnvelopeRequest.envelopeConstraintsReads
+import uk.gov.hmrc.fileupload.read.envelope.Envelope.ContentTypes
 
 class EnvelopeConstraintsSpec extends UnitSpec {
 
@@ -72,12 +74,12 @@ class EnvelopeConstraintsSpec extends UnitSpec {
             "maxItems": 56,
             "maxSize": "12KB",
             "maxSizePerItem": "8KB",
-            "contentTypes": "application/pdf,image/jpeg"
+            "contentTypes": ["application/pdf","image/jpeg"]
           }
           """
-      val expectedConstraint = EnvelopeConstraints(56, 12 * 1024, 8 * 1024, "application/pdf,image/jpeg")
+      val expectedConstraint = EnvelopeConstraints(56, 12 * 1024, 8 * 1024, List("application/pdf","image/jpeg"))
 
-      val parsedConstraint = (Json.parse(constraintJson) \ "contentTypes").as[String]
+      val parsedConstraint = (Json.parse(constraintJson) \ "contentTypes").as[List[ContentTypes]]
 
       parsedConstraint shouldBe expectedConstraint.contentTypes
     }
@@ -87,7 +89,7 @@ class EnvelopeConstraintsSpec extends UnitSpec {
     "should parse empty json to default constraint values" in {
       val constraintJson =
         """{}"""
-      val expectedConstraint = EnvelopeConstraints(100, 25 * 1024 * 1024, 10 * 1024 * 1024, "application/pdf,image/jpeg,application/xml")
+      val expectedConstraint = EnvelopeConstraints(100, 25 * 1024 * 1024, 10 * 1024 * 1024, List("application/pdf","image/jpeg","application/xml"))
 
       val parsedConstraint = Json.parse(constraintJson).validate
       parsedConstraint.get shouldBe expectedConstraint

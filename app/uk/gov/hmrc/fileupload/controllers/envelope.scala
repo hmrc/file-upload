@@ -16,11 +16,16 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import java.io
+
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.QueryStringBindable
 import uk.gov.hmrc.fileupload.read.envelope._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
+import uk.gov.hmrc.fileupload.read.envelope.Envelope._
+
+import scala.util.matching.Regex
 
 case class EnvelopeReport(id: Option[EnvelopeId] = None,
                           callbackUrl: Option[String] = None,
@@ -33,7 +38,7 @@ case class EnvelopeReport(id: Option[EnvelopeId] = None,
                           files: Option[Seq[GetFileMetadataReport]] = None)
 
 object EnvelopeReport {
-  implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val dateWrites: Writes[DateTime] = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val fileStatusReads: Reads[FileStatus] = FileStatusReads
   implicit val fileStatusWrites: Writes[FileStatus] = FileStatusWrites
   implicit val fileReads: Format[File] = Json.format[File]
@@ -59,13 +64,13 @@ object EnvelopeReport {
 case class CreateEnvelopeRequest(callbackUrl: Option[String] = None,
                                  expiryDate: Option[DateTime] = None,
                                  metadata: Option[JsObject] = None,
-                                 constraints: Option[EnvelopeConstraints] = Some(Envelope.defaultConstraints))
+                                 constraints: Option[EnvelopeConstraints] = Some(defaultConstraints))
 
 
 case class EnvelopeConstraints(maxItems: Int,
                                maxSize: Long,
                                maxSizePerItem: Long,
-                               contentTypes: String)
+                               contentTypes: List[ContentTypes])
 
 
 object CreateEnvelopeRequest {
@@ -73,45 +78,44 @@ object CreateEnvelopeRequest {
   import play.api.libs.functional.syntax._
   import play.api.libs.json._
 
-  implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  implicit val constraintsWriteFormats = Json.writes[EnvelopeConstraints]
+  implicit val dateReads: Reads[DateTime] = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val constraintsWriteFormats: OWrites[EnvelopeConstraints] = Json.writes[EnvelopeConstraints]
 
   implicit val envelopeConstraintsReads: Reads[EnvelopeConstraints] = (
-    (__ \ "maxItems").readNullable[Int].map(_.getOrElse(100)) and
-      readMaxSize(fieldName = "maxSize", defaultValue =  25 * 1024 * 1024) and
-      readMaxSize(fieldName = "maxSizePerItem", defaultValue =  10 * 1024 * 1024) and
-      readContentTypes(fieldName = "contentTypes", defaultValue = "application/pdf,image/jpeg,application/xml")
+    (__ \ "maxItems").readNullable[Int].map(_.getOrElse(defaultMaxItems)) and
+      readMaxSize(fieldName = "maxSize", defaultValue = defaultMaxSize) and
+      readMaxSize(fieldName = "maxSizePerItem", defaultValue = defaultMaxSizePerItem) and
+      readContentTypes(fieldName = "contentTypes", defaultValue = defaultContentTypes)
     ) (EnvelopeConstraints.apply _)
 
-  implicit val formats = Json.format[CreateEnvelopeRequest]
+  implicit val formats: OFormat[CreateEnvelopeRequest] = Json.format[CreateEnvelopeRequest]
 
-  def readMaxSize(fieldName: String, defaultValue: Long) = {
+  def readMaxSize(fieldName: String, defaultValue: Long): Reads[Long] = {
     (__ \ fieldName).readNullable(maxSizeReads).map(convertOrProvideDefault(_, defaultValue))
   }
 
-  def readContentTypes(fieldName: String, defaultValue: String) = {
+  def readContentTypes(fieldName: String, defaultValue: List[ContentTypes]): Reads[List[ContentTypes]] = {
     (__ \ fieldName).readNullable(acceptedContentTypesReads).map(readContentTypesOrProvideDefault(_, defaultValue))
   }
 
-  val sizeRegex = """([1-9][0-9]{0,3})(KB|MB)""".r
+  val sizeRegex: Regex = """([1-9][0-9]{0,3})(KB|MB)""".r
 
-  def validateConstraintFormat(s: String) = s match {
+  def validateConstraintFormat(s: String): Boolean = s match {
     case sizeRegex(_, _) => true
     case _ => false
   }
 
   def maxSizeReads = new Reads[String] {
-    override def reads(json: JsValue) = json match {
+    override def reads(json: JsValue): JsResult[String] = json match {
       case JsString(s) if validateConstraintFormat(s) => JsSuccess(s)
       case _ => JsError(s"Unable to parse `$json` as size, " +
         s"expected format is up to four digits followed by KB or MB, e.g. 1024KB")
     }
   }
 
-  def acceptedContentTypesReads = new Reads[String] {
-    override def reads(json: JsValue) = json match {
-      case JsString(s) if validateConstraintFormat(s) => JsSuccess(s)
-      case _ => JsError(s"Unable to parse `$json`")
+  def acceptedContentTypesReads = new Reads[List[ContentTypes]] {
+    override def reads(json: JsValue): JsResult[List[ContentTypes]] = {
+      JsSuccess(json.as[List[ContentTypes]])
     }
   }
 
@@ -125,23 +129,23 @@ object CreateEnvelopeRequest {
     }
   }
 
-  def checkContentTypes(contentTypes: List[String], acceptedContentTypes: List[String]): Boolean= {
+  def checkContentTypes(contentTypes: List[ContentTypes], acceptedContentTypes: List[ContentTypes]): Boolean= {
     contentTypes match {
+      case Nil => true
       case head :: tail =>
-        if (acceptedContentTypes.exists(t => t.equals(head))) checkContentTypes(tail, acceptedContentTypes)
+        if (acceptedContentTypes.contains(head))
+          checkContentTypes(tail, acceptedContentTypes)
         else false
-      case head :: Nil => acceptedContentTypes.exists(t => t.equals(head))
-      case _ => true
     }
   }
 
   private def convertOrProvideDefault(s: Option[String], default: Long): Long = s.map(translateToByteSize).getOrElse(default)
 
-  private def readContentTypesOrProvideDefault(s: Option[String], default: String): String = s.map(c => {
-    if (checkContentTypes(c.trim.split(",").toList, Envelope.acceptedContentTypes.trim.split(",").toList)) {
-      c
+  private def readContentTypesOrProvideDefault(s: Option[List[ContentTypes]], default: List[ContentTypes]) = s.map(useSetContentTypes => {
+    if (checkContentTypes(useSetContentTypes, acceptedContentTypes)) {
+      useSetContentTypes
     } else {
-      "Unable to parse the content"
+      List("Unable to parse the content")
     }
   }).getOrElse(default)
 }
@@ -157,11 +161,11 @@ case class GetFileMetadataReport(id: FileId,
                                  href: Option[String] = None)
 
 object GetFileMetadataReport {
-  implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val dateReads: Reads[DateTime] = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val dateWrites: Writes[DateTime] = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val getFileMetaDataReportFormat: Format[GetFileMetadataReport] = Json.format[GetFileMetadataReport]
 
-  def href(envelopeId: EnvelopeId, fileId: FileId) = uk.gov.hmrc.fileupload.controllers.routes.FileController.downloadFile(envelopeId, fileId).url
+  def href(envelopeId: EnvelopeId, fileId: FileId): String = uk.gov.hmrc.fileupload.controllers.routes.FileController.downloadFile(envelopeId, fileId).url
 
   def fromFile(envelopeId: EnvelopeId, file: File): GetFileMetadataReport =
     GetFileMetadataReport(
