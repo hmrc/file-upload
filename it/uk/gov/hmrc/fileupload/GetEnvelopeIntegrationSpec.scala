@@ -108,7 +108,11 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
     scenario("GET Envelope responds with constraints when") {
       Given("I have an envelope with files")
       val createResponse = createEnvelope(
-        s"""{"constraints": {"maxItems": 56, "maxSize": "10MB", "maxSizePerItem": "100KB"}}""")
+        s"""{"constraints": {
+           |"maxItems": 56,
+           |"maxSize": 10485760,
+           |"maxSizePerItem": 102400,
+           |"contentTypes": ["application/pdf","image/jpeg"]}}""".stripMargin)
       createResponse.status should equal(CREATED)
       val envelopeId = envelopeIdFromHeader(createResponse)
 
@@ -128,7 +132,7 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
 
         (json \ "constraints") \ "maxSizePerItem" match {
           case JsDefined(JsNumber(const)) =>
-            const shouldBe 100 * 1024
+            const shouldBe 102400
           case _ => JsError("expectation failed")
         }
 

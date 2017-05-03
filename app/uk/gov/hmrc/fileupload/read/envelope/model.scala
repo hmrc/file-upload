@@ -51,15 +51,42 @@ case class File(fileId: FileId,
 
 object Envelope {
 
-  val defaultConstraints = EnvelopeConstraints(maxItems = 100, maxSize = 25 * 1024 * 1024, maxSizePerItem = 10 * 1024 * 1024)
-  implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  type ContentTypes = String
+
+  val acceptedMaxItems: Int = 100
+  val acceptedMaxSize: Long = 250 * 1024 * 1024
+  val acceptedMaxSizePerItem: Long = 100 * 1024 * 1024
+  val acceptedContentTypes: List[ContentTypes] =
+                                List("application/pdf",
+                                     "image/jpeg,application/xml",
+                                     "application/vnd.ms-excel",
+                                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+  val defaultMaxItems: Int = 100
+  val defaultMaxSize: Long = 25 * 1024 * 1024
+  val defaultMaxSizePerItem: Long = 10 * 1024 * 1024
+  val defaultContentTypes: List[ContentTypes] = List("application/pdf","image/jpeg","application/xml")
+
+  val defaultConstraints =
+    EnvelopeConstraints(maxItems = defaultMaxItems,
+                        maxSize = defaultMaxSize,
+                        maxSizePerItem = defaultMaxSizePerItem,
+                        contentTypes = defaultContentTypes)
+
+  val acceptedConstraints =
+    EnvelopeConstraints(maxItems = acceptedMaxItems,
+                        maxSize = acceptedMaxSize,
+                        maxSizePerItem = acceptedMaxSizePerItem,
+                        contentTypes = acceptedContentTypes)
+
+  implicit val dateReads: Reads[DateTime] = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val dateWrites: Writes[DateTime] = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val fileStatusReads: Reads[FileStatus] = FileStatusReads
   implicit val fileStatusWrites: Writes[FileStatus] = FileStatusWrites
   implicit val fileReads: Format[File] = Json.format[File]
   implicit val envelopeStatusReads: Reads[EnvelopeStatus] = EnvelopeStatusReads
   implicit val envelopeStatusWrites: Writes[EnvelopeStatus] = EnvelopeStatusWrites
-  implicit val envelopeConstraintsFormats = Json.format[EnvelopeConstraints]
+  implicit val envelopeConstraintsFormats: OFormat[EnvelopeConstraints] = Json.format[EnvelopeConstraints]
   implicit val envelopeFormat: Format[Envelope] = Json.format[Envelope]
   implicit val envelopeOFormat: OFormat[Envelope] = new OFormat[Envelope] {
     def reads(json: JsValue): JsResult[Envelope] = envelopeFormat.reads(json)
@@ -91,7 +118,7 @@ case object EnvelopeStatusDeleted extends EnvelopeStatus {
 }
 
 object EnvelopeStatusWrites extends Writes[EnvelopeStatus] {
-  def writes(c: EnvelopeStatus) = Json.toJson(c.name)
+  def writes(c: EnvelopeStatus): JsValue = Json.toJson(c.name)
 }
 
 object EnvelopeStatusReads extends Reads[EnvelopeStatus] {
@@ -99,7 +126,7 @@ object EnvelopeStatusReads extends Reads[EnvelopeStatus] {
 }
 
 object EnvelopeStatusTransformer {
-  def fromName(name: String) =
+  def fromName(name: String): EnvelopeStatus =
     name match {
       case EnvelopeStatusOpen.name => EnvelopeStatusOpen
       case EnvelopeStatusSealed.name => EnvelopeStatusSealed
@@ -127,7 +154,7 @@ case object FileStatusError extends FileStatus {
 }
 
 object FileStatusWrites extends Writes[FileStatus] {
-  def writes(c: FileStatus) = Json.toJson(c.name)
+  def writes(c: FileStatus): JsValue = Json.toJson(c.name)
 }
 
 object FileStatusReads extends Reads[FileStatus] {

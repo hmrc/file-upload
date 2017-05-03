@@ -91,11 +91,11 @@ case class EnvelopeArchived(id: EnvelopeId) extends EnvelopeEvent
 
 object Formatters {
   implicit val unsealEnvelopeFormat: Format[UnsealEnvelope] = Json.format[UnsealEnvelope]
-  implicit val storeFileFormat = Json.format[StoreFile]
-  implicit val quarantineFileFormat = Json.format[QuarantineFile]
-  implicit val markFileAsCleanFormat = Json.format[MarkFileAsClean]
-  implicit val markFileAsInfectedFormat = Json.format[MarkFileAsInfected]
-  implicit val constraintsFormats = Json.format[EnvelopeConstraints]
+  implicit val storeFileFormat: OFormat[StoreFile] = Json.format[StoreFile]
+  implicit val quarantineFileFormat: OFormat[QuarantineFile] = Json.format[QuarantineFile]
+  implicit val markFileAsCleanFormat: OFormat[MarkFileAsClean] = Json.format[MarkFileAsClean]
+  implicit val markFileAsInfectedFormat: OFormat[MarkFileAsInfected] = Json.format[MarkFileAsInfected]
+  implicit val constraintsFormats: OFormat[EnvelopeConstraints] = Json.format[EnvelopeConstraints]
   implicit val envelopeCreatedFormat: Format[EnvelopeCreated] = Json.format[EnvelopeCreated]
   implicit val fileQuarantinedFormat: Format[FileQuarantined] = Json.format[FileQuarantined]
   implicit val fileNoVirusDetectedFormat: Format[NoVirusDetected] = Json.format[NoVirusDetected]
@@ -177,6 +177,8 @@ sealed trait EnvelopeCommandNotAccepted extends CommandNotAccepted
 case object EnvelopeNotFoundError extends EnvelopeCommandNotAccepted
 
 case object EnvelopeAlreadyCreatedError extends EnvelopeCommandNotAccepted
+
+case object EnvelopeContentTypesError extends EnvelopeCommandNotAccepted
 
 sealed trait EnvelopeInvalidConstraintError extends EnvelopeCommandNotAccepted
 
