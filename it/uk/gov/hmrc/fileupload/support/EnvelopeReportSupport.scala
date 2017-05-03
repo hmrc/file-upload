@@ -12,11 +12,6 @@ object EnvelopeReportSupport extends Support {
      |  "expiryDate": "${args.getOrElse("formattedExpiryDate", "2099-07-14T10:28:18Z")}",
      |  "metadata": {
      |    "anything": "the caller wants to add to the envelope"
-     |  },
-     |  "constraints": {
-     |            "maxItems": 56,
-     |            "maxSize": "8MB",
-     |            "maxSizePerItem": "8KB"
      |  }
      |}
 		 """.stripMargin

@@ -112,8 +112,9 @@ object CreateEnvelopeRequest {
   }
 
   def acceptedContentTypesReads = new Reads[List[ContentTypes]] {
-    override def reads(json: JsValue): JsResult[List[ContentTypes]] = {
-      JsSuccess(json.as[List[ContentTypes]])
+    override def reads(json: JsValue): JsResult[List[ContentTypes]] = json match {
+      case JsString(s) if validateConstraintFormat(s) => JsSuccess(List(s))
+      case _ => JsError(s"Unable to parse `$json`")
     }
   }
 
