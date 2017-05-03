@@ -139,15 +139,18 @@ object CreateEnvelopeRequest {
     }
   }
 
-  private def convertOrProvideDefault(s: Option[String], default: Long): Long = s.map(translateToByteSize).getOrElse(default)
+  private def convertOrProvideDefault(s: Option[String], default: Long): Long = {
+    s.map(translateToByteSize).getOrElse(default)
+  }
 
-  private def readContentTypesOrProvideDefault(s: Option[List[ContentTypes]], default: List[ContentTypes]) = s.map(useSetContentTypes => {
-    if (checkContentTypes(useSetContentTypes, acceptedContentTypes)) {
-      useSetContentTypes
-    } else {
-      List("Unable to parse the content")
-    }
-  }).getOrElse(default)
+  private def readContentTypesOrProvideDefault(s: Option[List[ContentTypes]], default: List[ContentTypes]) =
+    s.map(useSetContentTypes => {
+      if (checkContentTypes(useSetContentTypes, acceptedContentTypes)) {
+        useSetContentTypes
+      } else {
+        List("Unable to parse the content")
+      }
+    }).getOrElse(default)
 }
 
 case class GetFileMetadataReport(id: FileId,
