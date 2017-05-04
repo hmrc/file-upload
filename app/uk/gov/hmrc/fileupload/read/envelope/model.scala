@@ -58,7 +58,8 @@ object Envelope {
   val acceptedMaxSizePerItem: Long = 100 * 1024 * 1024
   val acceptedContentTypes: List[ContentTypes] =
                                 List("application/pdf",
-                                     "image/jpeg,application/xml",
+                                     "image/jpeg",
+                                     "application/xml",
                                      "application/vnd.ms-excel",
                                      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 

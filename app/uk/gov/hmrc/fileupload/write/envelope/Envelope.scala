@@ -32,7 +32,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
         envelope.canCreate() match {
         case Xor.Left(error) => error
         case Xor.Right(_) => command.constraints match {
-          case Some(value) => envelope.canCreateWithFilesCapacityAndSize(value, acceptedConstraints).map(_ =>
+          case Some(value) => envelope.canCreateWithFilesCapacityAndSizeAndContentTypes(value, acceptedConstraints).map(_ =>
             EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, Some(value)))
           case _ => EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, Some(acceptedConstraints))
         }
@@ -158,9 +158,9 @@ case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCrea
 
   def canCreate(): CanResult = state.canCreate()
 
-  def canCreateWithFilesCapacityAndSize(userConstraints: EnvelopeConstraints,
-                                        maxLimitConstrains: EnvelopeConstraints): CanResult = {
-    state.canCreateWithFilesCapacityAndSize(userConstraints, maxLimitConstrains)
+  def canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints: EnvelopeConstraints,
+                                                       maxLimitConstrains: EnvelopeConstraints): CanResult = {
+    state.canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints, maxLimitConstrains)
   }
 
   def canDeleteFile(fileId: FileId): CanResult = state.canDeleteFile(fileId, files)
@@ -189,6 +189,7 @@ object State {
   val envelopeMaxSizeExceededError = Xor.left(InvalidMaxSizeConstraintError)
   val envelopeMaxSizePerItemExceededError = Xor.left(InvalidMaxSizePerItemConstraintError)
   val envelopeMaxItemCountExceededError = Xor.left(InvalidMaxItemCountConstraintError)
+  val envelopeContentTypesError = Xor.left(EnvelopeContentTypesError)
   val fileNotFoundError = Xor.left(FileNotFoundError)
   val envelopeSealedError = Xor.left(EnvelopeSealedError)
   val envelopeAlreadyArchivedError = Xor.left(EnvelopeArchivedError)
@@ -202,7 +203,7 @@ sealed trait State {
 
   def canCreate(): CanResult = envelopeAlreadyCreatedError
 
-  def canCreateWithFilesCapacityAndSize(userConstraints: EnvelopeConstraints,
+  def canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints: EnvelopeConstraints,
                                         maxLimitConstrains: EnvelopeConstraints): CanResult = genericError
 
   def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult = genericError
@@ -262,13 +263,23 @@ object NotCreated extends State {
   override def canCreate(): CanResult =
     successResult
 
-  override def canCreateWithFilesCapacityAndSize(userConstraints: EnvelopeConstraints, maxLimitConstraints: EnvelopeConstraints): CanResult = {
+  override def canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints: EnvelopeConstraints, maxLimitConstraints: EnvelopeConstraints): CanResult = {
     if (userConstraints.maxItems > maxLimitConstraints.maxItems || userConstraints.maxItems < 1) envelopeMaxItemCountExceededError
     else if (!isValidSize(userConstraints.maxSize, maxLimitConstraints.maxSize)) envelopeMaxSizeExceededError
     else if (!isValidSize(userConstraints.maxSizePerItem, maxLimitConstraints.maxSizePerItem)) envelopeMaxSizePerItemExceededError
+    else if (!checkContentTypes(userConstraints.contentTypes, maxLimitConstraints.contentTypes)) envelopeContentTypesError
     else successResult
   }
 
+  def checkContentTypes(contentTypes: List[String], acceptedContentTypes: List[String]): Boolean= {
+    contentTypes match {
+      case Nil => true
+      case head :: tail =>
+        if (acceptedContentTypes.contains(head))
+          checkContentTypes(tail, acceptedContentTypes)
+        else false
+    }
+  }
 }
 
 object Open extends State {
