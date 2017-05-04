@@ -16,11 +16,9 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import org.apache.http.entity.ContentType
 import play.api.libs.json._
-import uk.gov.hmrc.play.test.UnitSpec
-import uk.gov.hmrc.fileupload.controllers.CreateEnvelopeRequest.envelopeConstraintsReads
 import uk.gov.hmrc.fileupload.read.envelope.Envelope.ContentTypes
+import uk.gov.hmrc.play.test.UnitSpec
 
 class EnvelopeConstraintsSpec extends UnitSpec {
 
@@ -33,11 +31,19 @@ class EnvelopeConstraintsSpec extends UnitSpec {
           "333MB",
           "4444KB"
         )
+      val result =
+        List(
+          1048576,
+          22528,
+          349175808,
+          4550656
+        )
 
       validFormats.foreach { f =>
-        CreateEnvelopeRequest.validateConstraintFormat(f) shouldBe true
+        result.contains(CreateEnvelopeRequest.translateToByteSize(f)) shouldBe true
       }
     }
+
     "fail for other formats" in {
       val invalidFormats =
         List(
@@ -46,14 +52,15 @@ class EnvelopeConstraintsSpec extends UnitSpec {
           "KB",
           "0MB",
           "01KB",
-          "1kb",
-          "2mb",
           "3gb",
           "4GB",
           "12345MB"
         )
+
       invalidFormats.foreach { c =>
-        CreateEnvelopeRequest.validateConstraintFormat(c) shouldBe false
+        intercept[Exception] {
+          CreateEnvelopeRequest.translateToByteSize(c)
+        }.getMessage shouldBe s"Invalid constraint input"
       }
     }
   }
@@ -65,52 +72,4 @@ class EnvelopeConstraintsSpec extends UnitSpec {
       CreateEnvelopeRequest translateToByteSize "100KB" shouldBe (100 * 1024)
     }
   }
-
-  "envelopeConstraintReader " should {
-    "should parse a valid envelope constraint json" in {
-      val constraintJson =
-        """
-          {
-            "maxItems": 56,
-            "maxSize": "12KB",
-            "maxSizePerItem": "8KB",
-            "contentTypes": ["application/pdf","image/jpeg"]
-          }
-          """
-      val expectedConstraint = EnvelopeConstraints(56, 12 * 1024, 8 * 1024, List("application/pdf","image/jpeg"))
-
-      val parsedConstraint = (Json.parse(constraintJson) \ "contentTypes").as[List[ContentTypes]]
-
-      parsedConstraint shouldBe expectedConstraint.contentTypes
-    }
-  }
-
-  "envelopeConstraintReader " should {
-    "should parse empty json to default constraint values" in {
-      val constraintJson =
-        """{}"""
-      val expectedConstraint = EnvelopeConstraints(100, 25 * 1024 * 1024, 10 * 1024 * 1024, List("application/pdf","image/jpeg","application/xml"))
-
-      val parsedConstraint = Json.parse(constraintJson).validate
-      parsedConstraint.get shouldBe expectedConstraint
-    }
-  }
-
-  "envelopeConstraintReader " should {
-    "should fail the parsing when invalid constraint value is passed" in {
-      val constraintJson =
-        """
-          {
-            "maxItems": 56,
-            "maxSize": "12GB",
-            "maxSizePerItem": "8KB"
-          }
-          """
-
-      val parsedConstraint = Json.parse(constraintJson).validate
-      parsedConstraint.isError shouldBe true
-      parsedConstraint.toString.contains("Unable to parse") shouldBe true
-    }
-  }
-
 }
