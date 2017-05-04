@@ -25,16 +25,16 @@ import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
   type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
-  val defaultConstraints = uk.gov.hmrc.fileupload.read.envelope.Envelope.defaultConstraints
+  val acceptedConstraints = uk.gov.hmrc.fileupload.read.envelope.Envelope.acceptedConstraints
 
   override def handle = {
     case (command: CreateEnvelope, envelope: Envelope) =>
         envelope.canCreate() match {
         case Xor.Left(error) => error
         case Xor.Right(_) => command.constraints match {
-          case Some(value) => envelope.canCreateWithFilesCapacityAndSize(value, defaultConstraints).map(_ =>
+          case Some(value) => envelope.canCreateWithFilesCapacityAndSize(value, acceptedConstraints).map(_ =>
             EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, Some(value)))
-          case _ => EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, Some(defaultConstraints))
+          case _ => EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, Some(acceptedConstraints))
         }
       }
 
@@ -73,7 +73,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
       envelope.canDelete.map(_ => EnvelopeDeleted(command.id))
 
     case (command: SealEnvelope, envelope: Envelope) =>
-      envelope.canSeal(command.destination, envelope.constraints.getOrElse(defaultConstraints)).map(_ => {
+      envelope.canSeal(command.destination, envelope.constraints.getOrElse(acceptedConstraints)).map(_ => {
         val envelopeSealed = EnvelopeSealed(command.id, command.routingRequestId, command.destination, command.application)
 
         if (withEvent(envelope, envelopeSealed).canRoute.isRight) {
