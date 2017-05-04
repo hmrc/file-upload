@@ -62,7 +62,7 @@ object EnvelopeReport {
 case class CreateEnvelopeRequest(callbackUrl: Option[String] = None,
                                  expiryDate: Option[DateTime] = None,
                                  metadata: Option[JsObject] = None,
-                                 constraints: Option[EnvelopeConstraintsUserSetting] = Some(EnvelopeConstraintsUserSetting()))
+                                 constraints: Option[EnvelopeConstraintsUserSetting] = None)
 
 case class EnvelopeConstraintsUserSetting(maxItems: Option[Int] = Some(defaultMaxItems),
                                           maxSize: Option[Long] = Some(defaultMaxSize),
@@ -98,7 +98,6 @@ object CreateEnvelopeRequest {
       readMaxSize(fieldName = "maxSizePerItem", defaultValue = defaultMaxSizePerItem) and
       readContentTypes(fieldName = "contentTypes", defaultValue = defaultContentTypes)
     ) (EnvelopeConstraints.apply _)
-
 
 
   def readMaxSize(fieldName: String, defaultValue: Long) = {
