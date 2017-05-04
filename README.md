@@ -54,7 +54,7 @@ Body:
           "maxNumFiles": 5,
           "maxSize": "25MB",
           "maxSizePerItem": "10kB",
-          "contentTypes": "application/pdf,image/jpeg,application/xml"
+          "contentTypes": ["application/pdf","image/jpeg,application/xml"]
         }   
 }
 ```

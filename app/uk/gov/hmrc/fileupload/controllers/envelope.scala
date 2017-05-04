@@ -62,14 +62,17 @@ object EnvelopeReport {
 case class CreateEnvelopeRequest(callbackUrl: Option[String] = None,
                                  expiryDate: Option[DateTime] = None,
                                  metadata: Option[JsObject] = None,
-                                 constraints: Option[EnvelopeConstraints] = Some(defaultConstraints))
+                                 constraints: Option[EnvelopeConstraintsUserSetting] = Some(EnvelopeConstraintsUserSetting()))
 
+case class EnvelopeConstraintsUserSetting(maxItems: Option[Int] = Some(defaultMaxItems),
+                                          maxSize: Option[Long] = Some(defaultMaxSize),
+                                          maxSizePerItem: Option[Long] = Some(defaultMaxSizePerItem),
+                                          contentTypes: Option[List[ContentTypes]] = Some(defaultContentTypes))
 
 case class EnvelopeConstraints(maxItems: Int,
                                maxSize: Long,
                                maxSizePerItem: Long,
                                contentTypes: List[ContentTypes])
-
 
 object CreateEnvelopeRequest {
 
@@ -77,7 +80,17 @@ object CreateEnvelopeRequest {
   import play.api.libs.json._
 
   implicit val dateReads: Reads[DateTime] = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val constraintsFormats: OFormat[EnvelopeConstraintsUserSetting] = Json.format[EnvelopeConstraintsUserSetting]
   implicit val constraintsWriteFormats: OWrites[EnvelopeConstraints] = Json.writes[EnvelopeConstraints]
+  implicit val formats: OFormat[CreateEnvelopeRequest] = Json.format[CreateEnvelopeRequest]
+
+  def formatUserEnvelopeConstraints(constraintsO: EnvelopeConstraintsUserSetting): Option[EnvelopeConstraints] = {
+    Some(EnvelopeConstraints(maxItems = constraintsO.maxItems.getOrElse(defaultMaxItems),
+                        maxSize = constraintsO.maxSize.getOrElse(defaultMaxSize),
+                        maxSizePerItem = constraintsO.maxSizePerItem.getOrElse(defaultMaxSizePerItem),
+                        contentTypes =  constraintsO.contentTypes.getOrElse(defaultContentTypes)))
+
+  }
 
   implicit val envelopeConstraintsReads: Reads[EnvelopeConstraints] = (
     (__ \ "maxItems").readNullable[Int].map(_.getOrElse(defaultMaxItems)) and
@@ -86,10 +99,11 @@ object CreateEnvelopeRequest {
       readContentTypes(fieldName = "contentTypes", defaultValue = defaultContentTypes)
     ) (EnvelopeConstraints.apply _)
 
-  implicit val formats: OFormat[CreateEnvelopeRequest] = Json.format[CreateEnvelopeRequest]
 
-  def readMaxSize(fieldName: String, defaultValue: Long): Reads[Long] = {
-    (__ \ fieldName).readNullable(maxSizeReads).map(convertOrProvideDefault(_, defaultValue))
+
+  def readMaxSize(fieldName: String, defaultValue: Long) = {
+    val value = (__ \ fieldName).readNullable(maxSizeReads).map(convertOrProvideDefault(_, defaultValue))
+    value
   }
 
   def readContentTypes(fieldName: String, defaultValue: List[ContentTypes]): Reads[List[ContentTypes]] = {
