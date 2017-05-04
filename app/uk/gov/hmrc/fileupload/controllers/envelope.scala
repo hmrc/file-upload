@@ -64,10 +64,10 @@ case class CreateEnvelopeRequest(callbackUrl: Option[String] = None,
                                  metadata: Option[JsObject] = None,
                                  constraints: Option[EnvelopeConstraintsUserSetting] = None)
 
-case class EnvelopeConstraintsUserSetting(maxItems: Option[Int] = Some(defaultMaxItems),
-                                          maxSize: Option[Long] = Some(defaultMaxSize),
-                                          maxSizePerItem: Option[Long] = Some(defaultMaxSizePerItem),
-                                          contentTypes: Option[List[ContentTypes]] = Some(defaultContentTypes))
+case class EnvelopeConstraintsUserSetting(maxItems: Option[Int] = None,
+                                          maxSize: Option[Long] = None,
+                                          maxSizePerItem: Option[Long] = None,
+                                          contentTypes: Option[List[ContentTypes]] = None)
 
 case class EnvelopeConstraints(maxItems: Int,
                                maxSize: Long,
