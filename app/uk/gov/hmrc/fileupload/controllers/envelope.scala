@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.controllers
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.QueryStringBindable
-import uk.gov.hmrc.fileupload.read.envelope.Envelope._
+import uk.gov.hmrc.fileupload.read.envelope.Envelope.{ContentTypes, defaultContentTypes, _}
 import uk.gov.hmrc.fileupload.read.envelope._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
@@ -85,8 +85,8 @@ object CreateEnvelopeRequest {
     Some(EnvelopeConstraints(maxItems = constraintsO.maxItems.getOrElse(defaultMaxItems),
                         maxSize = translateToByteSize(constraintsO.maxSize.getOrElse(defaultMaxSize.toString)),
                         maxSizePerItem = translateToByteSize(constraintsO.maxSizePerItem.getOrElse(defaultMaxSizePerItem.toString)),
-                        contentTypes =  constraintsO.contentTypes.getOrElse(defaultContentTypes)))
-
+                        contentTypes = checkContentTypes(constraintsO.contentTypes.getOrElse(defaultContentTypes))
+        ) )
   }
 
   def translateToByteSize(size: String): Long = {
@@ -103,6 +103,11 @@ object CreateEnvelopeRequest {
         case _ => throw new RuntimeException(s"Invalid constraint input")
       }
     }
+  }
+
+  def checkContentTypes(contentTypes: List[ContentTypes]): List[ContentTypes] ={
+    if (contentTypes.isEmpty) defaultContentTypes
+    else contentTypes
   }
 
   private def isAllDigits(x: String): Boolean = x forall Character.isDigit
