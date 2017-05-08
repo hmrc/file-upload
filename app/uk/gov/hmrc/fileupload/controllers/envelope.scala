@@ -19,7 +19,8 @@ package uk.gov.hmrc.fileupload.controllers
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.QueryStringBindable
-import uk.gov.hmrc.fileupload.read.envelope.Envelope.{ContentTypes, defaultContentTypes, _}
+import uk.gov.hmrc.fileupload.read.envelope.Envelope.{ContentTypes, defaultContentTypes, defaultMaxItems,
+                                                      defaultMaxSize, defaultMaxSizePerItem}
 import uk.gov.hmrc.fileupload.read.envelope._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
