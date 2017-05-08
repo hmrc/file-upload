@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.controllers
+package uk.gov.hmrc.fileupload.controllers.constraints
 
-import play.api.libs.json._
-import uk.gov.hmrc.fileupload.read.envelope.Envelope.ContentTypes
+import uk.gov.hmrc.fileupload.controllers.CreateEnvelopeRequest
 import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.fileupload.read.envelope.Envelope.{acceptedContentTypes, defaultContentTypes}
+import uk.gov.hmrc.fileupload.write.envelope.{Envelope, NotCreated}
 
 class EnvelopeConstraintsSpec extends UnitSpec {
 
@@ -70,6 +71,26 @@ class EnvelopeConstraintsSpec extends UnitSpec {
       CreateEnvelopeRequest translateToByteSize "10MB" shouldBe (10 * 1024 * 1024)
 
       CreateEnvelopeRequest translateToByteSize "100KB" shouldBe (100 * 1024)
+    }
+  }
+
+  "checkContentTypes is empty" should {
+    "set the default content types" in {
+      CreateEnvelopeRequest checkContentTypes Nil shouldBe defaultContentTypes
+    }
+  }
+
+  "checkContentTypes is not empty and validates" should {
+    "return false if content type is invalid" in {
+      val wrongType = CreateEnvelopeRequest checkContentTypes List("any")
+      wrongType shouldBe List("any")
+      NotCreated.checkContentTypes(wrongType, acceptedContentTypes) shouldBe false
+    }
+    "return true if content type is valid" in {
+      val goodType = CreateEnvelopeRequest checkContentTypes List("image/jpeg")
+      goodType shouldBe List("image/jpeg")
+      NotCreated.checkContentTypes(goodType, acceptedContentTypes) shouldBe true
+
     }
   }
 }
