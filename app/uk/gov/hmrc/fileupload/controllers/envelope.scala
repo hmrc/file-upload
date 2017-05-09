@@ -19,11 +19,10 @@ package uk.gov.hmrc.fileupload.controllers
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.QueryStringBindable
-import uk.gov.hmrc.fileupload.read.envelope.Envelope._
+import uk.gov.hmrc.fileupload.read.envelope.Envelope.{ContentTypes, defaultContentTypes, defaultMaxItems,
+                                                      defaultMaxSize, defaultMaxSizePerItem}
 import uk.gov.hmrc.fileupload.read.envelope._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
-
-import scala.util.matching.Regex
 
 case class EnvelopeReport(id: Option[EnvelopeId] = None,
                           callbackUrl: Option[String] = None,
@@ -65,8 +64,8 @@ case class CreateEnvelopeRequest(callbackUrl: Option[String] = None,
                                  constraints: Option[EnvelopeConstraintsUserSetting] = None)
 
 case class EnvelopeConstraintsUserSetting(maxItems: Option[Int] = None,
-                                          maxSize: Option[Long] = None,
-                                          maxSizePerItem: Option[Long] = None,
+                                          maxSize: Option[String] = None,
+                                          maxSizePerItem: Option[String] = None,
                                           contentTypes: Option[List[ContentTypes]] = None)
 
 case class EnvelopeConstraints(maxItems: Int,
@@ -76,7 +75,6 @@ case class EnvelopeConstraints(maxItems: Int,
 
 object CreateEnvelopeRequest {
 
-  import play.api.libs.functional.syntax._
   import play.api.libs.json._
 
   implicit val dateReads: Reads[DateTime] = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
@@ -86,83 +84,34 @@ object CreateEnvelopeRequest {
 
   def formatUserEnvelopeConstraints(constraintsO: EnvelopeConstraintsUserSetting): Option[EnvelopeConstraints] = {
     Some(EnvelopeConstraints(maxItems = constraintsO.maxItems.getOrElse(defaultMaxItems),
-                        maxSize = constraintsO.maxSize.getOrElse(defaultMaxSize),
-                        maxSizePerItem = constraintsO.maxSizePerItem.getOrElse(defaultMaxSizePerItem),
-                        contentTypes =  constraintsO.contentTypes.getOrElse(defaultContentTypes)))
-
+                        maxSize = translateToByteSize(constraintsO.maxSize.getOrElse(defaultMaxSize.toString)),
+                        maxSizePerItem = translateToByteSize(constraintsO.maxSizePerItem.getOrElse(defaultMaxSizePerItem.toString)),
+                        contentTypes = checkContentTypes(constraintsO.contentTypes.getOrElse(defaultContentTypes))
+        ) )
   }
 
-  implicit val envelopeConstraintsReads: Reads[EnvelopeConstraints] = (
-    (__ \ "maxItems").readNullable[Int].map(_.getOrElse(defaultMaxItems)) and
-      readMaxSize(fieldName = "maxSize", defaultValue = defaultMaxSize) and
-      readMaxSize(fieldName = "maxSizePerItem", defaultValue = defaultMaxSizePerItem) and
-      readContentTypes(fieldName = "contentTypes", defaultValue = defaultContentTypes)
-    ) (EnvelopeConstraints.apply _)
-
-
-  def readMaxSize(fieldName: String, defaultValue: Long) = {
-    val value = (__ \ fieldName).readNullable(maxSizeReads).map(convertOrProvideDefault(_, defaultValue))
-    value
-  }
-
-  def readContentTypes(fieldName: String, defaultValue: List[ContentTypes]): Reads[List[ContentTypes]] = {
-    (__ \ fieldName).readNullable(acceptedContentTypesReads).map(readContentTypesOrProvideDefault(_, defaultValue))
-  }
-
-  val sizeRegex: Regex = """([1-9][0-9]{0,3})(KB|MB)""".r
-
-  def validateConstraintFormat(s: String): Boolean = s match {
-    case sizeRegex(_, _) => true
-    case _ => false
-  }
-
-  def maxSizeReads = new Reads[String] {
-    override def reads(json: JsValue): JsResult[String] = json match {
-      case JsString(s) if validateConstraintFormat(s) => JsSuccess(s)
-      case _ => JsError(s"Unable to parse `$json` as size, " +
-        s"expected format is up to four digits followed by KB or MB, e.g. 1024KB")
-    }
-  }
-
-  def acceptedContentTypesReads = new Reads[List[ContentTypes]] {
-    override def reads(json: JsValue): JsResult[List[ContentTypes]] = json match {
-      case JsString(s) if validateConstraintFormat(s) => JsSuccess(List(s))
-      case _ => JsError(s"Unable to parse `$json`")
-    }
-  }
-
-  def translateToByteSize(s: String) : Long = {
-    s match {
-      case sizeRegex(num, unit) =>
-        unit match {
-          case "KB" => num.toLong * 1024
-          case "MB" => num.toLong * 1024 * 1024
-        }
-    }
-  }
-
-  def checkContentTypes(contentTypes: List[ContentTypes], acceptedContentTypes: List[ContentTypes]): Boolean= {
-    contentTypes match {
-      case Nil => true
-      case head :: tail =>
-        if (acceptedContentTypes.contains(head))
-          checkContentTypes(tail, acceptedContentTypes)
-        else false
-    }
-  }
-
-  private def convertOrProvideDefault(s: Option[String], default: Long): Long = {
-    s.map(translateToByteSize).getOrElse(default)
-  }
-
-  private def readContentTypesOrProvideDefault(s: Option[List[ContentTypes]], default: List[ContentTypes]) =
-    s.map(useSetContentTypes => {
-      if (checkContentTypes(useSetContentTypes, acceptedContentTypes)) {
-        useSetContentTypes
-      } else {
-        List("Unable to parse the content")
+  def translateToByteSize(size: String): Long = {
+    if (isAllDigits(size) && size.nonEmpty) size.toLong
+    else {
+      val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+      size.toUpperCase match {
+        case sizeRegex(num, unit) =>
+          unit match {
+            case "KB" => num.toInt * 1024
+            case "MB" => num.toInt * 1024 * 1024
+            case _ => throw new RuntimeException(s"Invalid constraint input")
+          }
+        case _ => throw new RuntimeException(s"Invalid constraint input")
       }
-    }).getOrElse(default)
+    }
+  }
+
+  def checkContentTypes(contentTypes: List[ContentTypes]): List[ContentTypes] ={
+    if (contentTypes.isEmpty) defaultContentTypes
+    else contentTypes
+  }
+
+  private def isAllDigits(x: String): Boolean = x forall Character.isDigit
 }
 
 case class GetFileMetadataReport(id: FileId,
