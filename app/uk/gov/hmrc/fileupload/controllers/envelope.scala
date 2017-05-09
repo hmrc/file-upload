@@ -99,9 +99,9 @@ object CreateEnvelopeRequest {
           unit match {
             case "KB" => num.toInt * 1024
             case "MB" => num.toInt * 1024 * 1024
-            case _ => throw new RuntimeException(s"Invalid constraint input")
+            case _ => throw new IllegalArgumentException(s"Invalid constraint input")
           }
-        case _ => throw new RuntimeException(s"Invalid constraint input")
+        case _ => throw new IllegalArgumentException(s"Invalid constraint input")
       }
     }
   }
