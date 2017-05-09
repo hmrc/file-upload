@@ -17,86 +17,100 @@
 package uk.gov.hmrc.fileupload.controllers.constraints
 
 import org.joda.time.DateTime
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.fileupload.controllers.{CreateEnvelopeRequest, EnvelopeConstraints, EnvelopeConstraintsUserSetting}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.{EnvelopeId, EventBasedGWTSpec, FileId, FileRefId}
+import uk.gov.hmrc.fileupload.read.envelope.Envelope.{defaultConstraints, defaultMaxItems,
+                                                      defaultMaxSize, acceptedMaxSizePerItem,
+                                                      defaultContentTypes, acceptedMaxSize, defaultMaxSizePerItem}
 
 class EnvelopeConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
   override val handler = Envelope
 
   override val defaultStatus: Envelope = Envelope()
+  
+  val fakeDateTime = new DateTime(0)
+  val fakeUrl = "http://www.callback-url.com"
+  val fakeData: JsObject = Json.obj("foo" -> "bar")
 
   val envelopeId = EnvelopeId("envelopeId-1")
   val fileId = FileId("fileId-1")
   val fileRefId = FileRefId("fileRefId-1")
 
-  val envelopeCreated = EnvelopeCreated(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
-    Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(100, 26214400, 10485760, List("application/pdf", "image/jpeg", "application/xml"))))
+  val envelopeCreatedByDefaultStatus = EnvelopeCreated(envelopeId, Some(fakeUrl), Some(fakeDateTime),
+    Some(fakeData), Some(defaultConstraints))
+
+  val envelopeCreatedByMaxSizePerFile = EnvelopeCreated(envelopeId, Some(fakeUrl), Some(fakeDateTime),
+    Some(fakeData), Some(EnvelopeConstraints(defaultMaxItems, defaultMaxSize, acceptedMaxSizePerItem, defaultContentTypes)))
+
+  val envelopeCreatedByMaxSizeEnvelope = EnvelopeCreated(envelopeId, Some(fakeUrl), Some(fakeDateTime),
+    Some(fakeData), Some(EnvelopeConstraints(defaultMaxItems, acceptedMaxSize, defaultMaxSizePerItem, defaultContentTypes)))
 
   val createEnvelopeRequestWithoutMaxNoFilesConstraints: Option[EnvelopeConstraints] = {
-    CreateEnvelopeRequest.formatUserEnvelopeConstraints(EnvelopeConstraintsUserSetting(None, Some("26214400"),
-      Some("10MB"), Some(List("application/pdf", "image/jpeg", "application/xml"))))
+    CreateEnvelopeRequest.formatUserEnvelopeConstraints(EnvelopeConstraintsUserSetting(None, Some("25MB"),
+      Some("10MB"), Some(defaultContentTypes)))
   }
 
   val createEnvelopeRequestWithoutMaxSizeConstraints: Option[EnvelopeConstraints] = {
     CreateEnvelopeRequest.formatUserEnvelopeConstraints(EnvelopeConstraintsUserSetting(Some(100), None,
-      Some("10485760"), Some(List("application/pdf", "image/jpeg", "application/xml"))))
+      Some("10MB"), Some(defaultContentTypes)))
   }
 
   val createEnvelopeRequestWithoutMaxSizePerItemConstraints: Option[EnvelopeConstraints] = {
     CreateEnvelopeRequest.formatUserEnvelopeConstraints(EnvelopeConstraintsUserSetting(Some(100), Some("25MB"),
-      None, Some(List("application/pdf", "image/jpeg", "application/xml"))))
+      None, Some(defaultContentTypes)))
   }
 
   val createEnvelopeRequestWithoutTypeConstraints: Option[EnvelopeConstraints] = {
-    CreateEnvelopeRequest.formatUserEnvelopeConstraints(EnvelopeConstraintsUserSetting(Some(100), Some("26214400"),
-      Some("10485760"), None))
+    CreateEnvelopeRequest.formatUserEnvelopeConstraints(EnvelopeConstraintsUserSetting(Some(100), Some("25MB"),
+      Some("10MB"), None))
   }
 
   feature("CreateEnvelope with constraints") {
 
     scenario("Create new envelope with out set max. no. of files constraint") {
-
       givenWhenThen(
         --,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), createEnvelopeRequestWithoutMaxNoFilesConstraints),
-        envelopeCreated
+        CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
+          createEnvelopeRequestWithoutMaxNoFilesConstraints),
+        envelopeCreatedByDefaultStatus
       )
     }
 
     scenario("Create new envelope with out the constraint for Max size per envelope") {
-
       givenWhenThen(
         --,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), createEnvelopeRequestWithoutMaxSizeConstraints),
-        envelopeCreated
+        CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
+          createEnvelopeRequestWithoutMaxSizeConstraints),
+        envelopeCreatedByDefaultStatus
       )
     }
 
     scenario("Create new envelope with out the constraint for Max size per item") {
-
       givenWhenThen(
         --,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), createEnvelopeRequestWithoutMaxSizePerItemConstraints),
-        envelopeCreated
+        CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
+          createEnvelopeRequestWithoutMaxSizePerItemConstraints),
+        envelopeCreatedByDefaultStatus
       )
     }
 
     scenario("Create new envelope with out the constraint for content type") {
-
       givenWhenThen(
         --,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), createEnvelopeRequestWithoutTypeConstraints),
-        envelopeCreated
+        CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
+          createEnvelopeRequestWithoutTypeConstraints),
+        envelopeCreatedByDefaultStatus
       )
     }
 
     scenario("Create new envelope with number of items exceeding limit") {
       givenWhenThen(
         --,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(122, 1000, 123, List("application/pdf", "image/jpeg", "application/xml")))),
+        CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
+          Some(EnvelopeConstraints(101, 1000, 123, defaultContentTypes))),
         InvalidMaxItemCountConstraintError
       )
     }
@@ -104,23 +118,44 @@ class EnvelopeConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeCommand, 
     scenario("Create new envelope with number of items < 1") {
       givenWhenThen(
         --,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(0, 1000, 123, List("application/pdf", "image/jpeg", "application/xml")))),
+        CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
+          Some(EnvelopeConstraints(0, 1000, 123, defaultContentTypes))),
         InvalidMaxItemCountConstraintError
       )
     }
 
-    scenario("Create new envelope with out of bounds max size per item constraint") {
+    scenario("Create new envelope over bounds max size per item constraint") {
       givenWhenThen(
         --,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(12, 1000, Integer.MAX_VALUE, List("application/pdf", "image/jpeg", "application/xml")))),
+        CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
+          Some(EnvelopeConstraints(12, 1000, acceptedMaxSizePerItem+1, defaultContentTypes))),
         InvalidMaxSizePerItemConstraintError
       )
     }
 
-    scenario("Create new envelope with out of bounds max size constraint") {
+    scenario("Create new envelope not over bounds max size per item constraint") {
       givenWhenThen(
         --,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(12, Integer.MAX_VALUE, 23434, List("application/pdf", "image/jpeg", "application/xml")))),
+        CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
+          Some(EnvelopeConstraints(100, 26214400, acceptedMaxSizePerItem, defaultContentTypes))),
+        envelopeCreatedByMaxSizePerFile
+      )
+    }
+
+    scenario("Create new envelope not over bounds max size constraint") {
+      givenWhenThen(
+        --,
+        CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
+          Some(EnvelopeConstraints(100, acceptedMaxSize, 10485760, defaultContentTypes))),
+        envelopeCreatedByMaxSizeEnvelope
+      )
+    }
+
+    scenario("Create new envelope over bounds max size constraint") {
+      givenWhenThen(
+        --,
+        CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
+          Some(EnvelopeConstraints(100, acceptedMaxSize+1, 10485760, defaultContentTypes))),
         InvalidMaxSizeConstraintError
       )
     }
@@ -128,7 +163,8 @@ class EnvelopeConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeCommand, 
     scenario("Create new envelope with out valid content type") {
       givenWhenThen(
         --,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)), Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(12, 1000, 23434, List("application/pd")))),
+        CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
+          Some(EnvelopeConstraints(12, 1000, 23434, List("application/pd")))),
         EnvelopeContentTypesError
       )
     }
