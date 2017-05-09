@@ -34,6 +34,7 @@ object ExceptionHandler {
     case e: NoSuchElementException => NoSuchElementHandler(e)
     case e: BadRequestException => BadRequestHandler(e)
     case e: JsonParseException => BadRequestHandler(new BadRequestException(s"Malformed json: ${e.getMessage}"))
+    case e: IllegalArgumentException => BadRequestHandler(new BadRequestException(s"${e.getMessage}"))
     case e: Throwable => DefaultExceptionHandler(e)
   }
 
