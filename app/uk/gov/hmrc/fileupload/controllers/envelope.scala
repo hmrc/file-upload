@@ -69,8 +69,8 @@ case class EnvelopeConstraintsUserSetting(maxItems: Option[Int] = None,
                                           contentTypes: Option[List[ContentTypes]] = None)
 
 case class EnvelopeConstraints(maxItems: Int,
-                               maxSize: Long,
-                               maxSizePerItem: Long,
+                               maxSize: String,
+                               maxSizePerItem: String,
                                contentTypes: List[ContentTypes])
 
 object CreateEnvelopeRequest {
@@ -84,26 +84,10 @@ object CreateEnvelopeRequest {
 
   def formatUserEnvelopeConstraints(constraintsO: EnvelopeConstraintsUserSetting): Option[EnvelopeConstraints] = {
     Some(EnvelopeConstraints(maxItems = constraintsO.maxItems.getOrElse(defaultMaxItems),
-                        maxSize = translateToByteSize(constraintsO.maxSize.getOrElse(defaultMaxSize.toString)),
-                        maxSizePerItem = translateToByteSize(constraintsO.maxSizePerItem.getOrElse(defaultMaxSizePerItem.toString)),
+                        maxSize = constraintsO.maxSize.getOrElse(defaultMaxSize).toUpperCase(),
+                        maxSizePerItem = constraintsO.maxSizePerItem.getOrElse(defaultMaxSizePerItem).toUpperCase(),
                         contentTypes = checkContentTypes(constraintsO.contentTypes.getOrElse(defaultContentTypes))
         ) )
-  }
-
-  def translateToByteSize(size: String): Long = {
-    if (isAllDigits(size) && size.nonEmpty) size.toLong
-    else {
-      val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
-      size.toUpperCase match {
-        case sizeRegex(num, unit) =>
-          unit match {
-            case "KB" => num.toInt * 1024
-            case "MB" => num.toInt * 1024 * 1024
-            case _ => throw new IllegalArgumentException(s"Invalid constraint input")
-          }
-        case _ => throw new IllegalArgumentException(s"Invalid constraint input")
-      }
-    }
   }
 
   def checkContentTypes(contentTypes: List[ContentTypes]): List[ContentTypes] ={
@@ -111,7 +95,6 @@ object CreateEnvelopeRequest {
     else contentTypes
   }
 
-  private def isAllDigits(x: String): Boolean = x forall Character.isDigit
 }
 
 case class GetFileMetadataReport(id: FileId,

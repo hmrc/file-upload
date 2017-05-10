@@ -184,12 +184,12 @@ sealed trait EnvelopeInvalidConstraintError extends EnvelopeCommandNotAccepted
 
 case object InvalidMaxSizeConstraintError extends EnvelopeInvalidConstraintError {
   override def toString = "constraints.maxSize exceeds maximum allowed value of " +
-    formatAsKiloOrMegabytes(Envelope.acceptedConstraints.maxSize)
+    Envelope.acceptedConstraints.maxSize
 }
 
 case object InvalidMaxSizePerItemConstraintError extends EnvelopeInvalidConstraintError {
   override def toString = "constraints.maxSizePerItem exceeds maximum allowed value of " +
-    formatAsKiloOrMegabytes(Envelope.acceptedConstraints.maxSizePerItem)
+    Envelope.acceptedConstraints.maxSizePerItem
 }
 
 case object InvalidMaxItemCountConstraintError extends EnvelopeInvalidConstraintError {

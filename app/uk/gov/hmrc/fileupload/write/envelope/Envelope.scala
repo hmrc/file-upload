@@ -25,9 +25,9 @@ import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
   type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
-  val acceptedConstraints = uk.gov.hmrc.fileupload.read.envelope.Envelope.acceptedConstraints
+  val acceptedConstraints: EnvelopeConstraints = uk.gov.hmrc.fileupload.read.envelope.Envelope.acceptedConstraints
 
-  override def handle = {
+  override def handle: PartialFunction[(EnvelopeCommand, Envelope), Xor[EnvelopeCommandNotAccepted, List[EventData]]] = {
     case (command: CreateEnvelope, envelope: Envelope) =>
         envelope.canCreate() match {
         case Xor.Left(error) => error
@@ -250,8 +250,24 @@ sealed trait State {
     }).getOrElse(fileNotFoundError)
 
 
-  def isValidSize(size: Long, defaultSize: Long): Boolean = {
-    (size <= defaultSize) && (size > 0)
+  def isValidSize(size: String, acceptedSize: String): Boolean = {
+    (translateToByteSize(size) <= translateToByteSize(acceptedSize)) && (translateToByteSize(size) > 0)
+  }
+
+  def translateToByteSize(size: String): Long = {
+    if (size.isEmpty) size.toLong
+    else {
+      val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+      size.toUpperCase match {
+        case sizeRegex(num, unit) =>
+          unit match {
+            case "KB" => num.toInt * 1024
+            case "MB" => num.toInt * 1024 * 1024
+            case _ => throw new IllegalArgumentException(s"Invalid constraint input")
+          }
+        case _ => throw new IllegalArgumentException(s"Invalid constraint input")
+      }
+    }
   }
 
 }
@@ -310,8 +326,8 @@ object Open extends State {
     else if (files.size > constraints.maxItems) {
       Xor.Left(EnvelopeItemCountExceededError(constraints.maxItems, files.size))
     }
-    else if (files.map(_.fileLength).sum > constraints.maxSize) {
-      Xor.Left(EnvelopeMaxSizeExceededError(constraints.maxSize))
+    else if (files.map(_.fileLength).sum > translateToByteSize(constraints.maxSize)) {
+      Xor.Left(EnvelopeMaxSizeExceededError(translateToByteSize(constraints.maxSize)))
     }
     else {
       successResult
