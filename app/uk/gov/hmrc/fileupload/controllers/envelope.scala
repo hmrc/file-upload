@@ -82,10 +82,11 @@ case class EnvelopeConstraints(maxItems: Int,
 
 object EnvelopeConstraints {
 
+  private val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+
   def isAValidSize(size: String): Boolean = {
     if (size.isEmpty) false
     else {
-      val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
       size.toUpperCase match {
         case sizeRegex(num, unit) =>
           unit match {
@@ -99,17 +100,14 @@ object EnvelopeConstraints {
   }
 
   def translateToByteSize(size: String): Long = {
-    if (size.isEmpty) throw new IllegalArgumentException(s"Invalid constraint input")
+    if (!isAValidSize(size)) throw new IllegalArgumentException(s"Invalid constraint input")
     else {
-      val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
       size.toUpperCase match {
         case sizeRegex(num, unit) =>
           unit match {
             case "KB" => num.toInt * 1024
             case "MB" => num.toInt * 1024 * 1024
-            case _ => throw new IllegalArgumentException(s"Invalid constraint input")
           }
-        case _ => throw new IllegalArgumentException(s"Invalid constraint input")
       }
     }
   }
