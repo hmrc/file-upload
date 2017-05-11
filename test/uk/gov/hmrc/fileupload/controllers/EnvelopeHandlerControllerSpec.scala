@@ -38,7 +38,7 @@ import play.api.libs.iteratee.Enumerator
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with ScalaFutures {
+class EnvelopeHandlerControllerSpec extends UnitSpec with ApplicationComponents with ScalaFutures {
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(10, Seconds), interval = Span(10, Millis))
 
@@ -113,7 +113,7 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
     }
   }
 
-	"Delete Envelope" should {
+	"Delete EnvelopeHandler" should {
 		"respond with 200 OK status" in {
 			val envelope = Support.envelope
 			val request = FakeRequest("DELETE", s"/envelopes/${envelope._id}").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
@@ -132,7 +132,7 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
 			val result = controller.delete(id)(request).futureValue
 
 			val actualRespone = Json.parse(consume(result.body))
-      val expectedResponse = Json.parse(s"""{"error" : {"msg": "Envelope with id: $id not found" }}""")
+      val expectedResponse = Json.parse(s"""{"error" : {"msg": "EnvelopeHandler with id: $id not found" }}""")
 
 			result.header.status shouldBe Status.NOT_FOUND
 			actualRespone shouldBe expectedResponse
@@ -153,7 +153,7 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
 		}
 	}
 
-  "Get Envelope" should {
+  "Get EnvelopeHandler" should {
     "return an  envelope resource when request id is valid" in {
       val envelope = Support.envelope
       val request = FakeRequest()

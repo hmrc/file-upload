@@ -4,15 +4,15 @@ import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
 
 /**
   * Integration tests for FILE-65
-  * Delete Envelope
+  * Delete EnvelopeHandler
   *
   */
 
-class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions {
+class DeleteEnvelopeHandlerIntegrationSpec extends IntegrationSpec with EnvelopeActions {
 
-  feature("Delete Envelope") {
+  feature("Delete EnvelopeHandler") {
 
-    scenario("Delete Envelope - with wrong Auth") {
+    scenario("Delete EnvelopeHandler - with wrong Auth") {
       Given("I have a valid envelope id")
       val createResponse = createEnvelope("{}")
       createResponse.status should equal(CREATED)
@@ -26,7 +26,7 @@ class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
 
     }
 
-    scenario("Delete Envelope - valid with auth") {
+    scenario("Delete EnvelopeHandler - valid with auth") {
       Given("I have a valid envelope id")
       val createResponse = createEnvelope("{}")
       createResponse.status should equal(CREATED)
@@ -45,7 +45,7 @@ class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       }
     }
 
-    scenario("Delete Envelope - invalid ID with auth") {
+    scenario("Delete EnvelopeHandler - invalid ID with auth") {
       Given("I have an invalid envelope id")
       val invalidEnvelopeId = EnvelopeId()
 

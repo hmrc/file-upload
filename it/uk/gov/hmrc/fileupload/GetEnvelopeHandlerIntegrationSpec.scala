@@ -8,16 +8,16 @@ import uk.gov.hmrc.fileupload.write.envelope.QuarantineFile
 
 /**
   * Integration tests for FILE-63 & FILE-64
-  * Create Envelope and Get Envelope
+  * Create EnvelopeHandler and Get EnvelopeHandler
   *
   */
-class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions with EventsActions {
+class GetEnvelopeHandlerIntegrationSpec extends IntegrationSpec with EnvelopeActions with EventsActions {
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Minutes), interval = Span(5, Millis))
 
-  feature("Retrieve Envelope") {
+  feature("Retrieve EnvelopeHandler") {
 
-    scenario("GET Envelope responds with an ID") {
+    scenario("GET EnvelopeHandler responds with an ID") {
       Given("I have a valid envelope id")
       val createResponse = createEnvelope("{}")
       createResponse.status should equal(CREATED)
@@ -54,7 +54,7 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
 
     }
 
-    scenario("GET Envelope responds with a list of files when envelope not empty") {
+    scenario("GET EnvelopeHandler responds with a list of files when envelope not empty") {
       Given("I have an envelope with files")
       val createResponse = createEnvelope("{}")
       createResponse.status should equal(CREATED)
@@ -105,13 +105,13 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       envelopeResponse.status shouldBe NOT_FOUND
     }
 
-    scenario("GET Envelope responds with constraints when") {
+    scenario("GET EnvelopeHandler responds with constraints when") {
       Given("I have an envelope with files")
       val createResponse = createEnvelope(
         s"""{"constraints": {
            |"maxItems": 56,
-           |"maxSize": "10485760",
-           |"maxSizePerItem": "102400",
+           |"maxSize": "100MB",
+           |"maxSizePerItem": "10MB",
            |"contentTypes": ["application/pdf","image/jpeg"]}}""".stripMargin)
       createResponse.status should equal(CREATED)
       val envelopeId = envelopeIdFromHeader(createResponse)

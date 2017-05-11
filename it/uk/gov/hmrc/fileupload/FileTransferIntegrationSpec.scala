@@ -57,7 +57,7 @@ class FileTransferIntegrationSpec extends IntegrationSpec with EnvelopeActions {
 
   feature("File Transfer delete") {
 
-    scenario("Archive Envelope") {
+    scenario("Archive EnvelopeHandler") {
       Given("I know a destination for envelopes")
       val destination = "DMS"
 

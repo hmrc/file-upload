@@ -45,11 +45,11 @@ class RoutingController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNo
         case Xor.Left(FilesWithError(ids)) =>
           ExceptionHandler(BAD_REQUEST, s"Files: ${ids.mkString("[", ", ", "]")} contain errors")
         case Xor.Left(EnvelopeItemCountExceededError(allowed, actual)) =>
-          ExceptionHandler(BAD_REQUEST, s"Envelope item count exceeds maximum of $allowed, actual: $actual")
+          ExceptionHandler(BAD_REQUEST, s"EnvelopeHandler item count exceeds maximum of $allowed, actual: $actual")
         case Xor.Left(EnvelopeMaxSizeExceededError(allowedLimit)) =>
-          ExceptionHandler(BAD_REQUEST, s"Envelope size exceeds maximum of ${ formatAsKiloOrMegabytes(allowedLimit) }")
+          ExceptionHandler(BAD_REQUEST, s"EnvelopeHandler size exceeds maximum of ${ formatAsKiloOrMegabytes(allowedLimit) }")
         case Xor.Left(EnvelopeNotFoundError) =>
-          ExceptionHandler(BAD_REQUEST, s"Envelope with id: $envelopeId not found")
+          ExceptionHandler(BAD_REQUEST, s"EnvelopeHandler with id: $envelopeId not found")
         case Xor.Left(otherError) =>
           Logger.warn(otherError.toString)
           ExceptionHandler(BAD_REQUEST, otherError.toString)

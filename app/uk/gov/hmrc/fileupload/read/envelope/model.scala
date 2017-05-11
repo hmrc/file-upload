@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.read.envelope
 
 import org.joda.time.DateTime
 import play.api.libs.json._
-import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
+import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, Size}
 import uk.gov.hmrc.fileupload.write.infrastructure.Version
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
@@ -54,30 +54,30 @@ object Envelope {
   type ContentTypes = String
 
   val acceptedMaxItems: Int = 100
-  val acceptedMaxSize: Long = 250 * 1024 * 1024
-  val acceptedMaxSizePerItem: Long = 100 * 1024 * 1024
+  val acceptedMaxSize: String = "250MB" //250 * 1024 * 1024
+  val acceptedMaxSizePerItem: String = "100MB" //100 * 1024 * 1024
   val acceptedContentTypes: List[ContentTypes] =
-                                List("application/pdf",
-                                     "image/jpeg",
-                                     "application/xml",
-                                     "application/vnd.ms-excel",
-                                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    List("application/pdf",
+      "image/jpeg",
+      "application/xml",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
   val defaultMaxItems: Int = 100
-  val defaultMaxSize: Long = 25 * 1024 * 1024
-  val defaultMaxSizePerItem: Long = 10 * 1024 * 1024
+  val defaultMaxSize: String = "25MB" //25 * 1024 * 1024
+  val defaultMaxSizePerItem: String = "10MB" //10 * 1024 * 1024
   val defaultContentTypes: List[ContentTypes] = List("application/pdf","image/jpeg","application/xml")
 
   val defaultConstraints =
     EnvelopeConstraints(maxItems = defaultMaxItems,
-                        maxSize = defaultMaxSize,
-                        maxSizePerItem = defaultMaxSizePerItem,
+                        maxSize = Size(defaultMaxSize),
+                        maxSizePerItem = Size(defaultMaxSizePerItem),
                         contentTypes = defaultContentTypes)
 
   val acceptedConstraints =
     EnvelopeConstraints(maxItems = acceptedMaxItems,
-                        maxSize = acceptedMaxSize,
-                        maxSizePerItem = acceptedMaxSizePerItem,
+                        maxSize = Size((acceptedMaxSize)),
+                        maxSizePerItem = Size((acceptedMaxSizePerItem)),
                         contentTypes = acceptedContentTypes)
 
   implicit val dateReads: Reads[DateTime] = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
@@ -87,6 +87,7 @@ object Envelope {
   implicit val fileReads: Format[File] = Json.format[File]
   implicit val envelopeStatusReads: Reads[EnvelopeStatus] = EnvelopeStatusReads
   implicit val envelopeStatusWrites: Writes[EnvelopeStatus] = EnvelopeStatusWrites
+  implicit val constraintsSizeFormats: Format[Size] = Json.format[Size]
   implicit val envelopeConstraintsFormats: OFormat[EnvelopeConstraints] = Json.format[EnvelopeConstraints]
   implicit val envelopeFormat: Format[Envelope] = Json.format[Envelope]
   implicit val envelopeOFormat: OFormat[Envelope] = new OFormat[Envelope] {
@@ -116,6 +117,10 @@ case object EnvelopeStatusClosed extends EnvelopeStatus {
 }
 case object EnvelopeStatusDeleted extends EnvelopeStatus {
   override val name: String = "DELETED"
+}
+
+case object EnvelopeStatusFull extends EnvelopeStatus {
+  override val name: String = "FULL"
 }
 
 object EnvelopeStatusWrites extends Writes[EnvelopeStatus] {

@@ -56,7 +56,7 @@ class TransferController(withBasicAuth: BasicAuth,
           CONTENT_DISPOSITION -> s"""attachment; filename="$envelopeId.zip""""
         )
       case Xor.Left(ZipEnvelopeNotFoundError | EnvelopeNotRoutedYet) =>
-        ExceptionHandler(404, s"Envelope with id: $envelopeId not found")
+        ExceptionHandler(404, s"EnvelopeHandler with id: $envelopeId not found")
       case Xor.Left(ZipProcessingError(message)) =>
         ExceptionHandler(INTERNAL_SERVER_ERROR, message)
     }
@@ -66,9 +66,9 @@ class TransferController(withBasicAuth: BasicAuth,
     handleCommand(ArchiveEnvelope(envelopeId)).map {
       case Xor.Right(_) => Ok
       case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $envelopeId not found")
-      case Xor.Left(EnvelopeArchivedError) => ExceptionHandler(GONE, s"Envelope with id: $envelopeId already deleted")
-      case Xor.Left(_) => ExceptionHandler(LOCKED, s"Envelope with id: $envelopeId locked")
+      case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"EnvelopeHandler with id: $envelopeId not found")
+      case Xor.Left(EnvelopeArchivedError) => ExceptionHandler(GONE, s"EnvelopeHandler with id: $envelopeId already deleted")
+      case Xor.Left(_) => ExceptionHandler(LOCKED, s"EnvelopeHandler with id: $envelopeId locked")
     }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
   }
 

@@ -28,7 +28,7 @@ import uk.gov.hmrc.fileupload.read.envelope.Service._
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
 import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
-import uk.gov.hmrc.fileupload.write.envelope.{Envelope => WriteEnvelope, _}
+import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeHandler => WriteEnvelope, _}
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, _}
 
@@ -63,9 +63,9 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     handleCommand(command).map {
       case Xor.Right(_) => Created.withHeaders(envelopeLocation(command.id))
       case Xor.Left(EnvelopeContentTypesError) => ExceptionHandler(BAD_REQUEST, "constraints.contentType -> Unsupported Content Type")
-      case Xor.Left(EnvelopeAlreadyCreatedError) => ExceptionHandler(BAD_REQUEST, "Envelope already created")
+      case Xor.Left(EnvelopeAlreadyCreatedError) => ExceptionHandler(BAD_REQUEST, "EnvelopeHandler already created")
       case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Left(error) => ExceptionHandler(BAD_REQUEST, s"Envelope not created due to: $error")
+      case Xor.Left(error) => ExceptionHandler(BAD_REQUEST, s"EnvelopeHandler not created due to: $error")
       case Xor.Left(error: EnvelopeInvalidConstraintError) => ExceptionHandler(BAD_REQUEST, error.toString)
     }.recover { case e => ExceptionHandler(e) }
   }
@@ -76,9 +76,9 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     withBasicAuth {
       handleCommand(DeleteEnvelope(id)).map {
         case Xor.Right(_) => Ok
-        case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
+        case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"EnvelopeHandler with id: $id not found")
         case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-        case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not deleted")
+        case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "EnvelopeHandler not deleted")
       }.recover { case e => ExceptionHandler(e) }
     }
   }
@@ -100,7 +100,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
 
     findEnvelope(id).map {
       case Xor.Right(e) => Ok(Json.toJson(fromEnvelope(e)))
-      case Xor.Left(FindEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
+      case Xor.Left(FindEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"EnvelopeHandler with id: $id not found")
       case Xor.Left(FindServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
     }.recover { case e => ExceptionHandler(e) }
   }
@@ -119,7 +119,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
 
     findMetadata(id, fileId).map {
       case Xor.Right(f) => Ok(Json.toJson(fromFile(id, f)))
-      case Xor.Left(FindMetadataEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
+      case Xor.Left(FindMetadataEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"EnvelopeHandler with id: $id not found")
       case Xor.Left(FindMetadataFileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
       case Xor.Left(FindMetadataServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
     }.recover { case e => ExceptionHandler(e) }
