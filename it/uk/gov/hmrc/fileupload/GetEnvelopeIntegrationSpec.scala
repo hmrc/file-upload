@@ -105,8 +105,11 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       envelopeResponse.status shouldBe NOT_FOUND
     }
 
-    scenario("GET Envelope responds with constraints when") {
-      Given("I have an envelope with files")
+    //TODO: Need to include tests for contentType constraint
+
+    scenario("GET Envelope responds with constraints on maxItems, maxSize and maxSizePerItem") {
+
+      Given("I have an envelope with constraints on maxItems, maxSize and maxSizePerItem")
       val createResponse = createEnvelope(
         s"""{"constraints": {
            |"maxItems": 56,
@@ -122,6 +125,8 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
 
         Then("I will receive a 200 Ok response")
         envelopeResponse.status shouldBe OK
+
+        And("The envelope details will include the constraints as they were applied")
         val json = Json.parse(envelopeResponse.body)
 
         (json \ "constraints") \ "maxItems" match {
@@ -135,6 +140,13 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
             const shouldBe 102400
           case _ => JsError("expectation failed")
         }
+
+        (json \ "constraints") \ "maxSize" match {
+          case JsDefined(JsNumber(const)) =>
+            const shouldBe 10485760
+          case _ => JsError("expectation failed")
+        }
+
 
       }
     }
