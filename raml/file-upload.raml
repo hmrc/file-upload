@@ -24,18 +24,18 @@ description: Upload files to the Tax Platform
   /{envelopeId}:
     uriParameters:
       envelopeId:
-        displayName: Envelope ID
+        displayName: EnvelopeHandler ID
         example: "4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa"
     get:
-      description: Check the existence of an Envelope
+      description: Check the existence of an EnvelopeHandler
       responses:
         200:
-          description: Envelope exists
+          description: EnvelopeHandler exists
           body:
             application/json:
               example: { "id": "4e0bf8f1-d0b3-4892-94b4-f2a03ecf70fa" }
         404:
-          description: Envelope with specified ID not found
+          description: EnvelopeHandler with specified ID not found
           body:
             application/json:
               example: |
@@ -45,12 +45,12 @@ description: Upload files to the Tax Platform
                   }
                 }
     delete:
-      description: Deletion of an Envelope
+      description: Deletion of an EnvelopeHandler
       responses:
         202:
           description: Deleted
         404:
-          description: Envelope not found
+          description: EnvelopeHandler not found
           body:
             application/json:
               example: |
@@ -71,7 +71,7 @@ description: Upload files to the Tax Platform
             200:
               description: Uploaded
             404:
-              description: Envelope not found
+              description: EnvelopeHandler not found
               body:
                 application/json:
                   example: |

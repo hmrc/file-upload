@@ -124,7 +124,7 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
       implicit val materializer = ActorMaterializer()
 
       status(result) shouldBe Status.NOT_FOUND
-      contentAsString(result) should include (s"Envelope with id: $envelopeId not found")
+      contentAsString(result) should include (s"EnvelopeHandler with id: $envelopeId not found")
     }
   }
 }

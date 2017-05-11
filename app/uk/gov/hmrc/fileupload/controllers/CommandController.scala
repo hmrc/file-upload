@@ -46,7 +46,7 @@ class CommandController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNo
       handleCommand(command).map {
         case Xor.Right(_) => Ok
         case Xor.Left(EnvelopeNotFoundError) =>
-          ExceptionHandler(NOT_FOUND, s"Envelope with id: ${command.id} not found")
+          ExceptionHandler(NOT_FOUND, s"EnvelopeHandler with id: ${command.id} not found")
         case Xor.Left(FileAlreadyProcessed) =>
           ExceptionHandler(BAD_REQUEST, s"File already processed, command was: $command")
         case Xor.Left(EnvelopeAlreadyRoutedError | EnvelopeSealedError) =>

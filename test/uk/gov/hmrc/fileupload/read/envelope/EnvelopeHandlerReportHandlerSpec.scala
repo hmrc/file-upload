@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.read.envelope
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.Matchers
 import play.api.libs.json.Json
-import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
+import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, Size}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
@@ -27,7 +27,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
+class EnvelopeHandlerReportHandlerSpec extends UnitSpec with Matchers {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -36,7 +36,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
       val callbackUrl = Some("callback-url")
       val expiryDate = Some(new DateTime())
       val metadata = Some(Json.obj("key" -> "value"))
-      val constraints = Some(EnvelopeConstraints(10, "100MB", "10MB", List("application/pdf","image/jpeg","application/xml")))
+      val constraints = Some(EnvelopeConstraints(10, Size("100MB"), Size("10MB"), List("application/pdf","image/jpeg","application/xml")))
       val event = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, constraints)
 
       sendEvent(event)
@@ -59,7 +59,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
       val callbackUrl = Some("callback-url")
       val expiryDate = Some(new DateTime())
       val metadata = Some(Json.obj("key" -> "value"))
-      val constraints = Some(EnvelopeConstraints(10, "100MB", "10MB", List("application/pdf","image/jpeg","application/xml")))
+      val constraints = Some(EnvelopeConstraints(10, Size("100MB"), Size("10MB"), List("application/pdf","image/jpeg","application/xml")))
       val envelopeCreated = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, constraints)
       val fileQuarantined = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", "contentType", Some(123L), Json.obj("abc" -> "xyz"))
 

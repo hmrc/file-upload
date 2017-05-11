@@ -93,7 +93,7 @@ class RoutingControllerSpec extends UnitSpec with ApplicationComponents with Sca
       val result = controller.createRoutingRequest()(validRequest).futureValue
 
       result.header.status shouldBe Status.BAD_REQUEST
-      bodyOf(result) should include(s"Envelope with id: $envelopeId not found")
+      bodyOf(result) should include(s"EnvelopeHandler with id: $envelopeId not found")
     }
     "return 400 bad request if sealing was not possible for other reason" in {
       val errorMsg = "errorMsg"

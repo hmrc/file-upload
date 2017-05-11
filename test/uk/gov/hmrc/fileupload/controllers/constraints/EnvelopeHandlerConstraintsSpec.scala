@@ -19,9 +19,10 @@ package uk.gov.hmrc.fileupload.controllers.constraints
 import uk.gov.hmrc.fileupload.controllers.CreateEnvelopeRequest
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.fileupload.read.envelope.Envelope.{acceptedContentTypes, defaultContentTypes}
-import uk.gov.hmrc.fileupload.write.envelope.NotCreated.{translateToByteSize,checkContentTypes}
+import uk.gov.hmrc.fileupload.write.envelope.NotCreated.checkContentTypes
+import uk.gov.hmrc.fileupload.controllers.CreateEnvelopeRequest.translateToByteSize
 
-class EnvelopeConstraintsSpec extends UnitSpec {
+class EnvelopeHandlerConstraintsSpec extends UnitSpec {
 
   "constraint format validation" should {
     "be successful for up to 4 digits followed by either KB or MB (upper case)" in {
@@ -34,10 +35,10 @@ class EnvelopeConstraintsSpec extends UnitSpec {
         )
       val result =
         List(
-          1048576,
-          22528,
-          349175808,
-          4550656
+          "1MB",
+          "22KB",
+          "333MB",
+          "4444KB"
         )
 
       validFormats.foreach { f =>
@@ -62,14 +63,6 @@ class EnvelopeConstraintsSpec extends UnitSpec {
           translateToByteSize(c)
         }.getMessage shouldBe """Invalid constraint input"""
       }
-    }
-  }
-
-  "translateToByte " should {
-    "parse a constraint in MB or KB to Long" in {
-      translateToByteSize("10MB") shouldBe (10 * 1024 * 1024)
-
-      translateToByteSize("100KB") shouldBe (100 * 1024)
     }
   }
 

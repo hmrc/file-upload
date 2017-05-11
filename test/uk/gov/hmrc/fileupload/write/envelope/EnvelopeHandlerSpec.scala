@@ -18,24 +18,24 @@ package uk.gov.hmrc.fileupload.write.envelope
 
 import org.joda.time.DateTime
 import play.api.libs.json.Json
-import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
+import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, Size}
 import uk.gov.hmrc.fileupload.write.infrastructure.EventData
 import uk.gov.hmrc.fileupload.{EnvelopeId, EventBasedGWTSpec, FileId, FileRefId}
 
 import scala.collection.mutable.ListBuffer
 
-class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
+class EnvelopeHandlerSpec extends EventBasedGWTSpec[EnvelopeCommand, EnvelopeHandler] {
 
-  override val handler = Envelope
+  override val handler = EnvelopeHandler
 
-  override val defaultStatus: Envelope = Envelope()
+  override val defaultStatus: EnvelopeHandler = EnvelopeHandler()
 
   val envelopeId = EnvelopeId("envelopeId-1")
   val fileId = FileId("fileId-1")
   val fileRefId = FileRefId("fileRefId-1")
 
   val envelopeCreated = EnvelopeCreated(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
-    Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(10, "100MB", "10MB", List("application/pdf","image/jpeg","application/xml"))))
+    Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(10, Size("100MB"), Size("10MB"), List("application/pdf","image/jpeg","application/xml"))))
 
   def envelopeCreatedWithLimitedMaxItemConstraint(constraints: EnvelopeConstraints) = EnvelopeCreated(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
     Some(Json.obj("foo" -> "bar")), Some(constraints))
@@ -57,7 +57,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
-          Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(10, "100MB", "10MB", List("application/pdf","image/jpeg","application/xml"))) ),
+          Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(10, Size("100MB"), Size("10MB"), List("application/pdf","image/jpeg","application/xml"))) ),
         envelopeCreated
       )
     }
@@ -67,7 +67,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
       givenWhenThen(
         envelopeCreated,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
-          Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(10, "100MB", "10MB", List("application/pdf","image/jpeg","application/xml")))),
+          Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(10, Size("100MB"), Size("10MB"), List("application/pdf","image/jpeg","application/xml")))),
         EnvelopeAlreadyCreatedError
       )
     }
@@ -76,7 +76,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
-          Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(122, "100MB", "10MB", List("application/pdf","image/jpeg","application/xml")))),
+          Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(122, Size("100MB"), Size("10MB"), List("application/pdf","image/jpeg","application/xml")))),
         InvalidMaxItemCountConstraintError
       )
     }
@@ -85,7 +85,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
-          Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(0, "100MB", "10MB", List("application/pdf","image/jpeg","application/xml")))),
+          Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(0, Size("100MB"), Size("10MB"), List("application/pdf","image/jpeg","application/xml")))),
         InvalidMaxItemCountConstraintError
       )
     }
@@ -94,7 +94,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
-          Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(12, "100MB", "101MB", List("application/pdf","image/jpeg","application/xml")))),
+          Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(12, Size("100MB"), Size("101MB"), List("application/pdf","image/jpeg","application/xml")))),
         InvalidMaxSizePerItemConstraintError
       )
     }
@@ -103,7 +103,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
-          Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(12, "251MB", "10MB", List("application/pdf","image/jpeg","application/xml")))),
+          Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(12, Size("251MB"), Size("10MB"), List("application/pdf","image/jpeg","application/xml")))),
         InvalidMaxSizeConstraintError
       )
     }
@@ -113,7 +113,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
       givenWhenThen(
         envelopeCreated And envelopeDeleted,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
-          Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(10, "100MB", "10MB", List("application/pdf","image/jpeg","application/xml")))),
+          Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(10, Size("100MB"), Size("10MB"), List("application/pdf","image/jpeg","application/xml")))),
         EnvelopeAlreadyCreatedError
       )
     }
@@ -556,7 +556,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
     scenario("Seal envelope with exceeding max item count") {
 
       val eventsBuffer = ListBuffer[EventData]()
-      eventsBuffer+=envelopeCreatedWithLimitedMaxItemConstraint(EnvelopeConstraints(2, "100MB", "10MB", List("application/pdf","image/jpeg","application/xml")))
+      eventsBuffer+=envelopeCreatedWithLimitedMaxItemConstraint(EnvelopeConstraints(2, Size("100MB"), Size("10MB"), List("application/pdf","image/jpeg","application/xml")))
       for(x <- 1 to 5){
         eventsBuffer += FileQuarantined(envelopeId, FileId(s"fileId-$x"), FileRefId(s"fileRefId-$x"), 0, "test.pdf", "pdf", Some(123L), Json.obj())
       }

@@ -18,8 +18,7 @@ package uk.gov.hmrc.fileupload.write.envelope
 
 import org.joda.time.DateTime
 import play.api.libs.json._
-import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
-import uk.gov.hmrc.fileupload.utils.NumberFormatting.formatAsKiloOrMegabytes
+import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, Size}
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
@@ -38,7 +37,7 @@ case class CreateEnvelope(id: EnvelopeId,
                           constraints: Option[EnvelopeConstraints]) extends EnvelopeCommand
 
 case class QuarantineFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
-                          created: Long, name: String, contentType: String, length: Option[Long], metadata: JsObject) extends EnvelopeCommand
+                          created: Long, name: String, fileLength: Long, contentType: String, metadata: JsObject) extends EnvelopeCommand
 
 case class MarkFileAsClean(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) extends EnvelopeCommand
 
@@ -46,7 +45,7 @@ case class MarkFileAsInfected(id: EnvelopeId, fileId: FileId, fileRefId: FileRef
 
 case class DeleteFile(id: EnvelopeId, fileId: FileId) extends EnvelopeCommand
 
-case class StoreFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, length: Long) extends EnvelopeCommand
+case class StoreFile(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, fileLength: Long) extends EnvelopeCommand
 
 case class DeleteEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
@@ -69,7 +68,7 @@ case class EnvelopeCreated(id: EnvelopeId, callbackUrl: Option[String],
                            constraints: Option[EnvelopeConstraints]) extends EnvelopeEvent
 
 case class FileQuarantined(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId,
-                           created: Long, name: String, contentType: String, length: Option[Long] = None, metadata: JsObject) extends EnvelopeEvent
+                           created: Long, name: String, fileLength: Long, contentType: String, metadata: JsObject) extends EnvelopeEvent
 
 case class NoVirusDetected(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) extends EnvelopeEvent
 
@@ -77,7 +76,7 @@ case class VirusDetected(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId) e
 
 case class FileDeleted(id: EnvelopeId, fileId: FileId) extends EnvelopeEvent
 
-case class FileStored(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, length: Long) extends EnvelopeEvent
+case class FileStored(id: EnvelopeId, fileId: FileId, fileRefId: FileRefId, fileLength: Long) extends EnvelopeEvent
 
 case class EnvelopeDeleted(id: EnvelopeId) extends EnvelopeEvent
 
@@ -89,12 +88,16 @@ case class EnvelopeRouted(id: EnvelopeId) extends EnvelopeEvent
 
 case class EnvelopeArchived(id: EnvelopeId) extends EnvelopeEvent
 
+case class EnvelopeIsFull(id: EnvelopeId) extends EnvelopeEvent
+
+
 object Formatters {
   implicit val unsealEnvelopeFormat: Format[UnsealEnvelope] = Json.format[UnsealEnvelope]
   implicit val storeFileFormat: OFormat[StoreFile] = Json.format[StoreFile]
   implicit val quarantineFileFormat: OFormat[QuarantineFile] = Json.format[QuarantineFile]
   implicit val markFileAsCleanFormat: OFormat[MarkFileAsClean] = Json.format[MarkFileAsClean]
   implicit val markFileAsInfectedFormat: OFormat[MarkFileAsInfected] = Json.format[MarkFileAsInfected]
+  implicit val constraintsSizeFormats: OFormat[Size] = Json.format[Size]
   implicit val constraintsFormats: OFormat[EnvelopeConstraints] = Json.format[EnvelopeConstraints]
   implicit val envelopeCreatedFormat: Format[EnvelopeCreated] = Json.format[EnvelopeCreated]
   implicit val fileQuarantinedFormat: Format[FileQuarantined] = Json.format[FileQuarantined]
@@ -107,6 +110,7 @@ object Formatters {
   implicit val envelopeUnsealedFormat: Format[EnvelopeUnsealed] = Json.format[EnvelopeUnsealed]
   implicit val envelopeRoutedFormat: Format[EnvelopeRouted] = Json.format[EnvelopeRouted]
   implicit val envelopeArchivedFormat: Format[EnvelopeArchived] = Json.format[EnvelopeArchived]
+  implicit val envelopeIsFullFormat: Format[EnvelopeIsFull] = Json.format[EnvelopeIsFull]
 }
 
 object EventSerializer {
@@ -124,6 +128,7 @@ object EventSerializer {
   private val envelopeUnsealed = nameOf(EnvelopeUnsealed.getClass)
   private val envelopeRouted = nameOf(EnvelopeRouted.getClass)
   private val envelopeArchived = nameOf(EnvelopeArchived.getClass)
+  private val envelopeIsFull = nameOf(EnvelopeIsFull.getClass)
 
   private def nameOf(clazz: Class[_]) =
     clazz.getName.replace("$", "")
@@ -141,6 +146,7 @@ object EventSerializer {
       case `envelopeUnsealed` => Json.fromJson[EnvelopeUnsealed](value).get
       case `envelopeRouted` => Json.fromJson[EnvelopeRouted](value).get
       case `envelopeArchived` => Json.fromJson[EnvelopeArchived](value).get
+      case `envelopeIsFull` => Json.fromJson[EnvelopeIsFull](value).get
     }
 
   def fromEventData(eventData: EventData): JsValue =
@@ -156,6 +162,7 @@ object EventSerializer {
       case e: EnvelopeUnsealed => Json.toJson(e)
       case e: EnvelopeRouted => Json.toJson(e)
       case e: EnvelopeArchived => Json.toJson(e)
+      case e: EnvelopeIsFull => Json.toJson(e)
     }
 
   val eventWrite = new Writes[Event] {
@@ -183,17 +190,17 @@ case object EnvelopeContentTypesError extends EnvelopeCommandNotAccepted
 sealed trait EnvelopeInvalidConstraintError extends EnvelopeCommandNotAccepted
 
 case object InvalidMaxSizeConstraintError extends EnvelopeInvalidConstraintError {
-  override def toString = "constraints.maxSize exceeds maximum allowed value of " +
-    Envelope.acceptedConstraints.maxSize
+  override def toString = "constraints.maxSize exceeds maximum allowed value of "
+    //formatAsKiloOrMegabytes(EnvelopeHandler.acceptedConstraints.maxSize)
 }
 
 case object InvalidMaxSizePerItemConstraintError extends EnvelopeInvalidConstraintError {
-  override def toString = "constraints.maxSizePerItem exceeds maximum allowed value of " +
-    Envelope.acceptedConstraints.maxSizePerItem
+  override def toString = "constraints.maxSizePerItem exceeds maximum allowed value of "
+    //formatAsKiloOrMegabytes(EnvelopeHandler.acceptedConstraints.maxSizePerItem)
 }
 
 case object InvalidMaxItemCountConstraintError extends EnvelopeInvalidConstraintError {
-  override def toString = s"constraints.maxItems must be between 1 and ${ Envelope.acceptedConstraints.maxItems }"
+  override def toString = s"constraints.maxItems must be between 1 and ${ EnvelopeHandler.acceptedConstraints.maxItems }"
 }
 
 case object EnvelopeSealedError extends EnvelopeCommandNotAccepted

@@ -9,11 +9,11 @@ import uk.gov.hmrc.fileupload.support._
 import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, QuarantineFile, StoreFile}
 
 
-class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions with FakeFrontendService {
+class DownloadEnvelopeHandlerIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions with FakeFrontendService {
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(10, Seconds), interval = Span(500, Millis))
 
-  feature("Download Envelope") {
+  feature("Download EnvelopeHandler") {
 
     scenario("A client can download an envelope including its file") {
 

@@ -19,8 +19,7 @@ package uk.gov.hmrc.fileupload.controllers
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.QueryStringBindable
-import uk.gov.hmrc.fileupload.read.envelope.Envelope.{ContentTypes, defaultContentTypes, defaultMaxItems,
-                                                      defaultMaxSize, defaultMaxSizePerItem}
+import uk.gov.hmrc.fileupload.read.envelope.Envelope.{ContentTypes, defaultContentTypes, defaultMaxItems, defaultMaxSize, defaultMaxSizePerItem}
 import uk.gov.hmrc.fileupload.read.envelope._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
@@ -39,6 +38,7 @@ object EnvelopeReport {
   implicit val fileStatusReads: Reads[FileStatus] = FileStatusReads
   implicit val fileStatusWrites: Writes[FileStatus] = FileStatusWrites
   implicit val fileReads: Format[File] = Json.format[File]
+  implicit val constraintsSizeFormats: Format[Size] = Json.format[Size]
   implicit val envelopeConstraintsReads: Format[EnvelopeConstraints] = Json.format[EnvelopeConstraints]
   implicit val createEnvelopeReads: Format[EnvelopeReport] = Json.format[EnvelopeReport]
 
@@ -69,32 +69,78 @@ case class EnvelopeConstraintsUserSetting(maxItems: Option[Int] = None,
                                           contentTypes: Option[List[ContentTypes]] = None)
 
 case class EnvelopeConstraints(maxItems: Int,
-                               maxSize: String,
-                               maxSizePerItem: String,
+                               maxSize: Size,
+                               maxSizePerItem: Size,
                                contentTypes: List[ContentTypes])
+
+
+sealed trait SizeUnit
+case object KB extends SizeUnit
+case object MB extends SizeUnit
+
+case class Size(asString: String) extends AnyVal {
+  def number: Long = CreateEnvelopeRequest.getToByteSize(asString)._1
+  def unit: SizeUnit = CreateEnvelopeRequest.getToByteSize(asString)._2
+}
 
 object CreateEnvelopeRequest {
 
   import play.api.libs.json._
 
   implicit val dateReads: Reads[DateTime] = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val constraintsSizeFormats: OFormat[Size] = Json.format[Size]
   implicit val constraintsFormats: OFormat[EnvelopeConstraintsUserSetting] = Json.format[EnvelopeConstraintsUserSetting]
   implicit val constraintsWriteFormats: OWrites[EnvelopeConstraints] = Json.writes[EnvelopeConstraints]
   implicit val formats: OFormat[CreateEnvelopeRequest] = Json.format[CreateEnvelopeRequest]
 
   def formatUserEnvelopeConstraints(constraintsO: EnvelopeConstraintsUserSetting): Option[EnvelopeConstraints] = {
+    val maxSize = constraintsO.maxSize.getOrElse(defaultMaxSize)
+    val maxSizePerItem = constraintsO.maxSizePerItem.getOrElse(defaultMaxSizePerItem)
+    val contentTypes = constraintsO.contentTypes.getOrElse(defaultContentTypes)
+
     Some(EnvelopeConstraints(maxItems = constraintsO.maxItems.getOrElse(defaultMaxItems),
-                        maxSize = constraintsO.maxSize.getOrElse(defaultMaxSize).toUpperCase(),
-                        maxSizePerItem = constraintsO.maxSizePerItem.getOrElse(defaultMaxSizePerItem).toUpperCase(),
-                        contentTypes = checkContentTypes(constraintsO.contentTypes.getOrElse(defaultContentTypes))
+                        maxSize = Size(translateToByteSize(maxSize)),
+                        maxSizePerItem = Size(translateToByteSize(maxSizePerItem)),
+                        contentTypes = checkContentTypes(contentTypes)
         ) )
+  }
+
+  def translateToByteSize(size: String): String = {
+    if (size.isEmpty) throw new IllegalArgumentException(s"Invalid constraint input")
+    else {
+      val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+      size.toUpperCase match {
+        case sizeRegex(num, unit) =>
+          unit match {
+            case "KB" => size
+            case "MB" => size
+            case _ => throw new IllegalArgumentException(s"Invalid constraint input")
+          }
+        case _ => throw new IllegalArgumentException(s"Invalid constraint input")
+      }
+    }
+  }
+
+  def getToByteSize(size: String): (Int, SizeUnit) = {
+    if (size.isEmpty) throw new IllegalArgumentException(s"Invalid constraint input")
+    else {
+      val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+      size.toUpperCase match {
+        case sizeRegex(num, unit) =>
+          unit match {
+            case "KB" => (num.toInt, KB)
+            case "MB" => (num.toInt, MB)
+            case _ => throw new IllegalArgumentException(s"Invalid constraint input")
+          }
+        case _ => throw new IllegalArgumentException(s"Invalid constraint input")
+      }
+    }
   }
 
   def checkContentTypes(contentTypes: List[ContentTypes]): List[ContentTypes] ={
     if (contentTypes.isEmpty) defaultContentTypes
     else contentTypes
   }
-
 }
 
 case class GetFileMetadataReport(id: FileId,

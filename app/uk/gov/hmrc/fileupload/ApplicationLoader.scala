@@ -166,9 +166,9 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   // command handler
   lazy val envelopeCommandHandler = {
     (command: EnvelopeCommand) =>
-      new Aggregate[EnvelopeCommand, write.envelope.Envelope](
-        handler = write.envelope.Envelope,
-        defaultState = () => write.envelope.Envelope(),
+      new Aggregate[EnvelopeCommand, write.envelope.EnvelopeHandler](
+        handler = write.envelope.EnvelopeHandler,
+        defaultState = () => write.envelope.EnvelopeHandler(),
         publish = publish,
         publishAllEvents = createReportHandler.handle(replay = false))(eventStore, defaultContext).handleCommand(command)
   }
