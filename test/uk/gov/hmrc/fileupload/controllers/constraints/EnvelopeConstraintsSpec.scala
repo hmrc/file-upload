@@ -19,7 +19,8 @@ package uk.gov.hmrc.fileupload.controllers.constraints
 import uk.gov.hmrc.fileupload.controllers.CreateEnvelopeRequest
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.fileupload.read.envelope.Envelope.{acceptedContentTypes, defaultContentTypes}
-import uk.gov.hmrc.fileupload.write.envelope.{Envelope, NotCreated}
+import uk.gov.hmrc.fileupload.write.envelope.NotCreated.checkContentTypes
+import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints.translateToByteSize
 
 class EnvelopeConstraintsSpec extends UnitSpec {
 
@@ -41,14 +42,13 @@ class EnvelopeConstraintsSpec extends UnitSpec {
         )
 
       validFormats.foreach { f =>
-        result.contains(CreateEnvelopeRequest.translateToByteSize(f)) shouldBe true
+        result.contains(translateToByteSize(f)) shouldBe true
       }
     }
 
     "fail for other formats" in {
       val invalidFormats =
         List(
-          "",
           "MB",
           "KB",
           "0MB",
@@ -60,17 +60,17 @@ class EnvelopeConstraintsSpec extends UnitSpec {
 
       invalidFormats.foreach { c =>
         intercept[Exception] {
-          CreateEnvelopeRequest.translateToByteSize(c)
-        }.getMessage shouldBe s"Invalid constraint input"
+          translateToByteSize(c)
+        }.getMessage shouldBe "Invalid constraint input"
       }
     }
   }
 
   "translateToByte " should {
     "parse a constraint in MB or KB to Long" in {
-      CreateEnvelopeRequest translateToByteSize "10MB" shouldBe (10 * 1024 * 1024)
+      translateToByteSize("10MB") shouldBe (10 * 1024 * 1024)
 
-      CreateEnvelopeRequest translateToByteSize "100KB" shouldBe (100 * 1024)
+      translateToByteSize("100KB") shouldBe (100 * 1024)
     }
   }
 
@@ -84,12 +84,12 @@ class EnvelopeConstraintsSpec extends UnitSpec {
     "return false if content type is invalid" in {
       val wrongType = CreateEnvelopeRequest checkContentTypes List("any")
       wrongType shouldBe List("any")
-      NotCreated.checkContentTypes(wrongType, acceptedContentTypes) shouldBe false
+      checkContentTypes(wrongType, acceptedContentTypes) shouldBe false
     }
     "return true if content type is valid" in {
       val goodType = CreateEnvelopeRequest checkContentTypes List("image/jpeg")
       goodType shouldBe List("image/jpeg")
-      NotCreated.checkContentTypes(goodType, acceptedContentTypes) shouldBe true
+      checkContentTypes(goodType, acceptedContentTypes) shouldBe true
 
     }
   }

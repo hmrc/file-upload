@@ -19,7 +19,6 @@ package uk.gov.hmrc.fileupload.write.envelope
 import org.joda.time.DateTime
 import play.api.libs.json._
 import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
-import uk.gov.hmrc.fileupload.utils.NumberFormatting.formatAsKiloOrMegabytes
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
@@ -184,12 +183,12 @@ sealed trait EnvelopeInvalidConstraintError extends EnvelopeCommandNotAccepted
 
 case object InvalidMaxSizeConstraintError extends EnvelopeInvalidConstraintError {
   override def toString = "constraints.maxSize exceeds maximum allowed value of " +
-    formatAsKiloOrMegabytes(Envelope.acceptedConstraints.maxSize)
+    Envelope.acceptedConstraints.maxSize
 }
 
 case object InvalidMaxSizePerItemConstraintError extends EnvelopeInvalidConstraintError {
   override def toString = "constraints.maxSizePerItem exceeds maximum allowed value of " +
-    formatAsKiloOrMegabytes(Envelope.acceptedConstraints.maxSizePerItem)
+    Envelope.acceptedConstraints.maxSizePerItem
 }
 
 case object InvalidMaxItemCountConstraintError extends EnvelopeInvalidConstraintError {

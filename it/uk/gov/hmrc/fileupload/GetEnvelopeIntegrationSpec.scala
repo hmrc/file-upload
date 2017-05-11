@@ -113,8 +113,8 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       val createResponse = createEnvelope(
         s"""{"constraints": {
            |"maxItems": 56,
-           |"maxSize": "10485760",
-           |"maxSizePerItem": "102400",
+           |"maxSize": "100MB",
+           |"maxSizePerItem": "10MB",
            |"contentTypes": ["application/pdf","image/jpeg"]}}""".stripMargin)
       createResponse.status should equal(CREATED)
       val envelopeId = envelopeIdFromHeader(createResponse)

@@ -25,9 +25,9 @@ import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
   type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
-  val acceptedConstraints = uk.gov.hmrc.fileupload.read.envelope.Envelope.acceptedConstraints
+  val acceptedConstraints: EnvelopeConstraints = uk.gov.hmrc.fileupload.read.envelope.Envelope.acceptedConstraints
 
-  override def handle = {
+  override def handle: PartialFunction[(EnvelopeCommand, Envelope), Xor[EnvelopeCommandNotAccepted, List[EventData]]] = {
     case (command: CreateEnvelope, envelope: Envelope) =>
         envelope.canCreate() match {
         case Xor.Left(error) => error
@@ -250,10 +250,9 @@ sealed trait State {
     }).getOrElse(fileNotFoundError)
 
 
-  def isValidSize(size: Long, defaultSize: Long): Boolean = {
-    (size <= defaultSize) && (size > 0)
+  def isValidSize(size: Long, acceptedSize: Long): Boolean = {
+    (size <= acceptedSize) && (size > 0)
   }
-
 }
 
 object NotCreated extends State {
@@ -265,8 +264,8 @@ object NotCreated extends State {
 
   override def canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints: EnvelopeConstraints, maxLimitConstraints: EnvelopeConstraints): CanResult = {
     if (userConstraints.maxItems > maxLimitConstraints.maxItems || userConstraints.maxItems < 1) envelopeMaxItemCountExceededError
-    else if (!isValidSize(userConstraints.maxSize, maxLimitConstraints.maxSize)) envelopeMaxSizeExceededError
-    else if (!isValidSize(userConstraints.maxSizePerItem, maxLimitConstraints.maxSizePerItem)) envelopeMaxSizePerItemExceededError
+    else if (!isValidSize(userConstraints.maxSizeInBytes, maxLimitConstraints.maxSizeInBytes)) envelopeMaxSizeExceededError
+    else if (!isValidSize(userConstraints.maxSizePerItemInBytes, maxLimitConstraints.maxSizePerItemInBytes)) envelopeMaxSizePerItemExceededError
     else if (!checkContentTypes(userConstraints.contentTypes, maxLimitConstraints.contentTypes)) envelopeContentTypesError
     else successResult
   }
@@ -310,8 +309,8 @@ object Open extends State {
     else if (files.size > constraints.maxItems) {
       Xor.Left(EnvelopeItemCountExceededError(constraints.maxItems, files.size))
     }
-    else if (files.map(_.fileLength).sum > constraints.maxSize) {
-      Xor.Left(EnvelopeMaxSizeExceededError(constraints.maxSize))
+    else if (files.map(_.fileLength).sum > constraints.maxSizeInBytes) {
+      Xor.Left(EnvelopeMaxSizeExceededError(constraints.maxSizeInBytes))
     }
     else {
       successResult
