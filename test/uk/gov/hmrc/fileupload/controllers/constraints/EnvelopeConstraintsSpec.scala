@@ -61,7 +61,7 @@ class EnvelopeConstraintsSpec extends UnitSpec {
       invalidFormats.foreach { c =>
         intercept[Exception] {
           translateToByteSize(c)
-        }.getMessage shouldBe """Invalid constraint input"""
+        }.getMessage shouldBe "Invalid constraint input"
       }
     }
   }
