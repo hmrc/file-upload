@@ -1,8 +1,12 @@
 package uk.gov.hmrc.fileupload
 
-import org.scalatest.time.{Millis, Minutes, Span}
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
+import org.scalatest.time.{Millis, Minutes, Seconds, Span}
 import play.api.libs.json.{JsValue, _}
+import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
+import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport.requestBodyWithConstraints
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, IntegrationSpec}
 import uk.gov.hmrc.fileupload.write.envelope.QuarantineFile
 
@@ -13,7 +17,10 @@ import uk.gov.hmrc.fileupload.write.envelope.QuarantineFile
   */
 class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions with EventsActions {
 
-  implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Minutes), interval = Span(5, Millis))
+  val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  val today = new DateTime().plusMinutes(10)
+
+  implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
 
   feature("Retrieve Envelope") {
 
@@ -109,46 +116,37 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
 
     scenario("GET Envelope responds with constraints on maxItems, maxSize and maxSizePerItem") {
 
-      Given("I have an envelope with constraints on maxItems, maxSize and maxSizePerItem")
-      val createResponse = createEnvelope(
-        s"""{"constraints": {
-           |"maxItems": 56,
-           |"maxSize": "100MB",
-           |"maxSizePerItem": "10MB",
-           |"contentTypes": ["application/pdf","image/jpeg"]}}""".stripMargin)
+      val formattedExpiryDate: String = formatter.print(today)
+
+      Given("I have an envelope with constraints on maxSize and maxSizePerItem but NOT maxItems")
+
+      val maxSize: String = "100MB"
+      val maxSizePerItem : String = "10MB"
+
+      val json = requestBodyWithConstraints(Map("formattedExpiryDate" -> formattedExpiryDate, "maxSize" -> maxSize, "maxSizePerItem" -> maxSizePerItem))
+      val createResponse: WSResponse = createEnvelope(json)
       createResponse.status should equal(CREATED)
       val envelopeId = envelopeIdFromHeader(createResponse)
 
-      eventually {
-        When("I call GET /file-upload/envelopes/:envelope-id")
-        val envelopeResponse = getEnvelopeFor(envelopeId)
+      When("I call GET /file-upload/envelopes/:envelope-id")
+      val envelopeResponse = getEnvelopeFor(envelopeId)
 
-        Then("I will receive a 200 Ok response")
-        envelopeResponse.status shouldBe OK
+      Then("I will receive a 200 Ok response")
+      envelopeResponse.status shouldBe OK
 
-        And("The envelope details will include the constraints as they were applied")
-        val json = Json.parse(envelopeResponse.body)
+      And("The envelope details will include the constraints as they were applied")
+      val jsonResponse = Json.parse(envelopeResponse.body)
 
-        (json \ "constraints") \ "maxItems" match {
-          case JsDefined(JsNumber(const)) =>
-            const shouldBe 56
-          case _ => JsError("expectation failed")
-        }
+      val actualMaxSizePerItem = ((jsonResponse \ "constraints") \ "maxSizePerItem").as[String]
+      actualMaxSizePerItem shouldBe "10MB"
 
-        (json \ "constraints") \ "maxSizePerItem" match {
-          case JsDefined(JsNumber(const)) =>
-            const shouldBe 102400
-          case _ => JsError("expectation failed")
-        }
+      val actualMaxSize = ((jsonResponse \ "constraints") \ "maxSize").as[String]
+      actualMaxSize shouldBe "100MB"
 
-        (json \ "constraints") \ "maxSize" match {
-          case JsDefined(JsNumber(const)) =>
-            const shouldBe 10485760
-          case _ => JsError("expectation failed")
-        }
+      And("the default maxItems of 100 should be applied")
+      val actualMaxItems = ((jsonResponse \ "constraints") \ "maxItems").as[Int]
+      actualMaxItems shouldBe 100
 
-
-      }
     }
   }
 }
