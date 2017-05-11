@@ -83,6 +83,8 @@ case class EnvelopeConstraints(maxItems: Int,
 object EnvelopeConstraints {
   private val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
 
+  private val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+
   def isAValidSize(size: String): Boolean = {
     if (size.isEmpty) false
     else {
