@@ -76,8 +76,8 @@ case class EnvelopeConstraints(maxItems: Int,
   require(isAValidSize(maxSize), s"constraints.maxSize exceeds maximum allowed value of ${Envelope.acceptedConstraints.maxSize}")
   require(isAValidSize(maxSizePerItem), s"constraints.maxSizePerItem exceeds maximum allowed value of ${Envelope.acceptedConstraints.maxSizePerItem}")
 
-  def maxSizeInBytes: Long = translateToByteSize(maxSize)
-  def maxSizePerItemInBytes: Long = translateToByteSize(maxSizePerItem)
+  val maxSizeInBytes: Long = translateToByteSize(maxSize)
+  val maxSizePerItemInBytes: Long = translateToByteSize(maxSizePerItem)
 }
 
 object EnvelopeConstraints {
