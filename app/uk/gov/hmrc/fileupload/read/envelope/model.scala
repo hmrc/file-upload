@@ -59,6 +59,7 @@ object Envelope {
   val acceptedContentTypes: List[ContentTypes] =
                                 List("application/pdf",
                                      "image/jpeg",
+                                     "text/xml",
                                      "application/xml",
                                      "application/vnd.ms-excel",
                                      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
@@ -66,7 +67,7 @@ object Envelope {
   val defaultMaxItems: Int = 100
   val defaultMaxSize: String = "25MB" //25 * 1024 * 1024
   val defaultMaxSizePerItem: String = "10MB" //10 * 1024 * 1024
-  val defaultContentTypes: List[ContentTypes] = List("application/pdf","image/jpeg","application/xml")
+  val defaultContentTypes: List[ContentTypes] = List("application/pdf","image/jpeg","application/xml","text/xml")
 
   val defaultConstraints =
     EnvelopeConstraints(maxItems = defaultMaxItems,
