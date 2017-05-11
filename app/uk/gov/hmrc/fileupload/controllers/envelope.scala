@@ -71,7 +71,49 @@ case class EnvelopeConstraintsUserSetting(maxItems: Option[Int] = None,
 case class EnvelopeConstraints(maxItems: Int,
                                maxSize: String,
                                maxSizePerItem: String,
-                               contentTypes: List[ContentTypes])
+                               contentTypes: List[ContentTypes]) {
+  import EnvelopeConstraints._
+  require(isAValidSize(maxSize), s"constraints.maxSize exceeds maximum allowed value of ${Envelope.acceptedConstraints.maxSize}")
+  require(isAValidSize(maxSizePerItem), s"constraints.maxSizePerItem exceeds maximum allowed value of ${Envelope.acceptedConstraints.maxSizePerItem}")
+
+  def maxSizeInBytes: Long = translateToByteSize(maxSize)
+  def maxSizePerItemInBytes: Long = translateToByteSize(maxSizePerItem)
+}
+
+object EnvelopeConstraints {
+
+  def isAValidSize(size: String): Boolean = {
+    if (size.isEmpty) false
+    else {
+      val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+      size.toUpperCase match {
+        case sizeRegex(num, unit) =>
+          unit match {
+            case "KB" => true
+            case "MB" => true
+            case _ => false
+          }
+        case _ => false
+      }
+    }
+  }
+
+  def translateToByteSize(size: String): Long = {
+    if (size.isEmpty) throw new IllegalArgumentException(s"Invalid constraint input")
+    else {
+      val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+      size.toUpperCase match {
+        case sizeRegex(num, unit) =>
+          unit match {
+            case "KB" => num.toInt * 1024
+            case "MB" => num.toInt * 1024 * 1024
+            case _ => throw new IllegalArgumentException(s"Invalid constraint input")
+          }
+        case _ => throw new IllegalArgumentException(s"Invalid constraint input")
+      }
+    }
+  }
+}
 
 object CreateEnvelopeRequest {
 
@@ -79,7 +121,6 @@ object CreateEnvelopeRequest {
 
   implicit val dateReads: Reads[DateTime] = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val constraintsFormats: OFormat[EnvelopeConstraintsUserSetting] = Json.format[EnvelopeConstraintsUserSetting]
-  implicit val constraintsWriteFormats: OWrites[EnvelopeConstraints] = Json.writes[EnvelopeConstraints]
   implicit val formats: OFormat[CreateEnvelopeRequest] = Json.format[CreateEnvelopeRequest]
 
   def formatUserEnvelopeConstraints(constraintsO: EnvelopeConstraintsUserSetting): Option[EnvelopeConstraints] = {

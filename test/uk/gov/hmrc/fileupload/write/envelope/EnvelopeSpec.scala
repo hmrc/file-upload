@@ -72,15 +72,6 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
       )
     }
 
-    scenario("Create new envelope with number of items exceeding limit") {
-      givenWhenThen(
-        --,
-        CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
-          Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(122, "100MB", "10MB", List("application/pdf","image/jpeg","application/xml")))),
-        InvalidMaxItemCountConstraintError
-      )
-    }
-
     scenario("Create new envelope with number of items < 1") {
       givenWhenThen(
         --,

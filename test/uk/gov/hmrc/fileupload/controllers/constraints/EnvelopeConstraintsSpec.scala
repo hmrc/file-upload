@@ -19,7 +19,8 @@ package uk.gov.hmrc.fileupload.controllers.constraints
 import uk.gov.hmrc.fileupload.controllers.CreateEnvelopeRequest
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.fileupload.read.envelope.Envelope.{acceptedContentTypes, defaultContentTypes}
-import uk.gov.hmrc.fileupload.write.envelope.NotCreated.{translateToByteSize,checkContentTypes}
+import uk.gov.hmrc.fileupload.write.envelope.NotCreated.checkContentTypes
+import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints.translateToByteSize
 
 class EnvelopeConstraintsSpec extends UnitSpec {
 

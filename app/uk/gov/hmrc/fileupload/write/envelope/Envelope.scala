@@ -250,26 +250,9 @@ sealed trait State {
     }).getOrElse(fileNotFoundError)
 
 
-  def isValidSize(size: String, acceptedSize: String): Boolean = {
-    (translateToByteSize(size) <= translateToByteSize(acceptedSize)) && (translateToByteSize(size) > 0)
+  def isValidSize(size: Long, acceptedSize: Long): Boolean = {
+    (size <= acceptedSize) && (size > 0)
   }
-
-  def translateToByteSize(size: String): Long = {
-    if (size.isEmpty) size.toLong
-    else {
-      val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
-      size.toUpperCase match {
-        case sizeRegex(num, unit) =>
-          unit match {
-            case "KB" => num.toInt * 1024
-            case "MB" => num.toInt * 1024 * 1024
-            case _ => throw new IllegalArgumentException(s"Invalid constraint input")
-          }
-        case _ => throw new IllegalArgumentException(s"Invalid constraint input")
-      }
-    }
-  }
-
 }
 
 object NotCreated extends State {
@@ -281,8 +264,8 @@ object NotCreated extends State {
 
   override def canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints: EnvelopeConstraints, maxLimitConstraints: EnvelopeConstraints): CanResult = {
     if (userConstraints.maxItems > maxLimitConstraints.maxItems || userConstraints.maxItems < 1) envelopeMaxItemCountExceededError
-    else if (!isValidSize(userConstraints.maxSize, maxLimitConstraints.maxSize)) envelopeMaxSizeExceededError
-    else if (!isValidSize(userConstraints.maxSizePerItem, maxLimitConstraints.maxSizePerItem)) envelopeMaxSizePerItemExceededError
+    else if (!isValidSize(userConstraints.maxSizeInBytes, maxLimitConstraints.maxSizeInBytes)) envelopeMaxSizeExceededError
+    else if (!isValidSize(userConstraints.maxSizePerItemInBytes, maxLimitConstraints.maxSizePerItemInBytes)) envelopeMaxSizePerItemExceededError
     else if (!checkContentTypes(userConstraints.contentTypes, maxLimitConstraints.contentTypes)) envelopeContentTypesError
     else successResult
   }
@@ -326,8 +309,8 @@ object Open extends State {
     else if (files.size > constraints.maxItems) {
       Xor.Left(EnvelopeItemCountExceededError(constraints.maxItems, files.size))
     }
-    else if (files.map(_.fileLength).sum > translateToByteSize(constraints.maxSize)) {
-      Xor.Left(EnvelopeMaxSizeExceededError(translateToByteSize(constraints.maxSize)))
+    else if (files.map(_.fileLength).sum > constraints.maxSizeInBytes) {
+      Xor.Left(EnvelopeMaxSizeExceededError(constraints.maxSizeInBytes))
     }
     else {
       successResult

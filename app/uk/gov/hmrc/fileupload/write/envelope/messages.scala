@@ -19,7 +19,6 @@ package uk.gov.hmrc.fileupload.write.envelope
 import org.joda.time.DateTime
 import play.api.libs.json._
 import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
-import uk.gov.hmrc.fileupload.utils.NumberFormatting.formatAsKiloOrMegabytes
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
