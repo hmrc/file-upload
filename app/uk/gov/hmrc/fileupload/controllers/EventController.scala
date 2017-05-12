@@ -21,7 +21,7 @@ import play.api.libs.json.Json
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.GetResult
-import uk.gov.hmrc.fileupload.write.infrastructure.{Event => DomainEvent, EventSerializer => _, _}
+import uk.gov.hmrc.fileupload.write.infrastructure.{StreamId, Event => DomainEvent, EventSerializer => _}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps

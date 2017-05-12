@@ -56,11 +56,11 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, writeConcern: WriteCo
                       reader: BSONDocumentReader[UnitOfWork],
                       writer: BSONDocumentWriter[UnitOfWork]) extends EventStore {
 
-  val collection = mongo().collection[BSONCollection]("events")
+  val collection: BSONCollection = mongo().collection[BSONCollection]("events")
 
   ensureIndex()
 
-  def ensureIndex() =
+  def ensureIndex(): Future[Boolean] =
     collection.indexesManager.ensure(Index(key = List("streamId" -> IndexType.Hashed), background = true))
 
   val duplicateKeyErrroCode = Some(11000)

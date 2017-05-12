@@ -34,9 +34,7 @@ class StatsActor(subscribe: (ActorRef, Class[_]) => Boolean,
                  deleteFileStored: (FileStored) => Unit)
                 (implicit executionContext: ExecutionContext) extends Actor {
 
-  override def preStart = {
-    subscribe(self, classOf[Event])
-  }
+  override def preStart = subscribe(self, classOf[Event])
 
   def receive = {
     case event: Event => event.eventData match {
@@ -59,5 +57,6 @@ object StatsActor {
             deleteVirusDetected: (VirusDetected) => Unit,
             deleteFileStored: (FileStored) => Unit)
            (implicit executionContext: ExecutionContext) =
-    Props(new StatsActor(subscribe = subscribe, notify = notify, save = save, deleteFileStored = deleteFileStored, deleteVirusDetected = deleteVirusDetected))
+    Props(new StatsActor(subscribe = subscribe, notify = notify, save = save, deleteFileStored = deleteFileStored,
+                         deleteVirusDetected = deleteVirusDetected))
 }

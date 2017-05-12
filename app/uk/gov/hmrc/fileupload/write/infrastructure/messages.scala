@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload.write.infrastructure
 
-import play.api.libs.json.{JsError, JsSuccess, _}
+import play.api.libs.json._
 import play.api.mvc.PathBindable
 import uk.gov.hmrc.play.binders.SimpleObjectBinder
 

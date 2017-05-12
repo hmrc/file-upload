@@ -32,9 +32,7 @@ class NotifierActor(subscribe: (ActorRef, Class[_]) => Boolean,
                     notify: (Notification, String) => Future[NotifyResult])
                    (implicit executionContext: ExecutionContext) extends Actor {
 
-  override def preStart = {
-    subscribe(self, classOf[Event])
-  }
+  override def preStart = subscribe(self, classOf[Event])
 
   def receive = {
     case event: Event => event.eventData match {

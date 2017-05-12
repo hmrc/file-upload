@@ -17,9 +17,8 @@
 package uk.gov.hmrc.fileupload.utils
 
 import java.util.concurrent.Executors
-
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 object Contexts {
-  val blockingDb = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
+  val blockingDb: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
 }

@@ -150,9 +150,8 @@ case object FileStatusAvailable extends FileStatus {
   override val name = "AVAILABLE"
 }
 
-// todo this needs reason as well, Why is it an error?
 case object FileStatusError extends FileStatus {
-  override val name = "ERROR"
+  override val name = "UnKnownFileStatusERROR"
 }
 
 object FileStatusWrites extends Writes[FileStatus] {

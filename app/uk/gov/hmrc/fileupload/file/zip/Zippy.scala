@@ -79,7 +79,7 @@ object Zippy {
     }
   }
 
-  def emptyZip() = {
+  def emptyZip(): Enumerator[Array[Byte]] = {
     val baos = new ByteArrayOutputStream()
     val out =  new ZipOutputStream(new BufferedOutputStream(baos))
     out.close()
