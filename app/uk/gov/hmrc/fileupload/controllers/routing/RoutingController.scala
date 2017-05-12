@@ -34,7 +34,7 @@ class RoutingController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNo
                         newId: () => String = () => UUID.randomUUID().toString)
                        (implicit executionContext: ExecutionContext) extends Controller {
 
-  def createRoutingRequest() = Action.async(parse.json) { implicit request =>
+  def createRoutingRequest(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[RouteEnvelopeRequest] { requestParams =>
       import requestParams._
       val requestId = newId()

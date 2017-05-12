@@ -17,11 +17,11 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, Writes}
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.GetResult
-import uk.gov.hmrc.fileupload.write.infrastructure.{Event => DomainEvent, EventSerializer => _, _}
+import uk.gov.hmrc.fileupload.write.infrastructure.{Event => DomainEvent, StreamId}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -30,9 +30,9 @@ class EventController(unitOfWorks: StreamId => Future[GetResult],
                       publishAllEvents: Seq[DomainEvent] => Unit)
                      (implicit executionContext: ExecutionContext) extends Controller {
 
-  implicit val eventWrites = EventSerializer.eventWrite
+  implicit val eventWrites: Writes[DomainEvent] = EventSerializer.eventWrite
 
-  def get(streamId: StreamId) = Action.async { implicit request =>
+  def get(streamId: StreamId): Action[AnyContent] = Action.async { implicit request =>
     unitOfWorks(streamId) map {
       case Xor.Right(r) =>
         Ok(Json.toJson(r.flatMap(_.events)))
@@ -41,7 +41,7 @@ class EventController(unitOfWorks: StreamId => Future[GetResult],
     }
   }
 
-  def replay(streamId: StreamId) = Action.async { implicit request =>
+  def replay(streamId: StreamId): Action[AnyContent] = Action.async { implicit request =>
     unitOfWorks(streamId).map {
       case Xor.Right(sequence) =>
         publishAllEvents(sequence.flatMap(_.events))

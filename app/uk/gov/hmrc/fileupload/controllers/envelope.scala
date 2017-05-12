@@ -88,7 +88,7 @@ object EnvelopeConstraints {
     if (size.isEmpty) false
     else {
       size.toUpperCase match {
-        case sizeRegex(num, unit) =>
+        case sizeRegex(_, unit) =>
           unit match {
             case "KB" => true
             case "MB" => true

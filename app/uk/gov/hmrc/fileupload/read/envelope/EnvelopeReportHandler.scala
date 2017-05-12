@@ -20,7 +20,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import uk.gov.hmrc.fileupload.read.envelope.Repository.{DeleteResult, UpdateResult}
 import uk.gov.hmrc.fileupload.read.infrastructure.ReportHandler
 import uk.gov.hmrc.fileupload.write.envelope._
-import uk.gov.hmrc.fileupload.write.infrastructure.{StreamId, Version}
+import uk.gov.hmrc.fileupload.write.infrastructure.{EventData, StreamId, Version}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -32,7 +32,7 @@ class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
                             override val updateVersion: (Version, Envelope) => Envelope = (v, e) => e.copy(version = v))
                            (implicit override val ec: ExecutionContext) extends ReportHandler[Envelope, EnvelopeId] {
 
-  override def apply = {
+  override def apply: PartialFunction[(Envelope, EventData), Option[Envelope]] = {
 
     case (s: Envelope, e: EnvelopeCreated) => Some {
       s.copy(callbackUrl = e.callbackUrl, expiryDate = e.expiryDate, metadata = e.metadata, constraints = e.constraints)
@@ -90,7 +90,7 @@ class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
     allFiles.filterNot(f => f.fileId == fileToBeRemoved)
   }
 
-  def fileStatusLens(envelope: Envelope, fileId: FileId, targetStatus: FileStatus) = {
+  def fileStatusLens(envelope: Envelope, fileId: FileId, targetStatus: FileStatus): Option[Seq[File]] = {
     envelope.files.map { files =>
       files.map { f =>
         if (f.fileId == fileId) {
@@ -102,7 +102,7 @@ class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
     }
   }
 
-  def fileLengthLens(envelope: Envelope, fileId: FileId, length: Long) = {
+  def fileLengthLens(envelope: Envelope, fileId: FileId, length: Long): Option[Seq[File]] = {
     envelope.files.map { files =>
       files.map { f =>
         if (f.fileId == fileId) {

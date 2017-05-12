@@ -28,9 +28,11 @@ import uk.gov.hmrc.fileupload.read.envelope.Service._
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
 import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
-import uk.gov.hmrc.fileupload.write.envelope.{Envelope => WriteEnvelope, _}
+import uk.gov.hmrc.fileupload.write.envelope.{CreateEnvelope, DeleteEnvelope, DeleteFile,
+                                              EnvelopeAlreadyCreatedError, EnvelopeCommand,
+                                              EnvelopeContentTypesError, EnvelopeNotFoundError, FileNotFoundError}
 import uk.gov.hmrc.fileupload.write.infrastructure._
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, _}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId, read}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -45,14 +47,14 @@ class EnvelopeController(withBasicAuth: BasicAuth,
                          getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope])
                         (implicit executionContext: ExecutionContext) extends Controller {
 
-  def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
+  def create(): Action[CreateEnvelopeRequest] = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
     val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata,
                                  CreateEnvelopeRequest.formatUserEnvelopeConstraints(request.body.constraints.getOrElse(EnvelopeConstraintsUserSetting())))
     handleCreate(envelopeLocation, command)
   }
 
-  def createWithId(id: EnvelopeId) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
+  def createWithId(id: EnvelopeId): Action[CreateEnvelopeRequest] = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
     val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata,
                                  CreateEnvelopeRequest.formatUserEnvelopeConstraints(request.body.constraints.getOrElse(EnvelopeConstraintsUserSetting())))
@@ -66,11 +68,10 @@ class EnvelopeController(withBasicAuth: BasicAuth,
       case Xor.Left(EnvelopeAlreadyCreatedError) => ExceptionHandler(BAD_REQUEST, "Envelope already created")
       case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
       case Xor.Left(error) => ExceptionHandler(BAD_REQUEST, s"Envelope not created due to: $error")
-      case Xor.Left(error: EnvelopeInvalidConstraintError) => ExceptionHandler(BAD_REQUEST, error.toString)
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  def delete(id: EnvelopeId) = Action.async { implicit request =>
+  def delete(id: EnvelopeId): Action[AnyContent] = Action.async { implicit request =>
     Logger.debug(s"delete: EnvelopeId=$id")
 
     withBasicAuth {
@@ -83,7 +84,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     }
   }
 
-  def deleteFile(id: EnvelopeId, fileId: FileId) = Action.async { request =>
+  def deleteFile(id: EnvelopeId, fileId: FileId): Action[AnyContent] = Action.async { _ =>
     Logger.debug(s"deleteFile: EnvelopeId=$id fileId=$fileId")
 
     handleCommand(DeleteFile(id, fileId)).map {
@@ -94,7 +95,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  def show(id: EnvelopeId) = Action.async {
+  def show(id: EnvelopeId): Action[AnyContent] = Action.async {
     import EnvelopeReport._
     Logger.debug(s"show: EnvelopeId=$id")
 
@@ -113,7 +114,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     Ok.chunked(fromPublisher(enumeratorToPublisher(enumerator.map(e => Json.toJson(fromEnvelope(e))))))
   }
 
-  def retrieveMetadata(id: EnvelopeId, fileId: FileId) = Action.async { request =>
+  def retrieveMetadata(id: EnvelopeId, fileId: FileId): Action[AnyContent] = Action.async { _ =>
     Logger.debug(s"retrieveMetadata: envelopeId=$id fileId=$fileId")
     import GetFileMetadataReport._
 
@@ -125,14 +126,14 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  def inProgressFiles() = Action.async {
+  def inProgressFiles(): Action[AnyContent] = Action.async {
     findAllInProgressFile().map {
       case Xor.Right(inProgressFiles) => Ok(Json.toJson(inProgressFiles))
-      case Xor.Left(error) => InternalServerError("It was not possible to retrieve in progress files")
+      case Xor.Left(_) => InternalServerError("It was not possible to retrieve in progress files")
     }
   }
 
-  def deleteInProgressFileByRefId(fileRefId: FileRefId) = Action.async {
+  def deleteInProgressFileByRefId(fileRefId: FileRefId): Action[AnyContent] = Action.async {
     deleteInProgressFile(fileRefId).map {
       case true => Ok
       case false => InternalServerError("It was not possible to delete the in progress file")

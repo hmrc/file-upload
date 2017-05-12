@@ -52,7 +52,7 @@ class FileController(withBasicAuth: BasicAuth,
                      handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
                     (implicit executionContext: ExecutionContext) extends Controller {
 
-  def downloadFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { implicit request =>
+  def downloadFile(envelopeId: EnvelopeId, fileId: FileId): Action[AnyContent] = Action.async { implicit request =>
     Logger.debug(s"downloadFile: EnvelopeId=$envelopeId fileId=$fileId")
 
     withBasicAuth {
@@ -66,7 +66,7 @@ class FileController(withBasicAuth: BasicAuth,
                   CONTENT_LENGTH -> s"$length",
                   CONTENT_TYPE -> "application/octet-stream")
             }
-          case unexpectedValues => throw new Exception() //todo (konrad) make sure length is not an Option anymore
+          case _ => throw new Exception()
         }.getOrElse {
           Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId"))
         }

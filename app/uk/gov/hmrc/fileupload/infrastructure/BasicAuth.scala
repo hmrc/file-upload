@@ -27,7 +27,7 @@ import scala.concurrent.Future
 trait BasicAuth {
   def userAuthorised(credentials: Option[String]): Boolean
 
-  def apply(block: => Future[Result])(implicit request: RequestHeader) = {
+  def apply(block: => Future[Result])(implicit request: RequestHeader): Future[Result] = {
     val maybeCredentials = request.headers.get(HeaderNames.AUTHORIZATION)
     if (userAuthorised(maybeCredentials)) {
       block
@@ -51,7 +51,7 @@ object AlwaysAuthorisedBasicAuth extends BasicAuth {
 
 object BasicAuth {
 
-  def apply(config: BasicAuthConfiguration) = {
+  def apply(config: BasicAuthConfiguration): BasicAuth = {
     config match {
       case BasicAuthDisabled => AlwaysAuthorisedBasicAuth
       case BasicAuthEnabled(users) => new AuthorisingBasicAuth(users)

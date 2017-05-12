@@ -20,7 +20,7 @@ import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.RequestHeader
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
-import uk.gov.hmrc.fileupload.{controllers => controllers}
+import uk.gov.hmrc.fileupload.controllers
 
 object OutputForTransfer {
   def apply(envelopes: Seq[Envelope])(implicit rh: RequestHeader): JsValue = {
@@ -80,7 +80,7 @@ object OutputForTransfer {
     )
   }
 
-  def formatDateAsUtc(date: DateTime) = date.toString("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  def formatDateAsUtc(date: DateTime): String = date.toString("yyyy-MM-dd'T'HH:mm:ss'Z'")
 
   object URLs {
     def envelopesPerDestination(implicit rh: RequestHeader): String = {
