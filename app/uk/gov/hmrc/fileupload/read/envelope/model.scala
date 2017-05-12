@@ -150,9 +150,8 @@ case object FileStatusAvailable extends FileStatus {
   override val name = "AVAILABLE"
 }
 
-// todo this needs reason as well, Why is it an error?
 case object FileStatusError extends FileStatus {
-  override val name = "ERROR"
+  override val name = "UnKnownFileStatusERROR"
 }
 
 object FileStatusWrites extends Writes[FileStatus] {
@@ -160,7 +159,10 @@ object FileStatusWrites extends Writes[FileStatus] {
 }
 
 object FileStatusReads extends Reads[FileStatus] {
-  def reads(value: JsValue) = value.as[String] match {
+  def reads(value: JsValue): JsSuccess[_ >: FileStatusQuarantined.type
+                                       with FileStatusCleaned.type with FileStatusAvailable.type
+                                       with FileStatusError.type <: FileStatus with Product
+                                       with Serializable] = value.as[String] match {
     case FileStatusQuarantined.name => JsSuccess(FileStatusQuarantined)
     case FileStatusCleaned.name => JsSuccess(FileStatusCleaned)
     case FileStatusAvailable.name => JsSuccess(FileStatusAvailable)

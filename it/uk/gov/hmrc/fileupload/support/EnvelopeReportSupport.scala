@@ -1,12 +1,12 @@
 package uk.gov.hmrc.fileupload.support
 
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 
 object EnvelopeReportSupport extends Support {
 
-  def requestBodyAsJson(args: Map[String, Any] = Map.empty) = Json.parse(requestBody(args))
+  def requestBodyAsJson(args: Map[String, Any] = Map.empty): JsValue = Json.parse(requestBody(args))
 
-  def requestBody(args: Map[String, Any] = Map.empty) = s"""
+  def requestBody(args: Map[String, Any] = Map.empty): String = s"""
      |{
      |  "callbackUrl": "${args.getOrElse("callbackUrl", "http://localhost:8900")}",
      |  "expiryDate": "${args.getOrElse("formattedExpiryDate", "2099-07-14T10:28:18Z")}",
@@ -18,7 +18,7 @@ object EnvelopeReportSupport extends Support {
 
 
 
-  def requestBodyWithConstraints(args: Map[String, Any] = Map.empty) = s"""
+  def requestBodyWithConstraints(args: Map[String, Any] = Map.empty): String = s"""
        |{
        |  "constraints" : {
        |    "contentTypes" : [

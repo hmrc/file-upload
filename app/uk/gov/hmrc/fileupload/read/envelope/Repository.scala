@@ -40,13 +40,13 @@ object Repository {
   case object NewerVersionAvailable extends UpdateError
   case class NotUpdatedError(message: String) extends UpdateError
 
-  val updateSuccess = Xor.right(UpdateSuccess)
+  val updateSuccess: Xor[Nothing, UpdateSuccess.type] = Xor.right(UpdateSuccess)
 
   type DeleteResult = Xor[DeleteError, DeleteSuccess.type]
   case object DeleteSuccess
   case class DeleteError(message: String)
 
-  val deleteSuccess = Xor.right(DeleteSuccess)
+  val deleteSuccess: Xor[Nothing, DeleteSuccess.type] = Xor.right(DeleteSuccess)
 
   def apply(mongo: () => DB with DBMetaCommands): Repository = new Repository(mongo)
 }
@@ -56,8 +56,9 @@ class Repository(mongo: () => DB with DBMetaCommands)
 
   val duplicateKeyErrroCode = Some(11000)
 
-  override def ensureIndexes(implicit ec:ExecutionContext) = {
-    collection.indexesManager.ensure(Index(key = List("status" -> IndexType.Ascending, "destination" -> IndexType.Ascending), background = true)).map(Seq(_))
+  override def ensureIndexes(implicit ec:ExecutionContext): Future[Seq[Boolean]] = {
+    collection.indexesManager.ensure(Index(key =
+      List("status" -> IndexType.Ascending, "destination" -> IndexType.Ascending), background = true)).map(Seq(_))
   }
 
   import Repository._
@@ -81,7 +82,7 @@ class Repository(mongo: () => DB with DBMetaCommands)
         Xor.left(NotUpdatedError("No report updated"))
       }
     }.recover {
-      case f: DatabaseException =>
+      case _: DatabaseException =>
         Xor.left(NewerVersionAvailable)
       case f: Throwable =>
         Xor.left(NotUpdatedError(f.getMessage))

@@ -16,14 +16,15 @@
 
 package uk.gov.hmrc.fileupload.file.zip
 
+import scala.concurrent.{ExecutionContext, Future, Promise}
+import java.util.Date
+import java.util.Calendar
+import java.util.zip.CRC32
+import java.nio.charset.Charset
+import play.api.libs.iteratee._
+import Utils._
+
 object ZipStream {
-  import scala.concurrent.{ExecutionContext, Future, Promise}
-  import java.util.Date
-  import java.util.Calendar
-  import java.util.zip.CRC32
-  import java.nio.charset.Charset
-  import play.api.libs.iteratee._
-  import Utils._
 
   case class ZipInfo(filename: Bytes, date: Int, time: Int, compressType: Int,
                      comment: Bytes, extra: Bytes, createSystem: Int, createVersion: Int,
@@ -48,13 +49,13 @@ object ZipStream {
         extra
     }
 
-    def footer = {
+    def footer: Array[Byte] = {
       crc.littleInt ++
         fileSize.littleInt ++
         compressSize.littleInt
     }
 
-    def centDir = {
+    def centDir: Array[Byte] = {
       val diskNumber = 0
 
       val centDir = Array[Byte](0x50, 0x4b, 0x01, 0x02) ++
@@ -97,7 +98,7 @@ object ZipStream {
         cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.HOUR_OF_DAY),
         cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND))
 
-      val date = (dt(0) - 1980) << 9 | dt(1) << 5 | dt(2)
+      val date = (dt.head - 1980) << 9 | dt(1) << 5 | dt(2)
       val time = dt(3) << 11 | dt(4) << 5 | (dt(5) / 2)
 
       ZipInfo(
@@ -164,7 +165,8 @@ object ZipStream {
   object ZipStreamEnumerator {
 
     def apply(files: Seq[ZipFileInfo])(implicit executionContext: ExecutionContext): Enumerator[Bytes] = {
-      val (filesEn, infosSizeF) = files.foldLeft((Enumerator[Bytes](), Future.successful((Seq[ZipInfo](), 0)))) { case ((totalEn, infosSizeF), file) =>
+      val (filesEn, infosSizeF) = files.foldLeft((Enumerator[Bytes](), Future.successful((Seq[ZipInfo](), 0)))) {
+        case ((totalEn, infosSizeF), file) =>
         val nextF = infosSizeF map { case (infos, offset) =>
           val inf = ZipInfo.apply(file.name, file.modified, file.isDir)
 
@@ -183,7 +185,7 @@ object ZipStream {
               crcCalc.update(data)
               (crcCalc, size + data.length)
             } { case (crcCalc, totalSize) =>
-              val crc = crcCalc.getValue().asInstanceOf[Int]
+              val crc = crcCalc.getValue.asInstanceOf[Int]
 
               val infComplete = inf.copy(
                 headerOffset = offset,

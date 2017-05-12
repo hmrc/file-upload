@@ -20,13 +20,13 @@ import akka.stream.scaladsl.Source
 import cats.data.Xor
 import play.api.libs.iteratee.Enumeratee
 import play.api.libs.streams.Streams
-import play.api.mvc.{Action, Controller}
+import play.api.mvc.{Action, AnyContent, Controller}
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.file.zip.Zippy._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, OutputForTransfer}
-import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeNotFoundError, _}
+import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -38,7 +38,7 @@ class TransferController(withBasicAuth: BasicAuth,
                          zipEnvelope: EnvelopeId => Future[ZipResult])
                         (implicit executionContext: ExecutionContext) extends Controller {
 
-  def list() = Action.async { implicit request =>
+  def list(): Action[AnyContent] = Action.async { implicit request =>
     withBasicAuth {
       val maybeDestination = request.getQueryString("destination")
       getEnvelopesByDestination(maybeDestination).map { envelopes =>
@@ -47,7 +47,7 @@ class TransferController(withBasicAuth: BasicAuth,
     }
   }
 
-  def download(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId) = Action.async { implicit request =>
+  def download(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId): Action[AnyContent] = Action.async { implicit request =>
     zipEnvelope(envelopeId) map {
       case Xor.Right(stream) =>
         val keepOnlyNonEmptyArrays = Enumeratee.filter[Array[Byte]] { _.length > 0 }
@@ -62,7 +62,7 @@ class TransferController(withBasicAuth: BasicAuth,
     }
   }
 
-  def delete(envelopeId: EnvelopeId) = Action.async { implicit request =>
+  def delete(envelopeId: EnvelopeId): Action[AnyContent] = Action.async { implicit request =>
     handleCommand(ArchiveEnvelope(envelopeId)).map {
       case Xor.Right(_) => Ok
       case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)

@@ -49,8 +49,8 @@ case class FileData(length: Long = 0, data: Enumerator[Array[Byte]] = null)
 case class FileInfo(_id: String, chunkSize:Int, length: Long, uploadDate: DateTime, metadata: JsObject)
 
 object FileInfo {
-  implicit val dateReads = implicitly[Reads[BSONDateTime]].map(d => new DateTime(d.value))
-  implicit val dateWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val dateReads: Reads[DateTime] = implicitly[Reads[BSONDateTime]].map(d => new DateTime(d.value))
+  implicit val dateWrites: Writes[DateTime] = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val fileInfoFormat: Format[FileInfo] = Json.format[FileInfo]
 }
 
@@ -62,7 +62,7 @@ class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionCont
 
   ensureIndex()
 
-  def ensureIndex() =
+  def ensureIndex(): Unit =
     gfs.chunks.indexesManager.ensure(Index(List("files_id" -> Ascending, "n" -> Ascending), unique = true, background = true)).onComplete {
       case Success(result) => Logger.info(s"Index creation for chunks success $result")
       case Failure(t) => Logger.warn(s"Index creation for chunks failed ${ t.getMessage }")
