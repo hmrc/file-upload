@@ -37,7 +37,7 @@ class Aggregate[C <: Command, S](handler: Handler[C, S],
 
   val numOfRetry: Int = 15
 
-  def createUnitOfWork(streamId: StreamId, eventsData: List[EventData], version: Version) = {
+  def createUnitOfWork(streamId: StreamId, eventsData: List[EventData], version: Version): UnitOfWork = {
     val created = toCreated()
 
     UnitOfWork(streamId = streamId, version = version, created = created, events = eventsData.map { eventData =>
@@ -117,10 +117,9 @@ class Aggregate[C <: Command, S](handler: Handler[C, S],
             Logger.warn(s"Return with version conflict $command")
             Future.successful(error)
           }
-        case error => {
+        case error =>
           Logger.warn(s"Return with error $error for $command")
           Future.successful(error)
-        }
       }
     }
     run(numOfRetry, command)

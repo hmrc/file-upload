@@ -51,7 +51,7 @@ class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionCont
     case _ => false
   }
 
-  def all() = findAll()
+  def all(): Future[List[InProgressFile]] = findAll()
 
   def recreate()(implicit ec: ExecutionContext): Unit =
     Await.result(drop(ec), 5 seconds)

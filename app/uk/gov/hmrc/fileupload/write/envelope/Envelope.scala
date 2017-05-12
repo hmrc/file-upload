@@ -29,7 +29,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
 
   override def handle: PartialFunction[(EnvelopeCommand, Envelope), Xor[EnvelopeCommandNotAccepted, List[EventData]]] = {
     case (command: CreateEnvelope, envelope: Envelope) =>
-        envelope.canCreate() match {
+        envelope.canCreate match {
         case Xor.Left(error) => error
         case Xor.Right(_) => command.constraints match {
           case Some(value) => envelope.canCreateWithFilesCapacityAndSizeAndContentTypes(value, acceptedConstraints).map(_ =>
@@ -92,7 +92,7 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
       envelope.canArchive.map(_ => EnvelopeArchived(command.id))
   }
 
-  override def on = {
+  override def on: PartialFunction[(Envelope, EventData), Envelope] = {
     case (envelope: Envelope, e: EnvelopeCreated) =>
       envelope.copy(state = Open, constraints = e.constraints)
 
@@ -149,14 +149,14 @@ object Envelope extends Handler[EnvelopeCommand, Envelope] {
   }
 
   implicit class AddEventDataListToList(items: List[EventData]) {
-    def And(another: EventData) = items :+ another
+    def And(another: EventData): List[EventData] = items :+ another
   }
 
 }
 
 case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated, constraints: Option[EnvelopeConstraints] = None) {
 
-  def canCreate(): CanResult = state.canCreate()
+  def canCreate: CanResult = state.canCreate
 
   def canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints: EnvelopeConstraints,
                                                        maxLimitConstrains: EnvelopeConstraints): CanResult = {
@@ -201,7 +201,7 @@ sealed trait State {
 
   import State._
 
-  def canCreate(): CanResult = envelopeAlreadyCreatedError
+  def canCreate: CanResult = envelopeAlreadyCreatedError
 
   def canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints: EnvelopeConstraints,
                                         maxLimitConstrains: EnvelopeConstraints): CanResult = genericError
@@ -216,7 +216,7 @@ sealed trait State {
 
   def canSeal(files: Seq[File], destination: String, userConstraints: EnvelopeConstraints): CanResult = genericError
 
-  def canUnseal(): CanResult = genericError
+  def canUnseal: CanResult = genericError
 
   def canDelete: CanResult = genericError
 
@@ -259,7 +259,7 @@ object NotCreated extends State {
 
   import State._
 
-  override def canCreate(): CanResult =
+  override def canCreate: CanResult =
     successResult
 
   override def canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints: EnvelopeConstraints, maxLimitConstraints: EnvelopeConstraints): CanResult = {
@@ -286,7 +286,7 @@ object Open extends State {
   import State._
 
   override def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult =
-    files.get(fileId).map(f => successResult).getOrElse(fileNotFoundError)
+    files.get(fileId).map(_ => successResult).getOrElse(fileNotFoundError)
 
   // Could be useful in the future (should we check for name duplicates):
   // files.find(f => f.fileId != fileId && f.name == name).map(f => Xor.Left(FileNameDuplicateError(f.fileId))).getOrElse(successResult)
@@ -330,7 +330,7 @@ object Sealed extends State {
   override def canStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
     checkCanStoreFile(fileId, fileRefId, files)
 
-  override def canUnseal(): CanResult = successResult
+  override def canUnseal: CanResult = successResult
 
   override def canRoute(files: Seq[File]): CanResult = {
     val filesNotAvailable = files.filter(!_.isAvailable)
@@ -369,7 +369,7 @@ trait File {
 
   def fileLength: Long
 
-  def isSame(otherFileRefId: FileRefId) =
+  def isSame(otherFileRefId: FileRefId): Boolean =
     fileRefId == otherFileRefId
 
   def hasError: Boolean = false

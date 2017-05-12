@@ -26,7 +26,7 @@ import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.file.zip.Zippy._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, OutputForTransfer}
-import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeNotFoundError, _}
+import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
 
 import scala.concurrent.{ExecutionContext, Future}

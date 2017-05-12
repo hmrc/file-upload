@@ -20,7 +20,7 @@ import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.RequestHeader
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
-import uk.gov.hmrc.fileupload.{controllers => controllers}
+import uk.gov.hmrc.fileupload.controllers
 
 object OutputForTransfer {
   def apply(envelopes: Seq[Envelope])(implicit rh: RequestHeader): JsValue = {
