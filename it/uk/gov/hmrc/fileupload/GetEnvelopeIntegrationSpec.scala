@@ -146,6 +146,10 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       val actualMaxItems = ((jsonResponse \ "constraints") \ "maxItems").as[Int]
       actualMaxItems shouldBe 100
 
+      And("the default list of content types should be applied")
+      val actualContentTypes = ((jsonResponse \ "constraints") \ "contentTypes").as[List[String]]
+      actualContentTypes shouldBe List("application/pdf","image/jpeg","application/xml","text/xml")
+
     }
   }
 
@@ -170,15 +174,21 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       And("the constraints should be the defaults")
       val parsedBody = Json.parse(getEnvelopeResponse.body)
 
+      And("the default maxSizePerItem of 10MB should be applied")
       val actualMaxSizePerItem = ((parsedBody \ "constraints") \ "maxSizePerItem").as[String]
       actualMaxSizePerItem shouldBe "10MB"
 
+      And("the default maxSize of 25MB should be applied")
       val actualMaxSize = ((parsedBody \ "constraints") \ "maxSize").as[String]
       actualMaxSize shouldBe "25MB"
 
       And("the default maxItems of 100 should be applied")
       val actualMaxItems = ((parsedBody \ "constraints") \ "maxItems").as[Int]
       actualMaxItems shouldBe 100
+
+      And("the default list of content types should be applied")
+      val actualContentTypes = ((parsedBody \ "constraints") \ "contentTypes").as[List[String]]
+      actualContentTypes shouldBe List("application/pdf","image/jpeg","application/xml","text/xml")
 
     }
   }
