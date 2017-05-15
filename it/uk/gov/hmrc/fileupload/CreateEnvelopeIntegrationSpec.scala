@@ -224,4 +224,25 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
     }
   }
 
+
+
+  scenario("Create a new envelope with multiple invalid constraint values") {
+
+    /**
+      * FILE-423: Bug raised as this was incorrectly resulting in a HTTP 500 Server error
+      */
+
+    Given("a create envelope request with multiple invalid constraints")
+
+    val maxSizePerItem: String = "101MB"
+    val maxSize: String = "251MB"
+    val json = requestBodyWithConstraints(Map("formattedExpiryDate" -> formattedExpiryDate, "maxSizePerItem" -> maxSizePerItem, "maxSize" -> maxSize))
+
+    When("I invoke POST /file-upload/envelopes")
+    val response: WSResponse = createEnvelope(json)
+
+    Then("I will receive a 400 Bad Request response")
+    response.status shouldBe BAD_REQUEST
+  }
+
 }
