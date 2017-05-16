@@ -153,11 +153,11 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
     }
   }
 
-  feature("Create Envelope with out constraints") {
+  feature("Create Envelope without constraints") {
 
-    scenario("Create a new Envelope with out constraints") {
+    scenario("Create a new Envelope without constraints") {
 
-      Given("a create envelope request with out any constraint")
+      Given("a create envelope request without any constraint")
       val json = "{}"
 
       When("I invoke POST /file-upload/envelopes")
