@@ -17,7 +17,6 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
   /**
     * Integration tests for FILE-63 & FILE-64
     * Create Envelope and Get Envelope
-    *
     */
 
   feature("Create Envelope") {
@@ -105,8 +104,8 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
     scenario("Create a new envelope with a valid contentType constraint") {
 
       Given("a create envelope request constraining xml file types")
-      val contentType: String = "application/xml"
-      val json = requestBodyWithConstraints(Map("formattedExpiryDate" -> formattedExpiryDate, "contentType" -> contentType))
+      val contentType = s""" "application/xml" """
+      val json = requestBodyWithConstraints(Map("formattedExpiryDate" -> formattedExpiryDate, "contentType" -> contentType ))
 
       When("I invoke POST /file-upload/envelopes")
       val response: WSResponse = createEnvelope(json)
@@ -115,10 +114,31 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       response.status shouldBe CREATED
     }
 
+
+    scenario("Create a new envelope with all valid contentType constraints") {
+
+      val validContentTypes =
+        s"""   "application/pdf",
+           |         "image/jpeg",
+           |         "application/xml",
+           |         "application/vnd.ms-excel",
+           |         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" """.stripMargin
+
+      Given("a create envelope request constraining all valid file types")
+      val json = requestBodyWithConstraints(Map("formattedExpiryDate" -> formattedExpiryDate, "contentType" -> validContentTypes))
+
+      When("I invoke POST /file-upload/envelopes")
+      val response: WSResponse = createEnvelope(json)
+
+      Then("I will receive a 201 Created response")
+      response.status shouldBe CREATED
+
+    }
+
     scenario("Create a new envelope with an invalid contentType constraint") {
 
       Given("a create envelope request with invalid contentType constraint")
-      val contentType: String = "application/mumbo"
+      val contentType: String = s""" "application/mumbo" """
       val json = requestBodyWithConstraints(Map("formattedExpiryDate" -> formattedExpiryDate, "contentType" -> contentType))
 
       When("I invoke POST /file-upload/envelopes")

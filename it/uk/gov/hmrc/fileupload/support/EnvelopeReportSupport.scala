@@ -22,7 +22,7 @@ object EnvelopeReportSupport extends Support {
        |{
        |  "constraints" : {
        |    "contentTypes" : [
-       |      "${ args.getOrElse("contentType", "application/xml") }"
+       |      ${ args.getOrElse("contentType", s""""application/xml"""") }
        |    ],
        |    "maxSize" : "${ args.getOrElse("maxSize", "12MB") }",
        |    "maxSizePerItem" : "${ args.getOrElse("maxSizePerItem", "10MB") }"
