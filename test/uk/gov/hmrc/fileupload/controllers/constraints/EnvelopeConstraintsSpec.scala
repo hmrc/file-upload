@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.fileupload.controllers.constraints
 
-import uk.gov.hmrc.fileupload.controllers.CreateEnvelopeRequest
+import uk.gov.hmrc.fileupload.controllers.{CreateEnvelopeRequest, EnvelopeConstraints, EnvelopeConstraintsUserSetting}
 import uk.gov.hmrc.play.test.UnitSpec
-import uk.gov.hmrc.fileupload.read.envelope.Envelope.{acceptedContentTypes, defaultContentTypes}
+import uk.gov.hmrc.fileupload.read.envelope.Envelope._
 import uk.gov.hmrc.fileupload.write.envelope.NotCreated.checkContentTypes
 import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints.translateToByteSize
 
@@ -91,6 +91,24 @@ class EnvelopeConstraintsSpec extends UnitSpec {
       goodType shouldBe List("image/jpeg")
       checkContentTypes(goodType, acceptedContentTypes) shouldBe true
 
+    }
+  }
+
+  "Pass no envelope constraints to formatEnvelopeConstraints" should {
+    "return default constraints" in {
+      val envelopeConstraintsNone = EnvelopeConstraintsUserSetting(None,None,None,None)
+      val createDefaultConstraints = CreateEnvelopeRequest formatUserEnvelopeConstraints envelopeConstraintsNone
+      val expectedEnvelopeConstraints = Some(EnvelopeConstraints(defaultMaxItems,defaultMaxSize,defaultMaxSizePerItem,defaultContentTypes))
+      createDefaultConstraints shouldBe expectedEnvelopeConstraints
+    }
+  }
+
+  "Pass defined envelope constraints to formatEnvelopeConstraints" should {
+    "return defined constraints" in {
+      val envelopeConstraintsNone = EnvelopeConstraintsUserSetting(Some(10),Some("30MB"),Some("8MB"),Some(List("applicaiton/pdf")))
+      val createDefaultConstraints = CreateEnvelopeRequest formatUserEnvelopeConstraints envelopeConstraintsNone
+      val expectedEnvelopeConstraints = Some(EnvelopeConstraints(10,"30MB","8MB",List("applicaiton/pdf")))
+      createDefaultConstraints shouldBe expectedEnvelopeConstraints
     }
   }
 }

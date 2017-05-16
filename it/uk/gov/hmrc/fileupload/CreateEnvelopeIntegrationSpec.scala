@@ -244,8 +244,6 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
     }
   }
 
-
-
   scenario("Create a new envelope with multiple invalid constraint values") {
 
     /**
