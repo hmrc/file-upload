@@ -106,6 +106,28 @@ class RoutingControllerSpec extends UnitSpec with ApplicationComponents with Sca
       result.header.status shouldBe Status.BAD_REQUEST
       bodyOf(result) should include(errorMsg)
     }
+    "return 400 bad request if sealing was not possible for envelope item count exceeds is less than actual number of files" in {
+      val errorMsg = "Envelope item count exceeds maximum of 3, actual: 4"
+      val controller = newController(handleCommand = _ => Future.successful(
+        Xor.Left(EnvelopeItemCountExceededError(allowedItemCount = 3, actualItemCount = 4))
+      ))
+
+      val result = controller.createRoutingRequest()(validRequest).futureValue
+
+      result.header.status shouldBe Status.BAD_REQUEST
+      bodyOf(result) should include(errorMsg)
+    }
+    "return 400 bad request if sealing was not possible for envelope size exceeds maximum has been reached" in {
+      val errorMsg = "Envelope size exceeds maximum of 10.00 MB"
+      val controller = newController(handleCommand = _ => Future.successful(
+        Xor.Left(EnvelopeMaxSizeExceededError(maxSizeAllowed = 10 * 1024 * 1024))
+      ))
+
+      val result = controller.createRoutingRequest()(validRequest).futureValue
+
+      result.header.status shouldBe Status.BAD_REQUEST
+      bodyOf(result) should include(errorMsg)
+    }
   }
 
 }

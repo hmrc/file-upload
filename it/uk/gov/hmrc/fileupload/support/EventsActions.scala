@@ -4,7 +4,7 @@ import org.scalatest.Suite
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.fileupload.write.envelope.Formatters._
-import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, MarkFileAsInfected, QuarantineFile, StoreFile}
+import uk.gov.hmrc.fileupload.write.envelope._
 
 trait EventsActions extends ActionsSupport {
   this: Suite =>
