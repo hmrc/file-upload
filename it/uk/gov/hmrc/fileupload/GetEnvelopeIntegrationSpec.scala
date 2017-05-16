@@ -111,9 +111,7 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       envelopeResponse.status shouldBe NOT_FOUND
     }
 
-    //TODO: Need to include tests for contentType constraint
-
-    scenario("GET Envelope responds with constraints on maxItems, maxSize and maxSizePerItem") {
+    scenario("GET Envelope responds with constraints on maxItems, maxSize, maxSizePerItem and contentTypes") {
 
       val formattedExpiryDate: String = formatter.print(today)
 
@@ -145,6 +143,10 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       And("the default maxItems of 100 should be applied")
       val actualMaxItems = ((jsonResponse \ "constraints") \ "maxItems").as[Int]
       actualMaxItems shouldBe 100
+
+      And("the list of content types should be applied")
+      val actualContentTypes = ((jsonResponse \ "constraints") \ "contentTypes").as[List[String]]
+      actualContentTypes shouldBe List("application/xml")
     }
   }
 
