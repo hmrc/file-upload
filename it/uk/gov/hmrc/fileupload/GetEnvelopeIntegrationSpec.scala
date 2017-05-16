@@ -2,10 +2,9 @@ package uk.gov.hmrc.fileupload
 
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import org.scalatest.time.{Millis, Minutes, Seconds, Span}
+import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.json.{JsValue, _}
 import play.api.libs.ws.WSResponse
-import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
 import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport.requestBodyWithConstraints
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, IntegrationSpec}
 import uk.gov.hmrc.fileupload.write.envelope.QuarantineFile
@@ -112,9 +111,7 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       envelopeResponse.status shouldBe NOT_FOUND
     }
 
-    //TODO: Need to include tests for contentType constraint
-
-    scenario("GET Envelope responds with constraints on maxItems, maxSize and maxSizePerItem") {
+    scenario("GET Envelope responds with constraints on maxItems, maxSize, maxSizePerItem and contentTypes") {
 
       val formattedExpiryDate: String = formatter.print(today)
 
@@ -146,6 +143,49 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       And("the default maxItems of 100 should be applied")
       val actualMaxItems = ((jsonResponse \ "constraints") \ "maxItems").as[Int]
       actualMaxItems shouldBe 100
+
+      And("the list of content types should be applied")
+      val actualContentTypes = ((jsonResponse \ "constraints") \ "contentTypes").as[List[String]]
+      actualContentTypes shouldBe List("application/xml")
+    }
+  }
+
+  feature("Create Envelope without constraints") {
+
+    scenario("Create a new Envelope without constraints") {
+
+      Given("a create envelope request without any constraint")
+      val json = "{}"
+
+      When("I invoke POST /file-upload/envelopes")
+      val createEnvelopeResponse: WSResponse = createEnvelope(json)
+
+      Then("I will receive a 201 Created response")
+      createEnvelopeResponse.status shouldBe CREATED
+
+      When("I call GET /file-upload/envelopes/:envelope-id")
+      val envelopeId = envelopeIdFromHeader(createEnvelopeResponse)
+      val getEnvelopeResponse = getEnvelopeFor(envelopeId)
+      getEnvelopeResponse.status shouldBe OK
+
+      And("the constraints should be the defaults")
+      val parsedBody = Json.parse(getEnvelopeResponse.body)
+
+      And("the default maxSizePerItem of 10MB should be applied")
+      val actualMaxSizePerItem = ((parsedBody \ "constraints") \ "maxSizePerItem").as[String]
+      actualMaxSizePerItem shouldBe "10MB"
+
+      And("the default maxSize of 25MB should be applied")
+      val actualMaxSize = ((parsedBody \ "constraints") \ "maxSize").as[String]
+      actualMaxSize shouldBe "25MB"
+
+      And("the default maxItems of 100 should be applied")
+      val actualMaxItems = ((parsedBody \ "constraints") \ "maxItems").as[Int]
+      actualMaxItems shouldBe 100
+
+      And("the default list of content types should be applied")
+      val actualContentTypes = ((parsedBody \ "constraints") \ "contentTypes").as[List[String]]
+      actualContentTypes shouldBe List("application/pdf","image/jpeg","application/xml","text/xml")
 
     }
   }
