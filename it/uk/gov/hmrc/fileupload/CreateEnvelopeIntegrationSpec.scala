@@ -119,6 +119,7 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
 
       val validContentTypes =
         s"""   "application/pdf",
+           |         "text/xml",
            |         "image/jpeg",
            |         "application/xml",
            |         "application/vnd.ms-excel",
