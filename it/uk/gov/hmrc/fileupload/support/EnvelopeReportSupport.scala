@@ -16,8 +16,6 @@ object EnvelopeReportSupport extends Support {
      |}
 		 """.stripMargin
 
-
-
   def requestBodyWithConstraints(args: Map[String, Any] = Map.empty) = s"""
        |{
        |  "constraints" : {
@@ -33,6 +31,21 @@ object EnvelopeReportSupport extends Support {
        |    "anything" : "the caller wants to add to the envelope"
        |  }
        |}
+		 """.stripMargin
+
+  def requestBodyWithLowConstraints(args: Map[String, Any] = Map.empty) = s"""
+      |{
+      |  "constraints" : {
+      |    "maxItems" : ${ args.getOrElse("maxItems", 1) },
+      |    "maxSize" : "1MB",
+      |    "maxSizePerItem" : "1MB"
+      |  },
+      |  "callbackUrl" : "${args.getOrElse("callbackUrl", "http://localhost:8900")}",
+      |  "expiryDate" : "${args.getOrElse("formattedExpiryDate", "2099-07-14T10:28:18Z")}",
+      |  "metadata" : {
+      |    "anything" : "the caller wants to add to the envelope"
+      |  }
+      |}
 		 """.stripMargin
 
 }
