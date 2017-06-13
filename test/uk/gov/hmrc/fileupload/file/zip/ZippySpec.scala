@@ -117,7 +117,7 @@ class ZippySpec extends UnitSpec with ScalaFutures {
       Zippy.checkIsTheFileInS3(FileRefId(UUID.randomUUID().toString)) shouldBe false
       Zippy.checkIsTheFileInS3(FileRefId("067535a4-26e1-48cc-acc9-e4389ea7d683")) shouldBe false
       Zippy.checkIsTheFileInS3(FileRefId("524f1de1-8472-4638-9b2a-f1d51943a0f2")) shouldBe false
-      Zippy.checkIsTheFileInS3(FileRefId("")) shouldBe false
+      Zippy.checkIsTheFileInS3(FileRefId("")) shouldBe true
       Zippy.checkIsTheFileInS3(FileRefId("GDaUeyIiOYoFALm.fMwt4NBMEAAn3diu")) shouldBe true
       Zippy.checkIsTheFileInS3(FileRefId("DL6n5okV0ZmBJKO.UomyZq2K7GH1OoXU")) shouldBe true
       Zippy.checkIsTheFileInS3(FileRefId("Pt9fzI75VlHcEM5k_6ZmJzkE8YeG2jxX")) shouldBe true

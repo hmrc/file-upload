@@ -99,14 +99,11 @@ object Zippy {
   }
 
   //Todo: remove ALL following when mongoDB is not in use at all.
-
   def checkIsTheFileInS3(fileRefId:FileRefId): Boolean = {
-    val mongoRegex = "([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})".r
-    val s3Regex = """([\d\D.]{32})""".r
+    val mongoRegex = "([0-9a-f]{8})\\-([0-9a-f]{4})\\-([0-9a-f]{4})\\-([0-9a-f]{4})\\-([0-9a-f]{12})".r
     fileRefId.value match {
       case mongoRegex(_,_,_,_,_) => false
-      case s3Regex(_) => true
-      case _ => false
+      case _ => true
     }
   }
 
