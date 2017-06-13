@@ -36,6 +36,7 @@ import uk.gov.hmrc.fileupload.read.stats.Stats.FileFound
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Failure
 
 object Zippy {
 
@@ -45,11 +46,11 @@ object Zippy {
   case object EnvelopeNotRoutedYet extends ZipEnvelopeError
   case class ZipProcessingError(message: String) extends ZipEnvelopeError
 
-
   def zipEnvelope(getEnvelope: (EnvelopeId) => Future[FindResult],
                   retrieveS3File: (EnvelopeId, FileId) => Future[Source[ByteString, _]],
                   //Todo: remove else when mongoDB is not in use at all.
-                  retrieveMongoFile: (Envelope, FileId) => Future[GetFileResult])
+                  retrieveMongoFile: (Envelope, FileId) => Future[GetFileResult] =
+                    (_,_) => Future.failed(new UnsupportedOperationException))
                  (envelopeId: EnvelopeId)
                  (implicit ec: ExecutionContext, mat: Materializer): Future[ZipResult] = {
 
