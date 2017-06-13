@@ -24,6 +24,7 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.util.ByteString
 import cats.data.Xor
+import play.api.Logger
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.streams.Streams
 import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
@@ -60,6 +61,7 @@ object Zippy {
         val zipFiles = files.collect {
           case f =>
             val fileName = f.name.getOrElse(UUID.randomUUID().toString)
+            Logger.info(s"""zipEnvelope: envelopeId=${envelopeWithFiles._id} fileId=${f.fileId} fileRefId=${f.fileRefId} length=${f.length.getOrElse(-1)} uploadDate=${f.uploadDate.getOrElse("-")}""")
             ZipFileInfo(
               fileName, isDir = false, new java.util.Date(),
               Some(() => retrieveFile(envelopeWithFiles._id, f.fileId).map { sourceToEnumerator })
