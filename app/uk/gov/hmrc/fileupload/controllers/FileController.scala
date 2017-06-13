@@ -27,10 +27,10 @@ import play.api.mvc._
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
-import uk.gov.hmrc.fileupload.read.file.Service._
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeCommand
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.fileupload.file.zip.Zippy.checkIsTheFileInS3
+import uk.gov.hmrc.fileupload.file.zip.Zippy.{GetFileNotFoundError, GetFileResult, checkIsTheFileInS3}
+import uk.gov.hmrc.fileupload.read.stats.Stats.FileFound
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -51,7 +51,7 @@ class RetrieveFile(wsClient: WSClient, baseUrl: String) {
 
 class FileController(withBasicAuth: BasicAuth,
                      retrieveFileS3: (EnvelopeId, FileId) => Future[Source[ByteString, _]],
-                     retrieveFileMongo: (Envelope, FileId) => Future[GetFileMongoResult],
+                     retrieveFileMongo: (Envelope, FileId) => Future[GetFileResult],
                      withValidEnvelope: WithValidEnvelope,
                      handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
                     (implicit executionContext: ExecutionContext) extends Controller {

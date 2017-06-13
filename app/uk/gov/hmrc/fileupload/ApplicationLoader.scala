@@ -205,7 +205,8 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val fileController = {
     new FileController(
       withBasicAuth = withBasicAuth,
-      retrieveFile = getFileFromS3,
+      retrieveFileS3 = getFileFromS3,
+      retrieveFileMongo = getFileFromMongoDB,
       withValidEnvelope = withValidEnvelope,
       handleCommand = envelopeCommandHandler)
   }
