@@ -53,7 +53,7 @@ class FileController(withBasicAuth: BasicAuth,
                     (implicit executionContext: ExecutionContext) extends Controller {
 
   def downloadFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { implicit request =>
-    Logger.debug(s"downloadFile: EnvelopeId=$envelopeId fileId=$fileId")
+    Logger.info(s"downloadFile: envelopeId=$envelopeId fileId=$fileId")
 
     withBasicAuth {
       withValidEnvelope(envelopeId) { envelope =>
