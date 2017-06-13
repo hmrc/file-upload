@@ -21,13 +21,16 @@ import akka.util.ByteString
 import cats.data.Xor
 import play.api.Logger
 import play.api.http.HttpEntity
+import play.api.libs.streams.Streams
 import play.api.libs.ws.WSClient
 import play.api.mvc._
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
-import uk.gov.hmrc.fileupload.read.envelope.WithValidEnvelope
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
+import uk.gov.hmrc.fileupload.read.file.Service._
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeCommand
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
+import uk.gov.hmrc.fileupload.file.zip.Zippy.checkIsTheFileInS3
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -47,7 +50,8 @@ class RetrieveFile(wsClient: WSClient, baseUrl: String) {
 }
 
 class FileController(withBasicAuth: BasicAuth,
-                     retrieveFile: (EnvelopeId, FileId) => Future[Source[ByteString, _]],
+                     retrieveFileS3: (EnvelopeId, FileId) => Future[Source[ByteString, _]],
+                     retrieveFileMongo: (Envelope, FileId) => Future[GetFileMongoResult],
                      withValidEnvelope: WithValidEnvelope,
                      handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
                     (implicit executionContext: ExecutionContext) extends Controller {
@@ -57,15 +61,29 @@ class FileController(withBasicAuth: BasicAuth,
 
     withBasicAuth {
       withValidEnvelope(envelopeId) { envelope =>
-        val maybeFile = envelope.getFileById(fileId).map(f => (f.name, f.length))
+        val maybeFile = envelope.getFileById(fileId).map(f => (f.name, f.fileRefId, f.length))
         maybeFile.map {
-          case (filename, Some(length)) =>
-            retrieveFile(envelopeId, fileId).map { source =>
-              Ok.sendEntity(HttpEntity.Streamed(source, Some(length), Some("application/octet-stream")))
-                .withHeaders(CONTENT_DISPOSITION -> s"""attachment; filename="${filename.getOrElse("data")}"""",
-                  CONTENT_LENGTH -> s"$length",
-                  CONTENT_TYPE -> "application/octet-stream")
+          case (filename, fileRefId, Some(length)) =>
+            if(checkIsTheFileInS3(fileRefId)){
+              retrieveFileS3(envelopeId, fileId).map { source =>
+                Ok.sendEntity(HttpEntity.Streamed(source, Some(length), Some("application/octet-stream")))
+                  .withHeaders(CONTENT_DISPOSITION -> s"""attachment; filename="${filename.getOrElse("data")}"""",
+                    CONTENT_LENGTH -> s"$length",
+                    CONTENT_TYPE -> "application/octet-stream")
+              }
+            } else {
+              retrieveFileMongo(envelope, fileId).map {
+                case Xor.Right(FileFound(filename, length, data)) =>
+                  val byteArray = Source.fromPublisher(Streams.enumeratorToPublisher(data.map(ByteString.fromArray)))
+                  Ok.sendEntity(HttpEntity.Streamed(byteArray, Some(length), Some("application/octet-stream")))
+                    .withHeaders(CONTENT_DISPOSITION -> s"""attachment; filename="${filename.getOrElse("data")}"""",
+                      CONTENT_LENGTH -> s"$length",
+                      CONTENT_TYPE -> "application/octet-stream")
+                case Xor.Left(GetFileNotFoundError) =>
+                  ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId")
+              }
             }
+
           case _ => throw new Exception()
         }.getOrElse {
           Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId"))
