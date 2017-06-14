@@ -16,17 +16,14 @@
 
 package uk.gov.hmrc.fileupload.read.file
 
-import org.joda.time.{DateTime, Duration}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.iteratee.{Enumerator, Iteratee}
 import play.api.libs.json.JsString
-import reactivemongo.bson.BSONDocument
-import reactivemongo.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.mongo.MongoSpecSupport
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

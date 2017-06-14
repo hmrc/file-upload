@@ -1,5 +1,7 @@
 package uk.gov.hmrc.fileupload
 
+import java.util.UUID
+
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -13,7 +15,9 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActio
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(10, Seconds), interval = Span(500, Millis))
 
-  feature("Download Envelope") {
+  val uid = "GDaUeyIiOYoFALm.fMwt4NBMEAAn3diu"
+
+  feature("Download Envelope with files") {
 
     scenario("A client can download an envelope including its file") {
 
@@ -24,7 +28,7 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActio
       Given("I have an envelope with files")
       val envelopeId = createEnvelope()
       val fileId = FileId(s"fileId-${nextId()}")
-      val fileRefId = FileRefId()
+      val fileRefId = FileRefId(uid)
 
       And("File has been stored in quarantine on the front-end")
       sendCommandQuarantineFile(
@@ -59,6 +63,5 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActio
         response.body.contains("sampleFileContent") shouldBe true
       }
     }
-
   }
 }

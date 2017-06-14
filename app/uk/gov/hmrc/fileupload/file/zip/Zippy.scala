@@ -31,9 +31,12 @@ import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
 import uk.gov.hmrc.fileupload.file.zip.ZipStream.{ZipFileInfo, ZipStreamEnumerator}
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindEnvelopeNotFoundError, FindResult, FindServiceError}
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatusClosed}
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
+import uk.gov.hmrc.fileupload.read.file.FileData
+import uk.gov.hmrc.fileupload.read.stats.Stats.FileFound
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Failure
 
 object Zippy {
 
@@ -43,9 +46,11 @@ object Zippy {
   case object EnvelopeNotRoutedYet extends ZipEnvelopeError
   case class ZipProcessingError(message: String) extends ZipEnvelopeError
 
-
   def zipEnvelope(getEnvelope: (EnvelopeId) => Future[FindResult],
-                  retrieveFile: (EnvelopeId, FileId) => Future[Source[ByteString, _]])
+                  retrieveS3File: (EnvelopeId, FileId) => Future[Source[ByteString, _]],
+                  //Todo: remove else when mongoDB is not in use at all.
+                  retrieveMongoFile: (Envelope, FileId) => Future[GetFileResult] =
+                    (_,_) => Future.failed(new UnsupportedOperationException))
                  (envelopeId: EnvelopeId)
                  (implicit ec: ExecutionContext, mat: Materializer): Future[ZipResult] = {
 
@@ -61,10 +66,18 @@ object Zippy {
         val zipFiles = files.collect {
           case f =>
             val fileName = f.name.getOrElse(UUID.randomUUID().toString)
+            val fileInS3 = checkIsTheFileInS3(f.fileRefId)
             Logger.info(s"""zipEnvelope: envelopeId=${envelopeWithFiles._id} fileId=${f.fileId} fileRefId=${f.fileRefId} length=${f.length.getOrElse(-1)} uploadDate=${f.uploadDate.getOrElse("-")}""")
             ZipFileInfo(
               fileName, isDir = false, new java.util.Date(),
-              Some(() => retrieveFile(envelopeWithFiles._id, f.fileId).map { sourceToEnumerator })
+              Some(() => {
+                if (fileInS3) retrieveS3File(envelopeWithFiles._id, f.fileId).map { sourceToEnumerator }
+                //Todo: remove if-else when mongoDB is not in use at all.
+                else retrieveMongoFile(envelopeWithFiles, f.fileId).map {
+                  case Xor.Right(FileFound(name, length, data)) => data
+                  case Xor.Left(GetFileNotFoundError) => throw new Exception(s"File $envelopeId ${f.fileId} not found in repo" )
+                }
+              })
             )
         }
         Xor.right( ZipStreamEnumerator(zipFiles))
@@ -88,4 +101,28 @@ object Zippy {
     Enumerator(baos.toByteArray)
   }
 
+  //Todo: remove ALL following when mongoDB is not in use at all.
+  def checkIsTheFileInS3(fileRefId:FileRefId): Boolean = {
+    val mongoRegex = "([0-9a-f]{8})\\-([0-9a-f]{4})\\-([0-9a-f]{4})\\-([0-9a-f]{4})\\-([0-9a-f]{12})".r
+    fileRefId.value match {
+      case mongoRegex(_,_,_,_,_) => false
+      case _ => true
+    }
+  }
+
+  type GetFileResult = GetFileError Xor FileFound
+  sealed trait GetFileError
+  case object GetFileNotFoundError extends GetFileError
+
+  def retrieveFileFromMongoDB(getFileFromRepo: FileRefId => Future[Option[FileData]])
+                  (envelope: Envelope, fileId: FileId)
+                  (implicit ex: ExecutionContext): Future[GetFileResult] =
+    (for {
+      file <- envelope.getFileById(fileId)
+    } yield {
+      getFileFromRepo(file.fileRefId).map { maybeData =>
+        val fileWithClientProvidedName = maybeData.map { d => FileFound(file.name, d.length, d.data) }
+        Xor.fromOption(fileWithClientProvidedName, ifNone = GetFileNotFoundError)
+      }
+    }).getOrElse(Future.successful(Xor.left(GetFileNotFoundError)))
 }

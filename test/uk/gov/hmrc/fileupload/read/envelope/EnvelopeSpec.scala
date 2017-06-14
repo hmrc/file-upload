@@ -53,6 +53,7 @@ class EnvelopeSpec extends UnitSpec {
 	    val result: Envelope = Envelope.fromJson(json, id)
 
       val expectedResult = Envelope(id, Version(1), EnvelopeStatusOpen,
+                                    constraints = None,
                                     callbackUrl = Some("http://absolute.callback.url"),
                                     expiryDate = Some(formatter.parseDateTime(formattedExpiryDate)),
                                     metadata = Some(Json.obj("anything" -> "the caller wants to add to the envelope")))

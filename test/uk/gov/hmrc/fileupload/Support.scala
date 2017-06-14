@@ -52,11 +52,13 @@ object Support {
     Await.result(data.consumeData, 500.millis).toArray
   }
 
-  def envelope = new Envelope(_id = EnvelopeId(), callbackUrl = Some("http://absolute.callback.url"),
-    expiryDate = Some(DateTime.now().plusDays(1).withMillisOfSecond(0)),
-    metadata = Some(Json.obj("anything" -> "the caller wants to add to the envelope")),
-    destination = Some("destination"),
-    application = Some("application")
+  def envelope = new Envelope(_id = EnvelopeId(),
+                              constraints = None,
+                              callbackUrl = Some("http://absolute.callback.url"),
+                              expiryDate = Some(DateTime.now().plusDays(1).withMillisOfSecond(0)),
+                              metadata = Some(Json.obj("anything" -> "the caller wants to add to the envelope")),
+                              destination = Some("destination"),
+                              application = Some("application")
   )
 
   def envelopeWithAFile(fileId: FileId) = envelope.copy(files = Some(List(File(fileId, fileRefId = FileRefId("ref"), status = FileStatusQuarantined))))
