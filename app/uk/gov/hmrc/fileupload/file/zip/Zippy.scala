@@ -39,6 +39,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object Zippy {
 
+  import MongoS3Compability._
+
   type ZipResult = Xor[ZipEnvelopeError, Enumerator[Bytes]]
   sealed trait ZipEnvelopeError
   case object ZipEnvelopeNotFoundError extends ZipEnvelopeError
@@ -46,7 +48,10 @@ object Zippy {
   case class ZipProcessingError(message: String) extends ZipEnvelopeError
 
   def zipEnvelope(getEnvelope: (EnvelopeId) => Future[FindResult],
-                  retrieveFile: (EnvelopeId, FileId) => Future[Source[ByteString, _]])
+                  retrieveS3File: (EnvelopeId, FileId) => Future[Source[ByteString, _]],
+                  //Todo: remove else when mongoDB is not in use at all.
+                  retrieveMongoFile: (Envelope, FileId) => Future[GetFileResult] =
+                  (_,_) => Future.failed(new UnsupportedOperationException))
                  (envelopeId: EnvelopeId)
                  (implicit ec: ExecutionContext, mat: Materializer): Future[ZipResult] = {
 
@@ -62,11 +67,17 @@ object Zippy {
         val zipFiles = files.collect {
           case f =>
             val fileName = f.name.getOrElse(UUID.randomUUID().toString)
+            val fileInS3 = checkIsTheFileInS3(f.fileRefId)
             Logger.info(s"""zipEnvelope: envelopeId=${envelopeWithFiles._id} fileId=${f.fileId} fileRefId=${f.fileRefId} length=${f.length.getOrElse(-1)} uploadDate=${f.uploadDate.getOrElse("-")}""")
             ZipFileInfo(
               fileName, isDir = false, new java.util.Date(),
               Some(() => {
-                retrieveFile(envelopeWithFiles._id, f.fileId).map { sourceToEnumerator }
+                if (fileInS3) retrieveS3File(envelopeWithFiles._id, f.fileId).map { sourceToEnumerator }
+                //Todo: remove if-else when mongoDB is not in use at all.
+                else retrieveMongoFile(envelopeWithFiles, f.fileId).map {
+                  case Xor.Right(FileFound(name, length, data)) => data
+                  case Xor.Left(GetFileNotFoundError) => throw new Exception(s"File $envelopeId ${f.fileId} not found in repo" )
+                }
               })
             )
         }

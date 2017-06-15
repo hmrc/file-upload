@@ -223,7 +223,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val transferController = {
     val getEnvelopesByDestination = envelopeRepository.getByDestination _
     //Todo: remove getFileFromMongoDB when mongoDB is not in use at all.
-    val zipEnvelope = Zippy.zipEnvelope(findEnvelope, getFileFromS3) _
+    val zipEnvelope = Zippy.zipEnvelope(findEnvelope, getFileFromS3, getFileFromMongoDB) _
     new TransferController(withBasicAuth, getEnvelopesByDestination, envelopeCommandHandler, zipEnvelope)
   }
 
