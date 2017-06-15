@@ -36,7 +36,6 @@ import uk.gov.hmrc.fileupload.read.stats.Stats.FileFound
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Failure
 
 object Zippy {
 
@@ -47,10 +46,7 @@ object Zippy {
   case class ZipProcessingError(message: String) extends ZipEnvelopeError
 
   def zipEnvelope(getEnvelope: (EnvelopeId) => Future[FindResult],
-                  retrieveS3File: (EnvelopeId, FileId) => Future[Source[ByteString, _]],
-                  //Todo: remove else when mongoDB is not in use at all.
-                  retrieveMongoFile: (Envelope, FileId) => Future[GetFileResult] =
-                    (_,_) => Future.failed(new UnsupportedOperationException))
+                  retrieveFile: (EnvelopeId, FileId) => Future[Source[ByteString, _]])
                  (envelopeId: EnvelopeId)
                  (implicit ec: ExecutionContext, mat: Materializer): Future[ZipResult] = {
 
@@ -66,17 +62,11 @@ object Zippy {
         val zipFiles = files.collect {
           case f =>
             val fileName = f.name.getOrElse(UUID.randomUUID().toString)
-            val fileInS3 = checkIsTheFileInS3(f.fileRefId)
             Logger.info(s"""zipEnvelope: envelopeId=${envelopeWithFiles._id} fileId=${f.fileId} fileRefId=${f.fileRefId} length=${f.length.getOrElse(-1)} uploadDate=${f.uploadDate.getOrElse("-")}""")
             ZipFileInfo(
               fileName, isDir = false, new java.util.Date(),
               Some(() => {
-                if (fileInS3) retrieveS3File(envelopeWithFiles._id, f.fileId).map { sourceToEnumerator }
-                //Todo: remove if-else when mongoDB is not in use at all.
-                else retrieveMongoFile(envelopeWithFiles, f.fileId).map {
-                  case Xor.Right(FileFound(name, length, data)) => data
-                  case Xor.Left(GetFileNotFoundError) => throw new Exception(s"File $envelopeId ${f.fileId} not found in repo" )
-                }
+                retrieveFile(envelopeWithFiles._id, f.fileId).map { sourceToEnumerator }
               })
             )
         }
@@ -101,6 +91,9 @@ object Zippy {
     Enumerator(baos.toByteArray)
   }
 
+}
+
+object MongoS3Compability {
   //Todo: remove ALL following when mongoDB is not in use at all.
   def checkIsTheFileInS3(fileRefId:FileRefId): Boolean = {
     val mongoRegex = "([0-9a-f]{8})\\-([0-9a-f]{4})\\-([0-9a-f]{4})\\-([0-9a-f]{4})\\-([0-9a-f]{12})".r
@@ -115,8 +108,8 @@ object Zippy {
   case object GetFileNotFoundError extends GetFileError
 
   def retrieveFileFromMongoDB(getFileFromRepo: FileRefId => Future[Option[FileData]])
-                  (envelope: Envelope, fileId: FileId)
-                  (implicit ex: ExecutionContext): Future[GetFileResult] =
+                             (envelope: Envelope, fileId: FileId)
+                             (implicit ex: ExecutionContext): Future[GetFileResult] =
     (for {
       file <- envelope.getFileById(fileId)
     } yield {

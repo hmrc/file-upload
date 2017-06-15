@@ -29,11 +29,12 @@ import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeCommand
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.fileupload.file.zip.Zippy.{GetFileNotFoundError, GetFileResult, checkIsTheFileInS3}
 import uk.gov.hmrc.fileupload.read.stats.Stats.FileFound
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
+
+import uk.gov.hmrc.fileupload.file.zip.MongoS3Compability._
 
 class RetrieveFile(wsClient: WSClient, baseUrl: String) {
   def download(envelopeId: EnvelopeId, fileId: FileId)(implicit ec: ExecutionContext): Future[Source[ByteString, _]] = {
@@ -53,6 +54,7 @@ class FileController(withBasicAuth: BasicAuth,
                      retrieveFileS3: (EnvelopeId, FileId) => Future[Source[ByteString, _]],
                      withValidEnvelope: WithValidEnvelope,
                      handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
+                     //Todo: remove else when mongoDB is not in use at all.
                      retrieveFileMongo: (Envelope, FileId) => Future[GetFileResult] =
                       (_,_) => Future.failed(new UnsupportedOperationException))
                     (implicit executionContext: ExecutionContext) extends Controller {
@@ -65,7 +67,7 @@ class FileController(withBasicAuth: BasicAuth,
         val maybeFile = envelope.getFileById(fileId).map(f => (f.name, f.fileRefId, f.length))
         maybeFile.map {
           case (filename, fileRefId, Some(length)) =>
-            if(checkIsTheFileInS3(fileRefId)){
+            if (checkIsTheFileInS3(fileRefId)) {
               retrieveFileS3(envelopeId, fileId).map { source =>
                 Ok.sendEntity(HttpEntity.Streamed(source, Some(length), Some("application/octet-stream")))
                   .withHeaders(CONTENT_DISPOSITION -> s"""attachment; filename="${filename.getOrElse("data")}"""",
@@ -73,6 +75,7 @@ class FileController(withBasicAuth: BasicAuth,
                     CONTENT_TYPE -> "application/octet-stream")
               }
             } else {
+              //Todo: remove if-else when mongoDB is not in use at all.
               retrieveFileMongo(envelope, fileId).map {
                 case Xor.Right(FileFound(filenameI, lengthI, data)) => // I like inner
                   val byteArray = Source.fromPublisher(Streams.enumeratorToPublisher(data.map(ByteString.fromArray)))
