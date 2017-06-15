@@ -1,7 +1,5 @@
 package uk.gov.hmrc.fileupload
 
-import java.util.UUID
-
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
 import org.scalatest.time.{Millis, Seconds, Span}

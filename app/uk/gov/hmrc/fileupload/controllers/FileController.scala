@@ -51,9 +51,10 @@ class RetrieveFile(wsClient: WSClient, baseUrl: String) {
 
 class FileController(withBasicAuth: BasicAuth,
                      retrieveFileS3: (EnvelopeId, FileId) => Future[Source[ByteString, _]],
-                     retrieveFileMongo: (Envelope, FileId) => Future[GetFileResult],
                      withValidEnvelope: WithValidEnvelope,
-                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
+                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
+                     retrieveFileMongo: (Envelope, FileId) => Future[GetFileResult] =
+                      (_,_) => Future.failed(new UnsupportedOperationException))
                     (implicit executionContext: ExecutionContext) extends Controller {
 
   def downloadFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { implicit request =>
@@ -73,11 +74,11 @@ class FileController(withBasicAuth: BasicAuth,
               }
             } else {
               retrieveFileMongo(envelope, fileId).map {
-                case Xor.Right(FileFound(filename, length, data)) =>
+                case Xor.Right(FileFound(filenameI, lengthI, data)) => // I like inner
                   val byteArray = Source.fromPublisher(Streams.enumeratorToPublisher(data.map(ByteString.fromArray)))
-                  Ok.sendEntity(HttpEntity.Streamed(byteArray, Some(length), Some("application/octet-stream")))
-                    .withHeaders(CONTENT_DISPOSITION -> s"""attachment; filename="${filename.getOrElse("data")}"""",
-                      CONTENT_LENGTH -> s"$length",
+                  Ok.sendEntity(HttpEntity.Streamed(byteArray, Some(lengthI), Some("application/octet-stream")))
+                    .withHeaders(CONTENT_DISPOSITION -> s"""attachment; filename="${filenameI.getOrElse("data")}"""",
+                      CONTENT_LENGTH -> s"$lengthI",
                       CONTENT_TYPE -> "application/octet-stream")
                 case Xor.Left(GetFileNotFoundError) =>
                   ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId")
