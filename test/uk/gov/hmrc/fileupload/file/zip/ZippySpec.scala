@@ -27,12 +27,11 @@ import akka.util.ByteString
 import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
-import play.api.libs.iteratee.{Enumerator, Iteratee}
+import play.api.libs.iteratee.Iteratee
 import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
 import uk.gov.hmrc.fileupload.file.zip.Zippy._
 import uk.gov.hmrc.fileupload.read.envelope.Service._
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatusClosed, EnvelopeStatusOpen}
-import uk.gov.hmrc.fileupload.read.stats.Stats.FileFound
+import uk.gov.hmrc.fileupload.read.envelope.{EnvelopeStatusClosed, EnvelopeStatusOpen}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId, Support}
 import uk.gov.hmrc.play.test.UnitSpec
 
