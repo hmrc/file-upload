@@ -27,12 +27,11 @@ import akka.util.ByteString
 import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
-import play.api.libs.iteratee.{Enumerator, Iteratee}
+import play.api.libs.iteratee.Iteratee
 import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
 import uk.gov.hmrc.fileupload.file.zip.Zippy._
 import uk.gov.hmrc.fileupload.read.envelope.Service._
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatusClosed, EnvelopeStatusOpen}
-import uk.gov.hmrc.fileupload.read.stats.Stats.FileFound
+import uk.gov.hmrc.fileupload.read.envelope.{EnvelopeStatusClosed, EnvelopeStatusOpen}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId, Support}
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -108,16 +107,17 @@ class ZippySpec extends UnitSpec with ScalaFutures {
         zip.getNextEntry shouldBe null
       }
     }
-
-    "return Boolean when run checkIsTheFileInS3" in {
-      Zippy.checkIsTheFileInS3(FileRefId(UUID.randomUUID().toString)) shouldBe false
-      Zippy.checkIsTheFileInS3(FileRefId("067535a4-26e1-48cc-acc9-e4389ea7d683")) shouldBe false
-      Zippy.checkIsTheFileInS3(FileRefId("524f1de1-8472-4638-9b2a-f1d51943a0f2")) shouldBe false
-      Zippy.checkIsTheFileInS3(FileRefId("")) shouldBe true
-      Zippy.checkIsTheFileInS3(FileRefId("GDaUeyIiOYoFALm.fMwt4NBMEAAn3diu")) shouldBe true
-      Zippy.checkIsTheFileInS3(FileRefId("DL6n5okV0ZmBJKO.UomyZq2K7GH1OoXU")) shouldBe true
-      Zippy.checkIsTheFileInS3(FileRefId("Pt9fzI75VlHcEM5k_6ZmJzkE8YeG2jxX")) shouldBe true
-      Zippy.checkIsTheFileInS3(FileRefId("5R0IVheqf9dxMNfWz9j13yT9ZHYSbCvx")) shouldBe true
+    //Todo: remove else when mongoDB is not in use at all.
+    import MongoS3Compability._
+    "return Boolean when run checkIsTheFileInS3" in { // dependant on donwloading single file
+      checkIsTheFileInS3(FileRefId(UUID.randomUUID().toString)) shouldBe false
+      checkIsTheFileInS3(FileRefId("067535a4-26e1-48cc-acc9-e4389ea7d683")) shouldBe false
+      checkIsTheFileInS3(FileRefId("524f1de1-8472-4638-9b2a-f1d51943a0f2")) shouldBe false
+      checkIsTheFileInS3(FileRefId("")) shouldBe true
+      checkIsTheFileInS3(FileRefId("GDaUeyIiOYoFALm.fMwt4NBMEAAn3diu")) shouldBe true
+      checkIsTheFileInS3(FileRefId("DL6n5okV0ZmBJKO.UomyZq2K7GH1OoXU")) shouldBe true
+      checkIsTheFileInS3(FileRefId("Pt9fzI75VlHcEM5k_6ZmJzkE8YeG2jxX")) shouldBe true
+      checkIsTheFileInS3(FileRefId("5R0IVheqf9dxMNfWz9j13yT9ZHYSbCvx")) shouldBe true
     }
 
   }

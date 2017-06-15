@@ -38,7 +38,6 @@ import uk.gov.hmrc.fileupload.controllers.routing.RoutingController
 import uk.gov.hmrc.fileupload.controllers.transfer.TransferController
 import uk.gov.hmrc.fileupload.controllers.{AdminController, _}
 import uk.gov.hmrc.fileupload.file.zip.Zippy
-import uk.gov.hmrc.fileupload.file.zip.Zippy.GetFileResult
 import uk.gov.hmrc.fileupload.infrastructure._
 import uk.gov.hmrc.fileupload.manualdihealth.{Routes => HealthRoutes}
 import uk.gov.hmrc.fileupload.prod.Routes
@@ -205,9 +204,10 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val fileController = {
     new FileController(
       withBasicAuth = withBasicAuth,
-      retrieveFile = getFileFromS3,
+      retrieveFileS3 = getFileFromS3,
       withValidEnvelope = withValidEnvelope,
-      handleCommand = envelopeCommandHandler)
+      handleCommand = envelopeCommandHandler,
+      retrieveFileMongo = getFileFromMongoDB)
   }
 
   lazy val adminController = {
@@ -216,8 +216,9 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   }
 
   //Todo: remove below two lines when mongoDB is not in use at all.
+  import uk.gov.hmrc.fileupload.file.zip.MongoS3Compability._
   val getFileFromRepo: (FileRefId) => Future[Option[FileData]] = fileRepository.retrieveFile _
-  lazy val getFileFromMongoDB: (Envelope, FileId) => Future[GetFileResult] = Zippy.retrieveFileFromMongoDB(getFileFromRepo) _
+  lazy val getFileFromMongoDB: (Envelope, FileId) => Future[GetFileResult] = retrieveFileFromMongoDB(getFileFromRepo) _
 
   lazy val transferController = {
     val getEnvelopesByDestination = envelopeRepository.getByDestination _
