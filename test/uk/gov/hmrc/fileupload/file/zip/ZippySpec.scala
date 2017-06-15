@@ -45,10 +45,6 @@ class ZippySpec extends UnitSpec with ScalaFutures {
   val retrieveFileFormS3: (EnvelopeId, FileId) => Future[Source[ByteString, _]] = (_, _) =>
     Future.successful(Source.fromIterator(() => List(ByteString("one"), ByteString("two")).toIterator))
 
-  val retrieveFileFormMongoDB: (Envelope, FileId) => Future[GetFileResult] = (_, _) => Xor.right(
-    FileFound(name = Some("fileTest"), length = 100, data = Enumerator("one".getBytes(), "two".getBytes(), "three".getBytes()))
-  )
-
   implicit val actorSystem = ActorSystem()
   implicit val materializer = ActorMaterializer()
   implicit override val patienceConfig = PatienceConfig(timeout = Span(20, Seconds), interval = Span(20, Millis))
@@ -57,7 +53,7 @@ class ZippySpec extends UnitSpec with ScalaFutures {
     "provide a zip file containing an envelope including its files in S3" in {
       val envelope = Support.envelopeWithAFile(FileId("myfile")).copy(status = EnvelopeStatusClosed)
       val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Xor.right(envelope))
-      val zipResult = Zippy.zipEnvelope(getEnvelope, retrieveFileFormS3, retrieveFileFormMongoDB)(envelopeId = EnvelopeId("myid")).futureValue
+      val zipResult = Zippy.zipEnvelope(getEnvelope, retrieveFileFormS3)(envelopeId = EnvelopeId("myid")).futureValue
 
       zipResult.isRight shouldBe true
       zipResult.map(zipStream => {
@@ -69,7 +65,7 @@ class ZippySpec extends UnitSpec with ScalaFutures {
     "fail if envelope is not in Closed status" in {
       val envelope = Support.envelopeWithAFile(FileId("myfile")).copy(status = EnvelopeStatusOpen)
       val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Xor.right(envelope))
-      val zipResult = Zippy.zipEnvelope(getEnvelope, retrieveFileFormS3, retrieveFileFormMongoDB)(envelopeId = EnvelopeId("myid")).futureValue
+      val zipResult = Zippy.zipEnvelope(getEnvelope, retrieveFileFormS3)(envelopeId = EnvelopeId("myid")).futureValue
 
       zipResult.isLeft shouldBe true
       zipResult.leftMap{
@@ -80,7 +76,7 @@ class ZippySpec extends UnitSpec with ScalaFutures {
 
     "fail when no envelope is found" in {
       val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Xor.left(FindEnvelopeNotFoundError))
-      val zipResult = Zippy.zipEnvelope(getEnvelope, retrieveFileFormS3, retrieveFileFormMongoDB)(envelopeId = EnvelopeId("myid")).futureValue
+      val zipResult = Zippy.zipEnvelope(getEnvelope, retrieveFileFormS3)(envelopeId = EnvelopeId("myid")).futureValue
 
       zipResult.isLeft shouldBe true
       zipResult.leftMap {
@@ -91,7 +87,7 @@ class ZippySpec extends UnitSpec with ScalaFutures {
 
     "fail when no service error" in {
       val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Xor.left(FindServiceError("A service error")))
-      val zipResult = Zippy.zipEnvelope(getEnvelope, retrieveFileFormS3, retrieveFileFormMongoDB)(envelopeId = EnvelopeId("myid")).futureValue
+      val zipResult = Zippy.zipEnvelope(getEnvelope, retrieveFileFormS3)(envelopeId = EnvelopeId("myid")).futureValue
 
       zipResult.isLeft shouldBe true
       zipResult.leftMap {
@@ -103,7 +99,7 @@ class ZippySpec extends UnitSpec with ScalaFutures {
     "return empty zip when no file is found in the envelope" in {
       val envelopeWithNoFiles = Support.envelope.copy(status = EnvelopeStatusClosed)
       val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Xor.right(envelopeWithNoFiles))
-      val zipResult = Zippy.zipEnvelope(getEnvelope, retrieveFileFormS3, retrieveFileFormMongoDB)(envelopeId = EnvelopeId("myid")).futureValue
+      val zipResult = Zippy.zipEnvelope(getEnvelope, retrieveFileFormS3)(envelopeId = EnvelopeId("myid")).futureValue
 
       zipResult.isRight shouldBe true
       zipResult.map { zipStream =>
