@@ -20,6 +20,7 @@ import java.util.UUID
 
 import play.api.libs.json._
 import play.api.mvc.PathBindable
+import play.utils.UriEncoding
 import uk.gov.hmrc.play.binders.SimpleObjectBinder
 
 case class EnvelopeId(value: String = UUID.randomUUID().toString) extends AnyVal {
@@ -45,6 +46,8 @@ case class FileId(value: String = UUID.randomUUID().toString) extends AnyVal {
 }
 
 object FileId {
+  val charset = "UTF-8"
+
   implicit val writes = new Writes[FileId] {
     def writes(id: FileId): JsValue = JsString(id.value)
   }
@@ -55,7 +58,9 @@ object FileId {
     }
   }
   implicit val binder: PathBindable[FileId] =
-    new SimpleObjectBinder[FileId](FileId.apply, _.value)
+    new SimpleObjectBinder[FileId](
+      str => FileId(UriEncoding.decodePathSegment(str, charset)),
+      fId => UriEncoding.encodePathSegment(fId.value, charset) )
 }
 
 case class FileRefId(value: String) extends AnyVal {
