@@ -20,8 +20,8 @@ class RoutingEnvelopeSpec extends IntegrationSpec with EnvelopeActions with File
       val envelopeId = EnvelopeId(locationHeader.substring(locationHeader.lastIndexOf('/') + 1))
 
       And("I have two valid files are going to uploaded")
-      val fileOneId = FileId(s"fileId-${nextId()}")
-      val fileTwoId = FileId(s"fileId-${nextId()}")
+      val fileOneId = FileId(s"fileId-${nextUtf8String()}")
+      val fileTwoId = FileId(s"fileId-${nextUtf8String()}")
 
       And("I have two valid file-ref-id")
       val fileOneRefId = FileRefId(s"fileRefId-${nextId()}")
@@ -74,8 +74,8 @@ class RoutingEnvelopeSpec extends IntegrationSpec with EnvelopeActions with File
       val envelopeId = EnvelopeId(locationHeader.substring(locationHeader.lastIndexOf('/') + 1))
 
       And("I have two valid file-id")
-      val fileOneId = FileId(s"fileId-${nextId()}")
-      val fileTwoId = FileId(s"fileId-${nextId()}")
+      val fileOneId = FileId(s"fileId-${nextUtf8String()}")
+      val fileTwoId = FileId(s"fileId-${nextUtf8String()}")
 
       And("I have two valid file-ref-id")
       val fileOneRefId = FileRefId(s"fileRefId-${nextId()}")
