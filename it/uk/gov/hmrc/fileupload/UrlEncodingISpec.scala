@@ -9,15 +9,15 @@ import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, QuarantineFile, S
 
 class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions with FakeFrontendService{
 
-  val data = "{'name':'%2520'}"
+  val data = "{'name':'test'}"
 
-  feature("Odd Url Encoding") {
+  feature("Odd Url Encoding for FileId") {
 
-    scenario("Retrieve File Metadata with a FileId containing %2520c") {
+    scenario("Retrieve File Metadata with a FileId containing random UTF-8 string") {
 
       Given("I have a valid envelope ")
       val envelopeId = createEnvelope()
-      val fileId = FileId(s"fileId-${nextId()}" + "%2520c")
+      val fileId = FileId(s"fileId-$nextUtf8String")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
@@ -36,11 +36,11 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       fileResponse.status shouldBe OK
     }
 
-    scenario("Retrieve File Metadata with %2c as part of FileId") {
+    scenario("Retrieve File Metadata with FileId containing random UTF-8 string") {
 
       Given("I have a valid envelope ")
       val envelopeId = createEnvelope()
-      val fileId = FileId(s"fileId-${nextId()}" + "%2c")
+      val fileId = FileId(s"fileId-$nextUtf8String")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
@@ -64,10 +64,10 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       fileResponse.status shouldBe OK
     }
 
-    scenario("Upload and Download File") {
+    scenario("Upload and Download File  with FileId containing random UTF-8 string") {
       Given("I have a valid envelope ")
       val envelopeId = createEnvelope()
-      val fileId = FileId(s"fileId-${nextId()}" + "%2c")
+      val fileId = FileId(s"fileId-$nextUtf8String")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
@@ -95,10 +95,10 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       downloadEnvelope(envelopeId).status shouldBe OK
     }
 
-    scenario("Upload and Download Zip") {
+    scenario("Upload and Download Zip  with FileId containing random UTF-8 string") {
       Given("I have a valid envelope ")
       val envelopeId = createEnvelope()
-      val fileId = FileId(s"fileId-${nextId()}" + "%2c")
+      val fileId = FileId(s"fileId-$nextUtf8String")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
@@ -137,12 +137,12 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       }
     }
 
-    scenario("Delete an existing file with fileId containing %2c") {
+    scenario("Delete an existing file with FileId containing random UTF-8 string") {
       Given("I have a valid envelope-id")
       val envelopeId = createEnvelope()
 
       And("I have a valid file-id")
-      val fileId = FileId(s"fileId-${nextId() + "%2c"}")
+      val fileId = FileId(s"fileId-$nextUtf8String")
 
       And("I have a valid file-ref-id")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
