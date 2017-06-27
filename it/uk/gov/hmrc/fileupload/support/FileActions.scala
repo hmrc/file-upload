@@ -1,5 +1,7 @@
 package uk.gov.hmrc.fileupload.support
 
+import java.net.{URLDecoder, URLEncoder}
+
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
 import org.scalatest.Suite
@@ -14,6 +16,8 @@ trait FileActions extends ActionsSupport {
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
   }
 
+  def urlEncode(fileId: FileId): String = URLEncoder.encode(fileId.value,"UTF-8")
+
   def upload(data: Array[Byte], envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId): WSResponse =
     client
       .url(s"$url/envelopes/$envelopeId/files/$fileId/$fileRefId")
@@ -23,26 +27,19 @@ trait FileActions extends ActionsSupport {
 
   def delete(envelopeId: EnvelopeId, fileId: FileId): WSResponse =
     client
-      .url(s"$url/envelopes/$envelopeId/files/$fileId")
+      .url(s"$url/envelopes/$envelopeId/files/${urlEncode(fileId)}")
       .delete()
       .futureValue
 
   def download(envelopeId: EnvelopeId, fileId: FileId): WSResponse =
     client
-      .url(s"$url/envelopes/$envelopeId/files/$fileId/content").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic644("yuan:yaunspassword")))
+      .url(s"$url/envelopes/$envelopeId/files/${urlEncode(fileId)}/content").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic644("yuan:yaunspassword")))
       .get()
-      .futureValue
-
-  def updateFileMetadata(data: String, envelopeId: EnvelopeId, fileId: FileId): WSResponse =
-    client
-      .url(s"$url/envelopes/$envelopeId/files/$fileId/metadata" )
-      .withHeaders("Content-Type" -> "application/json")
-      .put(data.getBytes)
       .futureValue
 
   def getFileMetadataFor(envelopeId: EnvelopeId, fileId: FileId): WSResponse =
     client
-      .url(s"$url/envelopes/$envelopeId/files/$fileId/metadata")
+      .url(s"$url/envelopes/$envelopeId/files/${urlEncode(fileId)}/metadata")
       .get()
       .futureValue
 

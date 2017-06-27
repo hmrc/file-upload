@@ -1,11 +1,13 @@
 package uk.gov.hmrc.fileupload
 
+import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.WireMock._
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.WSResponse
-import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActions, IntegrationSpec}
+import uk.gov.hmrc.fileupload.support._
 import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, QuarantineFile, StoreFile}
 
-class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
+class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions with FakeFrontendService{
 
   val data = "{'name':'%2520'}"
 
@@ -77,11 +79,20 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       And("I have uploaded a file")
       val storeFile = sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.getBytes().length))
 
+      mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/file-upload/download/envelopes/$envelopeId/files/$fileId"))
+        .willReturn(WireMock.aResponse().withStatus(200).withBody(data.getBytes)))
+
       When("I call GET /file-upload/envelopes/:envelope-id/files/:file-id/content")
       val getFileResponse: WSResponse = download(envelopeId, fileId)
 
       Then("I will receive a 200 OK response")
       getFileResponse.status shouldBe OK
+
+      And("Routing request was submitted")
+      submitRoutingRequest(envelopeId, "TEST")
+
+      And("Download Zip")
+      downloadEnvelope(envelopeId).status shouldBe OK
     }
 
     scenario("Upload and Download Zip") {
@@ -97,7 +108,11 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
 
       And("I have uploaded a file")
-      val storeFile = sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.getBytes().length))
+      sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.getBytes().length))
+
+      mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/file-upload/download/envelopes/$envelopeId/files/$fileId"))
+        .willReturn(WireMock.aResponse().withStatus(200).withBody(data.getBytes)))
+
 
       And("Routing request was submitted")
       submitRoutingRequest(envelopeId, "TEST")
@@ -118,7 +133,7 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
         response.header("Transfer-Encoding") shouldBe Some("chunked")
 
         And("response body should include file content")
-        response.body.contains("sampleFileContent") shouldBe true
+        response.body.contains(data) shouldBe true
       }
     }
 
