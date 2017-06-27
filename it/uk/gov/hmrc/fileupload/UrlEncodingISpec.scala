@@ -33,12 +33,6 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       When("Retrieve File Details")
       val fileResponse = getFileMetadataFor(envelopeId,fileId)
 
-      println()
-      println()
-      println(fileResponse.body)
-      println()
-      println()
-
       Then("Receive 200")
       fileResponse.status shouldBe OK
     }
@@ -129,6 +123,29 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
         And("response body should include file content")
         response.body.contains("sampleFileContent") shouldBe true
       }
+    }
+
+    scenario("Delete an existing file with fileId containing %2c") {
+      Given("I have a valid envelope-id")
+      val envelopeId = createEnvelope()
+
+      And("I have a valid file-id")
+      val fileId = FileId(s"fileId-${nextId() + "%2c"}")
+
+      And("I have a valid file-ref-id")
+      val fileRefId = FileRefId(s"fileRefId-${nextId()}")
+
+      And("FileInQuarantineStored")
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
+
+      And("File is registered as stored")
+      sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, 0))
+
+      When(s"I invoke DELETE envelope/$envelopeId/files/$fileId")
+      val response: WSResponse = delete(envelopeId, fileId)
+
+      Then("I will receive a 200 OK response")
+      response.status shouldBe OK
     }
   }
 
