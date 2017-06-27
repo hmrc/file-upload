@@ -5,9 +5,6 @@ import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActions, IntegrationSpec}
 import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, QuarantineFile, StoreFile}
 
-/**
-  * Created by paul on 26/06/17.
-  */
 class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
 
   val data = "{'name':'%2520'}"

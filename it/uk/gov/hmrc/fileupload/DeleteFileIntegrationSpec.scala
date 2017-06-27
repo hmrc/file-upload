@@ -22,7 +22,7 @@ class DeleteFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val envelopeId = createEnvelope()
 
       And("I have a valid file-id")
-      val fileId = FileId(s"fileId-${nextUtf8String()}")
+      val fileId = FileId(s"fileId-${nextId()}")
 
       And("I have a valid file-ref-id")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
