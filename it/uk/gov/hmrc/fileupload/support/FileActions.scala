@@ -1,12 +1,11 @@
 package uk.gov.hmrc.fileupload.support
 
-import java.net.{URLDecoder, URLEncoder}
-
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
 import org.scalatest.Suite
 import play.api.http.HeaderNames
 import play.api.libs.ws.WSResponse
+import play.utils.UriEncoding
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
 trait FileActions extends ActionsSupport {
@@ -16,7 +15,8 @@ trait FileActions extends ActionsSupport {
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
   }
 
-  def urlEncode(fileId: FileId): String = URLEncoder.encode(fileId.value,"UTF-8")
+  def urlEncode(fileId: FileId) = UriEncoding.encodePathSegment(fileId.value, "UTF-8")
+
 
   def upload(data: Array[Byte], envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId): WSResponse =
     client
