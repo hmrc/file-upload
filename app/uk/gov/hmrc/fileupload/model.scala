@@ -24,7 +24,7 @@ import play.utils.UriEncoding
 import uk.gov.hmrc.play.binders.SimpleObjectBinder
 
 case class EnvelopeId(value: String = UUID.randomUUID().toString) extends AnyVal {
-  override def toString = value
+  override def toString: String = value
 }
 
 object EnvelopeId {
@@ -42,7 +42,7 @@ object EnvelopeId {
 }
 
 case class FileId(value: String = UUID.randomUUID().toString) extends AnyVal {
-  override def toString = value
+  override def toString: String = value
 }
 
 object FileId {
@@ -66,11 +66,15 @@ object FileId {
       fId => UriEncoding.encodePathSegment(fId.value, charset) )
 }
 
-case class FileRefId(value: String = UUID.randomUUID().toString) extends AnyVal {
-  override def toString = value
+case class FileRefId(value: String) extends AnyVal {
+  override def toString: String = value
 }
 
 object FileRefId {
+  // UUID was valid only for mongo refs, S3 has different meaning here
+  @deprecated("only for test compatibility", "migration issue workaround")
+  def apply(): FileRefId = FileRefId(UUID.randomUUID().toString)
+
   implicit val writes = new Writes[FileRefId] {
     def writes(id: FileRefId): JsValue = JsString(id.value)
   }
@@ -85,5 +89,5 @@ object FileRefId {
 }
 
 case class EventType(value: String) extends AnyVal {
-  override def toString = value
+  override def toString: String = value
 }

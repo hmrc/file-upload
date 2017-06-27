@@ -41,7 +41,8 @@ import uk.gov.hmrc.fileupload.file.zip.Zippy
 import uk.gov.hmrc.fileupload.infrastructure._
 import uk.gov.hmrc.fileupload.manualdihealth.{Routes => HealthRoutes}
 import uk.gov.hmrc.fileupload.prod.Routes
-import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => EnvelopeService, _}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope, Service => EnvelopeService, _}
+import uk.gov.hmrc.fileupload.read.file.FileData
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
 import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor}
 import uk.gov.hmrc.fileupload.routing.{Routes => RoutingRoutes}
@@ -58,6 +59,8 @@ import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode, ServicesConf
 import uk.gov.hmrc.play.filters.{NoCacheFilter, RecoveryFilter}
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
+
+import scala.concurrent.Future
 
 
 class ApplicationLoader extends play.api.ApplicationLoader {
@@ -131,7 +134,6 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   override lazy val httpErrorHandler = new GlobalErrorHandler
 
-
   lazy val auditedHttpExecute = PlayHttp.execute(MicroserviceAuditFilter.auditConnector,
     appName, Some(t => Logger.warn(t.getMessage, t))) _
 
@@ -202,9 +204,10 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val fileController = {
     new FileController(
       withBasicAuth = withBasicAuth,
-      retrieveFile = getFileFromS3,
+      retrieveFileS3 = getFileFromS3,
       withValidEnvelope = withValidEnvelope,
-      handleCommand = envelopeCommandHandler)
+      handleCommand = envelopeCommandHandler,
+      retrieveFileMongo = getFileFromMongoDB)
   }
 
   lazy val adminController = {
@@ -212,9 +215,15 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
       getChunks = fileChunksInfo)
   }
 
+  //Todo: remove below two lines when mongoDB is not in use at all.
+  import uk.gov.hmrc.fileupload.file.zip.MongoS3Compability._
+  val getFileFromRepo: (FileRefId) => Future[Option[FileData]] = fileRepository.retrieveFile _
+  lazy val getFileFromMongoDB: (Envelope, FileId) => Future[GetFileResult] = retrieveFileFromMongoDB(getFileFromRepo) _
+
   lazy val transferController = {
     val getEnvelopesByDestination = envelopeRepository.getByDestination _
-    val zipEnvelope = Zippy.zipEnvelope(findEnvelope, getFileFromS3) _
+    //Todo: remove getFileFromMongoDB when mongoDB is not in use at all.
+    val zipEnvelope = Zippy.zipEnvelope(findEnvelope, getFileFromS3, getFileFromMongoDB) _
     new TransferController(withBasicAuth, getEnvelopesByDestination, envelopeCommandHandler, zipEnvelope)
   }
 

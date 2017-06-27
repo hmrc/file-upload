@@ -13,7 +13,9 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActio
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(10, Seconds), interval = Span(500, Millis))
 
-  feature("Download Envelope") {
+  val uid = "GDaUeyIiOYoFALm.fMwt4NBMEAAn3diu"
+
+  feature("Download Envelope with files") {
 
     scenario("A client can download an envelope including its file") {
 
@@ -23,8 +25,9 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActio
 
       Given("I have an envelope with files")
       val envelopeId = createEnvelope()
-      val fileId = FileId(s"fileId-${nextUtf8String()}")
-      val fileRefId = FileRefId()
+
+      val fileId = FileId(s"fileId-${nextId()}")
+      val fileRefId = FileRefId(uid)
 
       And("File has been stored in quarantine on the front-end")
       sendCommandQuarantineFile(
@@ -59,6 +62,5 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActio
         response.body.contains("sampleFileContent") shouldBe true
       }
     }
-
   }
 }
