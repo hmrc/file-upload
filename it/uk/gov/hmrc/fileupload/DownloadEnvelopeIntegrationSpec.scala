@@ -26,7 +26,7 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActio
       Given("I have an envelope with files")
       val envelopeId = createEnvelope()
 
-      val fileId = FileId(s"fileId-${nextId()}")
+      val fileId = FileId(s"fileId-${nextUtf8String()}")
       val fileRefId = FileRefId(uid)
 
       And("File has been stored in quarantine on the front-end")
