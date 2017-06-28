@@ -60,7 +60,7 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActio
 
         And("response body should include file content")
         response.body.contains("sampleFileContent") shouldBe true
-      }
+      }(PatienceConfig(timeout = Span(5,Seconds),interval = Span(5,Seconds)))
     }
   }
 }

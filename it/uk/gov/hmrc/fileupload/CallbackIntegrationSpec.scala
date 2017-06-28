@@ -30,7 +30,9 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
       val response = sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
 
       response.status shouldBe OK
-      eventually { verifyQuarantinedCallbackReceived(callbackPath, envelopeId, fileId ) }
+      eventually {
+        verifyQuarantinedCallbackReceived(callbackPath, envelopeId, fileId )
+      }(PatienceConfig(timeout = Span(5,Seconds),interval = Span(5,Seconds)))
     }
 
     scenario("When novirusdetected event is received then the consuming service is notified at the callback specified in the envelope") {
@@ -48,7 +50,9 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
       val response = sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
 
       response.status shouldBe OK
-      eventually { verifyNoVirusDetectedCallbackReceived(callbackPath, envelopeId, fileId ) }
+      eventually {
+        verifyNoVirusDetectedCallbackReceived(callbackPath, envelopeId, fileId )
+      }(PatienceConfig(timeout = Span(5,Seconds),interval = Span(5,Seconds)))
     }
 
     scenario("When virusdetected event is received then the consuming service is notified at the callback specified in the envelope") {
@@ -66,7 +70,9 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
       val response = sendCommandMarkFileAsInfected(MarkFileAsInfected(envelopeId, fileId, fileRefId))
 
       response.status shouldBe OK
-      eventually { verifyVirusDetectedCallbackReceived(callbackPath, envelopeId, fileId ) }
+      eventually {
+        verifyVirusDetectedCallbackReceived(callbackPath, envelopeId, fileId )
+      }(PatienceConfig(timeout = Span(5,Seconds),interval = Span(5,Seconds)))
     }
 
     scenario("When stored event is received then the consuming service is notified at the callback specified in the envelope") {
@@ -85,7 +91,9 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
       sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, 0))
       val response = upload("test".getBytes, envelopeId, fileId, fileRefId)
 
-      eventually { verifyAvailableCallbackReceived(callbackPath, envelopeId, fileId ) }
+      eventually {
+        verifyAvailableCallbackReceived(callbackPath, envelopeId, fileId )
+      }(PatienceConfig(timeout = Span(5,Seconds),interval = Span(5,Seconds)))
     }
   }
 }

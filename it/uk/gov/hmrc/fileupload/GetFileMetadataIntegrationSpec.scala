@@ -1,5 +1,6 @@
 package uk.gov.hmrc.fileupload
 
+import org.scalatest.time.{Seconds, Span}
 import play.api.libs.json.JsObject
 import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
 import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport.prettify
@@ -36,7 +37,7 @@ class GetFileMetadataIntegrationSpec extends IntegrationSpec with EnvelopeAction
 
         And("the response body should contain the file reference details")
         prettify(response.body) shouldBe responseBody(envelopeId, fileId)
-      }
+      }(PatienceConfig(timeout = Span(5,Seconds),interval = Span(5,Seconds)))
     }
 
     scenario("GET metadata with invalid envelope id") {

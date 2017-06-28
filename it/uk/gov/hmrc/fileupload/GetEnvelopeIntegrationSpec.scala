@@ -56,7 +56,7 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
             const shouldBe 100
           case _ => JsError("expectation failed")
         }
-      }
+      }(PatienceConfig(timeout = Span(5,Seconds),interval = Span(5,Seconds)))
 
     }
 
