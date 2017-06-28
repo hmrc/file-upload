@@ -31,24 +31,27 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.getBytes().length))
 
       eventually {
-        When("I call GET /file-upload/envelopes/:envelope-id")
         val envelopeResponse = getEnvelopeFor(envelopeId)
-
-        Then("I will receive a 200 Ok response")
         envelopeResponse.status shouldBe OK
-
-        And("the response body should contain the envelope details")
-        val body: String = envelopeResponse.body
-        body shouldNot be(null)
-
-        val parsedBody: JsValue = Json.parse(body)
-
-        val href = (parsedBody \ "files" \\ "href").head.toString()
-
-        val actualUrl = s"$url/envelopes/$envelopeId/files/${urlEncode(fileId)}/content"
-
-        href shouldBe actualUrl
       }
+
+      When("I call GET /file-upload/envelopes/:envelope-id")
+      val envelopeResponse = getEnvelopeFor(envelopeId)
+
+      Then("I will receive a 200 Ok response")
+      envelopeResponse.status shouldBe OK
+
+      And("the response body should contain the envelope details")
+      val body: String = envelopeResponse.body
+      body shouldNot be(null)
+
+      val parsedBody: JsValue = Json.parse(body)
+
+      val href = (parsedBody \ "files" \\ "href").head.toString()
+
+      val actualUrl = s"/file-upload/envelopes/$envelopeId/files/${urlEncode(fileId)}/content"
+
+      href shouldBe ("\""+actualUrl+"\"")
     }
 
     scenario("Get Envelope Details with a file and check if href encodes %2c") {
@@ -68,24 +71,27 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.getBytes().length))
 
       eventually {
-        When("I call GET /file-upload/envelopes/:envelope-id")
         val envelopeResponse = getEnvelopeFor(envelopeId)
-
-        Then("I will receive a 200 Ok response")
         envelopeResponse.status shouldBe OK
-
-        And("the response body should contain the envelope details")
-        val body: String = envelopeResponse.body
-        body shouldNot be(null)
-
-        val parsedBody: JsValue = Json.parse(body)
-
-        val href = (parsedBody \ "files" \\ "href").head.toString()
-
-        val actualUrl = s"$url/envelopes/$envelopeId/files/${urlEncode(fileId)}/content"
-
-        href shouldBe actualUrl
       }
+
+      When("I call GET /file-upload/envelopes/:envelope-id")
+      val envelopeResponse = getEnvelopeFor(envelopeId)
+
+      Then("I will receive a 200 Ok response")
+      envelopeResponse.status shouldBe OK
+
+      And("the response body should contain the envelope details")
+      val body: String = envelopeResponse.body
+      body shouldNot be(null)
+
+      val parsedBody: JsValue = Json.parse(body)
+
+      val href = (parsedBody \ "files" \\ "href").head.toString()
+
+      val actualUrl = s"/file-upload/envelopes/$envelopeId/files/${urlEncode(fileId)}/content"
+
+      href shouldBe ("\""+actualUrl+"\"")
     }
 
     scenario("Retrieve File Metadata with a FileId containing random UTF-8 string") {
@@ -110,8 +116,8 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       Then("Receive 200")
       fileResponse.status shouldBe OK
 
-      And("I will receive the file")
-      fileResponse.body shouldBe data
+      And("I will receive the file metadata")
+      ???
 
       And("Header should include content length")
       fileResponse.header("Content-Length") shouldBe Some(s"${data.getBytes.length}")
