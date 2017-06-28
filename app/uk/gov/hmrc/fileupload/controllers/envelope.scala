@@ -152,6 +152,7 @@ object GetFileMetadataReport {
   implicit val getFileMetaDataReportFormat: Format[GetFileMetadataReport] = Json.format[GetFileMetadataReport]
 
   def href(envelopeId: EnvelopeId, fileId: FileId): String = {
+    implicit val overrider = FileId.urlBinder // workaround
     uk.gov.hmrc.fileupload.controllers.routes.FileController.downloadFile(envelopeId, fileId).url
   }
 
