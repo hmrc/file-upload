@@ -2,8 +2,9 @@ package uk.gov.hmrc.fileupload
 
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json._
 import play.api.libs.ws.WSResponse
+import play.utils.UriEncoding
 import uk.gov.hmrc.fileupload.support._
 import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, QuarantineFile, StoreFile}
 
@@ -13,14 +14,88 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
 
   feature("Odd Url Encoding for FileId") {
 
+    scenario("Get Envelope Details with a file and check if href encodes FileId") {
+
+      Given("I have a valid envelope")
+      val envelopeId = createEnvelope()
+      val fileId = FileId(s"fileId-${nextUtf8String()}")
+      val fileRefId = FileRefId(s"fileRefId-${nextId()}")
+
+      And("File is In Quarantine Store")
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(data.getBytes().length), Json.obj()))
+
+      And("File was scanned and no virus was found")
+      sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
+
+      And("I have uploaded a file")
+      sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.getBytes().length))
+
+      eventually {
+        When("I call GET /file-upload/envelopes/:envelope-id")
+        val envelopeResponse = getEnvelopeFor(envelopeId)
+
+        Then("I will receive a 200 Ok response")
+        envelopeResponse.status shouldBe OK
+
+        And("the response body should contain the envelope details")
+        val body: String = envelopeResponse.body
+        body shouldNot be(null)
+
+        val parsedBody: JsValue = Json.parse(body)
+
+        val href = (parsedBody \ "files" \\ "href").head.toString()
+
+        val actualUrl = s"$url/envelopes/$envelopeId/files/${urlEncode(fileId)}/content"
+
+        href shouldBe actualUrl
+      }
+    }
+
+    scenario("Get Envelope Details with a file and check if href encodes %2c") {
+
+      Given("I have a valid envelope")
+      val envelopeId = createEnvelope()
+      val fileId = FileId(s"fileId-%2c")
+      val fileRefId = FileRefId(s"fileRefId-${nextId()}")
+
+      And("File is In Quarantine Store")
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(data.getBytes().length), Json.obj()))
+
+      And("File was scanned and no virus was found")
+      sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
+
+      And("I have uploaded a file")
+      sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.getBytes().length))
+
+      eventually {
+        When("I call GET /file-upload/envelopes/:envelope-id")
+        val envelopeResponse = getEnvelopeFor(envelopeId)
+
+        Then("I will receive a 200 Ok response")
+        envelopeResponse.status shouldBe OK
+
+        And("the response body should contain the envelope details")
+        val body: String = envelopeResponse.body
+        body shouldNot be(null)
+
+        val parsedBody: JsValue = Json.parse(body)
+
+        val href = (parsedBody \ "files" \\ "href").head.toString()
+
+        val actualUrl = s"$url/envelopes/$envelopeId/files/${urlEncode(fileId)}/content"
+
+        href shouldBe actualUrl
+      }
+    }
+
     scenario("Retrieve File Metadata with a FileId containing random UTF-8 string") {
 
       Given("I have a valid envelope ")
       val envelopeId = createEnvelope()
-      val fileId = FileId(s"fileId-$nextUtf8String")
+      val fileId = FileId(s"fileId-${nextUtf8String()}")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
-      And("FileInQuarantineStored")
+      And("File is in QuarantineStored")
       sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(data.getBytes().length), Json.obj()))
 
       And("File was scanned and no virus was found")
@@ -34,13 +109,22 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
 
       Then("Receive 200")
       fileResponse.status shouldBe OK
+
+      And("I will receive the file")
+      fileResponse.body shouldBe data
+
+      And("Header should include content length")
+      fileResponse.header("Content-Length") shouldBe Some(s"${data.getBytes.length}")
+
+      And("Header should include content disposition")
+      fileResponse.header("Content-Disposition") shouldBe Some("attachment; filename=\"test.pdf\"")
     }
 
     scenario("Retrieve File Metadata with FileId containing random UTF-8 string") {
 
       Given("I have a valid envelope ")
       val envelopeId = createEnvelope()
-      val fileId = FileId(s"fileId-$nextUtf8String")
+      val fileId = FileId(s"fileId-${nextUtf8String()}")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
@@ -64,10 +148,10 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       fileResponse.status shouldBe OK
     }
 
-    scenario("Upload and Download File  with FileId containing random UTF-8 string") {
+    scenario("Upload and Download File with FileId containing random UTF-8 string") {
       Given("I have a valid envelope ")
       val envelopeId = createEnvelope()
-      val fileId = FileId(s"fileId-$nextUtf8String")
+      val fileId = FileId(s"fileId-${nextUtf8String()}")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
@@ -87,18 +171,12 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
 
       Then("I will receive a 200 OK response")
       getFileResponse.status shouldBe OK
-
-      And("Routing request was submitted")
-      submitRoutingRequest(envelopeId, "TEST")
-
-      And("Download Zip")
-      downloadEnvelope(envelopeId).status shouldBe OK
     }
 
     scenario("Upload and Download Zip  with FileId containing random UTF-8 string") {
       Given("I have a valid envelope ")
       val envelopeId = createEnvelope()
-      val fileId = FileId(s"fileId-$nextUtf8String")
+      val fileId = FileId(s"fileId-${nextUtf8String()}")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
@@ -112,7 +190,6 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
 
       mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/file-upload/download/envelopes/$envelopeId/files/$fileId"))
         .willReturn(WireMock.aResponse().withStatus(200).withBody(data.getBytes)))
-
 
       And("Routing request was submitted")
       submitRoutingRequest(envelopeId, "TEST")
@@ -142,7 +219,7 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       val envelopeId = createEnvelope()
 
       And("I have a valid file-id")
-      val fileId = FileId(s"fileId-$nextUtf8String")
+      val fileId = FileId(s"fileId-${nextUtf8String()}")
 
       And("I have a valid file-ref-id")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
