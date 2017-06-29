@@ -18,16 +18,19 @@ class FileTransferIntegrationSpec extends IntegrationSpec with EnvelopeActions {
       createEnvelope()
 
       eventually {
-        When(s"I invoke GET /file-transfer/envelopes?destination=$destination")
         val response = getEnvelopesForDestination(Some(destination))
-
-        Then("I will receive a 200 Ok response")
         response.status shouldBe OK
-
-        And("The response will contain expected number of envelopes")
-        val body = Json.parse(response.body)
-        (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe 1
       }
+
+      When(s"I invoke GET /file-transfer/envelopes?destination=$destination")
+      val response = getEnvelopesForDestination(Some(destination))
+
+      Then("I will receive a 200 Ok response")
+      response.status shouldBe OK
+
+      And("The response will contain expected number of envelopes")
+      val body = Json.parse(response.body)
+      (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe 1
     }
 
     scenario("List Envelopes without specifying destination") {
@@ -42,16 +45,19 @@ class FileTransferIntegrationSpec extends IntegrationSpec with EnvelopeActions {
       createEnvelope()
 
       eventually {
-        When(s"I invoke GET /file-transfer/envelopes (without passing destination")
         val response = getEnvelopesForDestination(None)
-
-        Then("I will receive a 200 Ok response")
         response.status shouldBe OK
-
-        And("The response will contain all envelopes with a CLOSED status")
-        val body = Json.parse(response.body)
-        (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe expectedNumberOfEnvelopes
       }
+
+      When(s"I invoke GET /file-transfer/envelopes (without passing destination")
+      val response = getEnvelopesForDestination(None)
+
+      Then("I will receive a 200 Ok response")
+      response.status shouldBe OK
+
+      And("The response will contain all envelopes with a CLOSED status")
+      val body = Json.parse(response.body)
+      (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe expectedNumberOfEnvelopes
     }
   }
 
@@ -68,20 +74,23 @@ class FileTransferIntegrationSpec extends IntegrationSpec with EnvelopeActions {
       And("There exist other envelopes with different statuses")
       createEnvelope()
 
+      When("I archive the envelope")
+      archiveEnvelopFor(envelopeId)
+
       eventually {
-        When("I archive the envelope")
-        archiveEnvelopFor(envelopeId)
-
-        Then(s"I invoke GET /file-transfer/envelopes?destination=$destination")
         val response = getEnvelopesForDestination(Some(destination))
-
-        And("I will receive a 200 Ok response")
         response.status shouldBe OK
-
-        And("The response will contain expected number of envelopes")
-        val body = Json.parse(response.body)
-        (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe 0
       }
+
+      Then(s"I invoke GET /file-transfer/envelopes?destination=$destination")
+      val response = getEnvelopesForDestination(Some(destination))
+
+      And("I will receive a 200 Ok response")
+      response.status shouldBe OK
+
+      And("The response will contain expected number of envelopes")
+      val body = Json.parse(response.body)
+      (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe 0
     }
   }
 }

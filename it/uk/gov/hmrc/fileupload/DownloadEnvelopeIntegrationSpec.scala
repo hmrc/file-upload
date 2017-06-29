@@ -44,23 +44,28 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActio
       submitRoutingRequest(envelopeId, "TEST")
 
       eventually {
-        When(s"I invoke GET file-transfer/envelope/$envelopeId")
         val response: WSResponse = downloadEnvelope(envelopeId)
-
-        Then("I will receive a 200 OK response")
         withClue(response.body) {
           response.status shouldBe OK
         }
-
-        And("response should include content type")
-        response.header("Content-Type") shouldBe Some("application/zip")
-
-        And("response should be chunked")
-        response.header("Transfer-Encoding") shouldBe Some("chunked")
-
-        And("response body should include file content")
-        response.body.contains("sampleFileContent") shouldBe true
       }
+
+      When(s"I invoke GET file-transfer/envelope/$envelopeId")
+      val response: WSResponse = downloadEnvelope(envelopeId)
+
+      Then("I will receive a 200 OK response")
+      withClue(response.body) {
+        response.status shouldBe OK
+      }
+
+      And("response should include content type")
+      response.header("Content-Type") shouldBe Some("application/zip")
+
+      And("response should be chunked")
+      response.header("Transfer-Encoding") shouldBe Some("chunked")
+
+      And("response body should include file content")
+      response.body.contains("sampleFileContent") shouldBe true
     }
   }
 }

@@ -94,38 +94,6 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       href shouldBe ("\""+actualUrl+"\"")
     }
 
-    scenario("Retrieve File Metadata with a FileId containing random UTF-8 string") {
-
-      Given("I have a valid envelope ")
-      val envelopeId = createEnvelope()
-      val fileId = FileId(s"fileId-${nextUtf8String()}")
-      val fileRefId = FileRefId(s"fileRefId-${nextId()}")
-
-      And("File is in QuarantineStored")
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(data.getBytes().length), Json.obj()))
-
-      And("File was scanned and no virus was found")
-      sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
-
-      And("I have uploaded a file")
-      sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.getBytes().length))
-
-      When("Retrieve File Details")
-      val fileResponse = getFileMetadataFor(envelopeId,fileId)
-
-      Then("Receive 200")
-      fileResponse.status shouldBe OK
-
-      And("I will receive the file metadata")
-      ???
-
-      And("Header should include content length")
-      fileResponse.header("Content-Length") shouldBe Some(s"${data.getBytes.length}")
-
-      And("Header should include content disposition")
-      fileResponse.header("Content-Disposition") shouldBe Some("attachment; filename=\"test.pdf\"")
-    }
-
     scenario("Retrieve File Metadata with FileId containing random UTF-8 string") {
 
       Given("I have a valid envelope ")
@@ -140,18 +108,13 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
 
       And("I have uploaded a file")
-      val storeFile = sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.getBytes().length))
-
-      When("Retrieve Envelope Details")
-      val envelopesResponse = getEnvelopeFor(envelopeId)
-      val parsedBody: JsValue = Json.parse(envelopesResponse.body)
-      val href = (parsedBody \ "files" \\ "href").head
+      sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.getBytes().length))
 
       When("Retrieve File Details")
-      val fileResponse = getFileMetadataFor(envelopeId,fileId)
+      val fileMetaResponse = getFileMetadataFor(envelopeId,fileId)
 
       Then("Receive 200")
-      fileResponse.status shouldBe OK
+      fileMetaResponse.status shouldBe OK
     }
 
     scenario("Upload and Download File with FileId containing random UTF-8 string") {
@@ -167,7 +130,7 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
 
       And("I have uploaded a file")
-      val storeFile = sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.getBytes().length))
+      sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.getBytes().length))
 
       mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/file-upload/download/envelopes/$envelopeId/files/$fileId"))
         .willReturn(WireMock.aResponse().withStatus(200).withBody(data.getBytes)))
@@ -201,23 +164,26 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       submitRoutingRequest(envelopeId, "TEST")
 
       eventually {
-        When(s"I invoke GET file-transfer/envelope/$envelopeId")
         val response: WSResponse = downloadEnvelope(envelopeId)
-
-        Then("I will receive a 200 OK response")
-        withClue(response.body) {
-          response.status shouldBe OK
-        }
-
-        And("response should include content type")
-        response.header("Content-Type") shouldBe Some("application/zip")
-
-        And("response should be chunked")
-        response.header("Transfer-Encoding") shouldBe Some("chunked")
-
-        And("response body should include file content")
-        response.body.contains(data) shouldBe true
+        response.status shouldBe OK
       }
+
+      When(s"I invoke GET file-transfer/envelope/$envelopeId")
+      val response: WSResponse = downloadEnvelope(envelopeId)
+
+      Then("I will receive a 200 OK response")
+      withClue(response.body) {
+        response.status shouldBe OK
+      }
+
+      And("response should include content type")
+      response.header("Content-Type") shouldBe Some("application/zip")
+
+      And("response should be chunked")
+      response.header("Transfer-Encoding") shouldBe Some("chunked")
+
+      And("response body should include file content")
+      response.body.contains(data) shouldBe true
     }
 
     scenario("Delete an existing file with FileId containing random UTF-8 string") {

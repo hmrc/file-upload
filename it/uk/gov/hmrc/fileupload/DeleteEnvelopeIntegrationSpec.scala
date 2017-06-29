@@ -39,10 +39,13 @@ class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       envelopeResponse.status shouldBe OK
 
       eventually {
-        And("the envelope should be deleted")
         val checkEnvelopeDeleted = getEnvelopeFor(envelopeId)
         checkEnvelopeDeleted.status shouldBe NOT_FOUND
       }
+
+      And("the envelope should be deleted")
+      val checkEnvelopeDeleted = getEnvelopeFor(envelopeId)
+      checkEnvelopeDeleted.status shouldBe NOT_FOUND
     }
 
     scenario("Delete Envelope - invalid ID with auth") {
