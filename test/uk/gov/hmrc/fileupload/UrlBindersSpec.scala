@@ -24,11 +24,20 @@ import uk.gov.hmrc.play.test.UnitSpec
 class UrlBindersSpec extends UnitSpec{
 
   "FileId PathBinder" should {
-    "handle all special characters" in {
+    "handle + and % characters" in {
       val suspect: PathBindable[FileId] = FileId.urlBinder
 
       val fileIdTestCase = "Scan+15+Jun+2017%2c+13.04.pdf"
       val encodedProperly = "Scan+15+Jun+2017%252c+13.04.pdf"
+      val given = suspect.unbind("any", FileId(fileIdTestCase))
+
+      given shouldEqual encodedProperly
+    }
+    "handle some glyphs" in {
+      val suspect: PathBindable[FileId] = FileId.urlBinder
+
+      val fileIdTestCase = "ˮ깉ീ"
+      val encodedProperly = "%CB%AE%EA%B9%89%E0%B5%80" // ???
       val given = suspect.unbind("any", FileId(fileIdTestCase))
 
       given shouldEqual encodedProperly
