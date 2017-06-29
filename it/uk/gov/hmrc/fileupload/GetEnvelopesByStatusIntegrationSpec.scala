@@ -1,6 +1,5 @@
 package uk.gov.hmrc.fileupload
 
-import org.scalatest.time.{Seconds, Span}
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
 
 class GetEnvelopesByStatusIntegrationSpec extends IntegrationSpec with EnvelopeActions {
@@ -31,7 +30,7 @@ class GetEnvelopesByStatusIntegrationSpec extends IntegrationSpec with EnvelopeA
         val result = response.body
         countSubstring(result, "OPEN") shouldBe 2
         countSubstring(result, "CLOSED") shouldBe 1
-      }(PatienceConfig(timeout = Span(5,Seconds),interval = Span(5,Seconds)))
+      }
     }
 
     scenario("List Envelopes for a given status with inclusive false") {
@@ -55,7 +54,7 @@ class GetEnvelopesByStatusIntegrationSpec extends IntegrationSpec with EnvelopeA
         val result = response.body
         countSubstring(result, "OPEN") shouldBe 0
         countSubstring(result, "CLOSED") shouldBe 1
-      }(PatienceConfig(timeout = Span(5,Seconds),interval = Span(5,Seconds)))
+      }
     }
 
   }

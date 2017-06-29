@@ -1,6 +1,5 @@
 package uk.gov.hmrc.fileupload
 
-import org.scalatest.time.{Seconds, Span}
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
 
@@ -28,7 +27,7 @@ class FileTransferIntegrationSpec extends IntegrationSpec with EnvelopeActions {
         And("The response will contain expected number of envelopes")
         val body = Json.parse(response.body)
         (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe 1
-      }(PatienceConfig(timeout = Span(5,Seconds),interval = Span(5,Seconds)))
+      }
     }
 
     scenario("List Envelopes without specifying destination") {
@@ -52,7 +51,7 @@ class FileTransferIntegrationSpec extends IntegrationSpec with EnvelopeActions {
         And("The response will contain all envelopes with a CLOSED status")
         val body = Json.parse(response.body)
         (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe expectedNumberOfEnvelopes
-      }(PatienceConfig(timeout = Span(5,Seconds),interval = Span(5,Seconds)))
+      }
     }
   }
 
@@ -82,7 +81,7 @@ class FileTransferIntegrationSpec extends IntegrationSpec with EnvelopeActions {
         And("The response will contain expected number of envelopes")
         val body = Json.parse(response.body)
         (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe 0
-      }(PatienceConfig(timeout = Span(5,Seconds),interval = Span(5,Seconds)))
+      }
     }
   }
 }

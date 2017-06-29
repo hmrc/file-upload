@@ -1,6 +1,5 @@
 package uk.gov.hmrc.fileupload
 
-import org.scalatest.time.{Seconds, Span}
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, IntegrationSpec}
 
 /**
@@ -43,7 +42,7 @@ class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
         And("the envelope should be deleted")
         val checkEnvelopeDeleted = getEnvelopeFor(envelopeId)
         checkEnvelopeDeleted.status shouldBe NOT_FOUND
-      }(PatienceConfig(timeout = Span(5,Seconds),interval = Span(5,Seconds)))
+      }
     }
 
     scenario("Delete Envelope - invalid ID with auth") {
