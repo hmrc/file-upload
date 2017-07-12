@@ -30,7 +30,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val envelopeId = EnvelopeId(locationHeader.substring(locationHeader.lastIndexOf('/') + 1))
 
       And("I have a valid file-id")
-      val fileId = FileId(s"fileId-${nextUtf8String()}")
+      val fileId = FileId(s"fileId-${nextId()}")
 
       And("I have a valid file-ref-id")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
@@ -56,7 +56,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val envelopeId = createEnvelope()
 
       And("I have a valid file-id")
-      val fileId = FileId(s"fileId-${nextUtf8String()}")
+      val fileId = FileId(s"fileId-${nextId()}")
 
       And("I have a valid file-ref-id")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
@@ -79,14 +79,14 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
     scenario("Add multiple files to envelope") {
       Given("I have an envelope-id with an existing file attached")
       val envelopeId = createEnvelope()
-      val firstFileId = FileId(s"fileId-${nextUtf8String()}")
+      val firstFileId = FileId(s"fileId-${nextId()}")
       val firstFileRefId = FileRefId(s"fileRefId-${nextId()}")
       sendCommandQuarantineFile(QuarantineFile(envelopeId, firstFileId, firstFileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
 
       sendCommandStoreFile(StoreFile(envelopeId, firstFileId, firstFileRefId, "{}".getBytes.length))
 
       And("And I have a valid new file-id")
-      val secondFileId = FileId(s"fileId-${nextUtf8String()}")
+      val secondFileId = FileId(s"fileId-${nextId()}")
       val data = "{}".getBytes
 
       And("I have a valid file-ref-id")
@@ -114,7 +114,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val envelopeId = EnvelopeId("invalidId")
 
       And("I have a file id")
-      val fileId = FileId(s"fileId-${nextUtf8String()}")
+      val fileId = FileId(s"fileId-${nextId()}")
 
       And("I have a valid file-ref-id")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
@@ -134,7 +134,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       val envelopeId = createEnvelope()
 
       And("I have a valid file-id")
-      val fileId = FileId(s"nofile-${nextUtf8String()}")
+      val fileId = FileId(s"nofile-${nextId()}")
 
       And("I have a valid file-ref-id")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")

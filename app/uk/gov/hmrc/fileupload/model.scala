@@ -20,8 +20,8 @@ import java.util.UUID
 
 import play.api.libs.json._
 import play.api.mvc.PathBindable
-import play.utils.UriEncoding
 import uk.gov.hmrc.play.binders.SimpleObjectBinder
+import play.core.routing.dynamicString
 
 case class EnvelopeId(value: String = UUID.randomUUID().toString) extends AnyVal {
   override def toString: String = value
@@ -46,8 +46,6 @@ case class FileId(value: String = UUID.randomUUID().toString) extends AnyVal {
 }
 
 object FileId {
-  val charset = "UTF-8"
-
   implicit val writes = new Writes[FileId] {
     def writes(id: FileId): JsValue = JsString(id.value)
   }
@@ -57,13 +55,11 @@ object FileId {
       case _ => JsError("invalid fileId")
     }
   }
-  val binder: PathBindable[FileId] =
-    new SimpleObjectBinder[FileId](FileId.apply, _.value) // reading is already decoded by routes as parameters
 
   implicit val urlBinder: PathBindable[FileId] =
     new SimpleObjectBinder[FileId](
-      str => FileId(UriEncoding.decodePathSegment(str, charset)),
-      fId => UriEncoding.encodePathSegment(fId.value, charset) )
+      FileId.apply, // decoding is not consistent, done by play for all endpoints parameters
+      fId => dynamicString(fId.value) )
 }
 
 case class FileRefId(value: String) extends AnyVal {

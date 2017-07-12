@@ -19,7 +19,7 @@ class GetFileMetadataIntegrationSpec extends IntegrationSpec with EnvelopeAction
     scenario("GET metadata with valid envelope id") {
       Given("I have a valid envelope ID")
       val envelopeId = createEnvelope()
-      val fileId = FileId(s"fileId-${nextUtf8String()}")
+      val fileId = FileId(s"fileId-${nextId()}")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
