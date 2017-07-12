@@ -29,13 +29,13 @@ class HrefSpec extends UnitSpec{
       val fileIdTestCase = "Scan+15+Jun+2017%2c+13.04.pdf"
       val encodedProperly = "Scan+15+Jun+2017%252c+13.04.pdf"
       GetFileMetadataReport
-        .href(EnvelopeId("e"), FileId(fileIdTestCase)) shouldBe s"/file-upload/envelopes/e/files/$encodedProperly/content"
+        .href(EnvelopeId("e"), FileId(fileIdTestCase)) should endWith(s"/envelopes/e/files/$encodedProperly/content")
     }
     "handle all special characters" in {
       val fileIdTestCase = "ˮ깉ീ"
       val encodedProperly = "%CB%AE%EA%B9%89%E0%B5%80"
       GetFileMetadataReport
-        .href(EnvelopeId("e"), FileId(fileIdTestCase)) shouldBe s"/file-upload/envelopes/e/files/$encodedProperly/content"
+        .href(EnvelopeId("e"), FileId(fileIdTestCase)) should endWith(s"/envelopes/e/files/$encodedProperly/content")
     }
   }
 }
