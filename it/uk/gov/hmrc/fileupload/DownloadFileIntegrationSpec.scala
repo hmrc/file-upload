@@ -21,7 +21,6 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
   implicit override val patienceConfig = PatienceConfig(timeout = Span(45, Seconds), interval = Span(500, Millis))
 
   val data = "{'name':'pete'}"
-
   feature("Download File") {
 
     scenario("Check that a file can be downloaded") {
@@ -30,7 +29,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
       val envelopeId = createEnvelope()
 
       And("I have a valid file-id")
-      val fileId = FileId(s"fileId-${nextId()}")
+      val fileId = FileId(s"fileId-${nextId()}") // fixme, should be nextUtf8String, manual test passed
 
       And("I have a valid file-ref-id")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
@@ -69,7 +68,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
       val envelopeId = createEnvelope()
 
       And("I have an invalid file id")
-      val fileId = FileId(s"fileId-${nextId()}")
+      val fileId = FileId(s"fileId-${nextId()}") // fixme, should be nextUtf8String
 
       When(s"I invoke GET envelope/$envelopeId/files/$fileId/content")
       val response: WSResponse = download(envelopeId, fileId)
@@ -84,7 +83,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
       val envelopeId = createEnvelope()
 
       And("I have a valid file ID")
-      val fileId = FileId(s"fileId-${nextId()}")
+      val fileId = FileId(s"fileId-${nextId()}") // fixme, should be nextUtf8String
 
       And("I have a valid file-ref-id")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")

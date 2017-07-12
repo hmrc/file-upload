@@ -19,7 +19,7 @@ class GetFileMetadataIntegrationSpec extends IntegrationSpec with EnvelopeAction
     scenario("GET metadata with valid envelope id") {
       Given("I have a valid envelope ID")
       val envelopeId = createEnvelope()
-      val fileId = FileId(s"fileId-${nextId()}")
+      val fileId = FileId(s"fileId-${nextId()}") // fixme, should be nextUtf8String, manual test passed
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
@@ -27,16 +27,18 @@ class GetFileMetadataIntegrationSpec extends IntegrationSpec with EnvelopeAction
       sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.jpg", "application/pdf", Some(123L), json))
 
       eventually {
-
-        When(s"I invoke GET envelopes/$envelopeId/files/$fileId/metadata")
         val response = getFileMetadataFor(envelopeId, fileId)
-
-        Then("I will receive a 200 Ok response")
         response.status shouldBe OK
-
-        And("the response body should contain the file reference details")
-        prettify(response.body) shouldBe responseBody(envelopeId, fileId)
       }
+
+      When(s"I invoke GET envelopes/$envelopeId/files/$fileId/metadata")
+      val response = getFileMetadataFor(envelopeId, fileId)
+
+      Then("I will receive a 200 Ok response")
+      response.status shouldBe OK
+
+      And("the response body should contain the file reference details")
+      prettify(response.body) shouldBe responseBody(envelopeId, fileId)
     }
 
     scenario("GET metadata with invalid envelope id") {

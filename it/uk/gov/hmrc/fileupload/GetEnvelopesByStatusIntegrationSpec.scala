@@ -21,16 +21,19 @@ class GetEnvelopesByStatusIntegrationSpec extends IntegrationSpec with EnvelopeA
       createEnvelope()
 
       eventually {
-        When(s"I invoke GET /file-upload/envelopes?status=OPEN&status=CLOSED&inclusive=true")
         val response = getEnvelopesForStatus(status, inclusive = true)
-
-        Then("I will receive a 200 Ok response")
         response.status shouldBe OK
-
-        val result = response.body
-        countSubstring(result, "OPEN") shouldBe 2
-        countSubstring(result, "CLOSED") shouldBe 1
       }
+
+      When(s"I invoke GET /file-upload/envelopes?status=OPEN&status=CLOSED&inclusive=true")
+      val response = getEnvelopesForStatus(status, inclusive = true)
+
+      Then("I will receive a 200 Ok response")
+      response.status shouldBe OK
+
+      val result = response.body
+      countSubstring(result, "OPEN") shouldBe 2
+      countSubstring(result, "CLOSED") shouldBe 1
     }
 
     scenario("List Envelopes for a given status with inclusive false") {
@@ -45,16 +48,19 @@ class GetEnvelopesByStatusIntegrationSpec extends IntegrationSpec with EnvelopeA
       createEnvelope()
 
       eventually {
-        When(s"I invoke GET /file-upload/envelopes?status=OPEN&inclusive=false")
         val response = getEnvelopesForStatus(status, inclusive = false)
-
-        Then("I will receive a 200 Ok response")
         response.status shouldBe OK
-
-        val result = response.body
-        countSubstring(result, "OPEN") shouldBe 0
-        countSubstring(result, "CLOSED") shouldBe 1
       }
+
+      When(s"I invoke GET /file-upload/envelopes?status=OPEN&inclusive=false")
+      val response = getEnvelopesForStatus(status, inclusive = false)
+
+      Then("I will receive a 200 Ok response")
+      response.status shouldBe OK
+
+      val result = response.body
+      countSubstring(result, "OPEN") shouldBe 0
+      countSubstring(result, "CLOSED") shouldBe 1
     }
 
   }

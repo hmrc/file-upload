@@ -17,7 +17,7 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActio
 
   feature("Download Envelope with files") {
 
-    scenario("A client can download an envelope including its file") {
+    scenario("A client can download an envelope including its file ~containing random UTF-8 string") {
 
       val uidRegexPattern = "[a-z0-9-]*"
       mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/file-upload/download/envelopes/$uidRegexPattern/files/$uidRegexPattern"))
@@ -25,7 +25,8 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActio
 
       Given("I have an envelope with files")
       val envelopeId = createEnvelope()
-      val fileId = FileId(s"fileId-${nextId()}")
+
+      val fileId = FileId(s"fileId-${nextUtf8String()}")
       val fileRefId = FileRefId(uid)
 
       And("File has been stored in quarantine on the front-end")
@@ -43,23 +44,28 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActio
       submitRoutingRequest(envelopeId, "TEST")
 
       eventually {
-        When(s"I invoke GET file-transfer/envelope/$envelopeId")
         val response: WSResponse = downloadEnvelope(envelopeId)
-
-        Then("I will receive a 200 OK response")
         withClue(response.body) {
           response.status shouldBe OK
         }
-
-        And("response should include content type")
-        response.header("Content-Type") shouldBe Some("application/zip")
-
-        And("response should be chunked")
-        response.header("Transfer-Encoding") shouldBe Some("chunked")
-
-        And("response body should include file content")
-        response.body.contains("sampleFileContent") shouldBe true
       }
+
+      When(s"I invoke GET file-transfer/envelope/$envelopeId")
+      val response: WSResponse = downloadEnvelope(envelopeId)
+
+      Then("I will receive a 200 OK response")
+      withClue(response.body) {
+        response.status shouldBe OK
+      }
+
+      And("response should include content type")
+      response.header("Content-Type") shouldBe Some("application/zip")
+
+      And("response should be chunked")
+      response.header("Transfer-Encoding") shouldBe Some("chunked")
+
+      And("response body should include file content")
+      response.body.contains("sampleFileContent") shouldBe true
     }
   }
 }

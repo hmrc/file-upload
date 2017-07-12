@@ -30,32 +30,35 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       val envelopeId = envelopeIdFromHeader(createResponse)
 
       eventually {
-        When("I call GET /file-upload/envelopes/:envelope-id")
         val envelopeResponse = getEnvelopeFor(envelopeId)
-
-        Then("I will receive a 200 Ok response")
         envelopeResponse.status shouldBe OK
+      }
 
-        And("the response body should contain the envelope details")
-        val body: String = envelopeResponse.body
-        body shouldNot be(null)
+      When("I call GET /file-upload/envelopes/:envelope-id")
+      val envelopeResponse = getEnvelopeFor(envelopeId)
 
-        val parsedBody: JsValue = Json.parse(body)
-        parsedBody \ "id" match {
-          case JsDefined(JsString(value)) => value should fullyMatch regex "[A-z0-9-]+"
-          case _ => JsError("expectation failed")
-        }
+      Then("I will receive a 200 Ok response")
+      envelopeResponse.status shouldBe OK
 
-        parsedBody \ "status" match {
-          case JsDefined(JsString(value)) => value should fullyMatch regex "OPEN"
-          case _ => JsError("expectation failed")
-        }
+      And("the response body should contain the envelope details")
+      val body: String = envelopeResponse.body
+      body shouldNot be(null)
 
-        (parsedBody \ "constraints") \ "maxItems" match {
-          case JsDefined(JsNumber(const)) =>
-            const shouldBe 100
-          case _ => JsError("expectation failed")
-        }
+      val parsedBody: JsValue = Json.parse(body)
+      parsedBody \ "id" match {
+        case JsDefined(JsString(value)) => value should fullyMatch regex "[A-z0-9-]+"
+        case _ => JsError("expectation failed")
+      }
+
+      parsedBody \ "status" match {
+        case JsDefined(JsString(value)) => value should fullyMatch regex "OPEN"
+        case _ => JsError("expectation failed")
+      }
+
+      (parsedBody \ "constraints") \ "maxItems" match {
+        case JsDefined(JsNumber(const)) =>
+          const shouldBe 100
+        case _ => JsError("expectation failed")
       }
 
     }
@@ -70,32 +73,35 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
 
       eventually {
-        When("I call GET /file-upload/envelopes/:envelope-id")
         val envelopeResponse = getEnvelopeFor(envelopeId)
-
-        Then("I will receive a 200 Ok response")
         envelopeResponse.status shouldBe OK
+      }
 
-        And("the response body should contain the envelope details")
-        val body: String = envelopeResponse.body
-        body shouldNot be(null)
+      When("I call GET /file-upload/envelopes/:envelope-id")
+      val envelopeResponse = getEnvelopeFor(envelopeId)
 
-        val parsedBody: JsValue = Json.parse(body)
-        parsedBody \ "id" match {
-          case JsDefined(JsString(value)) => value should fullyMatch regex "[A-z0-9-]+"
-          case _ => JsError("expectation failed")
-        }
+      Then("I will receive a 200 Ok response")
+      envelopeResponse.status shouldBe OK
 
-        parsedBody \ "status" match {
-          case JsDefined(JsString(value)) => value should fullyMatch regex "OPEN"
-          case _ => JsError("expectation failed")
-        }
+      And("the response body should contain the envelope details")
+      val body: String = envelopeResponse.body
+      body shouldNot be(null)
 
-        (parsedBody \\ "files").head \ "id" match {
-          case JsDefined(JsObject(value)) =>
-            value shouldBe fileId
-          case _ => JsError("expectation failed")
-        }
+      val parsedBody: JsValue = Json.parse(body)
+      parsedBody \ "id" match {
+        case JsDefined(JsString(value)) => value should fullyMatch regex "[A-z0-9-]+"
+        case _ => JsError("expectation failed")
+      }
+
+      parsedBody \ "status" match {
+        case JsDefined(JsString(value)) => value should fullyMatch regex "OPEN"
+        case _ => JsError("expectation failed")
+      }
+
+      (parsedBody \\ "files").head \ "id" match {
+        case JsDefined(JsObject(value)) =>
+          value shouldBe fileId
+        case _ => JsError("expectation failed")
       }
 
     }
