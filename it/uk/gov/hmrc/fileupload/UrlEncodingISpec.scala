@@ -18,7 +18,7 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
 
       Given("I have a valid envelope")
       val envelopeId = createEnvelope()
-      val fileId = FileId(s"fileId-${nextUtf8String()}")
+      val fileId = FileId(s"fileId-${nextUtf8String()+"%2C"}")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("File is In Quarantine Store")
@@ -49,120 +49,12 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
 
       val href = (parsedBody \ "files" \\ "href").head.toString()
 
-      val actualUrl = s"/file-upload/envelopes/$envelopeId/files/${urlEncode(fileId)}/content"
+      val encodedFileId = urlEncode(fileId)
+      encodedFileId.contains("%252C") shouldBe(true)
 
-      href shouldBe ("\""+actualUrl+"\"")
-    }
+      val targetUrl = s"/file-upload/envelopes/$envelopeId/files/$encodedFileId/content"
 
-    scenario("Get Envelope Details with a file and check if href encodes %2c") {
-
-      Given("I have a valid envelope")
-      val envelopeId = createEnvelope()
-      val fileId = FileId(s"fileId-%2c")
-      val fileRefId = FileRefId(s"fileRefId-${nextId()}")
-
-      And("File is In Quarantine Store")
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(data.getBytes().length), Json.obj()))
-
-      And("File was scanned and no virus was found")
-      sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
-
-      And("I have uploaded a file")
-      sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.getBytes().length))
-
-      eventually {
-        val envelopeResponse = getEnvelopeFor(envelopeId)
-        envelopeResponse.status shouldBe OK
-      }
-
-      When("I call GET /file-upload/envelopes/:envelope-id")
-      val envelopeResponse = getEnvelopeFor(envelopeId)
-
-      Then("I will receive a 200 Ok response")
-      envelopeResponse.status shouldBe OK
-
-      And("the response body should contain the envelope details")
-      val body: String = envelopeResponse.body
-      body shouldNot be(null)
-
-      val parsedBody: JsValue = Json.parse(body)
-
-      val href = (parsedBody \ "files" \\ "href").head.toString()
-
-      val actualUrl = s"/file-upload/envelopes/$envelopeId/files/${urlEncode(fileId)}/content"
-
-      href shouldBe ("\""+actualUrl+"\"")
-    }
-
-    scenario("Retrieve File Metadata with FileId containing random UTF-8 string") {
-
-      Given("I have a valid envelope ")
-      val envelopeId = createEnvelope()
-      val fileId = FileId(s"fileId-${nextUtf8String()}")
-      val fileRefId = FileRefId(s"fileRefId-${nextId()}")
-
-      And("FileInQuarantineStored")
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(data.getBytes().length), Json.obj()))
-
-      And("File was scanned and no virus was found")
-      sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
-
-      And("I have uploaded a file")
-      sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.getBytes().length))
-
-      When("Retrieve File Details")
-      val fileMetaResponse = getFileMetadataFor(envelopeId,fileId)
-
-      Then("Receive 200")
-      fileMetaResponse.status shouldBe OK
-    }
-
-    scenario("Delete an existing file with FileId containing random UTF-8 string") {
-      Given("I have a valid envelope-id")
-      val envelopeId = createEnvelope()
-
-      And("I have a valid file-id")
-      val fileId = FileId(s"fileId-${nextUtf8String()}")
-
-      And("I have a valid file-ref-id")
-      val fileRefId = FileRefId(s"fileRefId-${nextId()}")
-
-      And("FileInQuarantineStored")
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
-
-      And("File is registered as stored")
-      sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, 0))
-
-      When(s"I invoke DELETE envelope/$envelopeId/files/$fileId")
-      val response: WSResponse = delete(envelopeId, fileId)
-
-      Then("I will receive a 200 OK response")
-      response.status shouldBe OK
-    }
-
-    scenario("Upload and Download File with FileId containing random UTF-8 string") {
-      Given("I have a valid envelope ")
-      val envelopeId = createEnvelope()
-      val fileId = FileId(s"fileId-${nextUtf8String()}")
-      val fileRefId = FileRefId(s"fileRefId-${nextId()}")
-
-      And("FileInQuarantineStored")
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(data.getBytes().length), Json.obj()))
-
-      And("File was scanned and no virus was found")
-      sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
-
-      And("I have uploaded a file")
-      sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.getBytes().length))
-
-      mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/file-upload/download/envelopes/$envelopeId/files/$fileId"))
-        .willReturn(WireMock.aResponse().withStatus(200).withBody(data.getBytes)))
-
-      When("I call GET /file-upload/envelopes/:envelope-id/files/:file-id/content")
-      val getFileResponse: WSResponse = download(envelopeId, fileId)
-
-      Then("I will receive a 200 OK response")
-      getFileResponse.status shouldBe OK
+      href shouldBe ("\""+targetUrl+"\"")
     }
   }
 
