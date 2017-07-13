@@ -89,7 +89,7 @@ class FileController(withBasicAuth: BasicAuth,
               }
             }
 
-          case _ => throw new Exception()
+          case d => throw new Exception(s"FileId: $fileId not found by id in envelope: $envelopeId . Instead was found: $d")
         }.getOrElse {
           Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId"))
         }
