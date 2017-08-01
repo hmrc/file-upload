@@ -50,7 +50,7 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       val href = (parsedBody \ "files" \\ "href").head.toString()
 
       val encodedFileId = urlEncode(fileId)
-      encodedFileId.contains("%252C") shouldBe(true)
+      encodedFileId.contains("%252C") shouldBe true
 
       val targetUrl = s"/file-upload/envelopes/$envelopeId/files/$encodedFileId/content"
 
