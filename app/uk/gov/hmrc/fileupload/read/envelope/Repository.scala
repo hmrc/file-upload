@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 import cats.data.Xor
+import com.codahale.metrics.MetricRegistry
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.Json
 import play.api.mvc.{Result, Results}

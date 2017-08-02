@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.write.infrastructure
 
 import cats.data.Xor
+import com.codahale.metrics.MetricRegistry
 import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.api.commands.WriteConcern
 import reactivemongo.api.indexes.{Index, IndexType}
@@ -51,7 +52,7 @@ trait EventStore {
   def recreate(): Unit
 }
 
-class MongoEventStore(mongo: () => DB with DBMetaCommands, writeConcern: WriteConcern = WriteConcern.Default)
+class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegistry, writeConcern: WriteConcern = WriteConcern.Default)
                      (implicit ec: ExecutionContext,
                       reader: BSONDocumentReader[UnitOfWork],
                       writer: BSONDocumentWriter[UnitOfWork]) extends EventStore {
@@ -65,7 +66,8 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, writeConcern: WriteCo
 
   val duplicateKeyErrroCode = Some(11000)
 
-  override def saveUnitOfWork(streamId: StreamId, unitOfWork: UnitOfWork): Future[SaveResult] =
+  override def saveUnitOfWork(streamId: StreamId, unitOfWork: UnitOfWork): Future[SaveResult] = {
+    val timer = metrics.timer("MongoEventStoreSave").time()
     collection.insert(unitOfWork, writeConcern).map { r =>
       if (r.ok) {
         EventStore.saveSuccess
@@ -77,14 +79,23 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, writeConcern: WriteCo
         Xor.Left(VersionConflictError)
       case e =>
         Xor.left(NotSavedError(e.getMessage))
+    }.map { e =>
+      timer.stop()
+      e
     }
+  }
 
 
-  override def unitsOfWorkForAggregate(streamId: StreamId): Future[GetResult] =
+  override def unitsOfWorkForAggregate(streamId: StreamId): Future[GetResult] = {
+    val timer = metrics.timer("MongoEventStoreRead").time()
     collection.find(BSONDocument("streamId" -> streamId.value)).cursor[UnitOfWork]().collect[List]().map { l =>
       val sortByVersion = l.sortBy(_.version.value)
       Xor.right(sortByVersion)
-    }.recover { case e => Xor.left(GetError(e.getMessage)) }
+    }.recover { case e => Xor.left(GetError(e.getMessage)) }.map { e =>
+      timer.stop()
+      e
+    }
+  }
 
   override def recreate(): Unit = {
     Await.result(collection.drop(), 5 seconds)
