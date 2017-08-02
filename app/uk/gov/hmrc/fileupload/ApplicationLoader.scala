@@ -16,10 +16,13 @@
 
 package uk.gov.hmrc.fileupload
 
+import java.net.InetSocketAddress
 import java.util.UUID
 import javax.inject.Provider
 
 import akka.actor.ActorRef
+import com.codahale.metrics.graphite.{Graphite, GraphiteReporter}
+import com.codahale.metrics.{MetricFilter, SharedMetricRegistries}
 import com.kenshoo.play.metrics.{MetricsController, MetricsFilterImpl, MetricsImpl}
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
@@ -68,7 +71,9 @@ class ApplicationLoader extends play.api.ApplicationLoader {
     LoggerConfigurator(context.environment.classLoader).foreach {
       _.configure(context.environment)
     }
-    new ApplicationModule(context).application
+    val app = new ApplicationModule(context)
+    app.graphiteStart()
+    app.application
   }
 }
 
@@ -295,5 +300,43 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val metrics = new MetricsImpl(applicationLifecycle, configuration)
 
   lazy val metricsFilter = new MetricsFilterImpl(metrics)
+
+  def graphiteStart(): Unit = {
+
+    val graphiteConfig = configuration.getConfig(s"$env.microservice.metrics")
+
+    def enabled: Boolean = {
+      val status = metricsPluginEnabled && graphitePublisherEnabled
+      Logger.info(s"graphitePublisherEnabled: $env=$status")
+      status
+    }
+
+    def metricsPluginEnabled: Boolean = configuration.getBoolean("metrics.enabled").getOrElse(false)
+
+    def graphitePublisherEnabled: Boolean = graphiteConfig.flatMap(
+      _.getBoolean("graphite.enabled")).getOrElse(false)
+
+    if (enabled) {
+      val metricsConfig = graphiteConfig.getOrElse(throw new Exception("The application does not contain required metrics configuration"))
+
+      val graphite = new Graphite(new InetSocketAddress(
+        metricsConfig.getString("graphite.host").getOrElse("graphite"),
+        metricsConfig.getInt("graphite.port").getOrElse(2003)))
+
+      val prefix = metricsConfig.getString("graphite.prefix").getOrElse(s"tax.${configuration.getString("appName")}")
+
+      import java.util.concurrent.TimeUnit._
+
+      val reporter = GraphiteReporter.forRegistry(
+        SharedMetricRegistries.getOrCreate(configuration.getString("metrics.name").getOrElse("default")))
+        .prefixedWith(s"$prefix.${java.net.InetAddress.getLocalHost.getHostName}")
+        .convertRatesTo(SECONDS)
+        .convertDurationsTo(MILLISECONDS)
+        .filter(MetricFilter.ALL)
+        .build(graphite)
+
+      reporter.start(metricsConfig.getLong("graphite.interval").getOrElse(10L), SECONDS)
+    }
+  }
 
 }
