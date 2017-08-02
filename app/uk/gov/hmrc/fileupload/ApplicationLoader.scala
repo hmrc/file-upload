@@ -86,9 +86,9 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   val withBasicAuth: BasicAuth = BasicAuth(basicAuthConfiguration(configuration))
 
   val eventStore = if (environment.mode == Mode.Prod && configuration.getBoolean("Prod.mongodb.replicaSetInUse").getOrElse(true)) {
-    new MongoEventStore(db, writeConcern = commands.WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = true))
+    new MongoEventStore(db, metrics.defaultRegistry, writeConcern = commands.WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = true))
   } else {
-    new MongoEventStore(db)
+    new MongoEventStore(db, metrics.defaultRegistry)
   }
 
   val updateEnvelope = if (environment.mode == Mode.Prod && configuration.getBoolean("Prod.mongodb.replicaSetInUse").getOrElse(true)) {
