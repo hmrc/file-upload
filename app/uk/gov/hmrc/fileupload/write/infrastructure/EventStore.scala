@@ -16,8 +16,11 @@
 
 package uk.gov.hmrc.fileupload.write.infrastructure
 
+import java.util.concurrent.TimeUnit
+
 import cats.data.Xor
 import com.codahale.metrics.MetricRegistry
+import play.api.Logger
 import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.api.commands.WriteConcern
 import reactivemongo.api.indexes.{Index, IndexType}
@@ -66,8 +69,11 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
 
   val duplicateKeyErrroCode = Some(11000)
 
+  val saveTimer = metrics.timer("MongoEventStoreSave")
+  val readTimer = metrics.timer("MongoEventStoreRead")
+
   override def saveUnitOfWork(streamId: StreamId, unitOfWork: UnitOfWork): Future[SaveResult] = {
-    val timer = metrics.timer("MongoEventStoreSave").time()
+    val context = saveTimer.time()
     collection.insert(unitOfWork, writeConcern).map { r =>
       if (r.ok) {
         EventStore.saveSuccess
@@ -80,19 +86,25 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
       case e =>
         Xor.left(NotSavedError(e.getMessage))
     }.map { e =>
-      timer.stop()
+      context.stop()
       e
     }
   }
 
 
   override def unitsOfWorkForAggregate(streamId: StreamId): Future[GetResult] = {
-    val timer = metrics.timer("MongoEventStoreRead").time()
+    val context = readTimer.time()
     collection.find(BSONDocument("streamId" -> streamId.value)).cursor[UnitOfWork]().collect[List]().map { l =>
       val sortByVersion = l.sortBy(_.version.value)
       Xor.right(sortByVersion)
     }.recover { case e => Xor.left(GetError(e.getMessage)) }.map { e =>
-      timer.stop()
+      val elapsedNanos = context.stop()
+      val elapsed = FiniteDuration(elapsedNanos, TimeUnit.NANOSECONDS)
+
+      if (elapsed > FiniteDuration(10, TimeUnit.SECONDS)) {
+        Logger.warn(s"unitsOfWorkForAggregate: events.find by streamId=$streamId took $elapsed")
+      }
+
       e
     }
   }
