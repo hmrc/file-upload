@@ -101,8 +101,8 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
       val elapsedNanos = context.stop()
       val elapsed = FiniteDuration(elapsedNanos, TimeUnit.NANOSECONDS)
 
-      if (elapsed.>(FiniteDuration(20, TimeUnit.SECONDS))) {
-        Logger.warn(s"unitsOfWorkForAggregate query on stream $streamId took $elapsed")
+      if (elapsed > FiniteDuration(10, TimeUnit.SECONDS)) {
+        Logger.warn(s"unitsOfWorkForAggregate: events.find by streamId=$streamId took $elapsed")
       }
 
       e
