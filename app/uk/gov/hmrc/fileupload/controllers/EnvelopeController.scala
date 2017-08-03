@@ -49,6 +49,10 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
     val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata,
                                  CreateEnvelopeRequest.formatUserEnvelopeConstraints(request.body.constraints.getOrElse(EnvelopeConstraintsUserSetting())))
+
+    val userAgent = request.headers.get("User-Agent").getOrElse("none")
+    Logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
+    
     handleCreate(envelopeLocation, command)
   }
 
@@ -56,6 +60,10 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
     val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata,
                                  CreateEnvelopeRequest.formatUserEnvelopeConstraints(request.body.constraints.getOrElse(EnvelopeConstraintsUserSetting())))
+
+    val userAgent = request.headers.get("User-Agent").getOrElse("none")
+    Logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
+
     handleCreate(envelopeLocation, command)
   }
 
