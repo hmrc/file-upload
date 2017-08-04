@@ -42,6 +42,7 @@ object NotifierRepository {
             (implicit executionContext: ExecutionContext): Future[NotifyResult] =
     httpCall(wSClient
       .url(s"$url")
+      .withHeaders("User-Agent" -> "FU-backend")
       .withBody(Json.toJson(notification))
       .withMethod("POST")).map {
       case Xor.Left(error) => Xor.left(NotificationFailedError(notification.envelopeId, notification.fileId, error.message))
