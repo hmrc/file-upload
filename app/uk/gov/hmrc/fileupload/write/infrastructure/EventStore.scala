@@ -59,7 +59,7 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
                      (implicit ec: ExecutionContext,
                       reader: BSONDocumentReader[UnitOfWork],
                       writer: BSONDocumentWriter[UnitOfWork]) extends EventStore {
-
+  
   val collection: BSONCollection = mongo().collection[BSONCollection]("events")
 
   ensureIndex()
@@ -68,9 +68,11 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
     collection.indexesManager.ensure(Index(key = List("streamId" -> IndexType.Hashed), background = true))
 
   val duplicateKeyErrroCode = Some(11000)
+  val envelopeEventsTreshold = 1000
 
   val saveTimer = metrics.timer("MongoEventStoreSave")
   val readTimer = metrics.timer("MongoEventStoreRead")
+  val largeEnvelopeMarker = metrics.meter("LargeEnvelope")
 
   override def saveUnitOfWork(streamId: StreamId, unitOfWork: UnitOfWork): Future[SaveResult] = {
     val context = saveTimer.time()
@@ -91,13 +93,24 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
     }
   }
 
-
   override def unitsOfWorkForAggregate(streamId: StreamId): Future[GetResult] = {
     val context = readTimer.time()
     collection.find(BSONDocument("streamId" -> streamId.value)).cursor[UnitOfWork]().collect[List]().map { l =>
       val sortByVersion = l.sortBy(_.version.value)
+      val size = sortByVersion.size
+      if (size >= envelopeEventsTreshold) {
+        largeEnvelopeMarker.mark()
+        if (size % envelopeEventsTreshold <= 20) {
+          Logger.warn(s"large envelope: envelopeId=$streamId size=$size")
+        }
+        if (size % 100 == 0) {
+          Logger.error(s"large envelope: envelopeId=$streamId size=$size")
+        }
+      }
       Xor.right(sortByVersion)
-    }.recover { case e => Xor.left(GetError(e.getMessage)) }.map { e =>
+    }.recover { case e =>
+      Xor.left(GetError(e.getMessage))
+    }.map { e =>
       val elapsedNanos = context.stop()
       val elapsed = FiniteDuration(elapsedNanos, TimeUnit.NANOSECONDS)
 
