@@ -150,6 +150,10 @@ case object FileStatusAvailable extends FileStatus {
   override val name = "AVAILABLE"
 }
 
+case object FileStatusInfected extends FileStatus {
+  override val name = "INFECTED"
+}
+
 case object FileStatusError extends FileStatus {
   override val name = "UnKnownFileStatusERROR"
 }
@@ -163,6 +167,7 @@ object FileStatusReads extends Reads[FileStatus] {
     case FileStatusQuarantined.name => JsSuccess(FileStatusQuarantined)
     case FileStatusCleaned.name => JsSuccess(FileStatusCleaned)
     case FileStatusAvailable.name => JsSuccess(FileStatusAvailable)
+    case FileStatusInfected.name => JsSuccess(FileStatusInfected)
     case FileStatusError.name => JsSuccess(FileStatusError)
   }
 }
