@@ -80,7 +80,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
 
       sendEvent(event)
 
-      val expectedEnvelope = initialState.copy(files = Some(Seq(file.copy(status = FileStatusError))), version = newVersion)
+      val expectedEnvelope = initialState.copy(files = Some(Seq(file.copy(status = FileStatusInfected))), version = newVersion)
       modifiedEnvelope shouldBe expectedEnvelope
     }
     "update file status if file was clean" in new UpdateEnvelopeFixture {

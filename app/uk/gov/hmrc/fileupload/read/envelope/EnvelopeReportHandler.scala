@@ -50,7 +50,7 @@ class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
     }
 
     case (s: Envelope, e: VirusDetected) => Some {
-      s.copy(files = fileStatusLens(s, e.fileId, FileStatusError))
+      s.copy(files = fileStatusLens(s, e.fileId, FileStatusInfected))
     }
 
     case (s: Envelope, e: EnvelopeSealed) => Some {
