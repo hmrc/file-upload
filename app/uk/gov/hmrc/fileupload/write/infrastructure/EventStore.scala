@@ -70,9 +70,9 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
   val duplicateKeyErrroCode = Some(11000)
   val envelopeEventsTreshold = 1000
 
-  val saveTimer = metrics.timer("MongoEventStoreSave")
-  val readTimer = metrics.timer("MongoEventStoreRead")
-  val largeEnvelopeMarker = metrics.meter("LargeEnvelope")
+  val saveTimer = metrics.timer("mongo.eventStore.write")
+  val readTimer = metrics.timer("mongo.eventStore.read")
+  val largeEnvelopeMarker = metrics.meter("mongo.largeEnvelope")
 
   override def saveUnitOfWork(streamId: StreamId, unitOfWork: UnitOfWork): Future[SaveResult] = {
     val context = saveTimer.time()
@@ -99,9 +99,12 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
       val sortByVersion = l.sortBy(_.version.value)
       val size = sortByVersion.size
       if (size >= envelopeEventsTreshold) {
+        val elapsedNanos = context.stop()
+        val elapsed = FiniteDuration(elapsedNanos, TimeUnit.NANOSECONDS)
+
         largeEnvelopeMarker.mark()
         if (size % envelopeEventsTreshold <= 20) {
-          Logger.warn(s"large envelope: envelopeId=$streamId size=$size")
+          Logger.warn(s"large envelope: envelopeId=$streamId size=$size time=${elapsed.toMillis} ms")
         }
         if (size % 100 == 0) {
           Logger.error(s"large envelope: envelopeId=$streamId size=$size")
