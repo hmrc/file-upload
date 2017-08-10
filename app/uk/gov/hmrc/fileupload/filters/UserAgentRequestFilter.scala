@@ -48,7 +48,7 @@ class UserAgentRequestFilter @Inject()(metricRegistry: MetricRegistry,
       if (userAgentWhitelist contains userAgentInRequest)
         userAgentInRequest
       else {
-        Logger.warn(s"Agent $userAgentInRequest is not in UserAgentRequestFilter whitelist for ${rh.path}")
+        Logger.info(s"Agent $userAgentInRequest is not in UserAgentRequestFilter whitelist for ${rh.path}")
         UserAgent.unknownUserAgent
       }
     }
