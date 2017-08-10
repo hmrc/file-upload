@@ -16,6 +16,8 @@ import uk.gov.hmrc.fileupload.filters.{UserAgent, UserAgentRequestFilter}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
+import scala.collection.JavaConverters._
+
 class UserAgentMetricsFilterIntegrationSpec extends FunSuite with BeforeAndAfterAll with Matchers with Eventually {
 
   implicit val system = ActorSystem()
@@ -26,54 +28,73 @@ class UserAgentMetricsFilterIntegrationSpec extends FunSuite with BeforeAndAfter
     system.terminate()
   }
 
-  private val dfsFrontend = "dfs-frontend"
+  val dfsFrontend = "dfs-frontend"
   val whitelist =
     Set(dfsFrontend, "voa-property-linking-frontend").map(UserAgent.apply)
 
+  val nginxChecks = "nginx-health"
+  val blacklist =
+    Set(nginxChecks).map(UserAgent.apply)
+
   implicit val patience: PatienceConfig = PatienceConfig(5.seconds, 1.second)
 
-  test("Timer created for User-Agent when header is white listed") {
+  def withFilter[T](block: (UserAgentRequestFilter, MetricRegistry) => T): T = {
     val metrics = new MetricRegistry
-    val filter = new UserAgentRequestFilter(metrics, whitelist)
+    val filter = new UserAgentRequestFilter(metrics, whitelist, blacklist)
+    block(filter, metrics)
+  }
 
-    val rh = FakeRequest().withHeaders(HeaderNames.USER_AGENT -> dfsFrontend)
-    val endAction = Action(Ok("boom"))
-    filter(endAction)(rh).run()
+  val endAction = Action(Ok("boom"))
 
-    eventually {
-      metrics.timer(s"request.user-agent.$dfsFrontend").getCount shouldBe 1
-    }
+  def grabTimerCounts(metrics: MetricRegistry): Map[String, Long] =
+    metrics.getTimers.asScala.map { case (name, timer) =>
+      name -> timer.getCount
+    }.toMap
 
-    filter(endAction)(rh).run()
+  test("Timer created for User-Agent when header is white listed") {
+    withFilter { (filter, metrics) =>
+      val rh = FakeRequest().withHeaders(HeaderNames.USER_AGENT -> dfsFrontend)
+      filter(endAction)(rh).run()
 
-    eventually {
-      metrics.timer(s"request.user-agent.$dfsFrontend").getCount shouldBe 2
+      eventually {
+        metrics.timer(s"request.user-agent.$dfsFrontend").getCount shouldBe 1
+      }
+
+      filter(endAction)(rh).run()
+
+      eventually {
+        grabTimerCounts(metrics) should contain(s"request.user-agent.$dfsFrontend" -> 2)
+      }
     }
   }
 
   test("Timer for NoUserAgent is incremented when User-Agent header is missing") {
-    val metrics = new MetricRegistry
-    val filter = new UserAgentRequestFilter(metrics, whitelist)
+    withFilter { (filter, metrics) =>
+      val rh = FakeRequest()
+      filter(endAction)(rh).run()
 
-    val rh = FakeRequest()
-    val endAction = Action(Ok("boom"))
-    filter(endAction)(rh).run()
-
-    eventually {
-      metrics.timer(s"request.user-agent.NoUserAgent").getCount shouldBe 1
+      eventually {
+        grabTimerCounts(metrics) should contain("request.user-agent.NoUserAgent" -> 1)
+      }
     }
   }
 
   test("Timer for UnknownUserAgent is incremented when User-Agent header not in whitelist") {
-    val metrics = new MetricRegistry
-    val filter = new UserAgentRequestFilter(metrics, whitelist)
+    withFilter { (filter, metrics) =>
+      val rh = FakeRequest().withHeaders(HeaderNames.USER_AGENT -> UUID.randomUUID().toString)
+      filter(endAction)(rh).run()
 
-    val rh = FakeRequest().withHeaders(HeaderNames.USER_AGENT -> UUID.randomUUID().toString)
-    val endAction = Action(Ok("boom"))
-    filter(endAction)(rh).run()
+      eventually {
+        grabTimerCounts(metrics) should contain ("request.user-agent.UnknownUserAgent" -> 1)
+      }
+    }
+  }
 
-    eventually {
-      metrics.timer(s"request.user-agent.UnknownUserAgent").getCount shouldBe 1
+  test("Timer for User-Agent in ignore list is.. ignored") {
+    withFilter { (filter, metrics) =>
+      val rh = FakeRequest().withHeaders(HeaderNames.USER_AGENT -> nginxChecks)
+      filter(endAction)(rh).run()
+      metrics.getTimers.size() shouldBe 0
     }
   }
 
