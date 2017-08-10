@@ -41,6 +41,7 @@ import uk.gov.hmrc.fileupload.controllers.routing.RoutingController
 import uk.gov.hmrc.fileupload.controllers.transfer.TransferController
 import uk.gov.hmrc.fileupload.controllers.{AdminController, _}
 import uk.gov.hmrc.fileupload.file.zip.Zippy
+import uk.gov.hmrc.fileupload.filters.{UserAgent, UserAgentRequestFilter}
 import uk.gov.hmrc.fileupload.infrastructure._
 import uk.gov.hmrc.fileupload.manualdihealth.{Routes => HealthRoutes}
 import uk.gov.hmrc.fileupload.prod.Routes
@@ -130,6 +131,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     deleteVirusDetectedStat, deleteFileStoredStat), "statsActor")
 
   override lazy val httpFilters: Seq[EssentialFilter] = Seq(
+    new UserAgentRequestFilter(metrics.defaultRegistry, UserAgent.allKnown),
     metricsFilter,
     microserviceAuditFilter,
     loggingFilter,
