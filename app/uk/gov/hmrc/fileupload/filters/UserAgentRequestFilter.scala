@@ -28,7 +28,14 @@ import scala.concurrent.{ExecutionContext, Future}
 
 case class UserAgent(value: String) extends AnyVal
 object UserAgent {
-  val allKnown = Set(UserAgent("voa-property-linking-frontend"), UserAgent("dfs-frontend"))
+  val allKnown = Set(
+    UserAgent("voa-property-linking"),
+    UserAgent("voa-property-linking-frontend"),
+    UserAgent("dfs-frontend"),
+    UserAgent("FU-frontend-CH"),
+    UserAgent("FU-frontend-transfer"),
+    UserAgent("business-rates-check"),
+    UserAgent("business-rates-check-frontend"))
   val noUserAgent = UserAgent("NoUserAgent")
   val unknownUserAgent = UserAgent("UnknownUserAgent")
 }
@@ -41,7 +48,7 @@ class UserAgentRequestFilter @Inject()(metricRegistry: MetricRegistry,
       if (userAgentWhitelist contains userAgentInRequest)
         userAgentInRequest
       else {
-        Logger.warn(s"Agent $userAgentInRequest is not in UserAgentRequestFilter whitelist")
+        Logger.warn(s"Agent $userAgentInRequest is not in UserAgentRequestFilter whitelist for ${rh.path}")
         UserAgent.unknownUserAgent
       }
     }
