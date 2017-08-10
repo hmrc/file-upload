@@ -36,29 +36,38 @@ object UserAgent {
     UserAgent("FU-frontend-transfer"),
     UserAgent("business-rates-check"),
     UserAgent("business-rates-check-frontend"))
+  val defaultIgnoreList = Set(UserAgent("nginx-health"))
   val noUserAgent = UserAgent("NoUserAgent")
   val unknownUserAgent = UserAgent("UnknownUserAgent")
 }
 
 class UserAgentRequestFilter @Inject()(metricRegistry: MetricRegistry,
-                                       userAgentWhitelist: Set[UserAgent])(implicit val mat: Materializer, ec: ExecutionContext) extends Filter {
+                                       userAgentWhitelist: Set[UserAgent],
+                                       userAgentIgnoreList: Set[UserAgent])(implicit val mat: Materializer, ec: ExecutionContext) extends Filter {
 
   override def apply(nextFilter: (RequestHeader) => Future[Result])(rh: RequestHeader): Future[Result] = {
-    val userAgentOpt = rh.headers.get(HeaderNames.USER_AGENT).map(UserAgent.apply).map { userAgentInRequest =>
-      if (userAgentWhitelist contains userAgentInRequest)
-        userAgentInRequest
-      else {
-        Logger.info(s"Agent $userAgentInRequest is not in UserAgentRequestFilter whitelist for ${rh.path}")
-        UserAgent.unknownUserAgent
+    def timeWith(userAgent: UserAgent): Future[Result] = {
+      val timer = metricRegistry.timer(s"request.user-agent.${userAgent.value}")
+      val context = timer.time()
+      nextFilter(rh).map { res =>
+        context.stop()
+        res
       }
     }
-    val userAgent = userAgentOpt.getOrElse(UserAgent.noUserAgent)
 
-    val timer = metricRegistry.timer(s"request.user-agent.${userAgent.value}")
-    val context = timer.time()
-    nextFilter(rh).map { res =>
-      context.stop()
-      res
+    rh.headers.get(HeaderNames.USER_AGENT).map(UserAgent.apply) match {
+      case Some(ua) if userAgentIgnoreList.contains(ua) =>
+        nextFilter(rh)
+
+      case Some(ua) if userAgentWhitelist.contains(ua) =>
+        timeWith(ua)
+
+      case Some(unknownUserAgent) => {
+        Logger.info(s"Agent $unknownUserAgent is not in UserAgentRequestFilter whitelist for ${rh.path}")
+        timeWith(UserAgent.unknownUserAgent)
+      }
+
+      case None => timeWith(UserAgent.noUserAgent)
     }
   }
 

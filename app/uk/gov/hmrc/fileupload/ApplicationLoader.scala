@@ -130,8 +130,9 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   actorSystem.actorOf(StatsActor.props(subscribe, findEnvelope, sendNotification, saveFileQuarantinedStat,
     deleteVirusDetectedStat, deleteFileStoredStat), "statsActor")
 
+
   override lazy val httpFilters: Seq[EssentialFilter] = Seq(
-    new UserAgentRequestFilter(metrics.defaultRegistry, UserAgent.allKnown),
+    new UserAgentRequestFilter(metrics.defaultRegistry, UserAgent.allKnown, UserAgent.defaultIgnoreList),
     metricsFilter,
     microserviceAuditFilter,
     loggingFilter,
