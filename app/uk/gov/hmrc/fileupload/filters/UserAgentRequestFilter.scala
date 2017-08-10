@@ -36,7 +36,7 @@ object UserAgent {
     UserAgent("FU-frontend-transfer"),
     UserAgent("business-rates-check"),
     UserAgent("business-rates-check-frontend"))
-  val defaultIgnoreList = Set(UserAgent("nginx-health"))
+  val defaultIgnoreList = Set(UserAgent("nginx-health"), UserAgent("docktor"))
   val noUserAgent = UserAgent("NoUserAgent")
   val unknownUserAgent = UserAgent("UnknownUserAgent")
 }
