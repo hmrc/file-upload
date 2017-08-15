@@ -344,7 +344,7 @@ Response: 200
 The following is an example request to the callbackUrl. Should comprise of:
 * Envelope Id
 * File Id
-* Status which will show the current status. Possible values are QUARANTINED, CLEANED or ERROR
+* Status which will show the current status. Possible values are QUARANTINED, CLEANED, INFECTED or ERROR
 * Reason which is optional and only occurs when status is ERROR
 
 Request (POST)
