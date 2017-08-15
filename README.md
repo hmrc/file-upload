@@ -176,7 +176,7 @@ Response (in Body):
 
 #### Download File
 Download a file from an envelope.
-Wherever possible please use routing + dowloading zip endpoints.
+Wherever possible please use routing + dowload the zip endpoints instead of this endpoint.
 ```
 GET   	/file-upload/envelopes/{envelope-id}/files/{file-id}/content
 ```
