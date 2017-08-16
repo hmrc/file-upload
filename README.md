@@ -428,7 +428,7 @@ Body: Binary File.
 
 Response: 200
 
-## TEST-ONLY ENDPOINTS (DO NOT USE) <a name="testonly"></a>
+## TEST-ONLY ENDPOINTS (DO NOT USE ON PROD) <a name="testonly"></a>
 These endpoints are not available in production and are used for testing purposes. <i>**PLEASE DO NOT USE THESE WITHOUT PERMISSION**</i>.
 
 
@@ -457,7 +457,7 @@ Reques (POST): localhost:8899/file-upload/test-only/recreate-collections
 Response: 200
 
 
-## INTERNAL USE ONLY ENDPOINTS (DO NOT USE) <a name="internal"></a>
+## INTERNAL USE ONLY ENDPOINTS (DO NOT USE AT ALL) <a name="internal"></a>
 The following endpoints are for internal use. <i>**PLEASE DO NOT USE THESE ENDPOINTS WITHOUT PERMISSION**</i>.
 
 #### SHOW ENVELOPES BY STATUS (DO NOT USE)
