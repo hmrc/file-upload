@@ -26,14 +26,13 @@ import play.api.libs.ws.WSClient
 import play.api.mvc._
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, FileStatusAvailable, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeCommand
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.fileupload.read.stats.Stats.FileFound
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
-
 import uk.gov.hmrc.fileupload.file.zip.MongoS3Compability._
 
 class RetrieveFile(wsClient: WSClient, baseUrl: String) {
@@ -68,33 +67,42 @@ class FileController(withBasicAuth: BasicAuth,
 
     withBasicAuth {
       withValidEnvelope(envelopeId) { envelope =>
-        val maybeFile = envelope.getFileById(fileId).map(f => (f.name, f.fileRefId, f.length))
-        maybeFile.map {
-          case (filename, fileRefId, Some(length)) =>
-            if (checkIsTheFileInS3(fileRefId)) {
-              retrieveFileS3(envelopeId, fileId).map { source =>
-                Ok.sendEntity(HttpEntity.Streamed(source, Some(length), Some("application/octet-stream")))
-                  .withHeaders(CONTENT_DISPOSITION -> s"""attachment; filename="${filename.getOrElse("data")}"""",
-                    CONTENT_LENGTH -> s"$length",
-                    CONTENT_TYPE -> "application/octet-stream")
-              }
-            } else {
-              //Todo: remove if-else when mongoDB is not in use at all.
-              retrieveFileMongo(envelope, fileId).map {
-                case Xor.Right(FileFound(filenameI, lengthI, data)) => // I like inner
-                  val byteArray = Source.fromPublisher(Streams.enumeratorToPublisher(data.map(ByteString.fromArray)))
-                  Ok.sendEntity(HttpEntity.Streamed(byteArray, Some(lengthI), Some("application/octet-stream")))
-                    .withHeaders(CONTENT_DISPOSITION -> s"""attachment; filename="${filenameI.getOrElse("data")}"""",
-                      CONTENT_LENGTH -> s"$lengthI",
+        val foundFile = envelope.getFileById(fileId)
+        if (foundFile.map(_.status).filter(_ != FileStatusAvailable).isDefined)
+          Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId in envelope: $envelopeId is not ready for download."))
+        else {
+          foundFile.map { f =>
+            val (filename, fileRefId, lengthO) = (f.name, f.fileRefId, f.length)
+              if (checkIsTheFileInS3(fileRefId)) {
+                retrieveFileS3(envelopeId, fileId).map { source =>
+                  val caseBase = Ok.sendEntity(HttpEntity.Streamed(source, lengthO, Some("application/octet-stream")))
+                    .withHeaders(
+                      CONTENT_DISPOSITION -> s"""attachment; filename="${filename.getOrElse("data")}"""",
                       CONTENT_TYPE -> "application/octet-stream")
-                case Xor.Left(GetFileNotFoundError) =>
-                  ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId")
+                  lengthO match {
+                    case Some(length) =>
+                      caseBase.withHeaders(CONTENT_LENGTH -> s"$length")
+                    case None =>
+                      Logger.error(s"No file length detected for: envelopeId=$envelopeId fileId=$fileId. Trying to download it without length set.")
+                      caseBase
+                  }
+                }
+              } else {
+                //Todo: remove if-else when mongoDB is not in use at all.
+                retrieveFileMongo(envelope, fileId).map {
+                  case Xor.Right(FileFound(filenameI, lengthI, data)) => // I like inner
+                    val byteArray = Source.fromPublisher(Streams.enumeratorToPublisher(data.map(ByteString.fromArray)))
+                    Ok.sendEntity(HttpEntity.Streamed(byteArray, Some(lengthI), Some("application/octet-stream")))
+                      .withHeaders(CONTENT_DISPOSITION -> s"""attachment; filename="${filenameI.getOrElse("data")}"""",
+                        CONTENT_LENGTH -> s"$lengthI",
+                        CONTENT_TYPE -> "application/octet-stream")
+                  case Xor.Left(GetFileNotFoundError) =>
+                    ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId")
+                }
               }
-            }
-
-          case d => throw new Exception(s"FileId: $fileId corrupted, envelopeId: $envelopeId . Instead was found: $d")
-        }.getOrElse {
-          Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId"))
+          }.getOrElse {
+            Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId"))
+          }
         }
       }
     }

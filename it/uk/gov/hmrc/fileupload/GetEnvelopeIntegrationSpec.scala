@@ -171,6 +171,7 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
 
       When("I call GET /file-upload/envelopes/:envelope-id")
       val envelopeId = envelopeIdFromHeader(createEnvelopeResponse)
+      Thread.sleep(10) // ugly, but fixes this flaky test
       val getEnvelopeResponse = getEnvelopeFor(envelopeId)
       getEnvelopeResponse.status shouldBe OK
 
