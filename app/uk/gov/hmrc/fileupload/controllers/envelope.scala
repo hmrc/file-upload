@@ -19,7 +19,6 @@ package uk.gov.hmrc.fileupload.controllers
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.QueryStringBindable
-import play.utils.UriEncoding
 import uk.gov.hmrc.fileupload.read.envelope.Envelope.{ContentTypes, defaultContentTypes, defaultMaxItems, defaultMaxSize, defaultMaxSizePerItem}
 import uk.gov.hmrc.fileupload.read.envelope._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
@@ -67,51 +66,6 @@ case class EnvelopeConstraintsUserSetting(maxItems: Option[Int] = None,
                                           maxSize: Option[String] = None,
                                           maxSizePerItem: Option[String] = None,
                                           contentTypes: Option[List[ContentTypes]] = None)
-
-case class EnvelopeConstraints(maxItems: Int,
-                               maxSize: String,
-                               maxSizePerItem: String,
-                               contentTypes: List[ContentTypes]) {
-  import EnvelopeConstraints._
-  require(isAValidSize(maxSize), s"constraints.maxSize exceeds maximum allowed value of ${Envelope.acceptedConstraints.maxSize}")
-  require(isAValidSize(maxSizePerItem), s"constraints.maxSizePerItem exceeds maximum allowed value of ${Envelope.acceptedConstraints.maxSizePerItem}")
-
-  val maxSizeInBytes: Long = translateToByteSize(maxSize)
-  val maxSizePerItemInBytes: Long = translateToByteSize(maxSizePerItem)
-}
-
-object EnvelopeConstraints {
-
-  private val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
-
-  def isAValidSize(size: String): Boolean = {
-    if (size.isEmpty) false
-    else {
-      size.toUpperCase match {
-        case sizeRegex(num, unit) =>
-          unit match {
-            case "KB" => true
-            case "MB" => true
-            case _ => false
-          }
-        case _ => false
-      }
-    }
-  }
-
-  def translateToByteSize(size: String): Long = {
-    if (!isAValidSize(size)) throw new IllegalArgumentException(s"Invalid constraint input")
-    else {
-      size.toUpperCase match {
-        case sizeRegex(num, unit) =>
-          unit match {
-            case "KB" => num.toInt * 1024
-            case "MB" => num.toInt * 1024 * 1024
-          }
-      }
-    }
-  }
-}
 
 object CreateEnvelopeRequest {
 
