@@ -39,7 +39,7 @@ import uk.gov.hmrc.fileupload.file.zip.MongoS3Compability._
 class RetrieveFile(wsClient: WSClient, baseUrl: String) {
   def download(envelopeId: EnvelopeId, fileId: FileId)(implicit ec: ExecutionContext): Future[Source[ByteString, _]] = {
     val encodedFileId = implicitly[PathBindable[uk.gov.hmrc.fileupload.FileId]].unbind("fileId", fileId)
-    val downloadUrl = s"$baseUrl/file-upload/download/envelopes/$envelopeId/files/$encodedFileId"
+    val downloadUrl = s"$baseUrl/internal-file-upload/download/envelopes/$envelopeId/files/$encodedFileId"
     Logger.debug(s"Downloading $downloadUrl")
     val t1 = System.nanoTime()
     val data = wsClient.url(downloadUrl)
