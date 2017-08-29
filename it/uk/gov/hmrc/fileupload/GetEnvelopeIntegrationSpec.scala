@@ -19,7 +19,7 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
   val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
   val today = new DateTime().plusMinutes(10)
 
-  implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
+  implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(50, Millis))
 
   feature("Retrieve Envelope") {
 
@@ -131,11 +131,14 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       createResponse.status should equal(CREATED)
       val envelopeId = envelopeIdFromHeader(createResponse)
 
-      When("I call GET /file-upload/envelopes/:envelope-id")
-      val envelopeResponse = getEnvelopeFor(envelopeId)
+      var envelopeResponse: WSResponse = null
+      eventually {
+        When("I call GET /file-upload/envelopes/:envelope-id")
+        envelopeResponse = getEnvelopeFor(envelopeId)
 
-      Then("I will receive a 200 Ok response")
-      envelopeResponse.status shouldBe OK
+        Then("I will receive a 200 Ok response")
+        envelopeResponse.status shouldBe OK
+      }
 
       And("The envelope details will include the constraints as they were applied")
       val jsonResponse = Json.parse(envelopeResponse.body)
@@ -171,9 +174,12 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
 
       When("I call GET /file-upload/envelopes/:envelope-id")
       val envelopeId = envelopeIdFromHeader(createEnvelopeResponse)
-      Thread.sleep(10) // ugly, but fixes this flaky test
-      val getEnvelopeResponse = getEnvelopeFor(envelopeId)
-      getEnvelopeResponse.status shouldBe OK
+
+      var getEnvelopeResponse: WSResponse = null
+      eventually {
+        getEnvelopeResponse = getEnvelopeFor(envelopeId)
+        getEnvelopeResponse.status shouldBe OK
+      }
 
       And("the constraints should be the defaults")
       val parsedBody = Json.parse(getEnvelopeResponse.body)

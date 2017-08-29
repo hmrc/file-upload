@@ -68,7 +68,7 @@ class FileController(withBasicAuth: BasicAuth,
     withBasicAuth {
       withValidEnvelope(envelopeId) { envelope =>
         val foundFile = envelope.getFileById(fileId)
-        if (foundFile.map(_.status).filter(_ != FileStatusAvailable).isDefined)
+        if (foundFile.map(_.status).exists(_ != FileStatusAvailable))
           Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId in envelope: $envelopeId is not ready for download."))
         else {
           foundFile.map { f =>
