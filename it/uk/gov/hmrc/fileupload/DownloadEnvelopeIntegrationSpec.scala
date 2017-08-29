@@ -20,7 +20,7 @@ class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActio
     scenario("A client can download an envelope including its file ~containing random UTF-8 string") {
 
       val uidRegexPattern = "[a-z0-9-]*"
-      mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/file-upload/download/envelopes/$uidRegexPattern/files/$uidRegexPattern"))
+      mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/internal-file-upload/download/envelopes/$uidRegexPattern/files/$uidRegexPattern"))
         .willReturn(WireMock.aResponse().withStatus(200).withBody("sampleFileContent".getBytes)))
 
       Given("I have an envelope with files")

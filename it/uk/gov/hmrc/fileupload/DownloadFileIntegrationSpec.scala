@@ -43,7 +43,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
       And("I have uploaded a file")
       sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.getBytes().length))
 
-      mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/file-upload/download/envelopes/$envelopeId/files/$fileId"))
+      mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/internal-file-upload/download/envelopes/$envelopeId/files/$fileId"))
         .willReturn(WireMock.aResponse().withStatus(200).withBody(data.getBytes)))
 
       When(s"I invoke GET envelope/$envelopeId/files/$fileId/content")
@@ -105,10 +105,10 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
       md.update(data)
       val sourceDigest = md.digest()
 
-      mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/file-upload/download/envelopes/$envelopeId/files/$fileId"))
+      mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/internal-file-upload/download/envelopes/$envelopeId/files/$fileId"))
         .willReturn(WireMock.aResponse().withStatus(200).withBody(data)))
 
-      When("I call GET /file-upload/envelopes/:envelope-id/files/:file-id/content")
+      When("I call GET /internal-file-upload/envelopes/:envelope-id/files/:file-id/content")
       val getFileResponse: WSResponse = download(envelopeId, fileId)
 
       Then("I will receive a 200 OK response")
