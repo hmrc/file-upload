@@ -19,7 +19,7 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
   val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
   val today = new DateTime().plusMinutes(10)
 
-  implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
+  implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(50, Millis))
 
   feature("Retrieve Envelope") {
 
@@ -30,37 +30,33 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       val envelopeId = envelopeIdFromHeader(createResponse)
 
       eventually {
+        When("I call GET /file-upload/envelopes/:envelope-id")
         val envelopeResponse = getEnvelopeFor(envelopeId)
+
+        Then("I will receive a 200 Ok response")
         envelopeResponse.status shouldBe OK
+
+        And("the response body should contain the envelope details")
+        val body: String = envelopeResponse.body
+        body shouldNot be(null)
+
+        val parsedBody: JsValue = Json.parse(body)
+        parsedBody \ "id" match {
+          case JsDefined(JsString(value)) => value should fullyMatch regex "[A-z0-9-]+"
+          case _ => JsError("expectation failed")
+        }
+
+        parsedBody \ "status" match {
+          case JsDefined(JsString(value)) => value should fullyMatch regex "OPEN"
+          case _ => JsError("expectation failed")
+        }
+
+        (parsedBody \ "constraints") \ "maxItems" match {
+          case JsDefined(JsNumber(const)) =>
+            const shouldBe 100
+          case _ => JsError("expectation failed")
+        }
       }
-
-      When("I call GET /file-upload/envelopes/:envelope-id")
-      val envelopeResponse = getEnvelopeFor(envelopeId)
-
-      Then("I will receive a 200 Ok response")
-      envelopeResponse.status shouldBe OK
-
-      And("the response body should contain the envelope details")
-      val body: String = envelopeResponse.body
-      body shouldNot be(null)
-
-      val parsedBody: JsValue = Json.parse(body)
-      parsedBody \ "id" match {
-        case JsDefined(JsString(value)) => value should fullyMatch regex "[A-z0-9-]+"
-        case _ => JsError("expectation failed")
-      }
-
-      parsedBody \ "status" match {
-        case JsDefined(JsString(value)) => value should fullyMatch regex "OPEN"
-        case _ => JsError("expectation failed")
-      }
-
-      (parsedBody \ "constraints") \ "maxItems" match {
-        case JsDefined(JsNumber(const)) =>
-          const shouldBe 100
-        case _ => JsError("expectation failed")
-      }
-
     }
 
     scenario("GET Envelope responds with a list of files when envelope not empty") {
@@ -73,35 +69,32 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
 
       eventually {
+        When("I call GET /file-upload/envelopes/:envelope-id")
         val envelopeResponse = getEnvelopeFor(envelopeId)
+
+        Then("I will receive a 200 Ok response")
         envelopeResponse.status shouldBe OK
-      }
 
-      When("I call GET /file-upload/envelopes/:envelope-id")
-      val envelopeResponse = getEnvelopeFor(envelopeId)
+        And("the response body should contain the envelope details")
+        val body: String = envelopeResponse.body
+        body shouldNot be(null)
 
-      Then("I will receive a 200 Ok response")
-      envelopeResponse.status shouldBe OK
+        val parsedBody: JsValue = Json.parse(body)
+        parsedBody \ "id" match {
+          case JsDefined(JsString(value)) => value should fullyMatch regex "[A-z0-9-]+"
+          case _ => JsError("expectation failed")
+        }
 
-      And("the response body should contain the envelope details")
-      val body: String = envelopeResponse.body
-      body shouldNot be(null)
+        parsedBody \ "status" match {
+          case JsDefined(JsString(value)) => value should fullyMatch regex "OPEN"
+          case _ => JsError("expectation failed")
+        }
 
-      val parsedBody: JsValue = Json.parse(body)
-      parsedBody \ "id" match {
-        case JsDefined(JsString(value)) => value should fullyMatch regex "[A-z0-9-]+"
-        case _ => JsError("expectation failed")
-      }
-
-      parsedBody \ "status" match {
-        case JsDefined(JsString(value)) => value should fullyMatch regex "OPEN"
-        case _ => JsError("expectation failed")
-      }
-
-      (parsedBody \\ "files").head \ "id" match {
-        case JsDefined(JsObject(value)) =>
-          value shouldBe fileId
-        case _ => JsError("expectation failed")
+        (parsedBody \\ "files").head \ "id" match {
+          case JsDefined(JsObject(value)) =>
+            value shouldBe fileId
+          case _ => JsError("expectation failed")
+        }
       }
 
     }
@@ -131,11 +124,14 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       createResponse.status should equal(CREATED)
       val envelopeId = envelopeIdFromHeader(createResponse)
 
-      When("I call GET /file-upload/envelopes/:envelope-id")
-      val envelopeResponse = getEnvelopeFor(envelopeId)
+      var envelopeResponse: WSResponse = null
+      eventually {
+        When("I call GET /file-upload/envelopes/:envelope-id")
+        envelopeResponse = getEnvelopeFor(envelopeId)
 
-      Then("I will receive a 200 Ok response")
-      envelopeResponse.status shouldBe OK
+        Then("I will receive a 200 Ok response")
+        envelopeResponse.status shouldBe OK
+      }
 
       And("The envelope details will include the constraints as they were applied")
       val jsonResponse = Json.parse(envelopeResponse.body)
@@ -171,8 +167,12 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
 
       When("I call GET /file-upload/envelopes/:envelope-id")
       val envelopeId = envelopeIdFromHeader(createEnvelopeResponse)
-      val getEnvelopeResponse = getEnvelopeFor(envelopeId)
-      getEnvelopeResponse.status shouldBe OK
+
+      var getEnvelopeResponse: WSResponse = null
+      eventually {
+        getEnvelopeResponse = getEnvelopeFor(envelopeId)
+        getEnvelopeResponse.status shouldBe OK
+      }
 
       And("the constraints should be the defaults")
       val parsedBody = Json.parse(getEnvelopeResponse.body)
