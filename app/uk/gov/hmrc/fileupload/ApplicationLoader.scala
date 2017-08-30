@@ -58,7 +58,6 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, MongoEventStore, 
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.audit.http.config.LoadAuditingConfig
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode, ServicesConfig}
 import uk.gov.hmrc.play.filters.{NoCacheFilter, RecoveryFilter}
 import uk.gov.hmrc.play.http.HeaderCarrier
@@ -268,7 +267,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     lazy val controllerConfigs = configuration.underlying.as[Config]("controllers")
   }
 
-  object AuthParamsControllerConfiguration extends AuthParamsControllerConfig {
+  object AuthParamsControllerConfiguration {
     lazy val controllerConfigs = ControllerConfiguration.controllerConfigs
   }
 
