@@ -55,7 +55,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
   val envelopeRouted = EnvelopeRouted(envelopeId)
   val envelopeArchived = EnvelopeArchived(envelopeId)
 
-  val defaultFileRefId = FileRefId(UUID.randomUUID().toString)
+  def defaultFileRefId = FileRefId(UUID.randomUUID().toString)
 
   feature("CreateEnvelope") {
 
