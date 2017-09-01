@@ -43,17 +43,15 @@ object EnvelopeReport {
 
   def fromEnvelope(envelope: Envelope): EnvelopeReport = {
     val fileReports = envelope.files.map( _.map(file => GetFileMetadataReport.fromFile(envelope._id, file)) )
-    EnvelopeReport(
-      id = Some(envelope._id),
-      callbackUrl = envelope.callbackUrl,
-      expiryDate = envelope.expiryDate,
-      status = Some(envelope.status.name),
-      metadata = envelope.metadata,
-      constraints = envelope.constraints,
-      destination = envelope.destination,
-      application = envelope.application,
-      files = fileReports
-    )
+    EnvelopeReport(id = Some(envelope._id),
+                   callbackUrl = envelope.callbackUrl,
+                   expiryDate = envelope.expiryDate,
+                   status = Some(envelope.status.name),
+                   metadata = envelope.metadata,
+                   constraints = envelope.constraints,
+                   destination = envelope.destination,
+                   application = envelope.application,
+                   files = fileReports)
   }
 }
 
@@ -77,13 +75,13 @@ object CreateEnvelopeRequest {
 
   def formatUserEnvelopeConstraints(constraintsO: EnvelopeConstraintsUserSetting): Option[EnvelopeConstraints] = {
     Some(EnvelopeConstraints(maxItems = constraintsO.maxItems.getOrElse(defaultMaxItems),
-                        maxSize = constraintsO.maxSize.getOrElse(defaultMaxSize).toUpperCase(),
-                        maxSizePerItem = constraintsO.maxSizePerItem.getOrElse(defaultMaxSizePerItem).toUpperCase(),
-                        contentTypes = checkContentTypes(constraintsO.contentTypes.getOrElse(defaultContentTypes))
+                             maxSize = constraintsO.maxSize.getOrElse(defaultMaxSize).toUpperCase(),
+                             maxSizePerItem = constraintsO.maxSizePerItem.getOrElse(defaultMaxSizePerItem).toUpperCase(),
+                             contentTypes = checkContentTypes(constraintsO.contentTypes.getOrElse(defaultContentTypes))
         ) )
   }
 
-  def checkContentTypes(contentTypes: List[ContentTypes]): List[ContentTypes] ={
+  def checkContentTypes(contentTypes: List[ContentTypes]): List[ContentTypes] = {
     if (contentTypes.isEmpty) defaultContentTypes
     else contentTypes
   }
@@ -110,16 +108,15 @@ object GetFileMetadataReport {
   }
 
   def fromFile(envelopeId: EnvelopeId, file: File): GetFileMetadataReport =
-    GetFileMetadataReport(
-      id = file.fileId,
-      status = Some(file.status.name),
-      name = file.name,
-      contentType = file.contentType,
-      length = file.length,
-      created = file.uploadDate,
-      metadata = file.metadata,
-      href = Some(href(envelopeId, file.fileId))
-    )
+    GetFileMetadataReport(id = file.fileId,
+                          status = Some(file.status.name),
+                          name = file.name,
+                          contentType = file.contentType,
+                          length = file.length,
+                          created = file.uploadDate,
+                          metadata = file.metadata,
+                          href = Some(href(envelopeId, file.fileId))
+                        )
 }
 
 case class GetEnvelopesByStatus(status: List[EnvelopeStatus], inclusive: Boolean)

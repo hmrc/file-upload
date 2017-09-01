@@ -57,9 +57,12 @@ case class EnvelopeConstraints(maxItems: Int,
                                maxSizePerItem: String,
                                contentTypes: List[ContentTypes]) {
   import EnvelopeConstraints._
-  require(isAValidSize(maxSize), s"constraints.maxSize exceeds maximum allowed value of ${Envelope.acceptedConstraints.maxSize}")
-  require(isAValidSize(maxSizePerItem), s"constraints.maxSizePerItem exceeds maximum allowed value of ${Envelope.acceptedConstraints.maxSizePerItem}")
+  require(isAValidSize(maxSize),
+          s"Input for constraints.maxSize is not a valid input, and exceeds maximum allowed value of ${Envelope.acceptedConstraints.maxSize}")
+  require(isAValidSize(maxSizePerItem),
+          s"Input constraints.maxSizePerItem is not a valid input, and exceeds maximum allowed value of ${Envelope.acceptedConstraints.maxSizePerItem}")
 
   val maxSizeInBytes: Long = translateToByteSize(maxSize)
   val maxSizePerItemInBytes: Long = translateToByteSize(maxSizePerItem)
+  require(maxSizeInBytes>=maxSizePerItemInBytes, s"constraints.maxSizePerItem can not greater than constraints.maxSize")
 }
