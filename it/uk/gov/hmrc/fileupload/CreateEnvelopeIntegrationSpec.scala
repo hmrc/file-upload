@@ -158,8 +158,6 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
 
   feature("Create Envelope with maxItems constraints") {
 
-    //TODO: refactor to use requestBodyWithConstraints - doesn't currently implement maxItems
-
     scenario("Create a new Envelope with valid maxItems") {
 
       Given("a create envelope request with a valid maxItems constraint of 100")
@@ -220,8 +218,8 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
 
     scenario("Create a new Envelope with valid maxSizePerItem") {
 
-      Given("a create envelope request with valid maxSizePerItem constraint of 100MB")
-      val maxSizePerItem: String = "100MB"
+      Given("a create envelope request with valid maxSizePerItem constraint of 10MB")
+      val maxSizePerItem: String = "10MB"
       val json = requestBodyWithConstraints(Map("formattedExpiryDate" -> formattedExpiryDate, "maxSizePerItem" -> maxSizePerItem))
 
       When("I invoke POST /file-upload/envelopes")
@@ -229,6 +227,20 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
 
       Then("I will receive a 201 Created response")
       response.status shouldBe CREATED
+    }
+
+    scenario("Create a new Envelope when maxSizePerItem greater than maxSize of envelope") {
+
+      Given("a create envelope request with valid maxSizePerItem constraint of 10MB and maxSize of 9MB")
+      val maxSize: String = "9MB"
+      val maxSizePerItem: String = "10MB"
+      val json = requestBodyWithConstraints(Map("formattedExpiryDate" -> formattedExpiryDate, "maxSize" -> maxSize, "maxSizePerItem" -> maxSizePerItem))
+
+      When("I invoke POST /file-upload/envelopes")
+      val response: WSResponse = createEnvelope(json)
+
+      Then("I will receive a 400 Bad Request response")
+      response.status shouldBe BAD_REQUEST
     }
 
     scenario("Create a new Envelope with invalid maxSizePerItem") {

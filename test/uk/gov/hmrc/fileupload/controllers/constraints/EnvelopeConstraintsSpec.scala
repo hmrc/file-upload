@@ -21,6 +21,9 @@ import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.fileupload.read.envelope.Envelope._
 import uk.gov.hmrc.fileupload.write.envelope.NotCreated.checkContentTypes
 import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints.translateToByteSize
+import uk.gov.hmrc.fileupload.read.envelope.Envelope
+
+import scala.util.Try
 
 class EnvelopeConstraintsSpec extends UnitSpec {
 
@@ -105,10 +108,49 @@ class EnvelopeConstraintsSpec extends UnitSpec {
 
   "Pass defined envelope constraints to formatEnvelopeConstraints" should {
     "return defined constraints" in {
-      val envelopeConstraintsNone = EnvelopeConstraintsUserSetting(Some(10),Some("30MB"),Some("8MB"),Some(List("applicaiton/pdf")))
-      val createDefaultConstraints = CreateEnvelopeRequest formatUserEnvelopeConstraints envelopeConstraintsNone
+      val envelopeWithConstraints = EnvelopeConstraintsUserSetting(Some(10),Some("30MB"),Some("8MB"),Some(List("applicaiton/pdf")))
+      val createEnvelopeWithConstraints = CreateEnvelopeRequest formatUserEnvelopeConstraints envelopeWithConstraints
       val expectedEnvelopeConstraints = Some(EnvelopeConstraints(10,"30MB","8MB",List("applicaiton/pdf")))
-      createDefaultConstraints shouldBe expectedEnvelopeConstraints
+      createEnvelopeWithConstraints shouldBe expectedEnvelopeConstraints
+    }
+  }
+
+  "Pass envelope constraints when maxSizePerItem greater than maxSize" should {
+    "return error message: constraints.maxSizePerItem can not greater than constraints.maxSize" in {
+      val envelopeWithConstraints = EnvelopeConstraintsUserSetting(Some(10),Some("30MB"),Some("31MB"),Some(List("applicaiton/pdf")))
+      val createEnvelopeWithErrorConstraints = Try{CreateEnvelopeRequest formatUserEnvelopeConstraints envelopeWithConstraints}
+                                              .failed.map(_.toString).getOrElse("")
+      val expectedErrorMessage = "java.lang.IllegalArgumentException: requirement failed: " +
+                                 "constraints.maxSizePerItem can not greater than constraints.maxSize"
+      createEnvelopeWithErrorConstraints shouldBe expectedErrorMessage
+    }
+  }
+
+  "Pass envelope constraints when constraints.maxSize is not a valid input" should {
+    s"return error message: " +
+      s"Input for constraints.maxSize is not a valid input, and exceeds maximum allowed value of " +
+      s"${Envelope.acceptedConstraints.maxSize}" in {
+      val errorInput = Some("yy")
+      val envelopeWithConstraints = EnvelopeConstraintsUserSetting(Some(10),errorInput,Some("31MB"),Some(List("applicaiton/pdf")))
+      val createEnvelopeWithErrorConstraints = Try{CreateEnvelopeRequest formatUserEnvelopeConstraints envelopeWithConstraints}
+        .failed.map(_.toString).getOrElse("")
+      val expectedErrorMessage = "java.lang.IllegalArgumentException: requirement failed: " +
+                                 "Input for constraints.maxSize is not a valid input, and exceeds maximum allowed value of 250MB"
+      createEnvelopeWithErrorConstraints shouldBe expectedErrorMessage
+    }
+  }
+
+  "Pass envelope constraints when constraints.maxSizePerItem is not a valid input" should {
+    s"return error message: " +
+      s"Input for constraints.maxSizePerItem is not a valid input, and exceeds maximum allowed value of " +
+      s"${Envelope.acceptedConstraints.maxSizePerItem}" in {
+      val errorInput = Some("yy")
+      val envelopeWithConstraints = EnvelopeConstraintsUserSetting(Some(10),Some("31MB"),errorInput,Some(List("applicaiton/pdf")))
+      val createEnvelopeWithErrorConstraints = Try{CreateEnvelopeRequest formatUserEnvelopeConstraints envelopeWithConstraints}
+        .failed.map(_.toString).getOrElse("")
+      val expectedErrorMessage = "java.lang.IllegalArgumentException: requirement failed: " +
+                                 "Input constraints.maxSizePerItem is not a valid input, and exceeds maximum allowed value of 100MB"
+      createEnvelopeWithErrorConstraints shouldBe expectedErrorMessage
     }
   }
 }

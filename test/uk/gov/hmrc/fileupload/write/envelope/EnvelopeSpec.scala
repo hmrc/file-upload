@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.fileupload.write.envelope
 
+import java.util.UUID
+
 import org.joda.time.DateTime
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
@@ -26,7 +28,7 @@ import scala.collection.mutable.ListBuffer
 
 class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
-  override val handler = Envelope
+  override val handler: Envelope.type = Envelope
 
   override val defaultStatus: Envelope = Envelope()
 
@@ -37,8 +39,11 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
   val envelopeCreated = EnvelopeCreated(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
     Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(10, "100MB", "10MB", List("application/pdf","image/jpeg","application/xml"))))
 
-  def envelopeCreatedWithLimitedMaxItemConstraint(constraints: EnvelopeConstraints) = EnvelopeCreated(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
-    Some(Json.obj("foo" -> "bar")), Some(constraints))
+  def envelopeCreatedWithLimitedMaxItemConstraint(constraints: EnvelopeConstraints) = EnvelopeCreated(envelopeId,
+                                                  Some("http://www.callback-url.com"),
+                                                  Some(new DateTime(0)),
+                                                  Some(Json.obj("foo" -> "bar")),
+                                                  Some(constraints))
   val fileQuarantined = FileQuarantined(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj())
   val noVirusDetected = NoVirusDetected(envelopeId, fileId, fileRefId)
   val virusDetected = VirusDetected(envelopeId, fileId, fileRefId)
@@ -49,6 +54,8 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
   val envelopeUnsealed = EnvelopeUnsealed(envelopeId)
   val envelopeRouted = EnvelopeRouted(envelopeId)
   val envelopeArchived = EnvelopeArchived(envelopeId)
+
+  def defaultFileRefId = FileRefId(UUID.randomUUID().toString)
 
   feature("CreateEnvelope") {
 
@@ -73,6 +80,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
     }
 
     scenario("Create new envelope with number of items < 1") {
+
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
@@ -82,15 +90,17 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
     }
 
     scenario("Create new envelope with out of bounds max size per item constraint") {
+
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
-          Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(12, "100MB", "101MB", List("application/pdf","image/jpeg","application/xml")))),
+          Some(Json.obj("foo" -> "bar")), Some(EnvelopeConstraints(12, "105MB", "101MB", List("application/pdf","image/jpeg","application/xml")))),
         InvalidMaxSizePerItemConstraintError
       )
     }
 
     scenario("Create new envelope with out of bounds max size constraint") {
+
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
@@ -100,7 +110,6 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
     }
 
     scenario("Create new envelope for a deleted envelope") {
-
       givenWhenThen(
         envelopeCreated And envelopeDeleted,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
@@ -124,7 +133,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
     scenario("Quarantine an additional file") {
 
       givenWhenThen(
-        envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = FileRefId(), name = "abc.pdf"),
+        envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = defaultFileRefId, name = "abc.pdf"),
         QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
         fileQuarantined
       )
@@ -133,7 +142,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
     scenario("Quarantine a new file for an existing file id with different fileRefId") {
 
       givenWhenThen(
-        envelopeCreated And fileQuarantined.copy(fileRefId = FileRefId()),
+        envelopeCreated And fileQuarantined.copy(fileRefId = defaultFileRefId),
         QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
         fileQuarantined
       )
@@ -142,7 +151,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
     scenario("Quarantine a new file for a different file id with different fileRefId") {
 
       givenWhenThen(
-        envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = FileRefId()),
+        envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = defaultFileRefId),
         QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
         fileQuarantined
       )
@@ -217,7 +226,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
     scenario("Mark file as clean for an existing file which has other files") {
 
       givenWhenThen(
-        envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = FileRefId()) And fileQuarantined,
+        envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = defaultFileRefId) And fileQuarantined,
         MarkFileAsClean(envelopeId, fileId, fileRefId),
         noVirusDetected
       )
@@ -244,7 +253,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
     scenario("Mark file as clean for an existing fileId with different fileRefId") {
 
       givenWhenThen(
-        envelopeCreated And fileQuarantined.copy(fileRefId = FileRefId()),
+        envelopeCreated And fileQuarantined.copy(fileRefId = defaultFileRefId),
         MarkFileAsClean(envelopeId, fileId, fileRefId),
         FileNotFoundError
       )
@@ -292,7 +301,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
     scenario("Mark file as clean for an existing file which has other files") {
 
       givenWhenThen(
-        envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = FileRefId()) And fileQuarantined,
+        envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = defaultFileRefId) And fileQuarantined,
         MarkFileAsInfected(envelopeId, fileId, fileRefId),
         virusDetected
       )
@@ -319,7 +328,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
     scenario("Mark file as infected for an existing fileId with different fileRefId") {
 
       givenWhenThen(
-        envelopeCreated And fileQuarantined.copy(fileRefId = FileRefId()),
+        envelopeCreated And fileQuarantined.copy(fileRefId = defaultFileRefId),
         MarkFileAsInfected(envelopeId, fileId, fileRefId),
         FileNotFoundError
       )
@@ -403,7 +412,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
     scenario("Store file for an existing file and another quarantined file and a sealed envelope") {
 
       givenWhenThen(
-        envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = FileRefId()) And fileQuarantined And noVirusDetected And envelopeSealed,
+        envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = defaultFileRefId) And fileQuarantined And noVirusDetected And envelopeSealed,
         StoreFile(envelopeId, fileId, fileRefId, 100),
         fileStored
       )
@@ -412,7 +421,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
     scenario("Store file for an existing fileId with different fileRefId") {
 
       givenWhenThen(
-        envelopeCreated And fileQuarantined.copy(fileRefId = FileRefId()),
+        envelopeCreated And fileQuarantined.copy(fileRefId = defaultFileRefId),
         StoreFile(envelopeId, fileId, fileRefId, 100),
         FileNotFoundError
       )
