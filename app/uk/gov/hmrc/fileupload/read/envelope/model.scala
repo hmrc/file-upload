@@ -60,6 +60,7 @@ object Envelope {
                                 List("application/pdf",
                                      "image/jpeg",
                                      "text/xml",
+                                     "text/csv",
                                      "application/xml",
                                      "application/vnd.ms-excel",
                                      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")

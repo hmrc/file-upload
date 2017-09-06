@@ -23,14 +23,15 @@ import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.{EnvelopeId, EventBasedGWTSpec, FileId, FileRefId}
 import uk.gov.hmrc.fileupload.read.envelope.Envelope.{defaultConstraints, defaultMaxItems,
                                                       defaultMaxSize, acceptedMaxSizePerItem,
-                                                      defaultContentTypes, acceptedMaxSize, defaultMaxSizePerItem}
+                                                      defaultContentTypes, acceptedMaxSize,
+                                                      defaultMaxSizePerItem}
 
 class EnvelopeConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
   override val handler = Envelope
 
   override val defaultStatus: Envelope = Envelope()
-  
+
   val fakeDateTime = new DateTime(0)
   val fakeUrl = "http://www.callback-url.com"
   val fakeData: JsObject = Json.obj("foo" -> "bar")
