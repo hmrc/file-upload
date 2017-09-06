@@ -21,9 +21,9 @@ import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.fileupload.controllers.{CreateEnvelopeRequest, EnvelopeConstraints, EnvelopeConstraintsUserSetting}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.{EnvelopeId, EventBasedGWTSpec, FileId, FileRefId}
-import uk.gov.hmrc.fileupload.read.envelope.Envelope.{defaultConstraints, defaultMaxItems,
-                                                      defaultMaxSize, acceptedMaxSizePerItem,
-                                                      defaultContentTypes, acceptedMaxSize, defaultMaxSizePerItem}
+import uk.gov.hmrc.fileupload.read.envelope.Envelope.{ContentTypes, acceptedMaxSize, acceptedMaxSizePerItem,
+                                                      defaultConstraints, defaultContentTypes, defaultMaxItems,
+                                                      defaultMaxSize, defaultMaxSizePerItem}
 
 class EnvelopeConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
 
@@ -39,6 +39,8 @@ class EnvelopeConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeCommand, 
   val fileId = FileId("fileId-1")
   val fileRefId = FileRefId("fileRefId-1")
 
+  val csvContentTypes: List[ContentTypes] = List("text/csv")
+
   val envelopeCreatedByDefaultStatus = EnvelopeCreated(envelopeId, Some(fakeUrl), Some(fakeDateTime),
     Some(fakeData), Some(defaultConstraints))
 
@@ -47,6 +49,9 @@ class EnvelopeConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeCommand, 
 
   val envelopeCreatedByMaxSizeEnvelope = EnvelopeCreated(envelopeId, Some(fakeUrl), Some(fakeDateTime),
     Some(fakeData), Some(EnvelopeConstraints(defaultMaxItems, acceptedMaxSize, defaultMaxSizePerItem, defaultContentTypes)))
+
+  val envelopeCreatedWithCSVType = EnvelopeCreated(envelopeId, Some(fakeUrl), Some(fakeDateTime),
+    Some(fakeData), Some(EnvelopeConstraints(defaultMaxItems, defaultMaxSize, defaultMaxSizePerItem, csvContentTypes)))
 
   val createEnvelopeRequestWithoutMaxNoFilesConstraints: Option[EnvelopeConstraints] = {
     CreateEnvelopeRequest.formatUserEnvelopeConstraints(EnvelopeConstraintsUserSetting(None, Some("25MB"),
@@ -139,6 +144,15 @@ class EnvelopeConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeCommand, 
         CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
           Some(EnvelopeConstraints(defaultMaxItems, acceptedMaxSize, defaultMaxSizePerItem, defaultContentTypes))),
         envelopeCreatedByMaxSizeEnvelope
+      )
+    }
+
+    scenario("Create new envelope with CSV content type") {
+      givenWhenThen(
+        --,
+        CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
+          Some(EnvelopeConstraints(defaultMaxItems, defaultMaxSize, defaultMaxSizePerItem, List("text/csv")))),
+        envelopeCreatedWithCSVType
       )
     }
 
