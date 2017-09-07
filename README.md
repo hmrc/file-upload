@@ -22,10 +22,9 @@ The endpoints can then be accessed with the base url http://localhost:8898/
 
 *   [Endpoints](#endpoints)
 *   [Callback](#callback)
-*   [Envelope Event Statuses](#events)
-*   [Intercommunication Endpoints](#auto)
-*   [Test-Only Endpoints](#testonly)
-*   [Internal-Use-Only Endpoints](#internal)
+*   [Intercommunication Endpoints](./docs/intercommunication-endpoints.md)
+*   [Test-Only Endpoints](./docs/test-only-endpoints.md)
+*   [Internal-Use-Only Endpoints](./docs/internal-endpoints.md)
 
 ## Endpoints <a name="endpoints"></a>
 
@@ -338,6 +337,38 @@ Request (DELETE): localhost:8898/file-transfer/envelopes/0b215e97-11d4-4006-91db
 Response: 200
 
 
+#### Get File Metadata
+Gets the metadata for a given file
+
+```
+GET        /file-upload/envelopes/{envelope-Id}/files/{file-Id}/metadata
+```
+
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Successfully returnsd file metadata  |
+| Not Found | 404   |  Envelope with id {envelopeId} not found. |  
+| Not Found | 404   |  File with id: {fileId} not found in envelope: {envelopeId} |   
+
+
+#### Example
+Request (GET): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/0b645e55-22d4-7977-21db-c067e74fc234/metadata
+
+Response (in Body):
+```json
+{
+  "id": "0b215e97-11d4-4006-91db-c067e74fc653",
+  "status": "CLEANED",
+  "name": "a-filename.pdf",
+  "contentType": "application/pdf",
+  "length": "1024",
+  "created": "1970-01-01T00:00:00Z",
+  "revision": "1",
+  "metadata": {},
+  "href": ""
+}
+```
+
 ## Callback <a name="callback"></a>
 
 The following is an example request to the callbackUrl. Should comprise of:
@@ -358,300 +389,6 @@ Request (POST)
 
 Expected response status code: 200
 
-
-## INTERCOMMUNICATION ENDPOINTS (DO NOT USE) <a name="auto"></a>
-The following endpoint is used by the application itself and <i>**DOES NOT REQUIRE**</i> user input. <i>**PLEASE DO NOT USE WITHOUT PERMISSION**</i>
-
-#### UPDATE EVENT OF A FILE (DO NOT USE)
-Updates an event of a file being uploaded to Quarantine and then Scanned.
-
-```
-POST    /file-upload/events/{eventType}
-```
-
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 200   | Successfully update event.
-| Bad Request  | 400   | Invalid Event.
-| Locked  | 423   | Cannot update event. Routing request is already received for this envelope.
-
-#### EXAMPLE (FOR FILE IN QUARANTINE)
-Request (POST): localhost:8898/file-upload/events/FileQuarantineStored
-
-Body:
-```json
-{
-	"envelopeId": "0b215e97-11d4-4006-91db-c067e74fc653",
-	"fileId": "file-id-1",
-	"fileRefId": "file-ref-1",
-	"created": 1477490659794,
-	"name": "myfile.txt",
-	"contentType": "pdf",
-	"metadata": {}
-}
-```
-
-Response: 200
-
-#### EXAMPLE (FOR FILE SCANNED)
-Request (POST): localhost:8898/file-upload/events/FileScanned
-
-Body:
-```json
-{
-	"envelopeId": "0b215e97-11d4-4006-91db-c067e74fc653",
-	"fileId": "file-id-1",
-	"fileRefId": "file-ref-1",
-	"hasVirus": false
-}
-```
-
-Response: 200
-
-Note: "hasVirus" depends on the result from clamAV. If there is a virus, then hasVirus is set to "true" otherwise if not then it would be set to "false".
-
-#### UPLOAD FILE (DO NOT USE)
-Uploads a binary file to Transient Store. This endpoint cannot be used directly to upload a file and any attempts to do so will be rejected. Only files that have been uploaded to the frontend, that have been quarantined and then scanned are accepted.
-```
-PUT     /file-upload/envelopes/{envelope-Id}/files/{file-Id}/{file-Ref-Id}
-```
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 200   | Successfully uploaded file a file.  |
-| Not Found | 404   |  File or Envelope not found. Unable to Upload. |
-
-#### EXAMPLE
-Request (PUT): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1/file-ref-1
-
-Body: Binary File. 
-
-Response: 200
-
-## TEST-ONLY ENDPOINTS (DO NOT USE ON PROD) <a name="testonly"></a>
-These endpoints are not available in production and are used for testing purposes. <i>**PLEASE DO NOT USE THESE WITHOUT PERMISSION**</i>.
-
-
-#### RECREATE COLLECTIONS (DO NOT USE)
-Deletes all collections in quarantine and transient. Then recreates the following collections and its indexes.
-
-Quarantine:
-*   quarantine.chunks
-
-Transient:
-*   envelopes-read-model
-*   envelopes.chunks
-*   events
-
-```
-POST    /file-upload/test-only/recreate-collections
-```
-
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 200   | Successfully deleted and recreate collections in both Quarantine and Transient.  |
-
-#### EXAMPLE
-Reques (POST): localhost:8899/file-upload/test-only/recreate-collections
-
-Response: 200
-
-
-## INTERNAL USE ONLY ENDPOINTS (DO NOT USE AT ALL) <a name="internal"></a>
-The following endpoints are for internal use. <i>**PLEASE DO NOT USE THESE ENDPOINTS WITHOUT PERMISSION**</i>.
-
-#### SHOW ENVELOPES BY STATUS (DO NOT USE)
-Returns a list of envelopes by their status.
-
-```
-GET     /file-upload/envelopes
-```
-
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 200   | Successfully return list of envelopes
-
-#### EXAMPLE
-Request (GET): localhost:8898/file-upload/envelopes
-
-Response: 200
-
-#### CREATE ENVELOPE WITH ID (DO NOT USE)
-
-```
-PUT   	/file-upload/envelopes/{envelopeId}
-```
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 201   | Successfully created envelope. |
-| Bad Request | 400   |  Envelope not created. |  
-
-#### EXAMPLE
-Request (PUT): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
-
-Body:
-``` json
-{
-    "callbackUrl": "string representing absolute url",
-    "metadata": { "any": "valid json object" }
-}
-```
-
-Response (in Headers): Location → localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
-
-#### MANUALLY SEND COMMANDS (DO NOT USE)
-
-```
-POST    /file-upload/commands/{commandType}
-```
-
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 200   | Command successfully processed.
-| Bad Request | 400   | Incorrect Command.
-| Locked | 423   | Envelope already routed and received.
-
-
-#### EXAMPLE
-Request (POST): localhost:8898/file-upload/unsealenvelope
-
-In Body:
-```json
-{
-    "id": "0b215e97-11d4-4006-91db-c067e74fc653"
-}
-```
-
-Response: 200
-
-#### SHOW EVENTS OF AN ENVELOPE (DO NOT USE)
-Retrieves a list of all events based on the stream Id. 
-
-```
-GET     /file-upload/events/{stream-Id}
-```
-
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 200   | Successfully returns a list of events based on stream Id.
-
-#### EXAMPLE
-Request (GET): localhost:8898/file-upload/events/0b215e97-11d4-4006-91db-c067e74fc653
-
-Response (In Body):
-```json
-[
-  {
-    "eventId": "bbf89c47-ec22-4b5a-917a-fa19f9f2005d",
-    "streamId": "0b215e97-11d4-4006-91db-c067e74fc653",
-    "version": 1,
-    "created": 1477490656518,
-    "eventType": "uk.gov.hmrc.fileupload.write.envelope.EnvelopeCreated",
-    "eventData": {
-      "id": "0b215e97-11d4-4006-91db-c067e74fc653"
-    }
-  },
-  {
-    "eventId": "07ea4682-0c2c-49f8-b01a-6128c18ed30f",
-    "streamId": "0b215e97-11d4-4006-91db-c067e74fc653",
-    "version": 2,
-    "created": 1477490659794,
-    "eventType": "uk.gov.hmrc.fileupload.write.envelope.FileQuarantined",
-    "eventData": {
-      "id": "0b215e97-11d4-4006-91db-c067e74fc653",
-      "fileId": "file-id-1",
-      "fileRefId": "82c1e62c-ddca-468f-a1c9-ca9aa97aa0a2",
-      "created": 1477490659610,
-      "name": "zKv4Qv6366462570363333088.tmp",
-      "contentType": "application/octet-stream",
-      "metadata": {
-        "foo": "bar"
-      }
-    }
-  },
-  {
-    "eventId": "29ab824b-e045-4281-9e40-4fd572a03078",
-    "streamId": "0b215e97-11d4-4006-91db-c067e74fc653",
-    "version": 3,
-    "created": 1477490660074,
-    "eventType": "uk.gov.hmrc.fileupload.write.envelope.EnvelopeSealed",
-    "eventData": {
-      "id": "0b215e97-11d4-4006-91db-c067e74fc653",
-      "routingRequestId": "ec97bbd0-7be5-4727-8d92-441818a63dcd",
-      "destination": "DMS",
-      "application": "foo"
-    }
-  }
-]
-```
-
-#### SHOW FILES INPROGRESS (DO NOT USE)
-Returns a list of files that are inprogress which have been uploaded to Quarantine but did not make it to Transient. Note: Be aware that files can reappear and disappear for a short moment. If it occurs, that means the file has been successfully transferred across.
-
-```
-GET     /file-upload/files/inprogress
-```
-
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 200   | Successfully returns a list of inprogress files.
-
-#### EXAMPLE
-Request (GET): localhost:8898/file-upload/files/inprogress
-
-Response (in Body):
-```json
-[
-  {
-    "_id": "82c1e62c-ddca-468f-a1c9-ca9aa97aa0a2",
-    "envelopeId": "0b215e97-11d4-4006-91db-c067e74fc653",
-    "fileId": "file-id-1",
-    "startedAt": 1477490659610
-  },
-  {
-    "_id": "9b96ce3e-df86-4c6c-b737-aef1e4c98741",
-    "envelopeId": "eb5ec7d2-c6c4-4cf9-935b-9f1d4061fab5",
-    "fileId": "1",
-    "startedAt": 1477491112228
-  },
-  {
-    "_id": "bcbbc597-a8a4-4870-bd6c-cfea52ab2ced",
-    "envelopeId": "a1752950-32ab-4bdb-a918-0ee9141ac305",
-    "fileId": "1",
-    "startedAt": 1477491307267
-  }
-]
-```
-
-#### DELETE INPROGRESS DATA (DO NOT USE)
-Removes inprogress data by their file reference Id.
-```
-DELETE  /file-upload/"82c1e62c-ddca-468f-a1c9-ca9aa97aa0a2"
-```
-
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 200   | Successfully deleted inprogress file data.  |
-
-#### EXAMPLE
-Request (DELETE): localhost:8898/file-upload/82c1e62c-ddca-468f-a1c9-ca9aa97aa0a2
-
-Response: 200
-
-#### REPLAY EVENTS (DO NOT USE)
-Replays events of an envelope.
-
-```
-GET     /file-upload/events/{stream-Id}/replay
-```
-
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 200   | Successfully replayed events.  |
-
-#### EXAMPLE
-Request (GET): localhost:8898/file-upload/events/0b215ey97-11d4-4006-91db-c067e74fc653/replay
-
-Response: 200
 
 
 ### License
