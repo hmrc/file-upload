@@ -22,13 +22,13 @@ import org.joda.time.DateTime
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
 import uk.gov.hmrc.fileupload.write.infrastructure.EventData
-import uk.gov.hmrc.fileupload.{EnvelopeId, EventBasedGWTSpec, FileId, FileRefId}
+import uk.gov.hmrc.fileupload._
 
 import scala.collection.mutable.ListBuffer
 
-class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
+class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with ApplicationComponents {
 
-  override val handler: Envelope.type = Envelope
+  override val handler = new EnvelopeHandler(envelopeConstraintsConfigure)
 
   override val defaultStatus: Envelope = Envelope()
 

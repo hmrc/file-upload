@@ -171,7 +171,7 @@ object EventSerializer {
 
 // error
 
-sealed trait EnvelopeCommandNotAccepted extends CommandNotAccepted
+sealed abstract class EnvelopeCommandNotAccepted extends CommandNotAccepted
 
 case object EnvelopeNotFoundError extends EnvelopeCommandNotAccepted
 
@@ -182,17 +182,15 @@ case object EnvelopeContentTypesError extends EnvelopeCommandNotAccepted
 sealed trait EnvelopeInvalidConstraintError extends EnvelopeCommandNotAccepted
 
 case object InvalidMaxSizeConstraintError extends EnvelopeInvalidConstraintError {
-  override def toString = "constraints.maxSize exceeds maximum allowed value of " +
-    Envelope.acceptedConstraints.maxSize
+  override def toString = s"constraints.maxSize exceeds maximum allowed value"
 }
 
 case object InvalidMaxSizePerItemConstraintError extends EnvelopeInvalidConstraintError {
-  override def toString = "constraints.maxSizePerItem exceeds maximum allowed value of " +
-    Envelope.acceptedConstraints.maxSizePerItem
+  override def toString = s"constraints.maxSizePerItem exceeds maximum allowed value"
 }
 
 case object InvalidMaxItemCountConstraintError extends EnvelopeInvalidConstraintError {
-  override def toString = s"constraints.maxItems must be between 1 and ${ Envelope.acceptedConstraints.maxItems }"
+  override def toString = s"constraints.maxItems error"
 }
 
 case object EnvelopeSealedError extends EnvelopeCommandNotAccepted

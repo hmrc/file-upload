@@ -25,7 +25,7 @@ import play.api.libs.streams.Streams.enumeratorToPublisher
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.Service._
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeConstraintsConfigure, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
 import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -42,13 +42,15 @@ class EnvelopeController(withBasicAuth: BasicAuth,
                          findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]],
                          findAllInProgressFile: () => Future[GetInProgressFileResult],
                          deleteInProgressFile: (FileRefId) => Future[Boolean],
-                         getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope])
+                         getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope],
+                         envelopeConstraintsConfigure: EnvelopeConstraintsConfigure)
                         (implicit executionContext: ExecutionContext) extends Controller {
 
   def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
     val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata,
-                                 CreateEnvelopeRequest.formatUserEnvelopeConstraints(request.body.constraints.getOrElse(EnvelopeConstraintsUserSetting())))
+                                 CreateEnvelopeRequest.formatUserEnvelopeConstraints(
+                                   request.body.constraints.getOrElse(EnvelopeConstraintsUserSetting()),envelopeConstraintsConfigure))
 
     val userAgent = request.headers.get("User-Agent").getOrElse("none")
     Logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
@@ -59,7 +61,8 @@ class EnvelopeController(withBasicAuth: BasicAuth,
   def createWithId(id: EnvelopeId) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
     val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata,
-                                 CreateEnvelopeRequest.formatUserEnvelopeConstraints(request.body.constraints.getOrElse(EnvelopeConstraintsUserSetting())))
+                                 CreateEnvelopeRequest.formatUserEnvelopeConstraints(
+                                   request.body.constraints.getOrElse(EnvelopeConstraintsUserSetting()),envelopeConstraintsConfigure))
 
     val userAgent = request.headers.get("User-Agent").getOrElse("none")
     Logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")

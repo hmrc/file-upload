@@ -21,6 +21,9 @@ import org.scalatestplus.play.OneAppPerTest
 import play.api.ApplicationLoader.Context
 import play.api._
 import play.api.mvc.EssentialFilter
+import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
+import uk.gov.hmrc.fileupload.read.envelope.EnvelopeConstraintsConfigure
+import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.ContentTypes
 
 trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
   this: Suite =>
@@ -40,6 +43,44 @@ trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
   override def newAppForTest(testData: TestData): Application = {
     newApplication
   }
+
+  val acceptedMaxItems: Int = 100
+  val acceptedMaxSize: String = "250MB" //250 * 1024 * 1024
+  val acceptedMaxSizePerItem: String = "100MB" //100 * 1024 * 1024
+  val acceptedContentTypes: List[ContentTypes] =
+    List("application/pdf",
+      "image/jpeg",
+      "text/xml",
+      "text/csv",
+      "application/xml",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+  val defaultMaxItems: Int = 100
+  val defaultMaxSize: String = "25MB" //25 * 1024 * 1024
+  val defaultMaxSizePerItem: String = "10MB" //10 * 1024 * 1024
+  val defaultContentTypes: List[ContentTypes] = List("application/pdf","image/jpeg","application/xml","text/xml")
+
+  val defaultConstraints =
+    EnvelopeConstraints(maxItems = defaultMaxItems,
+      maxSize = defaultMaxSize,
+      maxSizePerItem = defaultMaxSizePerItem,
+      contentTypes = defaultContentTypes)
+
+  val acceptedConstraints =
+    EnvelopeConstraints(maxItems = acceptedMaxItems,
+      maxSize = acceptedMaxSize,
+      maxSizePerItem = acceptedMaxSizePerItem,
+      contentTypes = acceptedContentTypes)
+
+  val envelopeConstraintsConfigure = EnvelopeConstraintsConfigure(acceptedMaxItems = acceptedMaxItems,
+                                                                  acceptedMaxSize = acceptedMaxSize,
+                                                                  acceptedMaxSizePerItem = acceptedMaxSizePerItem,
+                                                                  acceptedContentTypes = acceptedContentTypes,
+                                                                  defaultMaxItems = defaultMaxItems,
+                                                                  defaultMaxSize = defaultMaxSize,
+                                                                  defaultMaxSizePerItem = defaultMaxSizePerItem,
+                                                                  defaultContentTypes = defaultContentTypes)
 }
 
 class TestApplicationModule(context: Context) extends ApplicationModule(context = context) {

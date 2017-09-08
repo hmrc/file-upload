@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import uk.gov.hmrc.fileupload.read.envelope.Envelope.ContentTypes
-import uk.gov.hmrc.fileupload.read.envelope._
+import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.ContentTypes
 
 object EnvelopeConstraints {
 
@@ -57,12 +56,8 @@ case class EnvelopeConstraints(maxItems: Int,
                                maxSizePerItem: String,
                                contentTypes: List[ContentTypes]) {
   import EnvelopeConstraints._
-  require(isAValidSize(maxSize),
-          s"Input for constraints.maxSize is not a valid input, and exceeds maximum allowed value of ${Envelope.acceptedConstraints.maxSize}")
-  require(isAValidSize(maxSizePerItem),
-          s"Input constraints.maxSizePerItem is not a valid input, and exceeds maximum allowed value of ${Envelope.acceptedConstraints.maxSizePerItem}")
 
   val maxSizeInBytes: Long = translateToByteSize(maxSize)
   val maxSizePerItemInBytes: Long = translateToByteSize(maxSizePerItem)
-  require(maxSizeInBytes>=maxSizePerItemInBytes, s"constraints.maxSizePerItem can not greater than constraints.maxSize")
+
 }
