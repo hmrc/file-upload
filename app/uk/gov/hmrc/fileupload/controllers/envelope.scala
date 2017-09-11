@@ -19,6 +19,7 @@ package uk.gov.hmrc.fileupload.controllers
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.QueryStringBindable
+import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraints
 import uk.gov.hmrc.fileupload.read.envelope._
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.ContentTypes
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
@@ -72,45 +73,6 @@ object CreateEnvelopeRequest {
   implicit val dateReads: Reads[DateTime] = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val constraintsFormats: OFormat[EnvelopeConstraintsUserSetting] = Json.format[EnvelopeConstraintsUserSetting]
   implicit val formats: OFormat[CreateEnvelopeRequest] = Json.format[CreateEnvelopeRequest]
-
-  def formatUserEnvelopeConstraints(constraintsO: EnvelopeConstraintsUserSetting,
-                                    envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration): Option[EnvelopeConstraints] = {
-    import EnvelopeConstraints._
-
-    val maxItems = constraintsO.maxItems.getOrElse(envelopeConstraintsConfigure.defaultMaxItems)
-    val maxSize = constraintsO.maxSize.getOrElse(envelopeConstraintsConfigure.defaultMaxSize)
-    val maxSizePerItem = constraintsO.maxSizePerItem.getOrElse(envelopeConstraintsConfigure.defaultMaxSizePerItem)
-
-    val maxSizeInBytes: Long = translateToByteSize(maxSize)
-    val maxSizePerItemInBytes: Long = translateToByteSize(maxSizePerItem)
-
-    val acceptedMaxSizeInBytes: Long = translateToByteSize(envelopeConstraintsConfigure.acceptedMaxSize)
-    val acceptedMaxSizePerItemInBytes: Long = translateToByteSize(envelopeConstraintsConfigure.acceptedMaxSizePerItem)
-
-    require(isAValidSize(maxSize),
-      s"Input constraints.maxSize is not a valid input, e.g 250MB")
-    require(isAValidSize(maxSizePerItem),
-      s"Input constraints.maxSizePerItem is not a valid input, e.g 100MB")
-    require(!(maxSizeInBytes > acceptedMaxSizeInBytes),
-      s"Input for constraints.maxSize is not a valid input, and exceeds maximum allowed value of ${envelopeConstraintsConfigure.acceptedMaxSize}")
-    require(!(maxSizePerItemInBytes > acceptedMaxSizePerItemInBytes),
-      s"Input constraints.maxSizePerItem is not a valid input, and exceeds maximum allowed value of ${envelopeConstraintsConfigure.acceptedMaxSizePerItem}")
-    require(maxSizeInBytes>=maxSizePerItemInBytes,
-      s"constraints.maxSizePerItem can not greater than constraints.maxSize")
-
-    Some(EnvelopeConstraints(maxItems = maxItems,
-                             maxSize = maxSize.toUpperCase(),
-                             maxSizePerItem = maxSizePerItem.toUpperCase(),
-                             contentTypes = checkContentTypes(constraintsO.contentTypes.getOrElse(envelopeConstraintsConfigure.defaultContentTypes),
-                                                              envelopeConstraintsConfigure.defaultContentTypes)
-        ) )
-  }
-
-  def checkContentTypes(contentTypes: List[ContentTypes], defaultContentTypes: List[ContentTypes]): List[ContentTypes] = {
-    if (contentTypes.isEmpty) defaultContentTypes
-    else contentTypes
-  }
-
 }
 
 case class GetFileMetadataReport(id: FileId,

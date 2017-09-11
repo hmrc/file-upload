@@ -20,9 +20,9 @@ import java.util.UUID
 
 import org.joda.time.DateTime
 import play.api.libs.json.Json
-import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
-import uk.gov.hmrc.fileupload.write.infrastructure.EventData
 import uk.gov.hmrc.fileupload._
+import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraints
+import uk.gov.hmrc.fileupload.write.infrastructure.EventData
 
 import scala.collection.mutable.ListBuffer
 

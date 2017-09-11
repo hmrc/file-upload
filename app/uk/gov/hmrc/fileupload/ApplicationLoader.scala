@@ -44,6 +44,7 @@ import uk.gov.hmrc.fileupload.controllers.{AdminController, _}
 import uk.gov.hmrc.fileupload.file.zip.Zippy
 import uk.gov.hmrc.fileupload.filters.{UserAgent, UserAgentRequestFilter}
 import uk.gov.hmrc.fileupload.infrastructure._
+import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraints
 import uk.gov.hmrc.fileupload.manualdihealth.{Routes ⇒ HealthRoutes}
 import uk.gov.hmrc.fileupload.prod.Routes
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope, Service ⇒ EnvelopeService, _}
@@ -53,7 +54,6 @@ import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor}
 import uk.gov.hmrc.fileupload.routing.{Routes ⇒ RoutingRoutes}
 import uk.gov.hmrc.fileupload.testonly.TestOnlyController
 import uk.gov.hmrc.fileupload.transfer.{Routes ⇒ TransferRoutes}
-import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.ContentTypes
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
 import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, MongoEventStore, StreamId}
@@ -88,7 +88,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   override lazy val mode: Mode = context.environment.mode
   override lazy val runModeConfiguration: Configuration = configuration
 
-  val envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration = EnvelopeHandler.getEnvelopeConstraintsConfiguration(runModeConfiguration)
+  val envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration = EnvelopeConstraints.getEnvelopeConstraintsConfiguration(runModeConfiguration)
 
   val envelopeHandler = new EnvelopeHandler(envelopeConstraintsConfigure)
 

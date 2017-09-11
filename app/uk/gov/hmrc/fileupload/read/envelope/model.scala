@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.read.envelope
 
 import org.joda.time.DateTime
 import play.api.libs.json._
-import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
+import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraints
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.ContentTypes
 import uk.gov.hmrc.fileupload.write.infrastructure.Version
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
@@ -49,15 +49,6 @@ case class File(fileId: FileId,
                 revision: Option[Int] = None,
                 metadata: Option[JsObject] = None,
                 rel: Option[String] = Some("file"))
-
-case class EnvelopeConstraintsConfiguration(acceptedMaxItems:Int,
-                                            acceptedMaxSize: String,
-                                            acceptedMaxSizePerItem: String,
-                                            acceptedContentTypes: List[ContentTypes],
-                                            defaultMaxItems: Int,
-                                            defaultMaxSize: String,
-                                            defaultMaxSizePerItem: String,
-                                            defaultContentTypes: List[ContentTypes])
 
 object Envelope {
   implicit val dateReads: Reads[DateTime] = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
