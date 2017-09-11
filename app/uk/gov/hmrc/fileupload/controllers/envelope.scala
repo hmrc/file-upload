@@ -74,7 +74,7 @@ object CreateEnvelopeRequest {
   implicit val formats: OFormat[CreateEnvelopeRequest] = Json.format[CreateEnvelopeRequest]
 
   def formatUserEnvelopeConstraints(constraintsO: EnvelopeConstraintsUserSetting,
-                                    envelopeConstraintsConfigure: EnvelopeConstraintsConfigure): Option[EnvelopeConstraints] = {
+                                    envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration): Option[EnvelopeConstraints] = {
     import EnvelopeConstraints._
 
     val maxItems = constraintsO.maxItems.getOrElse(envelopeConstraintsConfigure.defaultMaxItems)

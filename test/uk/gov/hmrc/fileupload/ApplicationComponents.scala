@@ -22,7 +22,7 @@ import play.api.ApplicationLoader.Context
 import play.api._
 import play.api.mvc.EssentialFilter
 import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
-import uk.gov.hmrc.fileupload.read.envelope.EnvelopeConstraintsConfigure
+import uk.gov.hmrc.fileupload.read.envelope.EnvelopeConstraintsConfiguration
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.ContentTypes
 
 trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
@@ -73,7 +73,7 @@ trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
       maxSizePerItem = acceptedMaxSizePerItem,
       contentTypes = acceptedContentTypes)
 
-  val envelopeConstraintsConfigure = EnvelopeConstraintsConfigure(acceptedMaxItems = acceptedMaxItems,
+  val envelopeConstraintsConfigure = EnvelopeConstraintsConfiguration(acceptedMaxItems = acceptedMaxItems,
                                                                   acceptedMaxSize = acceptedMaxSize,
                                                                   acceptedMaxSizePerItem = acceptedMaxSizePerItem,
                                                                   acceptedContentTypes = acceptedContentTypes,

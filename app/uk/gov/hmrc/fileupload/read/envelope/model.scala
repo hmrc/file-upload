@@ -50,14 +50,14 @@ case class File(fileId: FileId,
                 metadata: Option[JsObject] = None,
                 rel: Option[String] = Some("file"))
 
-case class EnvelopeConstraintsConfigure(acceptedMaxItems:Int,
-                                        acceptedMaxSize: String,
-                                        acceptedMaxSizePerItem: String,
-                                        acceptedContentTypes: List[ContentTypes],
-                                        defaultMaxItems: Int,
-                                        defaultMaxSize: String,
-                                        defaultMaxSizePerItem: String,
-                                        defaultContentTypes: List[ContentTypes])
+case class EnvelopeConstraintsConfiguration(acceptedMaxItems:Int,
+                                            acceptedMaxSize: String,
+                                            acceptedMaxSizePerItem: String,
+                                            acceptedContentTypes: List[ContentTypes],
+                                            defaultMaxItems: Int,
+                                            defaultMaxSize: String,
+                                            defaultMaxSizePerItem: String,
+                                            defaultContentTypes: List[ContentTypes])
 
 object Envelope {
   implicit val dateReads: Reads[DateTime] = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")

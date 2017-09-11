@@ -25,7 +25,7 @@ import play.api.libs.streams.Streams.enumeratorToPublisher
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.Service._
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeConstraintsConfigure, EnvelopeStatus}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeConstraintsConfiguration, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
 import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -43,7 +43,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
                          findAllInProgressFile: () => Future[GetInProgressFileResult],
                          deleteInProgressFile: (FileRefId) => Future[Boolean],
                          getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope],
-                         envelopeConstraintsConfigure: EnvelopeConstraintsConfigure)
+                         envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration)
                         (implicit executionContext: ExecutionContext) extends Controller {
 
   def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>

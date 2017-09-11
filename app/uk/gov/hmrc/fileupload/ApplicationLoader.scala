@@ -27,6 +27,7 @@ import com.kenshoo.play.metrics.{MetricsController, MetricsFilterImpl, MetricsIm
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
 import play.api.ApplicationLoader.Context
+import play.api.Mode.Mode
 import play.api._
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.ws.WSRequest
@@ -84,43 +85,10 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
   implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
 
-  override lazy val mode = context.environment.mode
-  override lazy val runModeConfiguration = configuration
+  override lazy val mode: Mode = context.environment.mode
+  override lazy val runModeConfiguration: Configuration = configuration
 
-  val acceptedMaxItems: Int = runModeConfiguration.getInt("constraints.accepted.maxItems")
-                                .getOrElse(throwRuntimeException("accepted.maxNumFiles"))
-  val acceptedMaxSize: String = runModeConfiguration.getString("constraints.accepted.maxSize")
-                                  .getOrElse(throwRuntimeException("accepted.maxMaxSize"))
-  val acceptedMaxSizePerItem: String = runModeConfiguration.getString("constraints.accepted.maxSizePerItem")
-                                        .getOrElse(throwRuntimeException("accepted.maxSizePerItem"))
-  val acceptedContentTypes: List[ContentTypes] = getContentTypesInList(runModeConfiguration.getString("constraints.accepted.contentTypes"))
-                                                  .getOrElse(throwRuntimeException("accepted.contentTypes"))
-
-  val defaultMaxItems: Int = runModeConfiguration.getInt("constraints.default.maxItems")
-                              .getOrElse(throwRuntimeException("default.maxNumFiles"))
-  val defaultMaxSize: String = runModeConfiguration.getString("constraints.default.maxSize")
-                                  .getOrElse(throwRuntimeException("default.maxMaxSize"))
-  val defaultMaxSizePerItem: String = runModeConfiguration.getString("constraints.default.maxSizePerItem")
-                                        .getOrElse(throwRuntimeException("default.maxSizePerItem"))
-  val defaultContentTypes: List[ContentTypes] = getContentTypesInList(runModeConfiguration.getString("constraints.default.contentTypes"))
-                                                  .getOrElse(throwRuntimeException("default.contentTypes"))
-
-  def throwRuntimeException(key: String) = {
-    throw new RuntimeException(s"default value $key need to define")
-  }
-
-  def getContentTypesInList(contentTypesInString: Option[String]): Option[List[ContentTypes]] = {
-    contentTypesInString.map(types ⇒ types.split(",").toList)
-  }
-
-  val envelopeConstraintsConfigure = EnvelopeConstraintsConfigure(acceptedMaxItems = acceptedMaxItems,
-                                                                  acceptedMaxSize = acceptedMaxSize,
-                                                                  acceptedMaxSizePerItem = acceptedMaxSizePerItem,
-                                                                  acceptedContentTypes = acceptedContentTypes,
-                                                                  defaultMaxItems = defaultMaxItems,
-                                                                  defaultMaxSize = defaultMaxSize,
-                                                                  defaultMaxSizePerItem = defaultMaxSizePerItem,
-                                                                  defaultContentTypes = defaultContentTypes)
+  val envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration = EnvelopeHandler.getEnvelopeConstraintsConfiguration(runModeConfiguration)
 
   val envelopeHandler = new EnvelopeHandler(envelopeConstraintsConfigure)
 
