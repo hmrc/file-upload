@@ -19,7 +19,6 @@ package uk.gov.hmrc.fileupload.controllers.constraints
 import uk.gov.hmrc.fileupload.ApplicationComponents
 import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, EnvelopeConstraintsUserSetting, Size}
 import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraintsConfiguration
-import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraintsConfiguration._
 import uk.gov.hmrc.fileupload.write.envelope.NotCreated.checkContentTypes
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -122,7 +121,7 @@ class EnvelopeConstraintsSpec extends UnitSpec with ApplicationComponents {
                                                     .formatUserEnvelopeConstraints(envelopeWithConstraints, envelopeConstraintsConfigure)}
                                                     .failed.map(_.toString).getOrElse("")
       val expectedErrorMessage = "java.lang.IllegalArgumentException: requirement failed: " +
-                                 "constraints.maxSizePerItem can not greater than constraints.maxSize"
+        "constraints.maxSizePerItem can not greater than constraints.maxSize"
       createEnvelopeWithErrorConstraints shouldBe expectedErrorMessage
     }
   }
@@ -137,8 +136,8 @@ class EnvelopeConstraintsSpec extends UnitSpec with ApplicationComponents {
                                                     .formatUserEnvelopeConstraints(envelopeWithConstraints, envelopeConstraintsConfigure)}
                                                     .failed.map(_.toString).getOrElse("")
       val expectedErrorMessage = "java.lang.IllegalArgumentException: requirement failed: " +
-                                 s"Input for constraints.maxSize is not a valid input, " +
-                                 s"and exceeds maximum allowed value of ${envelopeConstraintsConfigure.acceptedMaxSize}"
+        s"Input for constraints.maxSize is not a valid input, " +
+        s"and exceeds maximum allowed value of ${envelopeConstraintsConfigure.acceptedMaxSize}"
       createEnvelopeWithErrorConstraints shouldBe expectedErrorMessage
     }
   }
@@ -152,8 +151,8 @@ class EnvelopeConstraintsSpec extends UnitSpec with ApplicationComponents {
       val createEnvelopeWithErrorConstraints = Try{EnvelopeConstraintsConfiguration.formatUserEnvelopeConstraints(envelopeWithConstraints, envelopeConstraintsConfigure)}
         .failed.map(_.toString).getOrElse("")
       val expectedErrorMessage = "java.lang.IllegalArgumentException: requirement failed: " +
-                                 s"Input constraints.maxSizePerItem is not a valid input, " +
-                                 s"and exceeds maximum allowed value of ${envelopeConstraintsConfigure.acceptedMaxSizePerItem}"
+        s"Input constraints.maxSizePerItem is not a valid input, " +
+        s"and exceeds maximum allowed value of ${envelopeConstraintsConfigure.acceptedMaxSizePerItem}"
       createEnvelopeWithErrorConstraints shouldBe expectedErrorMessage
     }
   }

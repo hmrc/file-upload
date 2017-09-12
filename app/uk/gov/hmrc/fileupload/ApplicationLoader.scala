@@ -53,7 +53,6 @@ import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor}
 import uk.gov.hmrc.fileupload.routing.{Routes ⇒ RoutingRoutes}
 import uk.gov.hmrc.fileupload.testonly.TestOnlyController
 import uk.gov.hmrc.fileupload.transfer.{Routes ⇒ TransferRoutes}
-import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.ContentTypes
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
 import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, MongoEventStore, StreamId}
