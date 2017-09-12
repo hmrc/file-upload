@@ -23,9 +23,9 @@ import play.api.libs.iteratee.Enumerator
 import play.api.libs.json._
 import play.api.libs.streams.Streams.enumeratorToPublisher
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
+import uk.gov.hmrc.fileupload.infrastructure.{BasicAuth, EnvelopeConstraintsConfiguration}
 import uk.gov.hmrc.fileupload.read.envelope.Service._
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeConstraintsConfiguration, EnvelopeStatus}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
 import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -49,7 +49,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
   def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
     val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata,
-                                 CreateEnvelopeRequest.formatUserEnvelopeConstraints(
+                                 EnvelopeConstraintsConfiguration.formatUserEnvelopeConstraints(
                                    request.body.constraints.getOrElse(EnvelopeConstraintsUserSetting()),envelopeConstraintsConfigure))
 
     val userAgent = request.headers.get("User-Agent").getOrElse("none")
@@ -61,7 +61,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
   def createWithId(id: EnvelopeId) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
     val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata,
-                                 CreateEnvelopeRequest.formatUserEnvelopeConstraints(
+                                 EnvelopeConstraintsConfiguration.formatUserEnvelopeConstraints(
                                    request.body.constraints.getOrElse(EnvelopeConstraintsUserSetting()),envelopeConstraintsConfigure))
 
     val userAgent = request.headers.get("User-Agent").getOrElse("none")

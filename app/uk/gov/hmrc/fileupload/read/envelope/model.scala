@@ -18,8 +18,7 @@ package uk.gov.hmrc.fileupload.read.envelope
 
 import org.joda.time.DateTime
 import play.api.libs.json._
-import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
-import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.ContentTypes
+import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, Size, SizeUnit, KB, MB}
 import uk.gov.hmrc.fileupload.write.infrastructure.Version
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
@@ -50,15 +49,6 @@ case class File(fileId: FileId,
                 metadata: Option[JsObject] = None,
                 rel: Option[String] = Some("file"))
 
-case class EnvelopeConstraintsConfiguration(acceptedMaxItems:Int,
-                                            acceptedMaxSize: String,
-                                            acceptedMaxSizePerItem: String,
-                                            acceptedContentTypes: List[ContentTypes],
-                                            defaultMaxItems: Int,
-                                            defaultMaxSize: String,
-                                            defaultMaxSizePerItem: String,
-                                            defaultContentTypes: List[ContentTypes])
-
 object Envelope {
   implicit val dateReads: Reads[DateTime] = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val dateWrites: Writes[DateTime] = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
@@ -67,6 +57,8 @@ object Envelope {
   implicit val fileReads: Format[File] = Json.format[File]
   implicit val envelopeStatusReads: Reads[EnvelopeStatus] = EnvelopeStatusReads
   implicit val envelopeStatusWrites: Writes[EnvelopeStatus] = EnvelopeStatusWrites
+  implicit val sizeReads: Reads[Size] = SizeReads
+  implicit val sizeWrites: Writes[Size] = SizeWrites
   implicit val envelopeConstraintsFormats: OFormat[EnvelopeConstraints] = Json.format[EnvelopeConstraints]
   implicit val envelopeFormat: Format[Envelope] = Json.format[Envelope]
   implicit val envelopeOFormat: OFormat[Envelope] = new OFormat[Envelope] {
@@ -139,6 +131,14 @@ case object FileStatusError extends FileStatus {
 
 object FileStatusWrites extends Writes[FileStatus] {
   def writes(c: FileStatus): JsValue = Json.toJson(c.name)
+}
+
+object SizeWrites extends Writes[Size] {
+  def writes(s: Size): JsValue = Json.toJson(s.toString)
+}
+
+object SizeReads extends Reads[Size] {
+  def reads(value: JsValue) = JsSuccess(Size(value.as[String]))
 }
 
 object FileStatusReads extends Reads[FileStatus] {

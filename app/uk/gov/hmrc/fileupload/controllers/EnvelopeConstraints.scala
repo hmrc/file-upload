@@ -18,46 +18,49 @@ package uk.gov.hmrc.fileupload.controllers
 
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.ContentTypes
 
-object EnvelopeConstraints {
+case class EnvelopeConstraints (maxItems: Int,
+                                maxSize: Size,
+                                maxSizePerItem: Size,
+                                contentTypes: List[ContentTypes]) {
 
-  private val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+  val maxSizeInBytes: Long = maxSize.inBytes
+  val maxSizePerItemInBytes: Long = maxSizePerItem.inBytes
+}
 
-  def isAValidSize(size: String): Boolean = {
-    if (size.isEmpty) false
-    else {
-      size.toUpperCase match {
-        case sizeRegex(num, unit) =>
-          unit match {
-            case "KB" => true
-            case "MB" => true
-            case _ => false
-          }
-        case _ => false
-      }
-    }
-  }
+sealed trait SizeUnit
+case object KB extends SizeUnit
+case object MB extends SizeUnit
 
-  def translateToByteSize(size: String): Long = {
-    if (!isAValidSize(size)) throw new IllegalArgumentException(s"Invalid constraint input")
-    else {
-      size.toUpperCase match {
-        case sizeRegex(num, unit) =>
-          unit match {
-            case "KB" => num.toInt * 1024
-            case "MB" => num.toInt * 1024 * 1024
-          }
-      }
+case class Size(value: Long, unit: SizeUnit) {
+  override def toString: String = value + unit.toString
+
+  def inBytes: Long = {
+    unit match {
+      case KB => value * 1024
+      case MB => value * 1024 * 1024
     }
   }
 }
 
-case class EnvelopeConstraints(maxItems: Int,
-                               maxSize: String,
-                               maxSizePerItem: String,
-                               contentTypes: List[ContentTypes]) {
-  import EnvelopeConstraints._
+object Size {
 
-  val maxSizeInBytes: Long = translateToByteSize(maxSize)
-  val maxSizePerItemInBytes: Long = translateToByteSize(maxSizePerItem)
+  val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+
+  def apply(asString: String) = {
+    if (asString.isEmpty) throw new IllegalArgumentException(s"Invalid constraint input")
+    else {
+      asString.toUpperCase match {
+        case sizeRegex(num, unit) =>
+          unit match {
+            case "KB" => new Size(num.toInt, KB)
+            case "MB" => new Size(num.toInt, MB)
+            case _ => throw new IllegalArgumentException(s"Invalid constraint input")
+          }
+        case _ => throw new IllegalArgumentException(s"Invalid constraint input")
+      }
+    }
+  }
+
+
 
 }
