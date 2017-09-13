@@ -31,6 +31,7 @@ import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId, read}
+import uk.gov.hmrc.play.http.BadRequestException
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -48,26 +49,34 @@ class EnvelopeController(withBasicAuth: BasicAuth,
 
   def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
-    val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata,
-                                 EnvelopeConstraintsConfiguration.formatUserEnvelopeConstraints(
-                                   request.body.constraints.getOrElse(EnvelopeConstraintsUserSetting()),envelopeConstraintsConfigure))
 
-    val userAgent = request.headers.get("User-Agent").getOrElse("none")
-    Logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
-    
-    handleCreate(envelopeLocation, command)
+    val validatedUserEnvelopeConstraints = validatedEnvelopeConstraints(request)
+
+    validatedUserEnvelopeConstraints match {
+      case Right(envelopeConstraints: EnvelopeConstraints) ⇒
+        val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata, Some(envelopeConstraints))
+        val userAgent = request.headers.get("User-Agent").getOrElse("none")
+        Logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
+        handleCreate(envelopeLocation, command)
+      case Left(failureReason: SizeValidationFailure) ⇒
+        Future.successful(BadRequestHandler(new BadRequestException(s"${failureReason.message}")))
+    }
   }
 
   def createWithId(id: EnvelopeId) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
-    val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata,
-                                 EnvelopeConstraintsConfiguration.formatUserEnvelopeConstraints(
-                                   request.body.constraints.getOrElse(EnvelopeConstraintsUserSetting()),envelopeConstraintsConfigure))
 
-    val userAgent = request.headers.get("User-Agent").getOrElse("none")
-    Logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
+    val validatedUserEnvelopeConstraints = validatedEnvelopeConstraints(request)
 
-    handleCreate(envelopeLocation, command)
+    validatedUserEnvelopeConstraints match {
+      case Right(envelopeConstraints: EnvelopeConstraints) ⇒
+        val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata, Some(envelopeConstraints))
+        val userAgent = request.headers.get("User-Agent").getOrElse("none")
+        Logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
+        handleCreate(envelopeLocation, command)
+      case Left(failureReason: SizeValidationFailure) ⇒
+        Future.successful(BadRequestHandler(new BadRequestException(s"${failureReason.message}")))
+    }
   }
 
   private def handleCreate(envelopeLocation: EnvelopeId => (String, String), command: CreateEnvelope): Future[Result] = {
@@ -149,5 +158,13 @@ class EnvelopeController(withBasicAuth: BasicAuth,
       case true => Ok
       case false => InternalServerError("It was not possible to delete the in progress file")
     }.recover { case e => ExceptionHandler(e) }
+  }
+
+  private def validatedEnvelopeConstraints(request: Request[CreateEnvelopeRequest]): Either[SizeValidationFailure, EnvelopeConstraints] = {
+    for {
+      envelopeConstraints ← EnvelopeConstraintsConfiguration
+        .formatUserEnvelopeConstraints(request.body.constraints.getOrElse(EnvelopeConstraintsUserSetting()),
+          envelopeConstraintsConfigure).right
+    } yield envelopeConstraints
   }
 }

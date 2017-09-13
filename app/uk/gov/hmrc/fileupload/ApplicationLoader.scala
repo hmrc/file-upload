@@ -87,7 +87,12 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   override lazy val mode: Mode = context.environment.mode
   override lazy val runModeConfiguration: Configuration = configuration
 
-  val envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration = EnvelopeConstraintsConfiguration.getEnvelopeConstraintsConfiguration(runModeConfiguration)
+  val envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration = {
+    EnvelopeConstraintsConfiguration.getEnvelopeConstraintsConfiguration(runModeConfiguration) match {
+      case Right(envelopeConstraints) ⇒ envelopeConstraints
+      case Left(failureReason) ⇒ throw new IllegalArgumentException(s"${failureReason}")
+    }
+  }
 
   val envelopeHandler = new EnvelopeHandler(envelopeConstraintsConfigure)
 

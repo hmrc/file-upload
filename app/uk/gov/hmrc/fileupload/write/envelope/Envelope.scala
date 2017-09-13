@@ -30,12 +30,7 @@ object EnvelopeHandler {
 
 class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration) extends Handler[EnvelopeCommand, Envelope] {
 
-  val acceptedConstraints: EnvelopeConstraints = {
-    EnvelopeConstraints(maxItems = envelopeConstraintsConfigure.acceptedMaxItems,
-                        maxSize = envelopeConstraintsConfigure.acceptedMaxSize,
-                        maxSizePerItem = envelopeConstraintsConfigure.acceptedMaxSizePerItem,
-                        contentTypes = envelopeConstraintsConfigure.acceptedContentTypes)
-  }
+  val acceptedConstraints: EnvelopeConstraints = envelopeConstraintsConfigure.acceptedEnvelopeConstraints
 
   override def handle: PartialFunction[(EnvelopeCommand, Envelope), Xor[EnvelopeCommandNotAccepted, List[EventData]]] = {
     case (command: CreateEnvelope, envelope: Envelope) =>

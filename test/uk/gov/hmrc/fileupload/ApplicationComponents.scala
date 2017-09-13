@@ -45,8 +45,8 @@ trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
   }
 
   val acceptedMaxItems: Int = 100
-  val acceptedMaxSize: Size = Size("250MB") //250 * 1024 * 1024
-  val acceptedMaxSizePerItem: Size = Size("100MB") //100 * 1024 * 1024
+  val acceptedMaxSize: Size = Size("250MB").right.get //250 * 1024 * 1024
+  val acceptedMaxSizePerItem: Size = Size("100MB").right.get //100 * 1024 * 1024
   val acceptedContentTypes: List[ContentTypes] =
     List("application/pdf",
       "image/jpeg",
@@ -57,8 +57,8 @@ trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
   val defaultMaxItems: Int = 100
-  val defaultMaxSize: Size = Size("25MB") //25 * 1024 * 1024
-  val defaultMaxSizePerItem: Size = Size("10MB") //10 * 1024 * 1024
+  val defaultMaxSize: Size = Size("25MB").right.get //25 * 1024 * 1024
+  val defaultMaxSizePerItem: Size = Size("10MB").right.get //10 * 1024 * 1024
   val defaultContentTypes: List[ContentTypes] = List("application/pdf","image/jpeg","application/xml","text/xml")
 
   val defaultConstraints =
@@ -73,14 +73,14 @@ trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
       maxSizePerItem = acceptedMaxSizePerItem,
       contentTypes = acceptedContentTypes)
 
-  val envelopeConstraintsConfigure = EnvelopeConstraintsConfiguration(acceptedMaxItems = acceptedMaxItems,
-                                                                      acceptedMaxSize = acceptedMaxSize,
-                                                                      acceptedMaxSizePerItem = acceptedMaxSizePerItem,
-                                                                      acceptedContentTypes = acceptedContentTypes,
-                                                                      defaultMaxItems = defaultMaxItems,
-                                                                      defaultMaxSize = defaultMaxSize,
-                                                                      defaultMaxSizePerItem = defaultMaxSizePerItem,
-                                                                      defaultContentTypes = defaultContentTypes)
+  val envelopeConstraintsConfigure = EnvelopeConstraintsConfiguration(acceptedEnvelopeConstraints = EnvelopeConstraints(acceptedMaxItems,
+                                                                                                                        acceptedMaxSize,
+                                                                                                                        acceptedMaxSizePerItem,
+                                                                                                                        acceptedContentTypes),
+                                                                      defaultEnvelopeConstraints  = EnvelopeConstraints(defaultMaxItems,
+                                                                                                                        defaultMaxSize,
+                                                                                                                        defaultMaxSizePerItem,
+                                                                                                                        defaultContentTypes) )
 }
 
 class TestApplicationModule(context: Context) extends ApplicationModule(context = context) {

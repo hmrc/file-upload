@@ -138,7 +138,7 @@ object SizeWrites extends Writes[Size] {
 }
 
 object SizeReads extends Reads[Size] {
-  def reads(value: JsValue) = JsSuccess(Size(value.as[String]))
+  def reads(value: JsValue) = JsSuccess(Size(value.as[String]).right.get)
 }
 
 object FileStatusReads extends Reads[FileStatus] {

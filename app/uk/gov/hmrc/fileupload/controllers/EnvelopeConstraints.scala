@@ -18,6 +18,8 @@ package uk.gov.hmrc.fileupload.controllers
 
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.ContentTypes
 
+import scala.util.matching.Regex
+
 case class EnvelopeConstraints (maxItems: Int,
                                 maxSize: Size,
                                 maxSizePerItem: Size,
@@ -44,21 +46,33 @@ case class Size(value: Long, unit: SizeUnit) {
 
 object Size {
 
-  val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+  val sizeRegex: Regex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
 
-  def apply(asString: String) = {
-    if (asString.isEmpty) throw new IllegalArgumentException(s"Invalid constraint input")
+  def apply(asString: String): Either[SizeValidationFailure, Size]  = {
+    if (asString.isEmpty) Left(EmptyInput)
     else {
       asString.toUpperCase match {
         case sizeRegex(num, unit) =>
           unit match {
-            case "KB" => new Size(num.toInt, KB)
-            case "MB" => new Size(num.toInt, MB)
-            case _ => throw new IllegalArgumentException(s"Invalid constraint input")
+            case "KB" => Right(Size(num.toInt, KB))
+            case "MB" => Right(Size(num.toInt, MB))
+            case _ => Left(InvalidFormat)
           }
-        case _ => throw new IllegalArgumentException(s"Invalid constraint input")
+        case _ => Left(InvalidFormat)
       }
     }
   }
 
+}
+
+sealed trait SizeValidationFailure {
+  def message: String
+}
+
+case object EmptyInput extends SizeValidationFailure {
+  override def message: String = "input was empty"
+}
+
+case object InvalidFormat extends SizeValidationFailure {
+  override def message: String = s"input did not match supported size format, 'KB' and 'MB' are supported, e.g. 10MB"
 }

@@ -44,7 +44,7 @@ class EnvelopeConstraintsSpec extends UnitSpec with ApplicationComponents {
         )
 
       validFormats.foreach { f =>
-        result.contains(Size(f).inBytes) shouldBe true
+        result.contains(Size(f).right.get.inBytes) shouldBe true
       }
     }
 
@@ -61,18 +61,16 @@ class EnvelopeConstraintsSpec extends UnitSpec with ApplicationComponents {
         )
 
       invalidFormats.foreach { c =>
-        intercept[Exception] {
-          Size(c)
-        }.getMessage shouldBe "Invalid constraint input"
+          Size(c).left.get.message shouldBe "input did not match supported size format, 'KB' and 'MB' are supported, e.g. 10MB"
       }
     }
   }
 
   "translateToByte " should {
     "parse a constraint in MB or KB to Long" in {
-      Size("10MB").inBytes shouldBe (10 * 1024 * 1024)
+      Size("10MB").right.get.inBytes shouldBe (10 * 1024 * 1024)
 
-      Size("100KB").inBytes shouldBe (100 * 1024)
+      Size("100KB").right.get.inBytes shouldBe (100 * 1024)
     }
   }
 
@@ -100,7 +98,7 @@ class EnvelopeConstraintsSpec extends UnitSpec with ApplicationComponents {
     "return default constraints" in {
       val envelopeConstraintsNone = EnvelopeConstraintsUserSetting(None,None,None,None)
       val createDefaultConstraints = EnvelopeConstraintsConfiguration.formatUserEnvelopeConstraints(envelopeConstraintsNone, envelopeConstraintsConfigure)
-      val expectedEnvelopeConstraints = Some(EnvelopeConstraints(defaultMaxItems,defaultMaxSize,defaultMaxSizePerItem,defaultContentTypes))
+      val expectedEnvelopeConstraints = Right(EnvelopeConstraints(defaultMaxItems,defaultMaxSize,defaultMaxSizePerItem,defaultContentTypes))
       createDefaultConstraints shouldBe expectedEnvelopeConstraints
     }
   }
@@ -109,7 +107,7 @@ class EnvelopeConstraintsSpec extends UnitSpec with ApplicationComponents {
     "return defined constraints" in {
       val envelopeWithConstraints = EnvelopeConstraintsUserSetting(Some(10),Some("30MB"),Some("8MB"),Some(List("applicaiton/pdf")))
       val createEnvelopeWithConstraints = EnvelopeConstraintsConfiguration.formatUserEnvelopeConstraints(envelopeWithConstraints, envelopeConstraintsConfigure)
-      val expectedEnvelopeConstraints = Some(EnvelopeConstraints(10,Size("30MB"),Size("8MB"),List("applicaiton/pdf")))
+      val expectedEnvelopeConstraints = Right(EnvelopeConstraints(10,Size("30MB").right.get,Size("8MB").right.get,List("applicaiton/pdf")))
       createEnvelopeWithConstraints shouldBe expectedEnvelopeConstraints
     }
   }
@@ -137,7 +135,7 @@ class EnvelopeConstraintsSpec extends UnitSpec with ApplicationComponents {
                                                     .failed.map(_.toString).getOrElse("")
       val expectedErrorMessage = "java.lang.IllegalArgumentException: requirement failed: " +
         s"Input for constraints.maxSize is not a valid input, " +
-        s"and exceeds maximum allowed value of ${envelopeConstraintsConfigure.acceptedMaxSize}"
+        s"and exceeds maximum allowed value of ${envelopeConstraintsConfigure.acceptedEnvelopeConstraints.maxSize}"
       createEnvelopeWithErrorConstraints shouldBe expectedErrorMessage
     }
   }
@@ -148,11 +146,12 @@ class EnvelopeConstraintsSpec extends UnitSpec with ApplicationComponents {
       s"${acceptedConstraints.maxSizePerItem}" in {
       val errorInput = Some("101MB")
       val envelopeWithConstraints = EnvelopeConstraintsUserSetting(Some(10),Some("250MB"),errorInput,Some(List("applicaiton/pdf")))
-      val createEnvelopeWithErrorConstraints = Try{EnvelopeConstraintsConfiguration.formatUserEnvelopeConstraints(envelopeWithConstraints, envelopeConstraintsConfigure)}
-        .failed.map(_.toString).getOrElse("")
+      val createEnvelopeWithErrorConstraints = Try{EnvelopeConstraintsConfiguration
+                                                    .formatUserEnvelopeConstraints(envelopeWithConstraints, envelopeConstraintsConfigure)}
+                                                    .failed.map(_.toString).getOrElse("")
       val expectedErrorMessage = "java.lang.IllegalArgumentException: requirement failed: " +
         s"Input constraints.maxSizePerItem is not a valid input, " +
-        s"and exceeds maximum allowed value of ${envelopeConstraintsConfigure.acceptedMaxSizePerItem}"
+        s"and exceeds maximum allowed value of ${envelopeConstraintsConfigure.acceptedEnvelopeConstraints.maxSizePerItem}"
       createEnvelopeWithErrorConstraints shouldBe expectedErrorMessage
     }
   }
