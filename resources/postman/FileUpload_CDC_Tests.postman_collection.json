@@ -63,8 +63,7 @@
 							"script": {
 								"type": "text/javascript",
 								"exec": [
-									"tests[\"Status code is 201\"] = responseCode.code === 201;",
-									"tests[\"Status code name is CREATED\"] = responseCode.name.has(\"Created\");"
+									"tests[\"Status code is 200\"] = responseCode.code === 200;"
 								]
 							}
 						},
@@ -444,8 +443,7 @@
 							"script": {
 								"type": "text/javascript",
 								"exec": [
-									"tests[\"Status code is 201\"] = responseCode.code === 201;",
-									"tests[\"Status code name is CREATED\"] = responseCode.name.has(\"Created\");"
+									"tests[\"Status code is 200\"] = responseCode.code === 200;"
 								]
 							}
 						},
@@ -880,8 +878,7 @@
 							"script": {
 								"type": "text/javascript",
 								"exec": [
-									"tests[\"Status code is 201\"] = responseCode.code === 201;",
-									"tests[\"Status code name is CREATED\"] = responseCode.name.has(\"Created\");"
+									"tests[\"Status code is 200\"] = responseCode.code === 200;"
 								]
 							}
 						},
