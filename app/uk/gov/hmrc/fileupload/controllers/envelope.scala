@@ -19,8 +19,8 @@ package uk.gov.hmrc.fileupload.controllers
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.QueryStringBindable
-import uk.gov.hmrc.fileupload.read.envelope.Envelope.{ContentTypes, defaultContentTypes, defaultMaxItems, defaultMaxSize, defaultMaxSizePerItem}
 import uk.gov.hmrc.fileupload.read.envelope._
+import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.ContentTypes
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 case class EnvelopeReport(id: Option[EnvelopeId] = None,
@@ -38,6 +38,8 @@ object EnvelopeReport {
   implicit val fileStatusReads: Reads[FileStatus] = FileStatusReads
   implicit val fileStatusWrites: Writes[FileStatus] = FileStatusWrites
   implicit val fileReads: Format[File] = Json.format[File]
+  implicit val sizeReads: Reads[Size] = SizeReads
+  implicit val sizeWrites: Writes[Size] = SizeWrites
   implicit val envelopeConstraintsReads: Format[EnvelopeConstraints] = Json.format[EnvelopeConstraints]
   implicit val createEnvelopeReads: Format[EnvelopeReport] = Json.format[EnvelopeReport]
 
@@ -72,20 +74,6 @@ object CreateEnvelopeRequest {
   implicit val dateReads: Reads[DateTime] = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val constraintsFormats: OFormat[EnvelopeConstraintsUserSetting] = Json.format[EnvelopeConstraintsUserSetting]
   implicit val formats: OFormat[CreateEnvelopeRequest] = Json.format[CreateEnvelopeRequest]
-
-  def formatUserEnvelopeConstraints(constraintsO: EnvelopeConstraintsUserSetting): Option[EnvelopeConstraints] = {
-    Some(EnvelopeConstraints(maxItems = constraintsO.maxItems.getOrElse(defaultMaxItems),
-                             maxSize = constraintsO.maxSize.getOrElse(defaultMaxSize).toUpperCase(),
-                             maxSizePerItem = constraintsO.maxSizePerItem.getOrElse(defaultMaxSizePerItem).toUpperCase(),
-                             contentTypes = checkContentTypes(constraintsO.contentTypes.getOrElse(defaultContentTypes))
-        ) )
-  }
-
-  def checkContentTypes(contentTypes: List[ContentTypes]): List[ContentTypes] = {
-    if (contentTypes.isEmpty) defaultContentTypes
-    else contentTypes
-  }
-
 }
 
 case class GetFileMetadataReport(id: FileId,

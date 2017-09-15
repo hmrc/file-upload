@@ -18,14 +18,19 @@ package uk.gov.hmrc.fileupload.write.envelope
 
 import cats.data.Xor
 import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
-import uk.gov.hmrc.fileupload.write.envelope.Envelope.CanResult
+import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraintsConfiguration
+import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.CanResult
 import uk.gov.hmrc.fileupload.write.infrastructure.{EventData, Handler}
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 
-object Envelope extends Handler[EnvelopeCommand, Envelope] {
-
+object EnvelopeHandler {
   type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
-  val acceptedConstraints: EnvelopeConstraints = uk.gov.hmrc.fileupload.read.envelope.Envelope.acceptedConstraints
+  type ContentTypes = String
+}
+
+class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration) extends Handler[EnvelopeCommand, Envelope] {
+
+  val acceptedConstraints: EnvelopeConstraints = envelopeConstraintsConfigure.acceptedEnvelopeConstraints
 
   override def handle: PartialFunction[(EnvelopeCommand, Envelope), Xor[EnvelopeCommandNotAccepted, List[EventData]]] = {
     case (command: CreateEnvelope, envelope: Envelope) =>

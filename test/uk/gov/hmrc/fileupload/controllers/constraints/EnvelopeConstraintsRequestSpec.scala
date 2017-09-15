@@ -18,17 +18,14 @@ package uk.gov.hmrc.fileupload.controllers.constraints
 
 import org.joda.time.DateTime
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.fileupload.controllers.{CreateEnvelopeRequest, EnvelopeConstraints, EnvelopeConstraintsUserSetting}
+import uk.gov.hmrc.fileupload._
+import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, EnvelopeConstraintsUserSetting}
+import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraintsConfiguration
 import uk.gov.hmrc.fileupload.write.envelope._
-import uk.gov.hmrc.fileupload.{EnvelopeId, EventBasedGWTSpec, FileId, FileRefId}
-import uk.gov.hmrc.fileupload.read.envelope.Envelope.{defaultConstraints, defaultMaxItems,
-                                                      defaultMaxSize, acceptedMaxSizePerItem,
-                                                      defaultContentTypes, acceptedMaxSize,
-                                                      defaultMaxSizePerItem}
 
-class EnvelopeConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] {
+class EnvelopeConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with ApplicationComponents {
 
-  override val handler = Envelope
+  override val handler = new EnvelopeHandler(envelopeConstraintsConfigure)
 
   override val defaultStatus: Envelope = Envelope()
 
@@ -50,23 +47,23 @@ class EnvelopeConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeCommand, 
     Some(fakeData), Some(EnvelopeConstraints(defaultMaxItems, acceptedMaxSize, defaultMaxSizePerItem, defaultContentTypes)))
 
   val createEnvelopeRequestWithoutMaxNoFilesConstraints: Option[EnvelopeConstraints] = {
-    CreateEnvelopeRequest.formatUserEnvelopeConstraints(EnvelopeConstraintsUserSetting(None, Some("25MB"),
-      Some("10MB"), Some(defaultContentTypes)))
+    Some(EnvelopeConstraintsConfiguration.formatUserEnvelopeConstraints(EnvelopeConstraintsUserSetting(None, Some("25MB"),
+      Some("10MB"), Some(defaultContentTypes)), envelopeConstraintsConfigure).right.get)
   }
 
   val createEnvelopeRequestWithoutMaxSizeConstraints: Option[EnvelopeConstraints] = {
-    CreateEnvelopeRequest.formatUserEnvelopeConstraints(EnvelopeConstraintsUserSetting(Some(100), None,
-      Some("10MB"), Some(defaultContentTypes)))
+    Some(EnvelopeConstraintsConfiguration.formatUserEnvelopeConstraints(EnvelopeConstraintsUserSetting(Some(100), None,
+      Some("10MB"), Some(defaultContentTypes)), envelopeConstraintsConfigure).right.get)
   }
 
   val createEnvelopeRequestWithoutMaxSizePerItemConstraints: Option[EnvelopeConstraints] = {
-    CreateEnvelopeRequest.formatUserEnvelopeConstraints(EnvelopeConstraintsUserSetting(Some(100), Some("25MB"),
-      None, Some(defaultContentTypes)))
+    Some(EnvelopeConstraintsConfiguration.formatUserEnvelopeConstraints(EnvelopeConstraintsUserSetting(Some(100), Some("25MB"),
+      None, Some(defaultContentTypes)), envelopeConstraintsConfigure).right.get)
   }
 
   val createEnvelopeRequestWithoutTypeConstraints: Option[EnvelopeConstraints] = {
-    CreateEnvelopeRequest.formatUserEnvelopeConstraints(EnvelopeConstraintsUserSetting(Some(100), Some("25MB"),
-      Some("10MB"), None))
+    Some(EnvelopeConstraintsConfiguration.formatUserEnvelopeConstraints(EnvelopeConstraintsUserSetting(Some(100), Some("25MB"),
+      Some("10MB"), None), envelopeConstraintsConfigure).right.get)
   }
 
   feature("CreateEnvelope with constraints") {

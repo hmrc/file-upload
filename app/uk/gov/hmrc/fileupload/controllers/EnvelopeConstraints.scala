@@ -16,53 +16,63 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import uk.gov.hmrc.fileupload.read.envelope.Envelope.ContentTypes
-import uk.gov.hmrc.fileupload.read.envelope._
+import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.ContentTypes
 
-object EnvelopeConstraints {
+import scala.util.matching.Regex
 
-  private val sizeRegex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+case class EnvelopeConstraints (maxItems: Int,
+                                maxSize: Size,
+                                maxSizePerItem: Size,
+                                contentTypes: List[ContentTypes]) {
 
-  def isAValidSize(size: String): Boolean = {
-    if (size.isEmpty) false
-    else {
-      size.toUpperCase match {
-        case sizeRegex(num, unit) =>
-          unit match {
-            case "KB" => true
-            case "MB" => true
-            case _ => false
-          }
-        case _ => false
-      }
-    }
-  }
+  val maxSizeInBytes: Long = maxSize.inBytes
+  val maxSizePerItemInBytes: Long = maxSizePerItem.inBytes
+}
 
-  def translateToByteSize(size: String): Long = {
-    if (!isAValidSize(size)) throw new IllegalArgumentException(s"Invalid constraint input")
-    else {
-      size.toUpperCase match {
-        case sizeRegex(num, unit) =>
-          unit match {
-            case "KB" => num.toInt * 1024
-            case "MB" => num.toInt * 1024 * 1024
-          }
-      }
+sealed trait SizeUnit
+case object KB extends SizeUnit
+case object MB extends SizeUnit
+
+case class Size(value: Long, unit: SizeUnit) {
+  override def toString: String = value + unit.toString
+
+  def inBytes: Long = {
+    unit match {
+      case KB => value * 1024
+      case MB => value * 1024 * 1024
     }
   }
 }
 
-case class EnvelopeConstraints(maxItems: Int,
-                               maxSize: String,
-                               maxSizePerItem: String,
-                               contentTypes: List[ContentTypes]) {
-  import EnvelopeConstraints._
-  require(isAValidSize(maxSize),
-          s"Input for constraints.maxSize is not a valid input, and exceeds maximum allowed value of ${Envelope.acceptedConstraints.maxSize}")
-  require(isAValidSize(maxSizePerItem),
-          s"Input constraints.maxSizePerItem is not a valid input, and exceeds maximum allowed value of ${Envelope.acceptedConstraints.maxSizePerItem}")
+object Size {
 
-  val maxSizeInBytes: Long = translateToByteSize(maxSize)
-  val maxSizePerItemInBytes: Long = translateToByteSize(maxSizePerItem)
-  require(maxSizeInBytes>=maxSizePerItemInBytes, s"constraints.maxSizePerItem can not greater than constraints.maxSize")
+  val sizeRegex: Regex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
+
+  def apply(asString: String): Either[SizeValidationFailure, Size]  = {
+    if (asString.isEmpty) Left(EmptyInput)
+    else {
+      asString.toUpperCase match {
+        case sizeRegex(num, unit) =>
+          unit match {
+            case "KB" => Right(Size(num.toInt, KB))
+            case "MB" => Right(Size(num.toInt, MB))
+            case _ => Left(InvalidFormat)
+          }
+        case _ => Left(InvalidFormat)
+      }
+    }
+  }
+
+}
+
+sealed trait SizeValidationFailure {
+  def message: String
+}
+
+case object EmptyInput extends SizeValidationFailure {
+  override def message: String = "input was empty"
+}
+
+case object InvalidFormat extends SizeValidationFailure {
+  override def message: String = s"input did not match supported size format, 'KB' and 'MB' are supported, e.g. 10MB"
 }

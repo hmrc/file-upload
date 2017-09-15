@@ -27,6 +27,7 @@ import com.kenshoo.play.metrics.{MetricsController, MetricsFilterImpl, MetricsIm
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
 import play.api.ApplicationLoader.Context
+import play.api.Mode.Mode
 import play.api._
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.ws.WSRequest
@@ -35,23 +36,23 @@ import play.api.mvc.EssentialFilter
 import play.api.routing.Router
 import play.modules.reactivemongo.ReactiveMongoComponentImpl
 import reactivemongo.api.commands
-import uk.gov.hmrc.fileupload.admin.{Routes => AdminRoutes}
-import uk.gov.hmrc.fileupload.app.{Routes => AppRoutes}
+import uk.gov.hmrc.fileupload.admin.{Routes ⇒ AdminRoutes}
+import uk.gov.hmrc.fileupload.app.{Routes ⇒ AppRoutes}
 import uk.gov.hmrc.fileupload.controllers.routing.RoutingController
 import uk.gov.hmrc.fileupload.controllers.transfer.TransferController
 import uk.gov.hmrc.fileupload.controllers.{AdminController, _}
 import uk.gov.hmrc.fileupload.file.zip.Zippy
 import uk.gov.hmrc.fileupload.filters.{UserAgent, UserAgentRequestFilter}
 import uk.gov.hmrc.fileupload.infrastructure._
-import uk.gov.hmrc.fileupload.manualdihealth.{Routes => HealthRoutes}
+import uk.gov.hmrc.fileupload.manualdihealth.{Routes ⇒ HealthRoutes}
 import uk.gov.hmrc.fileupload.prod.Routes
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope, Service => EnvelopeService, _}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope, Service ⇒ EnvelopeService, _}
 import uk.gov.hmrc.fileupload.read.file.FileData
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
 import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor}
-import uk.gov.hmrc.fileupload.routing.{Routes => RoutingRoutes}
+import uk.gov.hmrc.fileupload.routing.{Routes ⇒ RoutingRoutes}
 import uk.gov.hmrc.fileupload.testonly.TestOnlyController
-import uk.gov.hmrc.fileupload.transfer.{Routes => TransferRoutes}
+import uk.gov.hmrc.fileupload.transfer.{Routes ⇒ TransferRoutes}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
 import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, MongoEventStore, StreamId}
@@ -83,8 +84,17 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
   implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
 
-  override lazy val mode = context.environment.mode
-  override lazy val runModeConfiguration = configuration
+  override lazy val mode: Mode = context.environment.mode
+  override lazy val runModeConfiguration: Configuration = configuration
+
+  val envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration = {
+    EnvelopeConstraintsConfiguration.getEnvelopeConstraintsConfiguration(runModeConfiguration) match {
+      case Right(envelopeConstraints) ⇒ envelopeConstraints
+      case Left(failureReason) ⇒ throw new IllegalArgumentException(s"${failureReason}")
+    }
+  }
+
+  val envelopeHandler = new EnvelopeHandler(envelopeConstraintsConfigure)
 
   val subscribe: (ActorRef, Class[_]) => Boolean = actorSystem.eventStream.subscribe
   val publish: (AnyRef) => Unit = actorSystem.eventStream.publish
@@ -176,7 +186,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val envelopeCommandHandler = {
     (command: EnvelopeCommand) =>
       new Aggregate[EnvelopeCommand, write.envelope.Envelope](
-        handler = write.envelope.Envelope,
+        handler = envelopeHandler,
         defaultState = () => write.envelope.Envelope(),
         publish = publish,
         publishAllEvents = createReportHandler.handle(replay = false))(eventStore, defaultContext).handleCommand(command)
@@ -193,7 +203,8 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
       findMetadata = findMetadata,
       findAllInProgressFile = allInProgressFile,
       deleteInProgressFile = statsRepository.deleteByFileRefId,
-      getEnvelopesByStatus = getEnvelopesByStatus)
+      getEnvelopesByStatus = getEnvelopesByStatus,
+      envelopeConstraintsConfigure = envelopeConstraintsConfigure)
   }
 
   lazy val eventController = {
@@ -238,9 +249,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     new TestOnlyController(recreateCollections = List(eventStore.recreate, envelopeRepository.recreate, fileRepository.recreate, statsRepository.recreate))
   }
 
-  lazy val routingController = {
-    new RoutingController(envelopeCommandHandler)
-  }
+  lazy val routingController = new RoutingController(envelopeCommandHandler)
 
   lazy val healthRoutes = new HealthRoutes(httpErrorHandler, new uk.gov.hmrc.play.health.AdminController(configuration))
 
