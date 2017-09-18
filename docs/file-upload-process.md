@@ -103,7 +103,7 @@ If a callbackUrl was provided, the client will be notified about the infected fi
 The client can take the following steps: - 
 - Request for the status of the envelope; this will retrieve the current state of the envelope and will list the status of all the files contained within the envelope ([show envelope endpoint](https://github.com/hmrc/file-upload#show-envelope))
 - Delete the INFECTED file ([delete file endpoint](https://github.com/hmrc/file-upload#hard-delete-a-file))
-- Download the AVAILABLE files ([download file endpoint](https://github.com/hmrc/file-upload#download-file)
+- Download the AVAILABLE files ([download file endpoint](https://github.com/hmrc/file-upload#download-file))
 - Re-upload files
 
 
