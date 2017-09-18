@@ -25,6 +25,7 @@ The endpoints can then be accessed with the base url http://localhost:8898/
 *   [Intercommunication Endpoints](./docs/intercommunication-endpoints.md)
 *   [Test-Only Endpoints](./docs/test-only-endpoints.md)
 *   [Internal-Use-Only Endpoints](./docs/internal-endpoints.md)
+*   [File Upload Process](./docs/file-upload-process.md)
 
 ## Endpoints <a name="endpoints"></a>
 
