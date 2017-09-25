@@ -148,7 +148,7 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
 
       And("the list of content types should be applied")
       val actualContentTypes = ((jsonResponse \ "constraints") \ "contentTypes").as[List[String]]
-      actualContentTypes shouldBe List("application/xml")
+      actualContentTypes shouldBe List()
     }
   }
 
@@ -191,7 +191,7 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
 
       And("the default list of content types should be applied")
       val actualContentTypes = ((parsedBody \ "constraints") \ "contentTypes").as[List[String]]
-      actualContentTypes shouldBe List("application/pdf","image/jpeg","application/xml","text/xml")
+      actualContentTypes shouldBe List()
 
     }
   }

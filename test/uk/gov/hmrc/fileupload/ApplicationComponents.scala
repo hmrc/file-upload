@@ -59,13 +59,13 @@ trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
   val defaultMaxItems: Int = 100
   val defaultMaxSize: Size = Size("25MB").right.get //25 * 1024 * 1024
   val defaultMaxSizePerItem: Size = Size("10MB").right.get //10 * 1024 * 1024
-  val defaultContentTypes: List[ContentTypes] = List("application/pdf","image/jpeg","application/xml","text/xml")
+  val emptyContentTypesList: List[ContentTypes] = List()
 
   val defaultConstraints =
     EnvelopeConstraints(maxItems = defaultMaxItems,
       maxSize = defaultMaxSize,
       maxSizePerItem = defaultMaxSizePerItem,
-      contentTypes = defaultContentTypes)
+      contentTypes = emptyContentTypesList)
 
   val acceptedConstraints =
     EnvelopeConstraints(maxItems = acceptedMaxItems,
@@ -80,7 +80,7 @@ trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
                                                                       defaultEnvelopeConstraints  = EnvelopeConstraints(defaultMaxItems,
                                                                                                                         defaultMaxSize,
                                                                                                                         defaultMaxSizePerItem,
-                                                                                                                        defaultContentTypes) )
+                                                                                                                        emptyContentTypesList) )
 }
 
 class TestApplicationModule(context: Context) extends ApplicationModule(context = context) {

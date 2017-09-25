@@ -145,13 +145,8 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       When("I invoke POST /file-upload/envelopes")
       val response: WSResponse = createEnvelope(json)
 
-      Then("I will receive a 400 Bad Request response")
-      response.status shouldBe BAD_REQUEST
-
-      And("The response body will indicate invalid constraint")
-      val jsonResponse = Json.parse(response.body)
-      val errorMessage = ((jsonResponse \ "error") \ "msg").as[String]
-      errorMessage shouldBe "constraints.contentType -> Unsupported Content Type"
+      Then("I will receive a 201 Created response")
+      response.status shouldBe CREATED
     }
   }
 
