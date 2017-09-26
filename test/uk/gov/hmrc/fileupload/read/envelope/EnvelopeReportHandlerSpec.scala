@@ -36,7 +36,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
       val callbackUrl = Some("callback-url")
       val expiryDate = Some(new DateTime())
       val metadata = Some(Json.obj("key" -> "value"))
-      val constraints = Some(EnvelopeConstraints(10, Size("100MB").right.get, Size("10MB").right.get, List("application/pdf","image/jpeg","application/xml")))
+      val constraints = Some(EnvelopeConstraints(10, Size("100MB").right.get, Size("10MB").right.get))
       val event = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, constraints)
 
       sendEvent(event)
@@ -59,7 +59,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
       val callbackUrl = Some("callback-url")
       val expiryDate = Some(new DateTime())
       val metadata = Some(Json.obj("key" -> "value"))
-      val constraints = Some(EnvelopeConstraints(10, Size("100MB").right.get, Size("10MB").right.get, List("application/pdf","image/jpeg","application/xml")))
+      val constraints = Some(EnvelopeConstraints(10, Size("100MB").right.get, Size("10MB").right.get))
       val envelopeCreated = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, constraints)
       val fileQuarantined = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", "contentType", Some(123L), Json.obj("abc" -> "xyz"))
 

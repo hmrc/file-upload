@@ -101,46 +101,10 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       * FILE-346 - Envelope Constraints - Content Type
       */
 
-    scenario("Create a new envelope with a valid contentType constraint") {
+    scenario("Create a new envelope") {
 
       Given("a create envelope request constraining xml file types")
-      val contentType = s""" "application/xml" """
-      val json = requestBodyWithConstraints(Map("formattedExpiryDate" -> formattedExpiryDate, "contentType" -> contentType ))
-
-      When("I invoke POST /file-upload/envelopes")
-      val response: WSResponse = createEnvelope(json)
-
-      Then("I will receive a 201 Created response")
-      response.status shouldBe CREATED
-    }
-
-
-    scenario("Create a new envelope with all valid contentType constraints") {
-
-      val validContentTypes =
-        s"""   "application/pdf",
-           |         "text/xml",
-           |         "image/jpeg",
-           |         "application/xml",
-           |         "application/vnd.ms-excel",
-           |         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" """.stripMargin
-
-      Given("a create envelope request constraining all valid file types")
-      val json = requestBodyWithConstraints(Map("formattedExpiryDate" -> formattedExpiryDate, "contentType" -> validContentTypes))
-
-      When("I invoke POST /file-upload/envelopes")
-      val response: WSResponse = createEnvelope(json)
-
-      Then("I will receive a 201 Created response")
-      response.status shouldBe CREATED
-
-    }
-
-    scenario("Create a new envelope with an invalid contentType constraint") {
-
-      Given("a create envelope request with invalid contentType constraint")
-      val contentType: String = s""" "application/mumbo" """
-      val json = requestBodyWithConstraints(Map("formattedExpiryDate" -> formattedExpiryDate, "contentType" -> contentType))
+      val json = requestBodyWithConstraints(Map("formattedExpiryDate" -> formattedExpiryDate))
 
       When("I invoke POST /file-upload/envelopes")
       val response: WSResponse = createEnvelope(json)

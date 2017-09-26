@@ -18,16 +18,11 @@ package uk.gov.hmrc.fileupload.infrastructure
 
 import play.api.Configuration
 import uk.gov.hmrc.fileupload.controllers._
-import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.ContentTypes
 
 object EnvelopeConstraintsConfiguration {
 
   private def throwRuntimeException(key: String): Nothing = {
     throw new RuntimeException(s"default value $key need to define correctly")
-  }
-
-  def getContentTypesInList(contentTypesInString: Option[String]): Option[List[ContentTypes]] = {
-    contentTypesInString.map(types ⇒ types.split(",").toList)
   }
 
   def checkOptionIntValue(data: Option[Int], position: String): Int = {
@@ -54,21 +49,18 @@ object EnvelopeConstraintsConfiguration {
     val defaultMaxSizePerItem: String = runModeConfiguration
       .getString("constraints.default.maxSizePerItem").getOrElse(throwRuntimeException("default.maxSizePerItem"))
 
-    val defaultContentTypes: List[ContentTypes] = getContentTypesInList(runModeConfiguration.getString("constraints.default.contentTypes"))
-      .getOrElse(throwRuntimeException("default.contentTypes"))
-
     val acceptedEnvelopeConstraints: Either[SizeValidationFailure, EnvelopeConstraints] = {
       for {
         acceptedMaxSize ← Size(acceptedMaxSize).right
         acceptedMaxSizePerItem ← Size(acceptedMaxSizePerItem).right
-      } yield EnvelopeConstraints(acceptedMaxItems, acceptedMaxSize, acceptedMaxSizePerItem, List())
+      } yield EnvelopeConstraints(acceptedMaxItems, acceptedMaxSize, acceptedMaxSizePerItem)
     }
 
     val defaultEnvelopeConstraints: Either[SizeValidationFailure, EnvelopeConstraints] = {
       for {
         defaultMaxSize ← Size(defaultMaxSize).right
         defaultMaxSizePerItem ← Size(defaultMaxSizePerItem).right
-      } yield EnvelopeConstraints(defaultMaxItems, defaultMaxSize, defaultMaxSizePerItem, defaultContentTypes)
+      } yield EnvelopeConstraints(defaultMaxItems, defaultMaxSize, defaultMaxSizePerItem)
     }
 
     for {
@@ -92,8 +84,7 @@ object EnvelopeConstraintsConfiguration {
         userMaxSizePerItem ← Size(constraintsO.maxSizePerItem.getOrElse(defaultEnvelopeConstraints.maxSizePerItem.toString)).right
       } yield EnvelopeConstraints(maxItems = maxItems,
                                   maxSize = userMaxSize,
-                                  maxSizePerItem = userMaxSizePerItem,
-                                  contentTypes = List())
+                                  maxSizePerItem = userMaxSizePerItem)
     }
 
     for {
