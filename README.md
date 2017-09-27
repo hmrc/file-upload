@@ -22,6 +22,7 @@ The endpoints can then be accessed with the base url http://localhost:8898/
 
 *   [Endpoints](#endpoints)
 *   [Callback](#callback)
+*   [Routing](#routing)
 *   [Intercommunication Endpoints](./docs/intercommunication-endpoints.md)
 *   [Test-Only Endpoints](./docs/test-only-endpoints.md)
 *   [Internal-Use-Only Endpoints](./docs/internal-endpoints.md)
@@ -114,6 +115,24 @@ The following are the possible Envelope Statuses that occur for an Envelope.
 | CLOSED | A routing request has been made and files are "AVAILABLE". (The status "SEALED" will automatically changed to "CLOSED" once the file/s has become "AVAILABLE".) |
 | DELETED | Envelope has been deleted. |
 
+#### Soft Delete an Envelope (RECOMMENDED)
+Changes status of an envelope to DELETED which prevents any service or user from using this envelope.
+```
+DELETE    /file-transfer/envelopes/{envelope-id}
+```
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Envelope status changed to deleted.  |
+| Bad Request  | 400   |  Invalid request. File |
+| Not Found | 404   |  Envelope ID not found. |
+| Gone | 410   |  Has Deleted before. |
+| Locked | 423   |  Unable to deleted. |
+
+#### Example
+Request (DELETE): localhost:8898/file-transfer/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
+
+Response: 200
+
 #### Hard Delete an Envelope
 Completely deletes an envelope and any files inside.
 ```
@@ -190,6 +209,21 @@ Request (GET): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067
 
 Response: Binary file which contains the selected file.
 
+#### Download Zip
+Downloads a zip file which is the envelope and its contents.
+```
+GET     /file-transfer/envelopes/{envelope-id}
+```
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Successfully download zip. |
+| Not Found | 404   |  Envelope not found. |
+
+
+#### Example
+Request (GET): localhost:8898/file-transfer/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
+
+Response: Binary file contains the zipped files.
 
 ### Routing
 
@@ -300,74 +334,6 @@ Response (in Body):
       }
     ]
   }
-}
-```
-
-
-#### Download Zip
-Downloads a zip file which is the envelope and its contents.
-```
-GET     /file-transfer/envelopes/{envelope-id}
-```
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 200   | Successfully download zip. |
-| Not Found | 404   |  Envelope not found. |
-
-
-#### Example
-Request (GET): localhost:8898/file-transfer/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
-
-Response: Binary file contains the zipped files.
-
-#### Soft Delete an Envelope 
-Changes status of an envelope to DELETED which prevents any service or user from using this envelope.
-```
-DELETE    /file-transfer/envelopes/{envelope-id}
-```
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 200   | Envelope status changed to deleted.  |
-| Bad Request  | 400   |  Invalid request. File |
-| Not Found | 404   |  Envelope ID not found. |
-| Gone | 410   |  Has Deleted before. |
-| Locked | 423   |  Unable to deleted. |
-
-#### Example
-Request (DELETE): localhost:8898/file-transfer/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
-
-Response: 200
-
-
-#### Get File Metadata
-Gets the metadata for a given file
-
-```
-GET        /file-upload/envelopes/{envelope-Id}/files/{file-Id}/metadata
-```
-
-| Responses    | Status    | Description |
-| --------|---------|-------|
-| Ok  | 200   | Successfully returnsd file metadata  |
-| Not Found | 404   |  Envelope with id {envelopeId} not found. |  
-| Not Found | 404   |  File with id: {fileId} not found in envelope: {envelopeId} |   
-
-
-#### Example
-Request (GET): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/0b645e55-22d4-7977-21db-c067e74fc234/metadata
-
-Response (in Body):
-```json
-{
-  "id": "0b215e97-11d4-4006-91db-c067e74fc653",
-  "status": "CLEANED",
-  "name": "a-filename.pdf",
-  "contentType": "application/pdf",
-  "length": "1024",
-  "created": "1970-01-01T00:00:00Z",
-  "revision": "1",
-  "metadata": {},
-  "href": ""
 }
 ```
 
