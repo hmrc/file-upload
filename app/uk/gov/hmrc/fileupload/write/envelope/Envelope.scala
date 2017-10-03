@@ -194,7 +194,6 @@ object State {
   val envelopeMaxSizeExceededError = Xor.left(InvalidMaxSizeConstraintError)
   val envelopeMaxSizePerItemExceededError = Xor.left(InvalidMaxSizePerItemConstraintError)
   val envelopeMaxItemCountExceededError = Xor.left(InvalidMaxItemCountConstraintError)
-  val envelopeContentTypesError = Xor.left(EnvelopeContentTypesError)
   val fileNotFoundError = Xor.left(FileNotFoundError)
   val envelopeSealedError = Xor.left(EnvelopeSealedError)
   val envelopeAlreadyArchivedError = Xor.left(EnvelopeArchivedError)
@@ -271,18 +270,7 @@ object NotCreated extends State {
     if (userConstraints.maxItems > maxLimitConstraints.maxItems || userConstraints.maxItems < 1) envelopeMaxItemCountExceededError
     else if (!isValidSize(userConstraints.maxSizeInBytes, maxLimitConstraints.maxSizeInBytes)) envelopeMaxSizeExceededError
     else if (!isValidSize(userConstraints.maxSizePerItemInBytes, maxLimitConstraints.maxSizePerItemInBytes)) envelopeMaxSizePerItemExceededError
-    else if (!checkContentTypes(userConstraints.contentTypes, maxLimitConstraints.contentTypes)) envelopeContentTypesError
     else successResult
-  }
-
-  def checkContentTypes(contentTypes: List[String], acceptedContentTypes: List[String]): Boolean= {
-    contentTypes match {
-      case Nil => true
-      case head :: tail =>
-        if (acceptedContentTypes.contains(head))
-          checkContentTypes(tail, acceptedContentTypes)
-        else false
-    }
   }
 }
 

@@ -180,8 +180,6 @@ case object EnvelopeNotFoundError extends EnvelopeCommandNotAccepted
 
 case object EnvelopeAlreadyCreatedError extends EnvelopeCommandNotAccepted
 
-case object EnvelopeContentTypesError extends EnvelopeCommandNotAccepted
-
 sealed trait EnvelopeInvalidConstraintError extends EnvelopeCommandNotAccepted
 
 case object InvalidMaxSizeConstraintError extends EnvelopeInvalidConstraintError {

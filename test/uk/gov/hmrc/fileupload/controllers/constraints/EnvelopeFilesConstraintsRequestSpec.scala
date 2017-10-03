@@ -41,24 +41,24 @@ class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeComm
     Some(fakeData), Some(defaultConstraints))
 
   val envelopeCreatedByMaxSizePerFile = EnvelopeCreated(envelopeId, Some(fakeUrl), Some(fakeDateTime),
-    Some(fakeData), Some(EnvelopeFilesConstraints(defaultMaxItems, acceptedMaxSize, acceptedMaxSizePerItem, defaultContentTypes)))
+    Some(fakeData), Some(EnvelopeFilesConstraints(defaultMaxItems, acceptedMaxSize, acceptedMaxSizePerItem)))
 
   val envelopeCreatedByMaxSizeEnvelope = EnvelopeCreated(envelopeId, Some(fakeUrl), Some(fakeDateTime),
-    Some(fakeData), Some(EnvelopeFilesConstraints(defaultMaxItems, acceptedMaxSize, defaultMaxSizePerItem, defaultContentTypes)))
+    Some(fakeData), Some(EnvelopeFilesConstraints(defaultMaxItems, acceptedMaxSize, defaultMaxSizePerItem)))
 
   val createEnvelopeRequestWithoutMaxNoFilesConstraints: Option[EnvelopeFilesConstraints] = {
     Some(EnvelopeConstraintsConfiguration.validateEnvelopeFilesConstraints(EnvelopeConstraintsUserSetting(None, Some("25MB"),
-      Some("10MB"), Some(defaultContentTypes)), envelopeConstraintsConfigure).right.get)
+      Some("10MB")), envelopeConstraintsConfigure).right.get)
   }
 
   val createEnvelopeRequestWithoutMaxSizeConstraints: Option[EnvelopeFilesConstraints] = {
     Some(EnvelopeConstraintsConfiguration.validateEnvelopeFilesConstraints(EnvelopeConstraintsUserSetting(Some(100), None,
-      Some("10MB"), Some(defaultContentTypes)), envelopeConstraintsConfigure).right.get)
+      Some("10MB")), envelopeConstraintsConfigure).right.get)
   }
 
   val createEnvelopeRequestWithoutMaxSizePerItemConstraints: Option[EnvelopeFilesConstraints] = {
     Some(EnvelopeConstraintsConfiguration.validateEnvelopeFilesConstraints(EnvelopeConstraintsUserSetting(Some(100), Some("25MB"),
-      None, Some(defaultContentTypes)), envelopeConstraintsConfigure).right.get)
+      None), envelopeConstraintsConfigure).right.get)
   }
 
   val createEnvelopeRequestWithoutTypeConstraints: Option[EnvelopeFilesConstraints] = {
@@ -108,7 +108,7 @@ class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeComm
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
-          Some(EnvelopeFilesConstraints(101, defaultMaxSize, defaultMaxSizePerItem, defaultContentTypes))),
+          Some(EnvelopeFilesConstraints(101, defaultMaxSize, defaultMaxSizePerItem))),
         InvalidMaxItemCountConstraintError
       )
     }
@@ -117,7 +117,7 @@ class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeComm
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
-          Some(EnvelopeFilesConstraints(0, defaultMaxSize, defaultMaxSizePerItem, defaultContentTypes))),
+          Some(EnvelopeFilesConstraints(0, defaultMaxSize, defaultMaxSizePerItem))),
         InvalidMaxItemCountConstraintError
       )
     }
@@ -126,7 +126,7 @@ class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeComm
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
-          Some(EnvelopeFilesConstraints(defaultMaxItems, acceptedMaxSize, acceptedMaxSizePerItem, defaultContentTypes))),
+          Some(EnvelopeFilesConstraints(defaultMaxItems, acceptedMaxSize, acceptedMaxSizePerItem))),
         envelopeCreatedByMaxSizePerFile
       )
     }
@@ -135,7 +135,7 @@ class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeComm
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
-          Some(EnvelopeFilesConstraints(defaultMaxItems, acceptedMaxSize, defaultMaxSizePerItem, defaultContentTypes))),
+          Some(EnvelopeFilesConstraints(defaultMaxItems, acceptedMaxSize, defaultMaxSizePerItem))),
         envelopeCreatedByMaxSizeEnvelope
       )
     }
@@ -144,8 +144,8 @@ class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeComm
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
-          Some(EnvelopeFilesConstraints(defaultMaxItems, defaultMaxSize, defaultMaxSizePerItem, List("application/pd")))),
-        EnvelopeContentTypesError
+          Some(EnvelopeFilesConstraints(defaultMaxItems, defaultMaxSize, defaultMaxSizePerItem))),
+        envelopeCreatedByDefaultStatus
       )
     }
 
