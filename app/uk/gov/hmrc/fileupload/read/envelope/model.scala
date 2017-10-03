@@ -18,14 +18,14 @@ package uk.gov.hmrc.fileupload.read.envelope
 
 import org.joda.time.DateTime
 import play.api.libs.json._
-import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, Size}
+import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
 import uk.gov.hmrc.fileupload.write.infrastructure.Version
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 
 case class Envelope(_id: EnvelopeId = EnvelopeId(),
                     version: Version = Version(0),
                     status: EnvelopeStatus = EnvelopeStatusOpen,
-                    constraints: Option[EnvelopeConstraints] = None,
+                    constraints: Option[EnvelopeFilesConstraints] = None,
                     callbackUrl: Option[String] = None,
                     expiryDate: Option[DateTime] = None,
                     metadata: Option[JsObject] = None,
@@ -59,7 +59,7 @@ object Envelope {
   implicit val envelopeStatusWrites: Writes[EnvelopeStatus] = EnvelopeStatusWrites
   implicit val sizeReads: Reads[Size] = SizeReads
   implicit val sizeWrites: Writes[Size] = SizeWrites
-  implicit val envelopeConstraintsFormats: OFormat[EnvelopeConstraints] = Json.format[EnvelopeConstraints]
+  implicit val envelopeConstraintsFormats: OFormat[EnvelopeFilesConstraints] = Json.format[EnvelopeFilesConstraints]
   implicit val envelopeFormat: Format[Envelope] = Json.format[Envelope]
   implicit val envelopeOFormat: OFormat[Envelope] = new OFormat[Envelope] {
     def reads(json: JsValue): JsResult[Envelope] = envelopeFormat.reads(json)

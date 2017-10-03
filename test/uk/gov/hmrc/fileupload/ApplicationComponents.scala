@@ -16,12 +16,14 @@
 
 package uk.gov.hmrc.fileupload
 
+import java.time.Duration
+
 import org.scalatest.{BeforeAndAfterAll, Suite, TestData}
 import org.scalatestplus.play.OneAppPerTest
 import play.api.ApplicationLoader.Context
 import play.api._
 import play.api.mvc.EssentialFilter
-import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, Size}
+import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
 import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraintsConfiguration
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.ContentTypes
 
@@ -62,25 +64,23 @@ trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
   val defaultContentTypes: List[ContentTypes] = List("application/pdf","image/jpeg","application/xml","text/xml")
 
   val defaultConstraints =
-    EnvelopeConstraints(maxItems = defaultMaxItems,
+    EnvelopeFilesConstraints(maxItems = defaultMaxItems,
       maxSize = defaultMaxSize,
       maxSizePerItem = defaultMaxSizePerItem,
       contentTypes = defaultContentTypes)
 
   val acceptedConstraints =
-    EnvelopeConstraints(maxItems = acceptedMaxItems,
+    EnvelopeFilesConstraints(maxItems = acceptedMaxItems,
       maxSize = acceptedMaxSize,
       maxSizePerItem = acceptedMaxSizePerItem,
       contentTypes = acceptedContentTypes)
 
-  val envelopeConstraintsConfigure = EnvelopeConstraintsConfiguration(acceptedEnvelopeConstraints = EnvelopeConstraints(acceptedMaxItems,
-                                                                                                                        acceptedMaxSize,
-                                                                                                                        acceptedMaxSizePerItem,
-                                                                                                                        acceptedContentTypes),
-                                                                      defaultEnvelopeConstraints  = EnvelopeConstraints(defaultMaxItems,
-                                                                                                                        defaultMaxSize,
-                                                                                                                        defaultMaxSizePerItem,
-                                                                                                                        defaultContentTypes) )
+  val envelopeConstraintsConfigure = EnvelopeConstraintsConfiguration(
+    acceptedEnvelopeConstraints = EnvelopeFilesConstraints(acceptedMaxItems, acceptedMaxSize, acceptedMaxSizePerItem, acceptedContentTypes),
+    defaultEnvelopeConstraints  = EnvelopeFilesConstraints(defaultMaxItems, defaultMaxSize, defaultMaxSizePerItem, defaultContentTypes),
+    Duration.parse("PT4H"),
+    Duration.parse("PT1H")
+  )
 }
 
 class TestApplicationModule(context: Context) extends ApplicationModule(context = context) {
