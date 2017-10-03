@@ -16,14 +16,11 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.ContentTypes
-
 import scala.util.matching.Regex
 
 case class EnvelopeConstraints (maxItems: Int,
                                 maxSize: Size,
-                                maxSizePerItem: Size,
-                                contentTypes: List[ContentTypes]) {
+                                maxSizePerItem: Size) {
 
   val maxSizeInBytes: Long = maxSize.inBytes
   val maxSizePerItemInBytes: Long = maxSizePerItem.inBytes

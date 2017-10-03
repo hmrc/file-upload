@@ -19,9 +19,6 @@ object EnvelopeReportSupport extends Support {
   def requestBodyWithConstraints(args: Map[String, Any] = Map.empty) = s"""
        |{
        |  "constraints" : {
-       |    "contentTypes" : [
-       |      ${ args.getOrElse("contentType", s""""application/xml"""") }
-       |    ],
        |    "maxSize" : "${ args.getOrElse("maxSize", "12MB") }",
        |    "maxSizePerItem" : "${ args.getOrElse("maxSizePerItem", "10MB") }"
        |  },

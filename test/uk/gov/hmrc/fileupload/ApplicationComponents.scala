@@ -59,28 +59,23 @@ trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
   val defaultMaxItems: Int = 100
   val defaultMaxSize: Size = Size("25MB").right.get //25 * 1024 * 1024
   val defaultMaxSizePerItem: Size = Size("10MB").right.get //10 * 1024 * 1024
-  val defaultContentTypes: List[ContentTypes] = List("application/pdf","image/jpeg","application/xml","text/xml")
 
   val defaultConstraints =
     EnvelopeConstraints(maxItems = defaultMaxItems,
       maxSize = defaultMaxSize,
-      maxSizePerItem = defaultMaxSizePerItem,
-      contentTypes = defaultContentTypes)
+      maxSizePerItem = defaultMaxSizePerItem)
 
   val acceptedConstraints =
     EnvelopeConstraints(maxItems = acceptedMaxItems,
       maxSize = acceptedMaxSize,
-      maxSizePerItem = acceptedMaxSizePerItem,
-      contentTypes = acceptedContentTypes)
+      maxSizePerItem = acceptedMaxSizePerItem)
 
   val envelopeConstraintsConfigure = EnvelopeConstraintsConfiguration(acceptedEnvelopeConstraints = EnvelopeConstraints(acceptedMaxItems,
                                                                                                                         acceptedMaxSize,
-                                                                                                                        acceptedMaxSizePerItem,
-                                                                                                                        acceptedContentTypes),
+                                                                                                                        acceptedMaxSizePerItem),
                                                                       defaultEnvelopeConstraints  = EnvelopeConstraints(defaultMaxItems,
                                                                                                                         defaultMaxSize,
-                                                                                                                        defaultMaxSizePerItem,
-                                                                                                                        defaultContentTypes) )
+                                                                                                                        defaultMaxSizePerItem) )
 }
 
 class TestApplicationModule(context: Context) extends ApplicationModule(context = context) {

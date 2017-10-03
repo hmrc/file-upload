@@ -82,7 +82,6 @@ class EnvelopeController(withBasicAuth: BasicAuth,
   private def handleCreate(envelopeLocation: EnvelopeId => (String, String), command: CreateEnvelope): Future[Result] = {
     handleCommand(command).map {
       case Xor.Right(_) => Created.withHeaders(envelopeLocation(command.id))
-      case Xor.Left(EnvelopeContentTypesError) => ExceptionHandler(BAD_REQUEST, "constraints.contentType -> Unsupported Content Type")
       case Xor.Left(EnvelopeAlreadyCreatedError) => ExceptionHandler(BAD_REQUEST, "Envelope already created")
       case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
       case Xor.Left(error) => ExceptionHandler(BAD_REQUEST, s"Envelope not created due to: $error")
