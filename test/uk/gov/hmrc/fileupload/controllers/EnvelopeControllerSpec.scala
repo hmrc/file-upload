@@ -19,6 +19,7 @@ package uk.gov.hmrc.fileupload.controllers
 import cats.data.Xor
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
+import org.joda.time.DateTime
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.http.{HeaderNames, Status}
@@ -76,6 +77,38 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
       result.header.status shouldBe Status.CREATED
 	    val location = result.header.headers("Location")
 	    location shouldBe s"$serverUrl${uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(EnvelopeId("abc-def")).url}"
+    }
+  }
+
+  "Create envelope with a request with expiryDate == maxLimit" should {
+    "return response with OK status" in {
+      val serverUrl = "http://production.com:8000"
+
+      val fakeRequest = new FakeRequest("POST", "/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(None,
+        Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.toHours.toInt)))){
+        override lazy val host = serverUrl
+      }
+
+      val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
+      val result: Result = controller.create()(fakeRequest).futureValue
+
+      result.header.status shouldBe Status.CREATED
+    }
+  }
+
+  "Create envelope with a request with too long expiryDate" should {
+    "return response with BAD_REQUEST status" in {
+      val serverUrl = "http://production.com:8000"
+
+      val fakeRequest = new FakeRequest("POST", "/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(None,
+        Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.plusHours(1).toHours.toInt)))){
+        override lazy val host = serverUrl
+      }
+
+      val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
+      val result: Result = controller.create()(fakeRequest).futureValue
+
+      result.header.status shouldBe Status.BAD_REQUEST
     }
   }
 

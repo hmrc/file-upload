@@ -16,6 +16,9 @@
 
 package uk.gov.hmrc.fileupload.infrastructure
 
+import java.time.Duration
+
+import org.joda.time.DateTime
 import play.api.Configuration
 import uk.gov.hmrc.fileupload.controllers._
 
@@ -34,44 +37,48 @@ object EnvelopeConstraintsConfiguration {
     }
   }
 
-  def getEnvelopeConstraintsConfiguration(runModeConfiguration: Configuration): Either[SizeValidationFailure, EnvelopeConstraintsConfiguration] = {
-    val acceptedMaxItems: Int = checkOptionIntValue(runModeConfiguration.getInt("constraints.accepted.maxItems"), "accepted.maxItems")
+  def getEnvelopeConstraintsConfiguration(runModeConfiguration: Configuration): Either[ConstraintsValidationFailure, EnvelopeConstraintsConfiguration] = {
 
-    val acceptedMaxSize: String = runModeConfiguration.getString("constraints.accepted.maxSize").getOrElse(throwRuntimeException("accepted.maxSize"))
+    val maxExpiryDuration = runModeConfiguration.underlying.getDuration("constraints.maxExpiryDuration")
+    val defaultExpiryDuration = runModeConfiguration.underlying.getDuration("constraints.defaultExpiryDuration")
 
-    val acceptedMaxSizePerItem: String = runModeConfiguration
-      .getString("constraints.accepted.maxSizePerItem").getOrElse(throwRuntimeException("accepted.maxSizePerItem"))
+    val times = durationsToDateTime(defaultExpiryDuration, maxExpiryDuration)
 
-    val defaultMaxItems: Int = checkOptionIntValue(runModeConfiguration.getInt("constraints.default.maxItems"), "default.maxItems")
+    def getFileConstraintsFromConfig(keyPrefix: String) = {
+      val acceptedMaxItems: Int = checkOptionIntValue(runModeConfiguration.getInt(s"$keyPrefix.maxItems"), s"$keyPrefix.maxItems")
 
-    val defaultMaxSize: String = runModeConfiguration.getString("constraints.default.maxSize").getOrElse(throwRuntimeException("default.maxSize"))
+      val acceptedMaxSize: String = runModeConfiguration.getString(s"$keyPrefix.maxSize").getOrElse(throwRuntimeException(s"$keyPrefix.maxSize"))
 
-    val defaultMaxSizePerItem: String = runModeConfiguration
-      .getString("constraints.default.maxSizePerItem").getOrElse(throwRuntimeException("default.maxSizePerItem"))
+      val acceptedMaxSizePerItem: String = runModeConfiguration
+        .getString(s"$keyPrefix.maxSizePerItem").getOrElse(throwRuntimeException(s"$keyPrefix.maxSizePerItem"))
 
-    val acceptedEnvelopeConstraints: Either[SizeValidationFailure, EnvelopeConstraints] = {
       for {
         acceptedMaxSize ← Size(acceptedMaxSize).right
         acceptedMaxSizePerItem ← Size(acceptedMaxSizePerItem).right
-      } yield EnvelopeConstraints(acceptedMaxItems, acceptedMaxSize, acceptedMaxSizePerItem)
+      } yield EnvelopeFilesConstraints(acceptedMaxItems, acceptedMaxSize, acceptedMaxSizePerItem)
     }
 
-    val defaultEnvelopeConstraints: Either[SizeValidationFailure, EnvelopeConstraints] = {
-      for {
-        defaultMaxSize ← Size(defaultMaxSize).right
-        defaultMaxSizePerItem ← Size(defaultMaxSizePerItem).right
-      } yield EnvelopeConstraints(defaultMaxItems, defaultMaxSize, defaultMaxSizePerItem)
-    }
+    val acceptedEnvelopeConstraints: Either[ConstraintsValidationFailure, EnvelopeFilesConstraints] =
+      getFileConstraintsFromConfig(keyPrefix = "constraints.accepted")
 
-    for {
-      accepted ← acceptedEnvelopeConstraints.right
-      default ← defaultEnvelopeConstraints.right
-    } yield EnvelopeConstraintsConfiguration(acceptedEnvelopeConstraints = accepted,
-      defaultEnvelopeConstraints = default)
+    val defaultEnvelopeConstraints: Either[ConstraintsValidationFailure, EnvelopeFilesConstraints] =
+      getFileConstraintsFromConfig(keyPrefix = "constraints.default")
+
+    validateExpiryDate(times.now, times.max, times.default) match {
+      case None =>
+        for {
+          accepted ← acceptedEnvelopeConstraints.right
+          default ← defaultEnvelopeConstraints.right
+        } yield EnvelopeConstraintsConfiguration(acceptedEnvelopeConstraints = accepted,
+          defaultEnvelopeConstraints = default,
+          maxExpiryDuration, defaultExpiryDuration
+        )
+      case Some(error) => Left(error)
+    }
   }
 
-  def formatUserEnvelopeConstraints(constraintsO: EnvelopeConstraintsUserSetting,
-                                    envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration): Either[SizeValidationFailure, EnvelopeConstraints] = {
+  def validateEnvelopeFilesConstraints(constraintsO: EnvelopeConstraintsUserSetting,
+                                       envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration): Either[ConstraintsValidationFailure, EnvelopeFilesConstraints] = {
 
     val defaultEnvelopeConstraints = envelopeConstraintsConfigure.defaultEnvelopeConstraints
     val acceptedEnvelopeConstraints = envelopeConstraintsConfigure.acceptedEnvelopeConstraints
@@ -82,7 +89,7 @@ object EnvelopeConstraintsConfiguration {
       for {
         userMaxSize ← Size(constraintsO.maxSize.getOrElse(defaultEnvelopeConstraints.maxSize.toString)).right
         userMaxSizePerItem ← Size(constraintsO.maxSizePerItem.getOrElse(defaultEnvelopeConstraints.maxSizePerItem.toString)).right
-      } yield EnvelopeConstraints(maxItems = maxItems,
+      } yield EnvelopeFilesConstraints(maxItems = maxItems,
                                   maxSize = userMaxSize,
                                   maxSizePerItem = userMaxSizePerItem)
     }
@@ -107,7 +114,24 @@ object EnvelopeConstraintsConfiguration {
     userEnvelopeConstraints
   }
 
+  def validateExpiryDate(now: DateTime, max: DateTime, userExpiryDate: DateTime): Option[InvalidExpiryDate.type] = {
+    if(now.isAfter(userExpiryDate) || userExpiryDate.isAfter(max))
+      Some(InvalidExpiryDate)
+    else
+      None
+  }
+  def durationsToDateTime(default: Duration, max: Duration): ExpiryTimes = {
+    val now = DateTime.now()
+    def expiryDateFromDuration(dur: Duration) = now.plus(dur.toMillis)
+    def maxT = expiryDateFromDuration(max)
+    def defaultT = expiryDateFromDuration(default)
+    ExpiryTimes(defaultT, maxT, now)
+  }
+  case class ExpiryTimes(default: DateTime, max: DateTime, now: DateTime)
 }
 
-case class EnvelopeConstraintsConfiguration(acceptedEnvelopeConstraints: EnvelopeConstraints,
-                                            defaultEnvelopeConstraints: EnvelopeConstraints)
+case class EnvelopeConstraintsConfiguration(acceptedEnvelopeConstraints: EnvelopeFilesConstraints,
+                                            defaultEnvelopeConstraints: EnvelopeFilesConstraints,
+                                            maxExpirationDuration: Duration,
+                                            defaultExpirationDuration: Duration
+                                           )

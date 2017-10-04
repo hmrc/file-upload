@@ -16,8 +16,11 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import java.time.Duration
+
 import akka.stream.scaladsl.Source.fromPublisher
 import cats.data.Xor
+import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.json._
@@ -46,19 +49,29 @@ class EnvelopeController(withBasicAuth: BasicAuth,
                          getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope],
                          envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration)
                         (implicit executionContext: ExecutionContext) extends Controller {
+  import EnvelopeConstraintsConfiguration.{validateExpiryDate, durationsToDateTime}
 
   def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
 
-    val validatedUserEnvelopeConstraints = validatedEnvelopeConstraints(request)
+    val validatedUserEnvelopeConstraints = validatedEnvelopeFilesConstraints(request)
 
     validatedUserEnvelopeConstraints match {
-      case Right(envelopeConstraints: EnvelopeConstraints) ⇒
-        val command = CreateEnvelope(nextId(), request.body.callbackUrl, request.body.expiryDate, request.body.metadata, Some(envelopeConstraints))
-        val userAgent = request.headers.get("User-Agent").getOrElse("none")
-        Logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
-        handleCreate(envelopeLocation, command)
-      case Left(failureReason: SizeValidationFailure) ⇒
+      case Right(envelopeConstraints: EnvelopeFilesConstraints) ⇒
+
+        val expiryTimes = durationsToDateTime(envelopeConstraintsConfigure.defaultExpirationDuration, envelopeConstraintsConfigure.maxExpirationDuration)
+
+        val userExpiryDate = request.body.expiryDate.orElse(Some(expiryTimes.default))
+
+        validateExpiryDate(expiryTimes.now, expiryTimes.max, userExpiryDate.get) match {
+          case Some(error) => Future.successful(BadRequestHandler(new BadRequestException(error.message)))
+          case None =>
+            val command = CreateEnvelope(nextId(), request.body.callbackUrl, userExpiryDate, request.body.metadata, Some(envelopeConstraints))
+            val userAgent = request.headers.get("User-Agent").getOrElse("none")
+            Logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
+            handleCreate(envelopeLocation, command)
+        }
+      case Left(failureReason: ConstraintsValidationFailure) ⇒
         Future.successful(BadRequestHandler(new BadRequestException(s"${failureReason.message}")))
     }
   }
@@ -66,18 +79,19 @@ class EnvelopeController(withBasicAuth: BasicAuth,
   def createWithId(id: EnvelopeId) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
 
-    val validatedUserEnvelopeConstraints = validatedEnvelopeConstraints(request)
+    val validatedUserEnvelopeConstraints = validatedEnvelopeFilesConstraints(request)
 
     validatedUserEnvelopeConstraints match {
-      case Right(envelopeConstraints: EnvelopeConstraints) ⇒
+      case Right(envelopeConstraints: EnvelopeFilesConstraints) ⇒
         val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata, Some(envelopeConstraints))
         val userAgent = request.headers.get("User-Agent").getOrElse("none")
         Logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
         handleCreate(envelopeLocation, command)
-      case Left(failureReason: SizeValidationFailure) ⇒
+      case Left(failureReason: ConstraintsValidationFailure) ⇒
         Future.successful(BadRequestHandler(new BadRequestException(s"${failureReason.message}")))
     }
   }
+
 
   private def handleCreate(envelopeLocation: EnvelopeId => (String, String), command: CreateEnvelope): Future[Result] = {
     handleCommand(command).map {
@@ -159,10 +173,10 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  private def validatedEnvelopeConstraints(request: Request[CreateEnvelopeRequest]): Either[SizeValidationFailure, EnvelopeConstraints] = {
+  private def validatedEnvelopeFilesConstraints(request: Request[CreateEnvelopeRequest]): Either[ConstraintsValidationFailure, EnvelopeFilesConstraints] = {
     for {
       envelopeConstraints ← EnvelopeConstraintsConfiguration
-        .formatUserEnvelopeConstraints(request.body.constraints.getOrElse(EnvelopeConstraintsUserSetting()),
+        .validateEnvelopeFilesConstraints(request.body.constraints.getOrElse(EnvelopeConstraintsUserSetting()),
           envelopeConstraintsConfigure).right
     } yield envelopeConstraints
   }

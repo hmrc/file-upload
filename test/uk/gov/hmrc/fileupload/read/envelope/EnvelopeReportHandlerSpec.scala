@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.read.envelope
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.Matchers
 import play.api.libs.json.Json
-import uk.gov.hmrc.fileupload.controllers.{EnvelopeConstraints, Size}
+import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
@@ -36,7 +36,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
       val callbackUrl = Some("callback-url")
       val expiryDate = Some(new DateTime())
       val metadata = Some(Json.obj("key" -> "value"))
-      val constraints = Some(EnvelopeConstraints(10, Size("100MB").right.get, Size("10MB").right.get))
+      val constraints = Some(EnvelopeFilesConstraints(10, Size("100MB").right.get, Size("10MB").right.get))
       val event = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, constraints)
 
       sendEvent(event)
@@ -59,7 +59,7 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
       val callbackUrl = Some("callback-url")
       val expiryDate = Some(new DateTime())
       val metadata = Some(Json.obj("key" -> "value"))
-      val constraints = Some(EnvelopeConstraints(10, Size("100MB").right.get, Size("10MB").right.get))
+      val constraints = Some(EnvelopeFilesConstraints(10, Size("100MB").right.get, Size("10MB").right.get))
       val envelopeCreated = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, constraints)
       val fileQuarantined = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", "contentType", Some(123L), Json.obj("abc" -> "xyz"))
 
@@ -190,9 +190,9 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
 
     def wrappedEvents(events: Seq[EnvelopeEvent]) = events.zipWithIndex.map(i => wrappedEvent(i._1, Version(i._2 + 1)))
 
-    def sendEvent(event: EnvelopeEvent) = handler.handle(replay = false)(List(wrappedEvent(event)))
+    def sendEvent(event: EnvelopeEvent): Unit = handler.handle(replay = false)(List(wrappedEvent(event)))
 
-    def sendEvents(events: Seq[EnvelopeEvent]) = handler.handle(replay = false)(wrappedEvents(events))
+    def sendEvents(events: Seq[EnvelopeEvent]): Unit = handler.handle(replay = false)(wrappedEvents(events))
   }
 
 }

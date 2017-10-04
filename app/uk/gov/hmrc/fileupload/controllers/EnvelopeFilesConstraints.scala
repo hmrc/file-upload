@@ -18,9 +18,9 @@ package uk.gov.hmrc.fileupload.controllers
 
 import scala.util.matching.Regex
 
-case class EnvelopeConstraints (maxItems: Int,
-                                maxSize: Size,
-                                maxSizePerItem: Size) {
+case class EnvelopeFilesConstraints(maxItems: Int,
+                                    maxSize: Size,
+                                    maxSizePerItem: Size) {
 
   val maxSizeInBytes: Long = maxSize.inBytes
   val maxSizePerItemInBytes: Long = maxSizePerItem.inBytes
@@ -45,7 +45,7 @@ object Size {
 
   val sizeRegex: Regex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
 
-  def apply(asString: String): Either[SizeValidationFailure, Size]  = {
+  def apply(asString: String): Either[ConstraintsValidationFailure, Size]  = {
     if (asString.isEmpty) Left(EmptyInput)
     else {
       asString.toUpperCase match {
@@ -62,14 +62,18 @@ object Size {
 
 }
 
-sealed trait SizeValidationFailure {
+sealed trait ConstraintsValidationFailure {
   def message: String
 }
 
-case object EmptyInput extends SizeValidationFailure {
+case object EmptyInput extends ConstraintsValidationFailure {
   override def message: String = "input was empty"
 }
 
-case object InvalidFormat extends SizeValidationFailure {
+case object InvalidFormat extends ConstraintsValidationFailure {
   override def message: String = s"input did not match supported size format, 'KB' and 'MB' are supported, e.g. 10MB"
+}
+
+case object InvalidExpiryDate extends ConstraintsValidationFailure {
+  override def message: String = s"expiry date is not valid. It should be after now and before the max limit"
 }

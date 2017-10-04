@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.write.envelope
 
 import cats.data.Xor
-import uk.gov.hmrc.fileupload.controllers.EnvelopeConstraints
+import uk.gov.hmrc.fileupload.controllers.EnvelopeFilesConstraints
 import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraintsConfiguration
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.CanResult
 import uk.gov.hmrc.fileupload.write.infrastructure.{EventData, Handler}
@@ -30,7 +30,7 @@ object EnvelopeHandler {
 
 class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration) extends Handler[EnvelopeCommand, Envelope] {
 
-  val acceptedConstraints: EnvelopeConstraints = envelopeConstraintsConfigure.acceptedEnvelopeConstraints
+  val acceptedConstraints: EnvelopeFilesConstraints = envelopeConstraintsConfigure.acceptedEnvelopeConstraints
 
   override def handle: PartialFunction[(EnvelopeCommand, Envelope), Xor[EnvelopeCommandNotAccepted, List[EventData]]] = {
     case (command: CreateEnvelope, envelope: Envelope) =>
@@ -159,12 +159,12 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
 
 }
 
-case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated, constraints: Option[EnvelopeConstraints] = None) {
+case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated, constraints: Option[EnvelopeFilesConstraints] = None) {
 
   def canCreate: CanResult = state.canCreate
 
-  def canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints: EnvelopeConstraints,
-                                                       maxLimitConstrains: EnvelopeConstraints): CanResult = {
+  def canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints: EnvelopeFilesConstraints,
+                                                       maxLimitConstrains: EnvelopeFilesConstraints): CanResult = {
     state.canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints, maxLimitConstrains)
   }
 
@@ -176,7 +176,7 @@ case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCrea
 
   def canStoreFile(fileId: FileId, fileRefId: FileRefId): CanResult = state.canStoreFile(fileId, fileRefId, files)
 
-  def canSeal(destination: String, envelopeConstraints: EnvelopeConstraints): CanResult = state.canSeal(files.values.toSeq, destination, envelopeConstraints)
+  def canSeal(destination: String, envelopeConstraints: EnvelopeFilesConstraints): CanResult = state.canSeal(files.values.toSeq, destination, envelopeConstraints)
 
   def canUnseal: CanResult = state.canUnseal
 
@@ -207,8 +207,8 @@ sealed trait State {
 
   def canCreate: CanResult = envelopeAlreadyCreatedError
 
-  def canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints: EnvelopeConstraints,
-                                        maxLimitConstrains: EnvelopeConstraints): CanResult = genericError
+  def canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints: EnvelopeFilesConstraints,
+                                                       maxLimitConstrains: EnvelopeFilesConstraints): CanResult = genericError
 
   def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult = genericError
 
@@ -218,7 +218,7 @@ sealed trait State {
 
   def canStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult = genericError
 
-  def canSeal(files: Seq[File], destination: String, userConstraints: EnvelopeConstraints): CanResult = genericError
+  def canSeal(files: Seq[File], destination: String, userConstraints: EnvelopeFilesConstraints): CanResult = genericError
 
   def canUnseal: CanResult = genericError
 
@@ -266,7 +266,7 @@ object NotCreated extends State {
   override def canCreate: CanResult =
     successResult
 
-  override def canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints: EnvelopeConstraints, maxLimitConstraints: EnvelopeConstraints): CanResult = {
+  override def canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints: EnvelopeFilesConstraints, maxLimitConstraints: EnvelopeFilesConstraints): CanResult = {
     if (userConstraints.maxItems > maxLimitConstraints.maxItems || userConstraints.maxItems < 1) envelopeMaxItemCountExceededError
     else if (!isValidSize(userConstraints.maxSizeInBytes, maxLimitConstraints.maxSizeInBytes)) envelopeMaxSizeExceededError
     else if (!isValidSize(userConstraints.maxSizePerItemInBytes, maxLimitConstraints.maxSizePerItemInBytes)) envelopeMaxSizePerItemExceededError
@@ -294,7 +294,7 @@ object Open extends State {
 
   override def canDelete: CanResult = successResult
 
-  override def canSeal(files: Seq[File], destination: String, constraints: EnvelopeConstraints): CanResult = {
+  override def canSeal(files: Seq[File], destination: String, constraints: EnvelopeFilesConstraints): CanResult = {
     val filesWithError = files.filter(_.hasError)
     if (filesWithError.nonEmpty) {
       Xor.Left(FilesWithError(filesWithError.map(_.fileId)))
