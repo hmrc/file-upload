@@ -56,15 +56,14 @@ import uk.gov.hmrc.fileupload.transfer.{Routes ⇒ TransferRoutes}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
 import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, MongoEventStore, StreamId}
-import uk.gov.hmrc.play.audit.filters.AuditFilter
-import uk.gov.hmrc.play.audit.http.config.LoadAuditingConfig
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode, ServicesConfig}
-import uk.gov.hmrc.play.filters.{NoCacheFilter, RecoveryFilter}
-import uk.gov.hmrc.play.http.HeaderCarrier
-import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
+import uk.gov.hmrc.play.microservice.filters._
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.microservice.config.LoadAuditingConfig
+import uk.gov.hmrc.play.microservice.filters.{ AuditFilter, LoggingFilter }
 
 
 class ApplicationLoader extends play.api.ApplicationLoader {
@@ -282,10 +281,6 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   object MicroserviceAuditConnector extends AuditConnector with RunMode {
     override lazy val auditingConfig = LoadAuditingConfig(s"auditing")
-
-    override def buildRequest(url: String)(implicit hc: HeaderCarrier): WSRequest = {
-      wsApi.url(url).withHeaders(hc.headers: _*)
-    }
   }
 
   object MicroserviceAuditFilter extends AuditFilter with AppName {
