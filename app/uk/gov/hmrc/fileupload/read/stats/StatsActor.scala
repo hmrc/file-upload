@@ -17,13 +17,11 @@
 package uk.gov.hmrc.fileupload.read.stats
 
 import akka.actor.{Actor, ActorRef, Props}
-import cats.data.Xor
-import play.api.Logger
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
 import uk.gov.hmrc.fileupload.read.notifier.NotifierRepository.{Notification, NotifyResult}
-import uk.gov.hmrc.fileupload.write.envelope.{FileQuarantined, FileStored, NoVirusDetected, VirusDetected}
-import uk.gov.hmrc.fileupload.write.infrastructure.{Event, EventData}
+import uk.gov.hmrc.fileupload.write.envelope._
+import uk.gov.hmrc.fileupload.write.infrastructure.Event
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -31,7 +29,8 @@ class StatsActor(subscribe: (ActorRef, Class[_]) => Boolean,
                  notify: (Notification, String) => Future[NotifyResult],
                  save: (FileQuarantined) => Unit,
                  deleteVirusDetected: (VirusDetected) => Unit,
-                 deleteFileStored: (FileStored) => Unit)
+                 deleteFileStored: (FileStored) => Unit,
+                 deleteEnvelope: (EnvelopeDeleted) => Unit)
                 (implicit executionContext: ExecutionContext) extends Actor {
 
   override def preStart = subscribe(self, classOf[Event])
@@ -44,6 +43,8 @@ class StatsActor(subscribe: (ActorRef, Class[_]) => Boolean,
         deleteVirusDetected(e)
       case e: FileStored =>
         deleteFileStored(e)
+      case e: EnvelopeDeleted ⇒
+        deleteEnvelope(e)
       case _ =>
     }
   }
@@ -55,8 +56,9 @@ object StatsActor {
             notify: (Notification, String) => Future[NotifyResult],
             save: (FileQuarantined) => Unit,
             deleteVirusDetected: (VirusDetected) => Unit,
-            deleteFileStored: (FileStored) => Unit)
+            deleteFileStored: (FileStored) => Unit,
+            deleteEnvelope: (EnvelopeDeleted) => Unit)
            (implicit executionContext: ExecutionContext) =
     Props(new StatsActor(subscribe = subscribe, notify = notify, save = save, deleteFileStored = deleteFileStored,
-                         deleteVirusDetected = deleteVirusDetected))
+                         deleteVirusDetected = deleteVirusDetected, deleteEnvelope = deleteEnvelope))
 }

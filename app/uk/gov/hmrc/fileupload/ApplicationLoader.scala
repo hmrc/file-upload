@@ -137,7 +137,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   // notifier
   actorSystem.actorOf(NotifierActor.props(subscribe, findEnvelope, sendNotification), "notifierActor")
   actorSystem.actorOf(StatsActor.props(subscribe, findEnvelope, sendNotification, saveFileQuarantinedStat,
-    deleteVirusDetectedStat, deleteFileStoredStat), "statsActor")
+    deleteVirusDetectedStat, deleteFileStoredStat, deleteEnvelope), "statsActor")
 
 
   override lazy val httpFilters: Seq[EssentialFilter] = Seq(
@@ -173,6 +173,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val saveFileQuarantinedStat = Stats.save(statsRepository.insert) _
   lazy val deleteFileStoredStat = Stats.deleteFileStored(statsRepository.delete) _
   lazy val deleteVirusDetectedStat = Stats.deleteVirusDetected(statsRepository.delete) _
+  lazy val deleteEnvelope = Stats.deleteEnvelopeFiles(statsRepository.deleteAllInAnEnvelop) _
   lazy val allInProgressFile = Stats.all(statsRepository.all) _
 
   // envelope read model
