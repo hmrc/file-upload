@@ -18,6 +18,7 @@ package uk.gov.hmrc.fileupload.controllers.transfer
 
 import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.http.Status
 import play.api.test.FakeRequest
 import uk.gov.hmrc.fileupload.Support
@@ -30,6 +31,9 @@ import uk.gov.hmrc.play.test.UnitSpec
 import scala.concurrent.{ExecutionContext, Future}
 
 class TransferControllerSpec extends UnitSpec with ScalaFutures {
+
+  implicit val defaultPatience =
+    PatienceConfig(timeout = Span(5, Seconds), interval = Span(500, Millis))
 
   implicit val ec = ExecutionContext.global
 

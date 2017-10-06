@@ -27,7 +27,7 @@ case class EnvelopeReport(id: Option[EnvelopeId] = None,
                           callbackUrl: Option[String] = None,
                           expiryDate: Option[DateTime] = None,
                           metadata: Option[JsObject] = None,
-                          constraints: Option[EnvelopeConstraints] = None,
+                          constraints: Option[EnvelopeFilesConstraints] = None,
                           status: Option[String] = None,
                           destination: Option[String] = None,
                           application: Option[String] = None,
@@ -40,7 +40,7 @@ object EnvelopeReport {
   implicit val fileReads: Format[File] = Json.format[File]
   implicit val sizeReads: Reads[Size] = SizeReads
   implicit val sizeWrites: Writes[Size] = SizeWrites
-  implicit val envelopeConstraintsReads: Format[EnvelopeConstraints] = Json.format[EnvelopeConstraints]
+  implicit val envelopeConstraintsReads: Format[EnvelopeFilesConstraints] = Json.format[EnvelopeFilesConstraints]
   implicit val createEnvelopeReads: Format[EnvelopeReport] = Json.format[EnvelopeReport]
 
   def fromEnvelope(envelope: Envelope): EnvelopeReport = {
