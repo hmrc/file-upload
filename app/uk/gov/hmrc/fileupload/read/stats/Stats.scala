@@ -20,7 +20,7 @@ import cats.data.Xor
 import play.api.Logger
 import play.api.libs.iteratee.Enumerator
 import reactivemongo.api.commands.WriteResult
-import uk.gov.hmrc.fileupload.write.envelope.{FileQuarantined, FileStored, VirusDetected}
+import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -50,7 +50,7 @@ object Stats {
     Future {
       deleteInProgressFile(virusDetected.id, virusDetected.fileId)
     }.onFailure {
-      case e => Logger.warn(s"It was not possible to store an in progress file for " +
+      case e => Logger.warn(s"It was not possible to delete the virus file for " +
                             s"${virusDetected.id} - ${virusDetected.fileId} - ${virusDetected.fileRefId}", e)
     }
   }
@@ -60,7 +60,16 @@ object Stats {
     Future {
       deleteInProgressFile(fileStored.id, fileStored.fileId)
     }.onFailure {
-      case e => Logger.warn(s"It was not possible to store an in progress file for ${fileStored.id} - ${fileStored.fileId} - ${fileStored.fileRefId}", e)
+      case e => Logger.warn(s"It was not possible to delete the file for ${fileStored.id} - ${fileStored.fileId} - ${fileStored.fileRefId}", e)
+    }
+  }
+
+  def deleteEnvelopeFiles(deleteEnvelope: (EnvelopeId) => Future[Boolean])(envelopeDeleted: EnvelopeDeleted)
+                         (implicit ec: ExecutionContext): Unit = {
+    Future {
+      deleteEnvelope(envelopeDeleted.id)
+    }.onFailure {
+      case e => Logger.warn(s"It was not possible to delete the envelope for ${envelopeDeleted.id}", e)
     }
   }
 

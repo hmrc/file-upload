@@ -43,6 +43,9 @@ class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionCont
   def delete(envelopeId: EnvelopeId, fileId: FileId): Future[Boolean] =
     remove("envelopeId" -> envelopeId, "fileId" -> fileId) map toBoolean
 
+  def deleteAllInAnEnvelop(envelopeId: EnvelopeId): Future[Boolean] =
+    remove("envelopeId" -> envelopeId) map toBoolean
+
   def deleteByFileRefId(fileRefId: FileRefId)(implicit ec: ExecutionContext): Future[Boolean] =
     remove("_id" -> fileRefId).map(toBoolean)
 
@@ -52,6 +55,8 @@ class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionCont
   }
 
   def all(): Future[List[InProgressFile]] = findAll()
+
+  def findByEnvelopeId(envelopeId: EnvelopeId): Future[List[InProgressFile]] = find("envelopeId" -> envelopeId)
 
   def recreate()(implicit ec: ExecutionContext): Unit =
     Await.result(drop(ec), 5 seconds)
