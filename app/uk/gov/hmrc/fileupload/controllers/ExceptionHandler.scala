@@ -26,7 +26,7 @@ import play.api.http.Status._
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{ResponseHeader, Result}
 import uk.gov.hmrc.fileupload.read.envelope.ValidationException
-import uk.gov.hmrc.play.http.BadRequestException
+import uk.gov.hmrc.http.BadRequestException
 
 object ExceptionHandler {
 

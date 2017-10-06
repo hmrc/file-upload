@@ -20,7 +20,6 @@ import java.util.UUID
 
 import play.api.libs.json._
 import play.api.mvc.PathBindable
-import uk.gov.hmrc.play.binders.SimpleObjectBinder
 import play.core.routing.dynamicString
 
 case class EnvelopeId(value: String = UUID.randomUUID().toString) extends AnyVal {

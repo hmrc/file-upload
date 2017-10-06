@@ -24,10 +24,11 @@ import play.api.mvc.Headers
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{DataEvent, EventTypes}
-import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.HeaderCarrierConverter
 
 object PlayHttp {
 
@@ -56,6 +57,6 @@ object PlayHttp {
   }
 
   private def headerCarrier(request: WSRequest): HeaderCarrier = {
-    HeaderCarrier.fromHeadersAndSession(new Headers(request.headers.toSeq.map{ case (s, seq) => (s, seq.head) }))
+    HeaderCarrierConverter.fromHeadersAndSession(new Headers(request.headers.toSeq.map{ case (s, seq) => (s, seq.head) }))
   }
 }

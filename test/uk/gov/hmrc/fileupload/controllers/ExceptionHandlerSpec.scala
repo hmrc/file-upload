@@ -21,8 +21,8 @@ import akka.stream.{ActorMaterializer, Materializer}
 import play.api.http.Status._
 import play.api.libs.json.Json.parse
 import uk.gov.hmrc.fileupload.read.envelope.ValidationException
-import uk.gov.hmrc.play.http.BadRequestException
 import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.http.BadRequestException
 
 class ExceptionHandlerSpec extends UnitSpec {
 

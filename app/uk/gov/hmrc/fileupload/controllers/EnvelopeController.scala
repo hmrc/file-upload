@@ -34,10 +34,10 @@ import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId, read}
-import uk.gov.hmrc.play.http.BadRequestException
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
+import uk.gov.hmrc.http.BadRequestException
 
 class EnvelopeController(withBasicAuth: BasicAuth,
                          nextId: () => EnvelopeId,
