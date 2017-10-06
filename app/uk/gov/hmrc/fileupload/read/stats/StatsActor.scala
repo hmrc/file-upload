@@ -30,7 +30,7 @@ class StatsActor(subscribe: (ActorRef, Class[_]) => Boolean,
                  save: (FileQuarantined) => Unit,
                  deleteVirusDetected: (VirusDetected) => Unit,
                  deleteFileStored: (FileStored) => Unit,
-                 deleteEnvelopeAndFiles: (EnvelopeDeleted) => Unit)
+                 deleteFiles: (EnvelopeDeleted) => Unit)
                 (implicit executionContext: ExecutionContext) extends Actor {
 
   override def preStart = subscribe(self, classOf[Event])
@@ -44,7 +44,7 @@ class StatsActor(subscribe: (ActorRef, Class[_]) => Boolean,
       case e: FileStored =>
         deleteFileStored(e)
       case e: EnvelopeDeleted ⇒
-        deleteEnvelopeAndFiles(e)
+        deleteFiles(e)
       case _ =>
     }
   }
@@ -57,8 +57,8 @@ object StatsActor {
             save: (FileQuarantined) => Unit,
             deleteVirusDetected: (VirusDetected) => Unit,
             deleteFileStored: (FileStored) => Unit,
-            deleteEnvelopeAndFiles: (EnvelopeDeleted) => Unit)
+            deleteFiles: (EnvelopeDeleted) => Unit)
            (implicit executionContext: ExecutionContext) =
     Props(new StatsActor(subscribe = subscribe, notify = notify, save = save, deleteFileStored = deleteFileStored,
-                         deleteVirusDetected = deleteVirusDetected, deleteEnvelopeAndFiles = deleteEnvelopeAndFiles))
+                         deleteVirusDetected = deleteVirusDetected, deleteFiles = deleteFiles))
 }
