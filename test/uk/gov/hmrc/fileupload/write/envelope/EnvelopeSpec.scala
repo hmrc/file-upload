@@ -36,8 +36,13 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
   val fileId = FileId("fileId-1")
   val fileRefId = FileRefId("fileRefId-1")
 
+  val envelopeFilesConstraints =
+    EnvelopeFilesConstraints(maxItems = 10,
+                             maxSize = Size("100MB").right.get,
+                             maxSizePerItem = Size("10MB").right.get,
+                             allowZeroLengthFiles = None)
   val envelopeCreated = EnvelopeCreated(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
-    Some(Json.obj("foo" -> "bar")), Some(EnvelopeFilesConstraints(10, Size("100MB").right.get, Size("10MB").right.get)))
+    Some(Json.obj("foo" -> "bar")), Some(envelopeFilesConstraints))
 
   def envelopeCreatedWithLimitedMaxItemConstraint(constraints: EnvelopeFilesConstraints) = EnvelopeCreated(envelopeId,
                                                   Some("http://www.callback-url.com"),
@@ -64,7 +69,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
-          Some(Json.obj("foo" -> "bar")), Some(EnvelopeFilesConstraints(10, Size("100MB").right.get, Size("10MB").right.get)) ),
+          Some(Json.obj("foo" -> "bar")), Some(envelopeFilesConstraints)),
         envelopeCreated
       )
     }
@@ -74,7 +79,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         envelopeCreated,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
-          Some(Json.obj("foo" -> "bar")), Some(EnvelopeFilesConstraints(10, Size("100MB").right.get, Size("10MB").right.get))),
+          Some(Json.obj("foo" -> "bar")), Some(envelopeFilesConstraints)),
         EnvelopeAlreadyCreatedError
       )
     }
@@ -84,7 +89,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
-          Some(Json.obj("foo" -> "bar")), Some(EnvelopeFilesConstraints(0, Size("100MB").right.get, Size("10MB").right.get))),
+          Some(Json.obj("foo" -> "bar")), Some(envelopeFilesConstraints.copy(maxItems = 0))),
         InvalidMaxItemCountConstraintError
       )
     }
@@ -94,7 +99,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
-          Some(Json.obj("foo" -> "bar")), Some(EnvelopeFilesConstraints(12, Size("105MB").right.get, Size("101MB").right.get))),
+          Some(Json.obj("foo" -> "bar")), Some(envelopeFilesConstraints.copy(maxSizePerItem = Size("101MB").right.get))),
         InvalidMaxSizePerItemConstraintError
       )
     }
@@ -104,7 +109,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
-          Some(Json.obj("foo" -> "bar")), Some(EnvelopeFilesConstraints(12, Size("251MB").right.get, Size("10MB").right.get))),
+          Some(Json.obj("foo" -> "bar")), Some(envelopeFilesConstraints.copy(maxSize = Size("251MB").right.get))),
         InvalidMaxSizeConstraintError
       )
     }
@@ -113,7 +118,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         envelopeCreated And envelopeDeleted,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
-          Some(Json.obj("foo" -> "bar")), Some(EnvelopeFilesConstraints(10, Size("100MB").right.get, Size("10MB").right.get))),
+          Some(Json.obj("foo" -> "bar")), Some(envelopeFilesConstraints)),
         EnvelopeAlreadyCreatedError
       )
     }
@@ -556,7 +561,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
     scenario("Seal envelope with exceeding max item count") {
 
       val eventsBuffer = ListBuffer[EventData]()
-      eventsBuffer+=envelopeCreatedWithLimitedMaxItemConstraint(EnvelopeFilesConstraints(2, Size("100MB").right.get, Size("10MB").right.get))
+      eventsBuffer+=envelopeCreatedWithLimitedMaxItemConstraint(envelopeFilesConstraints.copy(maxItems = 2))
       for(x <- 1 to 5){
         eventsBuffer += FileQuarantined(envelopeId, FileId(s"fileId-$x"), FileRefId(s"fileRefId-$x"), 0, "test.pdf", "pdf", Some(123L), Json.obj())
       }

@@ -48,6 +48,7 @@ trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
   val acceptedMaxItems: Int = 100
   val acceptedMaxSize: Size = Size("250MB").right.get //250 * 1024 * 1024
   val acceptedMaxSizePerItem: Size = Size("100MB").right.get //100 * 1024 * 1024
+  val acceptedAllowZeroLengthFiles = false
 
   val defaultMaxItems: Int = 100
   val defaultMaxSize: Size = Size("25MB").right.get //25 * 1024 * 1024
@@ -56,18 +57,20 @@ trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
   val defaultConstraints =
     EnvelopeFilesConstraints(maxItems = defaultMaxItems,
       maxSize = defaultMaxSize,
-      maxSizePerItem = defaultMaxSizePerItem)
+      maxSizePerItem = defaultMaxSizePerItem,
+      allowZeroLengthFiles = Some(true))
 
   val acceptedConstraints =
     EnvelopeFilesConstraints(maxItems = acceptedMaxItems,
       maxSize = acceptedMaxSize,
-      maxSizePerItem = acceptedMaxSizePerItem)
+      maxSizePerItem = acceptedMaxSizePerItem,
+      allowZeroLengthFiles = Some(false))
 
   val envelopeConstraintsConfigure = EnvelopeConstraintsConfiguration(
-    acceptedEnvelopeConstraints = EnvelopeFilesConstraints(acceptedMaxItems, acceptedMaxSize, acceptedMaxSizePerItem),
-    defaultEnvelopeConstraints  = EnvelopeFilesConstraints(defaultMaxItems, defaultMaxSize, defaultMaxSizePerItem),
+    acceptedEnvelopeConstraints = EnvelopeFilesConstraints(acceptedMaxItems, acceptedMaxSize, acceptedMaxSizePerItem, Some(false)),
+    defaultEnvelopeConstraints  = EnvelopeFilesConstraints(defaultMaxItems, defaultMaxSize, defaultMaxSizePerItem, Some(true)),
     Duration.parse("PT4H"),
-    Duration.parse("PT1H") )
+    Duration.parse("PT1H"))
 }
 
 class TestApplicationModule(context: Context) extends ApplicationModule(context = context) {

@@ -52,10 +52,16 @@ object EnvelopeConstraintsConfiguration {
       val acceptedMaxSizePerItem: String = runModeConfiguration
         .getString(s"$keyPrefix.maxSizePerItem").getOrElse(throwRuntimeException(s"$keyPrefix.maxSizePerItem"))
 
+
+      val acceptedAllowZeroLengthFiles = runModeConfiguration.getBoolean(s"$keyPrefix.allowZeroLengthFiles")
+
       for {
         acceptedMaxSize ← Size(acceptedMaxSize).right
         acceptedMaxSizePerItem ← Size(acceptedMaxSizePerItem).right
-      } yield EnvelopeFilesConstraints(acceptedMaxItems, acceptedMaxSize, acceptedMaxSizePerItem)
+      } yield EnvelopeFilesConstraints(maxItems = acceptedMaxItems,
+                                       maxSize = acceptedMaxSize,
+                                       maxSizePerItem = acceptedMaxSizePerItem,
+                                       allowZeroLengthFiles = acceptedAllowZeroLengthFiles)
     }
 
     val acceptedEnvelopeConstraints: Either[ConstraintsValidationFailure, EnvelopeFilesConstraints] =
@@ -69,9 +75,11 @@ object EnvelopeConstraintsConfiguration {
         for {
           accepted ← acceptedEnvelopeConstraints.right
           default ← defaultEnvelopeConstraints.right
-        } yield EnvelopeConstraintsConfiguration(acceptedEnvelopeConstraints = accepted,
+        } yield EnvelopeConstraintsConfiguration(
+          acceptedEnvelopeConstraints = accepted,
           defaultEnvelopeConstraints = default,
-          maxExpiryDuration, defaultExpiryDuration
+          maxExpiryDuration,
+          defaultExpiryDuration
         )
       case Some(error) => Left(error)
     }
@@ -91,7 +99,8 @@ object EnvelopeConstraintsConfiguration {
         userMaxSizePerItem ← Size(constraintsO.maxSizePerItem.getOrElse(defaultEnvelopeConstraints.maxSizePerItem.toString)).right
       } yield EnvelopeFilesConstraints(maxItems = maxItems,
                                   maxSize = userMaxSize,
-                                  maxSizePerItem = userMaxSizePerItem)
+                                  maxSizePerItem = userMaxSizePerItem,
+                                  allowZeroLengthFiles = constraintsO.allowZeroLengthFiles.orElse(defaultEnvelopeConstraints.allowZeroLengthFiles))
     }
 
     for {
@@ -133,5 +142,4 @@ object EnvelopeConstraintsConfiguration {
 case class EnvelopeConstraintsConfiguration(acceptedEnvelopeConstraints: EnvelopeFilesConstraints,
                                             defaultEnvelopeConstraints: EnvelopeFilesConstraints,
                                             maxExpirationDuration: Duration,
-                                            defaultExpirationDuration: Duration
-                                           )
+                                            defaultExpirationDuration: Duration)

@@ -31,17 +31,26 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
+
+  val envelopeConstraints = Some(EnvelopeFilesConstraints(maxItems = 10,
+    maxSize = Size("100MB").right.get,
+    maxSizePerItem = Size("10MB").right.get,
+    allowZeroLengthFiles = None))
+
   "EnvelopeReportActor" should {
     "create a new envelope" in new UpdateEnvelopeFixture {
       val callbackUrl = Some("callback-url")
       val expiryDate = Some(new DateTime())
       val metadata = Some(Json.obj("key" -> "value"))
-      val constraints = Some(EnvelopeFilesConstraints(10, Size("100MB").right.get, Size("10MB").right.get))
-      val event = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, constraints)
+      val event = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, envelopeConstraints)
 
       sendEvent(event)
 
-      modifiedEnvelope shouldBe initialState.copy(version = newVersion, callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata, constraints = constraints)
+      modifiedEnvelope shouldBe initialState.copy(version = newVersion,
+        callbackUrl = callbackUrl,
+        expiryDate = expiryDate,
+        metadata = metadata,
+        constraints = envelopeConstraints)
     }
     "mark file as quarantined" in new UpdateEnvelopeFixture {
       val event = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", "contentType", Some(123L), Json.obj("abc" -> "xyz"))
@@ -59,15 +68,18 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
       val callbackUrl = Some("callback-url")
       val expiryDate = Some(new DateTime())
       val metadata = Some(Json.obj("key" -> "value"))
-      val constraints = Some(EnvelopeFilesConstraints(10, Size("100MB").right.get, Size("10MB").right.get))
-      val envelopeCreated = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, constraints)
+      val envelopeCreated = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, envelopeConstraints)
       val fileQuarantined = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", "contentType", Some(123L), Json.obj("abc" -> "xyz"))
 
       val events = List(envelopeCreated, fileQuarantined)
 
       sendEvents(events)
 
-      val expectedEnvelope = initialState.copy(version = Version(2), callbackUrl = callbackUrl, expiryDate = expiryDate, metadata = metadata, constraints = constraints,
+      val expectedEnvelope = initialState.copy(version = Version(2),
+        callbackUrl = callbackUrl,
+        expiryDate = expiryDate,
+        metadata = metadata,
+        constraints = envelopeConstraints,
         files = Some(List(File(fileQuarantined.fileId, fileRefId = fileQuarantined.fileRefId,
           status = FileStatusQuarantined, name = Some(fileQuarantined.name), contentType = Some(fileQuarantined.contentType),
           length = Some(123L), uploadDate = Some(new DateTime(fileQuarantined.created, DateTimeZone.UTC)), revision = None, metadata = Some(fileQuarantined.metadata)))))

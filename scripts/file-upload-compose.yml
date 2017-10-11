@@ -1,0 +1,10 @@
+version: '3'
+services:
+  mongo:
+    image: mongo:3.2
+    ports:
+    - "27017:27017"
+  clamav:
+    image: mkodockx/docker-clamav
+    ports:
+    - "3310:3310"
