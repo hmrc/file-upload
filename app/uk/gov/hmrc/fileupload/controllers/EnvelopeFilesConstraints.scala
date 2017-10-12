@@ -20,7 +20,8 @@ import scala.util.matching.Regex
 
 case class EnvelopeFilesConstraints(maxItems: Int,
                                     maxSize: Size,
-                                    maxSizePerItem: Size) {
+                                    maxSizePerItem: Size,
+                                    allowZeroLengthFiles: Option[Boolean]) {
 
   val maxSizeInBytes: Long = maxSize.inBytes
   val maxSizePerItemInBytes: Long = maxSizePerItem.inBytes

@@ -20,6 +20,7 @@ import cats.data.Xor
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
 import org.joda.time.DateTime
+import org.scalatest.Inside
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.http.{HeaderNames, Status}
@@ -32,11 +33,11 @@ import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAu
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindError, FindMetadataError}
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, File, FileStatusQuarantined}
 import uk.gov.hmrc.fileupload.read.stats.Stats._
-import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeNotFoundError}
+import uk.gov.hmrc.fileupload.write.envelope.{CreateEnvelope, EnvelopeCommand, EnvelopeCreated, EnvelopeNotFoundError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 
 class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with ScalaFutures {
 
@@ -146,6 +147,62 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
     }
   }
 
+  "Create envelope" should {
+    "default to allowing zero length files" in {
+      val serverUrl = "http://production.com:8000"
+
+      val fakeRequest = new FakeRequest("POST", "/envelopes", FakeHeaders(), body = CreateEnvelopeRequest()){
+        override lazy val host = serverUrl
+      }
+
+      val eventPromise = Promise[EnvelopeCommand]
+
+      val controller = newController(handleCommand = command => {
+        eventPromise.success(command)
+        Future.successful(Xor.right(CommandAccepted))
+      })
+      val result: Result = controller.createWithId(EnvelopeId("aaa-bbb"))(fakeRequest).futureValue
+
+      result.header.status shouldBe Status.CREATED
+
+      val envelopeCommand = eventPromise.future.futureValue
+
+      Inside.inside(envelopeCommand) {
+        case ce: CreateEnvelope =>
+          ce.constraints.flatMap(_.allowZeroLengthFiles) shouldBe Some(true)
+      }
+    }
+  }
+
+  "Create envelope" should {
+    "can be overriden to disallow zero length files" in {
+      val serverUrl = "http://production.com:8000"
+
+      val fakeRequest = new FakeRequest("POST", "/envelopes", FakeHeaders(),
+        body = CreateEnvelopeRequest(constraints =
+          Some(EnvelopeConstraintsUserSetting(allowZeroLengthFiles = Some(false))))){
+        override lazy val host = serverUrl
+      }
+
+      val eventPromise = Promise[EnvelopeCommand]
+
+      val controller = newController(handleCommand = command => {
+        eventPromise.success(command)
+        Future.successful(Xor.right(CommandAccepted))
+      })
+      val result: Result = controller.createWithId(EnvelopeId("aaa-bbb"))(fakeRequest).futureValue
+
+      result.header.status shouldBe Status.CREATED
+
+      val envelopeCommand = eventPromise.future.futureValue
+
+      Inside.inside(envelopeCommand) {
+        case ce: CreateEnvelope =>
+          ce.constraints.flatMap(_.allowZeroLengthFiles) shouldBe Some(false)
+      }
+    }
+  }
+
 	"Delete Envelope" should {
 		"respond with 200 OK status" in {
 			val envelope = Support.envelope
@@ -246,4 +303,5 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
       result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
     }
   }
+
 }

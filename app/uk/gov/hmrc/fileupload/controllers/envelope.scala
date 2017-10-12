@@ -65,7 +65,8 @@ case class CreateEnvelopeRequest(callbackUrl: Option[String] = None,
 case class EnvelopeConstraintsUserSetting(maxItems: Option[Int] = None,
                                           maxSize: Option[String] = None,
                                           maxSizePerItem: Option[String] = None,
-                                          contentTypes: Option[List[ContentTypes]] = None)
+                                          contentTypes: Option[List[ContentTypes]] = None,
+                                          allowZeroLengthFiles: Option[Boolean] = None)
 
 object CreateEnvelopeRequest {
 

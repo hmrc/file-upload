@@ -77,16 +77,16 @@ class EnvelopeFilesConstraintsSpec extends UnitSpec with ApplicationComponents {
     "return default constraints, but no content type constraints" in {
       val envelopeConstraintsNone = EnvelopeConstraintsUserSetting(None,None,None,None)
       val createDefaultConstraints = EnvelopeConstraintsConfiguration.validateEnvelopeFilesConstraints(envelopeConstraintsNone, envelopeConstraintsConfigure)
-      val expectedEnvelopeConstraints = Right(EnvelopeFilesConstraints(defaultMaxItems,defaultMaxSize,defaultMaxSizePerItem))
+      val expectedEnvelopeConstraints = Right(EnvelopeFilesConstraints(defaultMaxItems,defaultMaxSize,defaultMaxSizePerItem, Some(true)))
       createDefaultConstraints shouldBe expectedEnvelopeConstraints
     }
   }
 
   "Pass defined envelope constraints to formatEnvelopeConstraints" should {
     "return defined constraints, but no content type constraints" in {
-      val envelopeWithConstraints = EnvelopeConstraintsUserSetting(Some(10),Some("30MB"),Some("8MB"),Some(List("applicaiton/pdf")))
+      val envelopeWithConstraints = EnvelopeConstraintsUserSetting(Some(10),Some("30MB"),Some("8MB"),Some(List("applicaiton/pdf")), Some(false))
       val createEnvelopeWithConstraints = EnvelopeConstraintsConfiguration.validateEnvelopeFilesConstraints(envelopeWithConstraints, envelopeConstraintsConfigure)
-      val expectedEnvelopeConstraints = Right(EnvelopeFilesConstraints(10,Size("30MB").right.get,Size("8MB").right.get))
+      val expectedEnvelopeConstraints = Right(EnvelopeFilesConstraints(10,Size("30MB").right.get,Size("8MB").right.get, Some(false)))
       createEnvelopeWithConstraints shouldBe expectedEnvelopeConstraints
     }
   }
