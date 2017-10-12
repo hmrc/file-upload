@@ -64,7 +64,11 @@ class EnvelopeController(withBasicAuth: BasicAuth,
         val userExpiryDate = request.body.expiryDate.orElse(Some(expiryTimes.default))
 
         validateExpiryDate(expiryTimes.now, expiryTimes.max, userExpiryDate.get) match {
-          case Some(error) => Future.successful(BadRequestHandler(new BadRequestException(error.message)))
+          case Some(error) =>
+            Logger.warn(s"Bad expiryDate detected. user time: ${userExpiryDate.get}," +
+              s" configuration: $expiryTimes," +
+              s" user-agent: ${request.headers.get("User-Agent")}")
+            Future.successful(BadRequestHandler(new BadRequestException(error.message)))
           case None =>
             val command = CreateEnvelope(nextId(), request.body.callbackUrl, userExpiryDate, request.body.metadata, Some(envelopeConstraints))
             val userAgent = request.headers.get("User-Agent").getOrElse("none")
