@@ -54,7 +54,8 @@ Body:
           "maxItems": 5,
           "maxSize": "25MB",
           "maxSizePerItem": "10KB",
-          "contentTypes": ["application/pdf","image/jpeg","application/xml"]
+          "contentTypes": ["application/pdf","image/jpeg","application/xml"],
+          "allowZeroLengthFiles": false
         }   
 }
 ```
@@ -69,6 +70,7 @@ All constraints are optional for users, default constraints apply if the value i
 | constraints.maxItems | optional   |  1-100 |  100  | Number of items allowed in this envelope  | 
 | constraints.maxSize | optional   | [1-9][0-9]{0,3}(KB&#124;MB) e.g. 1024KB |  25MB  | Maximum Size (sum of files' sizes) for the envelope (Maximum size 250MB)  | 
 | constraints.maxSizePerItem | optional   |  [1-9][0-9]{0,3}(KB&#124;MB) e.g. 1024KB |  10MB  | Maximum Size for each file (Maximum size 100MB)  | 
+| constraints.allowZeroLengthFiles | optional | true or false | When false files with no contents will not be able to be uploaded to this envelope |
 
 1. constraints.contentTypes and constraints.maxSizePerItem are applied when the file is uploaded. If validation fails, the user will receive an error.
 2. constraints.maxItems and constraints.maxSize are applied when the file is routed. Your application may be able to exceed these limits during upload but will not be able to route the envelope.
