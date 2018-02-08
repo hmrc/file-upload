@@ -1,5 +1,6 @@
 # file-upload
 
+**This service is currently being replaced.  If you need to use the functions this service delivers, please speak to the owning team**
 
 [![Build Status](https://travis-ci.org/hmrc/file-upload.svg?branch=master)](https://travis-ci.org/hmrc/file-upload) [ ![Download](https://api.bintray.com/packages/hmrc/releases/file-upload/images/download.svg) ](https://bintray.com/hmrc/releases/file-upload/_latestVersion)
 
