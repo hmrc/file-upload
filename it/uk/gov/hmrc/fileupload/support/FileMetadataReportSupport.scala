@@ -19,7 +19,7 @@ object FileMetadataReportSupport extends Support {
      |      "session":"${args.getOrElse("metadata.origin.session", "cd30f8ec-d866-4ae0-82a0-1bc720f1cb09")}",
      |      "agent":"${args.getOrElse("metadata.origin.agent", "292929292")}",
      |      "trustedHelper":"${args.getOrElse("metadata.origin.trustedHelper", "8984293480239480")}",
-     |      "ipAddress":"${args.getOrElse("metadata.origin.ipAddress", "127.0.0.1")}"
+     |      "ipAddress":"${args.getOrElse("metadata.origin.ipAddress", "10.0.0.1")}"
      |    },
      |    "sender":{
      |      "service":"${args.getOrElse("metadata.sender.service", "some-service-identifier/v1.2.33")}"
