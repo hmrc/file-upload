@@ -21,15 +21,13 @@ private object AppDependencies {
   private val microserviceBootstrapVersion = "6.18.0"
   private val domainVersion = "4.1.0"
   private val hmrcTestVersion = "2.4.0"
-  private val playReactivemongoVersion = "5.2.0"
-  private val simpleReactivemongoVersion = "5.2.0"
+  private val playReactivemongoVersion = "6.2.0"
   private val akkaVersion = "2.4.10"
   private val catsVersion = "0.7.0"
   private val authClientVersion = "2.1.0"
 
   val compile = Seq(
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
-    "uk.gov.hmrc" %% "simple-reactivemongo" % simpleReactivemongoVersion,
     ws,
     "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrapVersion,
     "uk.gov.hmrc" %% "auth-client" % authClientVersion,
