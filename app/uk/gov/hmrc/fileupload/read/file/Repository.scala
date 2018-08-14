@@ -27,7 +27,7 @@ import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.{DB, DBMetaCommands}
 import reactivemongo.bson.{BSONDateTime, BSONDocument}
-import reactivemongo.json._
+import reactivemongo.play.json._
 import uk.gov.hmrc.fileupload._
 
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -56,7 +56,7 @@ object FileInfo {
 
 class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext) {
 
-  import reactivemongo.json.collection._
+  import reactivemongo.play.json.collection._
 
   lazy val gfs: JSONGridFS = GridFS[JSONSerializationPack.type](mongo(), "envelopes")
 

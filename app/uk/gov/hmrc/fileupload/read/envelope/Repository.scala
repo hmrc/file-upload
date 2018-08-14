@@ -26,6 +26,7 @@ import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{DB, DBMetaCommands, ReadPreference}
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.core.errors.DatabaseException
+import reactivemongo.play.json.ImplicitBSONHandlers
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.mongo.ReactiveRepository
 
@@ -61,6 +62,7 @@ class Repository(mongo: () => DB with DBMetaCommands)
     collection.indexesManager.ensure(Index(key = List("status" -> IndexType.Ascending, "destination" -> IndexType.Ascending), background = true)).map(Seq(_))
   }
 
+  import ImplicitBSONHandlers._
   import Repository._
 
   def update(writeConcern: WriteConcern = WriteConcern.Default)

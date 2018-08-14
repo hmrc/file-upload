@@ -131,7 +131,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     }
   }
 
-  lazy val db = new ReactiveMongoComponentImpl(application, applicationLifecycle).mongoConnector.db
+  lazy val db = new ReactiveMongoComponentImpl(configuration, environment, applicationLifecycle).mongoConnector.db
 
   // notifier
   actorSystem.actorOf(NotifierActor.props(subscribe, findEnvelope, sendNotification), "notifierActor")
