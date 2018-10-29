@@ -2,7 +2,7 @@ package uk.gov.hmrc.fileupload.support
 
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
-import org.scalatest.Suite
+import org.scalatest.TestSuite
 import play.api.http.HeaderNames
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
@@ -10,7 +10,7 @@ import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.controllers.FileScanned
 
 trait EnvelopeActions extends ActionsSupport {
-  this: Suite =>
+  this: TestSuite =>
 
 
   def basic64(s: String): String = {

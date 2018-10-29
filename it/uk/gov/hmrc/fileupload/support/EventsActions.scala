@@ -1,6 +1,6 @@
 package uk.gov.hmrc.fileupload.support
 
-import org.scalatest.Suite
+import org.scalatest.TestSuite
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.fileupload.controllers.{FileInQuarantineStored, FileScanned}
@@ -8,7 +8,7 @@ import uk.gov.hmrc.fileupload.write.envelope.Formatters._
 import uk.gov.hmrc.fileupload.write.envelope._
 
 trait EventsActions extends ActionsSupport {
-  this: Suite =>
+  this: TestSuite =>
 
   def sendCommandQuarantineFile(e: QuarantineFile): WSResponse =
     client

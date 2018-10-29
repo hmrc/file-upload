@@ -1,13 +1,13 @@
 package uk.gov.hmrc.fileupload.support
 
-import org.scalatest.Suite
+import org.scalatest.TestSuite
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.http.Status
 import uk.gov.hmrc.fileupload.IntegrationTestApplicationComponents
 
 trait ActionsSupport extends ScalaFutures with Status with IntegrationTestApplicationComponents{
-  this: Suite =>
+  this: TestSuite =>
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
 

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload
 
-import org.scalatest.Suite
+import org.scalatest.TestSuite
 import org.scalatestplus.play.OneServerPerSuite
 import play.api.ApplicationLoader.Context
 import play.api._
@@ -24,7 +24,7 @@ import play.api.mvc.EssentialFilter
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
 trait IntegrationTestApplicationComponents extends OneServerPerSuite with MongoSpecSupport {
-  this: Suite =>
+  this: TestSuite =>
   override implicit lazy val app = components.application
   override lazy val port: Int = 9000
 
