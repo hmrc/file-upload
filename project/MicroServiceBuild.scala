@@ -11,13 +11,13 @@ private object AppDependencies {
   import play.sbt.PlayImport._
   import play.core.PlayVersion
 
-  private val microserviceBootstrapVersion = "6.18.0"
-  private val domainVersion = "4.1.0"
-  private val hmrcTestVersion = "2.4.0"
+  private val microserviceBootstrapVersion = "8.5.0"
+  private val domainVersion = "5.2.0"
+  private val hmrcTestVersion = "3.2.0"
   private val playReactivemongoVersion = "6.2.0"
   private val akkaVersion = "2.4.10"
   private val catsVersion = "0.7.0"
-  private val authClientVersion = "2.1.0"
+  private val authClientVersion = "2.17.0-play-25"
 
   val compile = Seq(
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
@@ -42,9 +42,9 @@ private object AppDependencies {
         "org.scalatest" %% "scalatest" % "2.2.6" % scope,
         "org.pegdown" % "pegdown" % "1.5.0" % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
-        "uk.gov.hmrc" %% "reactivemongo-test" % "2.0.0" % scope,
+        "uk.gov.hmrc" %% "reactivemongo-test" % "3.1.0" % scope,
         "com.typesafe.akka" % "akka-testkit_2.11" % akkaVersion % scope,
-        "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.1" % scope
+        "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.0" % scope
       )
     }.test
   }
@@ -59,9 +59,9 @@ private object AppDependencies {
         "org.scalatest" %% "scalatest" % "2.2.6" % scope,
         "org.pegdown" % "pegdown" % "1.5.0" % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
-        "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.1" % scope,
+        "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.0" % scope,
         "com.github.tomakehurst" % "wiremock" % "1.58" % scope,
-        "uk.gov.hmrc" %% "reactivemongo-test" % "1.6.0" % scope
+        "uk.gov.hmrc" %% "reactivemongo-test" % "3.1.0" % scope
       )
     }.test
   }

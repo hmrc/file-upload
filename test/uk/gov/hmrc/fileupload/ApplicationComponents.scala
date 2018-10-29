@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload
 
 import java.time.Duration
 
-import org.scalatest.{BeforeAndAfterAll, Suite, TestData}
+import org.scalatest.{BeforeAndAfterAll, TestSuite, TestData}
 import org.scalatestplus.play.OneAppPerTest
 import play.api.ApplicationLoader.Context
 import play.api._
@@ -27,7 +27,7 @@ import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
 import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraintsConfiguration
 
 trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
-  this: Suite =>
+  this: TestSuite =>
 
   // accessed to get the components in tests
   lazy val components: ApplicationModule = new TestApplicationModule(context)
