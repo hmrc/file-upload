@@ -21,4 +21,3 @@ GET        /files/inprogress                                  uk.gov.hmrc.fileup
 DELETE     /files/inprogress/:fileRefId                       uk.gov.hmrc.fileupload.controllers.EnvelopeController.deleteInProgressFileByRefId(fileRefId: uk.gov.hmrc.fileupload.FileRefId)
 
 GET        /events/:streamId/replay                           uk.gov.hmrc.fileupload.controllers.EventController.replay(streamId: uk.gov.hmrc.fileupload.write.infrastructure.StreamId)
-GET        /files/info/:fileRefId                             uk.gov.hmrc.fileupload.controllers.AdminController.retrieveFileMetaData(fileRefId: uk.gov.hmrc.fileupload.FileRefId)

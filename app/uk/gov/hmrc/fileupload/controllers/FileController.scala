@@ -33,7 +33,6 @@ import uk.gov.hmrc.fileupload.read.stats.Stats.FileFound
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
-import uk.gov.hmrc.fileupload.file.zip.MongoS3Compability._
 
 class RetrieveFile(wsClient: WSClient, baseUrl: String) {
   def download(envelopeId: EnvelopeId, fileId: FileId)(implicit ec: ExecutionContext): Future[Source[ByteString, _]] = {
@@ -56,10 +55,7 @@ class RetrieveFile(wsClient: WSClient, baseUrl: String) {
 class FileController(withBasicAuth: BasicAuth,
                      retrieveFileS3: (EnvelopeId, FileId) => Future[Source[ByteString, _]],
                      withValidEnvelope: WithValidEnvelope,
-                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
-                     //Todo: remove else when mongoDB is not in use at all.
-                     retrieveFileMongo: (Envelope, FileId) => Future[GetFileResult] =
-                      (_,_) => Future.failed(new UnsupportedOperationException))
+                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
                     (implicit executionContext: ExecutionContext) extends Controller {
 
   def downloadFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { implicit request =>
@@ -73,31 +69,17 @@ class FileController(withBasicAuth: BasicAuth,
         else {
           foundFile.map { f =>
             val (filename, fileRefId, lengthO) = (f.name, f.fileRefId, f.length)
-              if (checkIsTheFileInS3(fileRefId)) {
-                retrieveFileS3(envelopeId, fileId).map { source =>
-                  val caseBase = Ok.sendEntity(HttpEntity.Streamed(source, lengthO, Some("application/octet-stream")))
-                    .withHeaders(
-                      CONTENT_DISPOSITION -> s"""attachment; filename="${filename.getOrElse("data")}"""",
-                      CONTENT_TYPE -> "application/octet-stream")
-                  lengthO match {
-                    case Some(length) =>
-                      caseBase.withHeaders(CONTENT_LENGTH -> s"$length")
-                    case None =>
-                      Logger.error(s"No file length detected for: envelopeId=$envelopeId fileId=$fileId. Trying to download it without length set.")
-                      caseBase
-                  }
-                }
-              } else {
-                //Todo: remove if-else when mongoDB is not in use at all.
-                retrieveFileMongo(envelope, fileId).map {
-                  case Xor.Right(FileFound(filenameI, lengthI, data)) => // I like inner
-                    val byteArray = Source.fromPublisher(Streams.enumeratorToPublisher(data.map(ByteString.fromArray)))
-                    Ok.sendEntity(HttpEntity.Streamed(byteArray, Some(lengthI), Some("application/octet-stream")))
-                      .withHeaders(CONTENT_DISPOSITION -> s"""attachment; filename="${filenameI.getOrElse("data")}"""",
-                        CONTENT_LENGTH -> s"$lengthI",
-                        CONTENT_TYPE -> "application/octet-stream")
-                  case Xor.Left(GetFileNotFoundError) =>
-                    ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId")
+              retrieveFileS3(envelopeId, fileId).map { source =>
+                val caseBase = Ok.sendEntity(HttpEntity.Streamed(source, lengthO, Some("application/octet-stream")))
+                  .withHeaders(
+                    CONTENT_DISPOSITION -> s"""attachment; filename="${filename.getOrElse("data")}"""",
+                    CONTENT_TYPE -> "application/octet-stream")
+                lengthO match {
+                  case Some(length) =>
+                    caseBase.withHeaders(CONTENT_LENGTH -> s"$length")
+                  case None =>
+                    Logger.error(s"No file length detected for: envelopeId=$envelopeId fileId=$fileId. Trying to download it without length set.")
+                    caseBase
                 }
               }
           }.getOrElse {

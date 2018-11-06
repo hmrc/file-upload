@@ -18,52 +18,46 @@ package uk.gov.hmrc.fileupload
 
 import java.net.InetSocketAddress
 import java.util.UUID
-import javax.inject.Provider
 
 import akka.actor.ActorRef
 import com.codahale.metrics.graphite.{Graphite, GraphiteReporter}
 import com.codahale.metrics.{MetricFilter, SharedMetricRegistries}
 import com.kenshoo.play.metrics.{MetricsController, MetricsFilterImpl, MetricsImpl}
 import com.typesafe.config.Config
+import javax.inject.Provider
 import net.ceedubs.ficus.Ficus._
 import play.api.ApplicationLoader.Context
 import play.api.Mode.Mode
 import play.api._
 import play.api.libs.concurrent.Execution.Implicits._
-import play.api.libs.ws.WSRequest
 import play.api.libs.ws.ahc.AhcWSComponents
 import play.api.mvc.EssentialFilter
 import play.api.routing.Router
 import play.modules.reactivemongo.ReactiveMongoComponentImpl
 import reactivemongo.api.commands
-import uk.gov.hmrc.fileupload.admin.{Routes ⇒ AdminRoutes}
-import uk.gov.hmrc.fileupload.app.{Routes ⇒ AppRoutes}
+import uk.gov.hmrc.fileupload.admin.{Routes => AdminRoutes}
+import uk.gov.hmrc.fileupload.app.{Routes => AppRoutes}
+import uk.gov.hmrc.fileupload.controllers._
 import uk.gov.hmrc.fileupload.controllers.routing.RoutingController
 import uk.gov.hmrc.fileupload.controllers.transfer.TransferController
-import uk.gov.hmrc.fileupload.controllers.{AdminController, _}
 import uk.gov.hmrc.fileupload.file.zip.Zippy
 import uk.gov.hmrc.fileupload.filters.{UserAgent, UserAgentRequestFilter}
 import uk.gov.hmrc.fileupload.infrastructure._
-import uk.gov.hmrc.fileupload.manualdihealth.{Routes ⇒ HealthRoutes}
+import uk.gov.hmrc.fileupload.manualdihealth.{Routes => HealthRoutes}
 import uk.gov.hmrc.fileupload.prod.Routes
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, WithValidEnvelope, Service ⇒ EnvelopeService, _}
-import uk.gov.hmrc.fileupload.read.file.FileData
+import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => EnvelopeService, _}
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
 import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor}
-import uk.gov.hmrc.fileupload.routing.{Routes ⇒ RoutingRoutes}
+import uk.gov.hmrc.fileupload.routing.{Routes => RoutingRoutes}
 import uk.gov.hmrc.fileupload.testonly.TestOnlyController
-import uk.gov.hmrc.fileupload.transfer.{Routes ⇒ TransferRoutes}
+import uk.gov.hmrc.fileupload.transfer.{Routes => TransferRoutes}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
 import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, MongoEventStore, StreamId}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode, ServicesConfig}
-import uk.gov.hmrc.play.microservice.filters._
-
-import scala.concurrent.Future
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.microservice.config.LoadAuditingConfig
-import uk.gov.hmrc.play.microservice.filters.{ AuditFilter, LoggingFilter }
+import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, _}
 
 
 class ApplicationLoader extends play.api.ApplicationLoader {
@@ -164,9 +158,6 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute, wsClient) _
 
-  lazy val fileRepository = uk.gov.hmrc.fileupload.read.file.Repository.apply(db)
-  lazy val retrieveFileMetaData = fileRepository.retrieveFileMetaData _
-  lazy val fileChunksInfo = fileRepository.chunksCount _
 
   lazy val statsRepository = uk.gov.hmrc.fileupload.read.stats.Repository.apply(db)
   lazy val saveFileQuarantinedStat = Stats.save(statsRepository.insert) _
@@ -224,29 +215,18 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
       withBasicAuth = withBasicAuth,
       retrieveFileS3 = getFileFromS3,
       withValidEnvelope = withValidEnvelope,
-      handleCommand = envelopeCommandHandler,
-      retrieveFileMongo = getFileFromMongoDB)
+      handleCommand = envelopeCommandHandler)
   }
-
-  lazy val adminController = {
-    new AdminController(getFileInfo = retrieveFileMetaData,
-      getChunks = fileChunksInfo)
-  }
-
-  //Todo: remove below two lines when mongoDB is not in use at all.
-  import uk.gov.hmrc.fileupload.file.zip.MongoS3Compability._
-  val getFileFromRepo: (FileRefId) => Future[Option[FileData]] = fileRepository.retrieveFile _
-  lazy val getFileFromMongoDB: (Envelope, FileId) => Future[GetFileResult] = retrieveFileFromMongoDB(getFileFromRepo) _
 
   lazy val transferController = {
     val getEnvelopesByDestination = envelopeRepository.getByDestination _
     //Todo: remove getFileFromMongoDB when mongoDB is not in use at all.
-    val zipEnvelope = Zippy.zipEnvelope(findEnvelope, getFileFromS3, getFileFromMongoDB) _
+    val zipEnvelope = Zippy.zipEnvelope(findEnvelope, getFileFromS3) _
     new TransferController(withBasicAuth, getEnvelopesByDestination, envelopeCommandHandler, zipEnvelope)
   }
 
   lazy val testOnlyController = {
-    new TestOnlyController(recreateCollections = List(eventStore.recreate, envelopeRepository.recreate, fileRepository.recreate, statsRepository.recreate))
+    new TestOnlyController(recreateCollections = List(eventStore.recreate, envelopeRepository.recreate, statsRepository.recreate))
   }
 
   lazy val routingController = new RoutingController(envelopeCommandHandler)
@@ -254,7 +234,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val healthRoutes = new HealthRoutes(httpErrorHandler, new uk.gov.hmrc.play.health.AdminController(configuration))
 
   lazy val appRoutes = new AppRoutes(httpErrorHandler, envelopeController, fileController, eventController,
-    commandController, adminController)
+    commandController)
 
   lazy val transferRoutes = new TransferRoutes(httpErrorHandler, transferController)
 
