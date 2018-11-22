@@ -1,4 +1,4 @@
-resolvers += Resolver.bintrayRepo("hmrc", "sbt-plugin-releases")
+resolvers += Resolver.bintrayIvyRepo("hmrc", "sbt-plugin-releases")
 resolvers += Resolver.bintrayRepo("hmrc", "releases")
 
 resolvers += Resolver.typesafeRepo("releases")
