@@ -97,6 +97,56 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
     }
   }
 
+  "Create envelope with unsupported callback url protocol" should  {
+    "return response with OK status" in {
+      val serverUrl = "http://production.com:8000"
+
+      val fakeRequest = new FakeRequest("POST", "/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(Some("ftp://localhost/123"),
+        Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.toHours.toInt)))){
+        override lazy val host = serverUrl
+      }
+
+      val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
+      val result: Result = controller.create()(fakeRequest).futureValue
+
+      result.header.status shouldBe Status.BAD_REQUEST
+    }
+  }
+
+  "Create envelope with malformed callback url protocol" should  {
+    "return response with BAD_REQUEST status" in {
+      val serverUrl = "http://production.com:8000"
+
+      val fakeRequest = new FakeRequest("POST", "/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(Some("%$#@%#$%#$%"),
+        Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.toHours.toInt)))){
+        override lazy val host = serverUrl
+      }
+
+      val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
+      val result: Result = controller.create()(fakeRequest).futureValue
+
+      result.header.status shouldBe Status.BAD_REQUEST
+    }
+  }
+
+  "Create envelope with valid callback url protocol" should  {
+    "return response with OK status" in {
+      val serverUrl = "http://production.com:8000"
+
+      val fakeRequest = new FakeRequest("POST", "/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(Some("https://localhost:123"),
+        Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.toHours.toInt)))){
+        override lazy val host = serverUrl
+      }
+
+      val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
+      val result: Result = controller.create()(fakeRequest).futureValue
+
+      result.header.status shouldBe Status.CREATED
+    }
+  }
+
+
+
   "Create envelope with a request with too long expiryDate" should {
     "return response with BAD_REQUEST status" in {
       val serverUrl = "http://production.com:8000"
