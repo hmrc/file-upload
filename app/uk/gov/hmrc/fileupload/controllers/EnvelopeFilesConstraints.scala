@@ -80,5 +80,5 @@ case object InvalidExpiryDate extends ConstraintsValidationFailure {
 }
 
 case class InvalidCallbackUrl(url : String) extends ConstraintsValidationFailure {
-  override def message: String = s"invalid callback URL + $url"
+  override def message: String = s"invalid callback URL [$url]"
 }
