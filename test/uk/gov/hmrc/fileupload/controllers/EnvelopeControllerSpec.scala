@@ -97,7 +97,7 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
     }
   }
 
-  "Create envelope with unsupported callback url protocol" should  {
+  "Create envelope with unsupported callback url protocol" ignore {
     "return response with OK status" in {
       val serverUrl = "http://production.com:8000"
 
@@ -113,7 +113,7 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
     }
   }
 
-  "Create envelope with malformed callback url protocol" should  {
+  "Create envelope with malformed callback url protocol" ignore {
     "return response with BAD_REQUEST status" in {
       val serverUrl = "http://production.com:8000"
 
