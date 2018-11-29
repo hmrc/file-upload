@@ -96,8 +96,8 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     }
 
     //Temporarily only log errors and pass validation
-    result.left.flatMap(invalidUrl => {
-      Logger.error(s"Service with user-agent: [${request.headers.get("User-Agent")}] send invalid callback URL [$request.body.callbackUrl]")
+    result.left.flatMap(_ => {
+      Logger.warn(s"Service with user-agent: [${request.headers.get("User-Agent")}] send invalid callback URL [$request.body.callbackUrl]")
       Right(())
     })
 
