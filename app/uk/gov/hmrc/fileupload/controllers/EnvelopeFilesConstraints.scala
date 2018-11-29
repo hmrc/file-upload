@@ -78,3 +78,7 @@ case object InvalidFormat extends ConstraintsValidationFailure {
 case object InvalidExpiryDate extends ConstraintsValidationFailure {
   override def message: String = s"expiry date is not valid. It should be after now and before the max limit"
 }
+
+case class InvalidCallbackUrl(url : String) extends ConstraintsValidationFailure {
+  override def message: String = s"invalid callback URL [$url]"
+}

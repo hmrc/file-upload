@@ -71,7 +71,7 @@ object EnvelopeConstraintsConfiguration {
       getFileConstraintsFromConfig(keyPrefix = "constraints.default")
 
     validateExpiryDate(times.now, times.max, times.default) match {
-      case None =>
+      case Right(_) =>
         for {
           accepted ← acceptedEnvelopeConstraints.right
           default ← defaultEnvelopeConstraints.right
@@ -81,7 +81,7 @@ object EnvelopeConstraintsConfiguration {
           maxExpiryDuration,
           defaultExpiryDuration
         )
-      case Some(error) => Left(error)
+      case Left(error) => Left(error)
     }
   }
 
@@ -123,12 +123,14 @@ object EnvelopeConstraintsConfiguration {
     userEnvelopeConstraints
   }
 
-  def validateExpiryDate(now: DateTime, max: DateTime, userExpiryDate: DateTime): Option[InvalidExpiryDate.type] = {
+  def validateExpiryDate(now: DateTime, max: DateTime, userExpiryDate: DateTime): Either[InvalidExpiryDate.type, Unit] = {
     if(now.isAfter(userExpiryDate) || userExpiryDate.isAfter(max))
-      Some(InvalidExpiryDate)
+      Left(InvalidExpiryDate)
     else
-      None
+      Right(())
   }
+
+
   def durationsToDateTime(default: Duration, max: Duration): ExpiryTimes = {
     val now = DateTime.now()
     def expiryDateFromDuration(dur: Duration) = now.plus(dur.toMillis)

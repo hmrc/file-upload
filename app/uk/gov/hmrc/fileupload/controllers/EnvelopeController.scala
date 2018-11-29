@@ -16,10 +16,12 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import java.net.URL
 import java.time.Duration
 
 import akka.stream.scaladsl.Source.fromPublisher
 import cats.data.Xor
+import cats.syntax.either._
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.iteratee.Enumerator
@@ -39,6 +41,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import uk.gov.hmrc.http.BadRequestException
 
+import scala.util.{Failure, Success, Try}
+
 class EnvelopeController(withBasicAuth: BasicAuth,
                          nextId: () => EnvelopeId,
                          handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
@@ -54,31 +58,51 @@ class EnvelopeController(withBasicAuth: BasicAuth,
   def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
 
-    val validatedUserEnvelopeConstraints = validatedEnvelopeFilesConstraints(request)
-
-    validatedUserEnvelopeConstraints match {
-      case Right(envelopeConstraints: EnvelopeFilesConstraints) ⇒
-
-        val expiryTimes = durationsToDateTime(envelopeConstraintsConfigure.defaultExpirationDuration, envelopeConstraintsConfigure.maxExpirationDuration)
-
-        val userExpiryDate = request.body.expiryDate.orElse(Some(expiryTimes.default))
-
-        validateExpiryDate(expiryTimes.now, expiryTimes.max, userExpiryDate.get) match {
-          case Some(error) =>
-            Logger.warn(s"Bad expiryDate detected. user time: ${userExpiryDate.get}," +
-              s" configuration: $expiryTimes," +
-              s" user-agent: ${request.headers.get("User-Agent")}")
-            Future.successful(BadRequestHandler(new BadRequestException(error.message)))
-          case None =>
-            val command = CreateEnvelope(nextId(), request.body.callbackUrl, userExpiryDate, request.body.metadata, Some(envelopeConstraints))
-            val userAgent = request.headers.get("User-Agent").getOrElse("none")
-            Logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
-            handleCreate(envelopeLocation, command)
-        }
-      case Left(failureReason: ConstraintsValidationFailure) ⇒
-        Future.successful(BadRequestHandler(new BadRequestException(s"${failureReason.message}")))
+    val result = for {
+      envelopeConstraints <- validatedEnvelopeFilesConstraints(request).right
+      expiryTimes = durationsToDateTime(envelopeConstraintsConfigure.defaultExpirationDuration, envelopeConstraintsConfigure.maxExpirationDuration)
+      userExpiryDate = request.body.expiryDate.orElse(Some(expiryTimes.default))
+      _ <- validateExpiryDate(expiryTimes.now, expiryTimes.max, userExpiryDate.get).right
+      _ <- validateCallbackUrl(request)
+    } yield {
+      val command = CreateEnvelope(nextId(), request.body.callbackUrl, userExpiryDate, request.body.metadata, Some(envelopeConstraints))
+      val userAgent = request.headers.get("User-Agent").getOrElse("none")
+      Logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
+      handleCreate(envelopeLocation, command)
     }
+
+
+    result match {
+      case Right(successfulResult) =>
+        successfulResult
+      case Left(error) =>
+        Logger.warn(s"Validation error. user time: ${error}, user-agent: ${request.headers.get("User-Agent")}")
+        Future.successful(BadRequestHandler(new BadRequestException(s"${error.message}")))
+    }
+
   }
+
+  private def validateCallbackUrl(request: Request[CreateEnvelopeRequest]): Either[InvalidCallbackUrl, Unit] = {
+
+    val allowedProtocols = Seq("https")
+
+    val result = request.body.callbackUrl match {
+      case None => Right(())
+      case Some(url) =>
+        for {
+          parsedUrl <- Either.catchNonFatal(new URL(url)).leftMap(_ => InvalidCallbackUrl(url))
+          _ <- if (allowedProtocols.contains(parsedUrl.getProtocol)) Right() else Left(InvalidCallbackUrl(url))
+        } yield ()
+    }
+
+    //Temporarily only log errors and pass validation
+    result.left.flatMap(_ => {
+      Logger.warn(s"Service with user-agent: [${request.headers.get("User-Agent")}] send invalid callback URL [$request.body.callbackUrl]")
+      Right(())
+    })
+
+  }
+
 
   def createWithId(id: EnvelopeId) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
