@@ -58,6 +58,8 @@ class EnvelopeController(withBasicAuth: BasicAuth,
   def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
 
+    Logger.info(s"Received envelope creation request ${request.body}")
+
     val result = for {
       envelopeConstraints <- validatedEnvelopeFilesConstraints(request).right
       expiryTimes = durationsToDateTime(envelopeConstraintsConfigure.defaultExpirationDuration, envelopeConstraintsConfigure.maxExpirationDuration)

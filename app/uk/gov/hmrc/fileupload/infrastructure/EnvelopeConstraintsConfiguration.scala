@@ -123,9 +123,9 @@ object EnvelopeConstraintsConfiguration {
     userEnvelopeConstraints
   }
 
-  def validateExpiryDate(now: DateTime, max: DateTime, userExpiryDate: DateTime): Either[InvalidExpiryDate.type, Unit] = {
+  def validateExpiryDate(now: DateTime, max: DateTime, userExpiryDate: DateTime): Either[InvalidExpiryDate, Unit] = {
     if(now.isAfter(userExpiryDate) || userExpiryDate.isAfter(max))
-      Left(InvalidExpiryDate)
+      Left(InvalidExpiryDate(now, max))
     else
       Right(())
   }

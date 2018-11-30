@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import org.joda.time.DateTime
+
 import scala.util.matching.Regex
 
 case class EnvelopeFilesConstraints(maxItems: Int,
@@ -75,8 +77,8 @@ case object InvalidFormat extends ConstraintsValidationFailure {
   override def message: String = s"input did not match supported size format, 'KB' and 'MB' are supported, e.g. 10MB"
 }
 
-case object InvalidExpiryDate extends ConstraintsValidationFailure {
-  override def message: String = s"expiry date is not valid. It should be after now and before the max limit"
+case class InvalidExpiryDate(date : DateTime, max : DateTime) extends ConstraintsValidationFailure {
+  override def message: String = s"expiry date [$date] is not valid. It should be after now and before the max limit [$max]"
 }
 
 case class InvalidCallbackUrl(url : String) extends ConstraintsValidationFailure {
