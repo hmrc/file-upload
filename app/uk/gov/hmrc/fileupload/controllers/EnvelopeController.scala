@@ -86,7 +86,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
 
     val allowedProtocols = Seq("https")
 
-    val result = request.body.callbackUrl match {
+    request.body.callbackUrl match {
       case None => Right(())
       case Some(url) =>
         for {
@@ -95,11 +95,6 @@ class EnvelopeController(withBasicAuth: BasicAuth,
         } yield ()
     }
 
-    //Temporarily only log errors and pass validation
-    result.left.flatMap(_ => {
-      Logger.warn(s"Service with user-agent: [${request.headers.get("User-Agent")}] send invalid callback URL [${request.body.callbackUrl}]")
-      Right(())
-    })
 
   }
 
