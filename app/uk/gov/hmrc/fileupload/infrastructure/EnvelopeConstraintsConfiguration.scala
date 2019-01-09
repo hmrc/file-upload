@@ -70,6 +70,8 @@ object EnvelopeConstraintsConfiguration {
     val defaultEnvelopeConstraints: Either[ConstraintsValidationFailure, EnvelopeFilesConstraints] =
       getFileConstraintsFromConfig(keyPrefix = "constraints.default")
 
+    val enforceHttps = runModeConfiguration.getBoolean("constraints.enforceHttps").getOrElse(false)
+
     validateExpiryDate(times.now, times.max, times.default) match {
       case Right(_) =>
         for {
@@ -79,7 +81,8 @@ object EnvelopeConstraintsConfiguration {
           acceptedEnvelopeConstraints = accepted,
           defaultEnvelopeConstraints = default,
           maxExpiryDuration,
-          defaultExpiryDuration
+          defaultExpiryDuration,
+          enforceHttps
         )
       case Left(error) => Left(error)
     }
@@ -144,4 +147,5 @@ object EnvelopeConstraintsConfiguration {
 case class EnvelopeConstraintsConfiguration(acceptedEnvelopeConstraints: EnvelopeFilesConstraints,
                                             defaultEnvelopeConstraints: EnvelopeFilesConstraints,
                                             maxExpirationDuration: Duration,
-                                            defaultExpirationDuration: Duration)
+                                            defaultExpirationDuration: Duration,
+                                            enforceHttps: Boolean)
