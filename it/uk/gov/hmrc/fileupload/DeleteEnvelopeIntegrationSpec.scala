@@ -80,9 +80,10 @@ class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, true))
 
       Then("File should in the progress files list")
-      val listShouldBe = Json.obj("_id" -> fileRefId.value, "envelopeId" -> envelopeId.value, "fileId" -> fileId.value, "startedAt" -> 0)
-      getInProgressFiles().body shouldBe s"[$listShouldBe]"
-
+      eventually {
+        val listShouldBe = Json.obj("_id" -> fileRefId.value, "envelopeId" -> envelopeId.value, "fileId" -> fileId.value, "startedAt" -> 0)
+        getInProgressFiles().body shouldBe s"[$listShouldBe]"
+      }
 
       When("I call DELETE /file-upload/envelopes/:envelope-id")
       val envelopeResponse = deleteEnvelopFor(envelopeId)

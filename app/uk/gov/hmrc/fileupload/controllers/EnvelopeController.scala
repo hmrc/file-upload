@@ -63,14 +63,13 @@ class EnvelopeController(withBasicAuth: BasicAuth,
       expiryTimes = durationsToDateTime(envelopeConstraintsConfigure.defaultExpirationDuration, envelopeConstraintsConfigure.maxExpirationDuration)
       userExpiryDate = request.body.expiryDate.orElse(Some(expiryTimes.default))
       _ <- validateExpiryDate(expiryTimes.now, expiryTimes.max, userExpiryDate.get).right
-      _ <- validateCallbackUrl(request)
+      _ <- validateCallbackUrl(request, envelopeConstraintsConfigure)
     } yield {
       val command = CreateEnvelope(nextId(), request.body.callbackUrl, userExpiryDate, request.body.metadata, Some(envelopeConstraints))
       val userAgent = request.headers.get("User-Agent").getOrElse("none")
       Logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
       handleCreate(envelopeLocation, command)
     }
-
 
     result match {
       case Right(successfulResult) =>
@@ -82,19 +81,26 @@ class EnvelopeController(withBasicAuth: BasicAuth,
 
   }
 
-  private def validateCallbackUrl(request: Request[CreateEnvelopeRequest]): Either[InvalidCallbackUrl, Unit] = {
+  private def validateCallbackUrl(request: Request[CreateEnvelopeRequest], envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration):
+  Either[InvalidCallbackUrl, Unit] = {
 
-    val allowedProtocols = Seq("https")
+    if (envelopeConstraintsConfigure.enforceHttps) {
 
-    request.body.callbackUrl match {
-      case None => Right(())
-      case Some(url) =>
-        for {
-          parsedUrl <- Either.catchNonFatal(new URL(url)).leftMap(_ => InvalidCallbackUrl(url))
-          _ <- if (allowedProtocols.contains(parsedUrl.getProtocol)) Right() else Left(InvalidCallbackUrl(url))
-        } yield ()
+      val allowedProtocols = Seq("https")
+
+      request.body.callbackUrl match {
+        case None => Right(())
+        case Some(url) =>
+          for {
+            parsedUrl <- Either.catchNonFatal(new URL(url)).leftMap(_ => InvalidCallbackUrl(url))
+            _ <- if (allowedProtocols.contains(parsedUrl.getProtocol)) Right() else Left(InvalidCallbackUrl(url))
+          } yield ()
+      }
+    } else {
+
+      Right(())
+
     }
-
 
   }
 

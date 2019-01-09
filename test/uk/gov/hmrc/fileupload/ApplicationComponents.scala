@@ -70,7 +70,8 @@ trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
     acceptedEnvelopeConstraints = EnvelopeFilesConstraints(acceptedMaxItems, acceptedMaxSize, acceptedMaxSizePerItem, Some(false)),
     defaultEnvelopeConstraints  = EnvelopeFilesConstraints(defaultMaxItems, defaultMaxSize, defaultMaxSizePerItem, Some(true)),
     Duration.parse("PT4H"),
-    Duration.parse("PT1H"))
+    Duration.parse("PT1H"),
+    true)
 }
 
 class TestApplicationModule(context: Context) extends ApplicationModule(context = context) {
