@@ -37,7 +37,8 @@ trait IntegrationTestApplicationComponents extends OneServerPerSuite with MongoS
     ApplicationLoader.createContext(env, initialSettings = Map(
       "mongodb.uri" -> s"mongodb://localhost:27017/$databaseName",
       "auditing.enabled" -> "false",
-      "feature.basicAuthEnabled" -> "true"
+      "feature.basicAuthEnabled" -> "true",
+      "constraints.enforceHttps" -> "false"
     ))
   }
 
