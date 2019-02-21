@@ -80,6 +80,8 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   override lazy val mode: Mode = context.environment.mode
   override lazy val runModeConfiguration: Configuration = configuration
 
+  override def appNameConfiguration: Configuration = configuration
+
   val envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration = {
     EnvelopeConstraintsConfiguration.getEnvelopeConstraintsConfiguration(runModeConfiguration) match {
       case Right(envelopeConstraints) ⇒ envelopeConstraints
@@ -231,7 +233,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   lazy val routingController = new RoutingController(envelopeCommandHandler)
 
-  lazy val healthRoutes = new HealthRoutes(httpErrorHandler, new uk.gov.hmrc.play.health.AdminController(configuration))
+  lazy val healthRoutes = new HealthRoutes(httpErrorHandler, new uk.gov.hmrc.play.health.HealthController(configuration, context.environment))
 
   lazy val appRoutes = new AppRoutes(httpErrorHandler, envelopeController, fileController, eventController,
     commandController)
@@ -262,6 +264,10 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   object MicroserviceAuditConnector extends AuditConnector with RunMode {
     override lazy val auditingConfig = LoadAuditingConfig(s"auditing")
+
+    override protected def mode: Mode = context.environment.mode
+
+    override protected def runModeConfiguration: Configuration = configuration
   }
 
   object MicroserviceAuditFilter extends AuditFilter with AppName {
@@ -270,6 +276,8 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     override val auditConnector = MicroserviceAuditConnector
 
     override def controllerNeedsAuditing(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsAuditing
+
+    override protected def appNameConfiguration: Configuration = configuration
   }
 
   object MicroserviceLoggingFilter extends LoggingFilter {
