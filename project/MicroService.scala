@@ -9,13 +9,11 @@ import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
 import uk.gov.hmrc.versioning.SbtGitVersioning
 import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
-import uk.gov.hmrc.SbtArtifactory
 
 trait MicroService {
 
   import uk.gov.hmrc._
   import DefaultBuildSettings._
-  import TestPhases._
 
   val appName: String
 
@@ -37,7 +35,7 @@ trait MicroService {
 
   lazy val microservice = Project(appName, file("."))
     .enablePlugins(plugins : _*)
-    .settings(majorVersion := 1)
+    .settings(majorVersion := 2)
     .settings(PlayKeys.playDefaultPort := 8898)
     .settings(playSettings ++ scoverageSettings: _*)
     .settings(playSettings : _*)

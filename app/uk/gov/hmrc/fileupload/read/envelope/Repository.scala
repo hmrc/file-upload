@@ -17,7 +17,6 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 import cats.data.Xor
-import com.codahale.metrics.MetricRegistry
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.Json
 import play.api.mvc.{Result, Results}
@@ -29,9 +28,8 @@ import reactivemongo.core.errors.DatabaseException
 import reactivemongo.play.json.ImplicitBSONHandlers
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.mongo.ReactiveRepository
-
-import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.language.postfixOps
 
 object Repository {

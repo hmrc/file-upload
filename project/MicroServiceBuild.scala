@@ -11,10 +11,10 @@ private object AppDependencies {
   import play.sbt.PlayImport._
   import play.core.PlayVersion
 
-  private val microserviceBootstrapVersion = "8.5.0"
+  private val microserviceBootstrapVersion = "10.4.0"
   private val domainVersion = "5.2.0"
   private val hmrcTestVersion = "3.2.0"
-  private val playReactivemongoVersion = "6.2.0"
+  private val playReactivemongoVersion = "6.4.0"
   private val akkaVersion = "2.4.10"
   private val catsVersion = "0.7.0"
   private val authClientVersion = "2.17.0-play-25"
@@ -39,12 +39,12 @@ private object AppDependencies {
     def apply() = new TestDependencies {
       override lazy val test = Seq(
         "uk.gov.hmrc" %% "hmrctest" % hmrcTestVersion % scope,
-        "org.scalatest" %% "scalatest" % "2.2.6" % scope,
+        "org.scalatest" %% "scalatest" % "3.0.5" % scope,
         "org.pegdown" % "pegdown" % "1.5.0" % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
         "uk.gov.hmrc" %% "reactivemongo-test" % "3.1.0" % scope,
         "com.typesafe.akka" % "akka-testkit_2.11" % akkaVersion % scope,
-        "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.0" % scope
+        "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.1" % scope
       )
     }.test
   }
