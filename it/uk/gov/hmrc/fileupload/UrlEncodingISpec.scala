@@ -30,11 +30,6 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       And("I have uploaded a file")
       sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, data.getBytes().length))
 
-      eventually {
-        val envelopeResponse = getEnvelopeFor(envelopeId)
-        envelopeResponse.status shouldBe OK
-      }
-
       When("I call GET /file-upload/envelopes/:envelope-id")
       val envelopeResponse = getEnvelopeFor(envelopeId)
 
