@@ -20,7 +20,6 @@ import java.util.UUID
 
 import play.api.libs.json._
 import play.api.mvc.PathBindable
-import play.core.routing.dynamicString
 
 case class EnvelopeId(value: String = UUID.randomUUID().toString) extends AnyVal {
   override def toString: String = value
@@ -58,7 +57,7 @@ object FileId {
   implicit val urlBinder: PathBindable[FileId] =
     new SimpleObjectBinder[FileId](
       FileId.apply, // decoding is not consistent, done by play for all endpoints parameters
-      fId => dynamicString(fId.value) )
+      _.value )
 }
 
 case class FileRefId(value: String) extends AnyVal {
