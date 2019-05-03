@@ -33,22 +33,20 @@ object NotifierRepository {
 
   implicit val notificationFormats: Format[Notification] = Json.format[Notification]
 
-  sealed trait NotifyError
-  case class NoConsumerRegisteredError(envelopeId: EnvelopeId, fileId: FileId) extends NotifyError
-  case class NotificationFailedError(envelopeId: EnvelopeId, fileId: FileId, reason: String) extends NotifyError
+  case class NotifyError(envelopeId: EnvelopeId, fileId: FileId, reason: String)
 
   def notify(httpCall: (WSRequest => Future[Xor[PlayHttpError, WSResponse]]), wSClient: WSClient)
             (notification: Notification, url: String)
             (implicit executionContext: ExecutionContext): Future[NotifyResult] =
     httpCall(wSClient
       .url(s"$url")
-      .withHeaders("User-Agent" -> "FU-backend")
+      .withHeaders("User-Agent" -> "file-upload")
       .withBody(Json.toJson(notification))
       .withMethod("POST")).map {
-      case Xor.Left(error) => Xor.left(NotificationFailedError(notification.envelopeId, notification.fileId, error.message))
+      case Xor.Left(error) => Xor.left(NotifyError(notification.envelopeId, notification.fileId, error.message))
       case Xor.Right(response) => response.status match {
         case Status.OK => Xor.right(notification.envelopeId)
-        case _ => Xor.left(NotificationFailedError(notification.envelopeId, notification.fileId, response.body))
+        case _ => Xor.left(NotifyError(notification.envelopeId, notification.fileId, s"${response.status} ${response.body}"))
       }
     }
 }
