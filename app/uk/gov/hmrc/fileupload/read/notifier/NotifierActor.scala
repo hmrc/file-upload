@@ -53,11 +53,23 @@ class NotifierActor(subscribe: (ActorRef, Class[_]) => Boolean,
     }
   }
 
-  def notifyEnvelopeCallback(notification: Notification) =
-    findEnvelope(notification.envelopeId).map {
-      case Xor.Right(envelope) => envelope.callbackUrl.foreach(notify(notification, _))
-      case Xor.Left(e) => Logger.warn(e.toString)
+  def notifyEnvelopeCallback(notification: Notification) = {
+    findEnvelope(notification.envelopeId).flatMap {
+      case Xor.Right(envelope) =>
+        envelope.callbackUrl.map {
+          callbackUrl =>
+            notify(notification, callbackUrl).map {
+              case Xor.Right(envelopeId) => Logger.info(s"Successfully sent notification [${notification.status}] for envelope [$envelopeId]")
+              case Xor.Left(error) => Logger.warn(
+                s"Failed to send notification [${notification.status}] for envelope [${error.envelopeId}]. Reason [${error.reason}]"
+              )
+            }
+        }.getOrElse(Future.successful(()))
+      case Xor.Left(e) =>
+        Logger.warn(e.toString)
+        Future.successful(())
     }
+  }
 }
 
 object NotifierActor {
