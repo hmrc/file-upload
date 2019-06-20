@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.file.zip
 
 import java.io.{BufferedOutputStream, ByteArrayOutputStream}
+import java.security.MessageDigest
 import java.util.UUID
 import java.util.zip.ZipOutputStream
 
@@ -25,7 +26,7 @@ import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.util.ByteString
 import cats.data.Xor
 import play.api.Logger
-import play.api.libs.iteratee.Enumerator
+import play.api.libs.iteratee.{Done, Enumeratee, Enumerator, Input, Iteratee, Step}
 import play.api.libs.streams.Streams
 import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
 import uk.gov.hmrc.fileupload.file.zip.ZipStream.{ZipFileInfo, ZipStreamEnumerator}
@@ -58,7 +59,7 @@ object Zippy {
 
     getEnvelope(envelopeId) map {
       case Xor.Right(envelopeWithFiles @ Envelope(_, _, EnvelopeStatusClosed, _, _, _, _, Some(files), _, _)) =>
-        val zipFiles = files.collect {
+        val zipFiles: Seq[ZipFileInfo] = files.collect {
           case f =>
             val fileName = f.name.getOrElse(UUID.randomUUID().toString)
             Logger.info(s"""zipEnvelope: envelopeId=${envelopeWithFiles._id} fileId=${f.fileId} fileRefId=${f.fileRefId} length=${f.length.getOrElse(-1)} uploadDate=${f.uploadDate.getOrElse("-")}""")
@@ -67,17 +68,31 @@ object Zippy {
               Some(() => retrieveS3File(envelopeWithFiles._id, f.fileId).map { sourceToEnumerator })
             )
         }
-        Xor.right( ZipStreamEnumerator(zipFiles))
+
+        def logChecksum(bytesWithMetadata: BytesWithMetadata) = {
+          Logger.info(s"Retrieving zipped envelope [$envelopeId]. " +
+            s"Returned ZIP file with SHA256 chekcsum [${bytesWithMetadata.checksum()}] and size [${bytesWithMetadata.length}]")
+        }
+
+        val enumerator = ZipStreamEnumerator(zipFiles) through ByteStreamChecksumCalculator.computeChecksum(logChecksum)
+
+        Xor.right(enumerator)
 
       case Xor.Right(envelopeWithoutFiles @ Envelope(_, _, EnvelopeStatusClosed, _, _, _, _, None, _, _)) =>
-
+        Logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope was empty - returning empty ZIP file.")
         Xor.Right(emptyZip())
 
-      case Xor.Right(envelopeWithWrongStatus: Envelope) => Xor.left(EnvelopeNotRoutedYet)
+      case Xor.Right(envelopeWithWrongStatus: Envelope) =>
+        Logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope has wrong status [${envelopeWithWrongStatus.status}], returned error")
+        Xor.left(EnvelopeNotRoutedYet)
 
-      case Xor.Left(FindEnvelopeNotFoundError) => Xor.left(ZipEnvelopeNotFoundError)
+      case Xor.Left(FindEnvelopeNotFoundError) =>
+        Logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope not found, returned error")
+        Xor.left(ZipEnvelopeNotFoundError)
 
-      case Xor.Left(FindServiceError(message)) => Xor.left(ZipProcessingError(message))
+      case Xor.Left(FindServiceError(message)) =>
+        Logger.warn(s"Retrieving zipped envelope [$envelopeId]. Other error [$message]")
+        Xor.left(ZipProcessingError(message))
     }
   }
 
