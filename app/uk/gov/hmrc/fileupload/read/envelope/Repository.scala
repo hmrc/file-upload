@@ -22,12 +22,12 @@ import play.api.libs.json.Json
 import play.api.mvc.{Result, Results}
 import reactivemongo.api.commands.{WriteConcern, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.api.{DB, DBMetaCommands, ReadPreference}
+import reactivemongo.api.{Cursor, DB, DBMetaCommands, ReadPreference}
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.core.errors.DatabaseException
-import reactivemongo.play.json.ImplicitBSONHandlers
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.mongo.ReactiveRepository
+
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.language.postfixOps
@@ -54,13 +54,13 @@ object Repository {
 class Repository(mongo: () => DB with DBMetaCommands)
   extends ReactiveRepository[Envelope, BSONObjectID](collectionName = "envelopes-read-model", mongo, domainFormat = Envelope.envelopeFormat) {
 
-  val duplicateKeyErrroCode = Some(11000)
+  val duplicateKeyErrorCode = Some(11000)
 
   override def ensureIndexes(implicit ec:ExecutionContext) = {
     collection.indexesManager.ensure(Index(key = List("status" -> IndexType.Ascending, "destination" -> IndexType.Ascending), background = true)).map(Seq(_))
   }
 
-  import ImplicitBSONHandlers._
+  import reactivemongo.play.json.ImplicitBSONHandlers._
   import Repository._
 
   def update(writeConcern: WriteConcern = WriteConcern.Default)
@@ -112,13 +112,20 @@ class Repository(mongo: () => DB with DBMetaCommands)
     } getOrElse {
       Json.obj("status" -> EnvelopeStatusClosed.name)
     }
-    collection.find(query).cursor[Envelope](ReadPreference.secondaryPreferred).collect[List]()
+    collection.find(query).cursor[Envelope](ReadPreference.secondaryPreferred).collect[List](-1, Cursor.FailOnError())
   }
 
   def getByStatus(status: List[EnvelopeStatus], inclusive: Boolean)(implicit ec: ExecutionContext): Enumerator[Envelope] = {
+
+    import reactivemongo.play.iteratees.cursorProducer
+
     val operator = if (inclusive) "$in" else "$nin"
     val query = Json.obj("status" -> Json.obj(operator -> status.map(_.name)))
-    collection.find(query).cursor[Envelope](ReadPreference.secondaryPreferred).enumerate()
+
+    collection
+      .find(query)
+      .cursor[Envelope](ReadPreference.secondaryPreferred)
+      .enumerator()
   }
 
   def all()(implicit ec: ExecutionContext): Future[List[Envelope]] = {
@@ -126,7 +133,7 @@ class Repository(mongo: () => DB with DBMetaCommands)
   }
 
   def recreate()(implicit ec: ExecutionContext): Unit = {
-    Await.result(collection.drop(), 5 seconds)
+    Await.result(collection.drop(failIfNotFound = false), 5 seconds)
     Await.result(ensureIndexes(ec), 5 seconds)
   }
 

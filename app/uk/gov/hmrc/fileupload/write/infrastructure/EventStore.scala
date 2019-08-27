@@ -24,7 +24,7 @@ import play.api.Logger
 import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.api.commands.WriteConcern
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.api.{DB, DBMetaCommands}
+import reactivemongo.api.{Cursor, DB, DBMetaCommands}
 import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.fileupload.write.infrastructure.EventStore._
@@ -67,8 +67,8 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
   def ensureIndex(): Future[Boolean] =
     collection.indexesManager.ensure(Index(key = List("streamId" -> IndexType.Hashed), background = true))
 
-  val duplicateKeyErrroCode = Some(11000)
-  val envelopeEventsTreshold = 1000
+  val duplicateKeyErrorCode = Some(11000)
+  val envelopeEventsThreshold = 1000
 
   val saveTimer = metrics.timer("mongo.eventStore.write")
   val readTimer = metrics.timer("mongo.eventStore.read")
@@ -83,7 +83,7 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
         Xor.left(NotSavedError("not saved"))
       }
     }.recover {
-      case e: DatabaseException if e.code == duplicateKeyErrroCode =>
+      case e: DatabaseException if e.code == duplicateKeyErrorCode =>
         Xor.Left(VersionConflictError)
       case e =>
         Xor.left(NotSavedError(e.getMessage))
@@ -95,15 +95,15 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
 
   override def unitsOfWorkForAggregate(streamId: StreamId): Future[GetResult] = {
     val context = readTimer.time()
-    collection.find(BSONDocument("streamId" -> streamId.value)).cursor[UnitOfWork]().collect[List]().map { l =>
+    collection.find(BSONDocument("streamId" -> streamId.value), None).cursor[UnitOfWork]().collect[List](-1, Cursor.FailOnError()).map { l =>
       val sortByVersion = l.sortBy(_.version.value)
       val size = sortByVersion.size
-      if (size >= envelopeEventsTreshold) {
+      if (size >= envelopeEventsThreshold) {
         val elapsedNanos = context.stop()
         val elapsed = FiniteDuration(elapsedNanos, TimeUnit.NANOSECONDS)
 
         largeEnvelopeMarker.mark()
-        if (size % envelopeEventsTreshold <= 20) {
+        if (size % envelopeEventsThreshold <= 20) {
           Logger.warn(s"large envelope: envelopeId=$streamId size=$size time=${elapsed.toMillis} ms")
         }
         if (size % 100 == 0) {
@@ -126,7 +126,7 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
   }
 
   override def recreate(): Unit = {
-    Await.result(collection.drop(), 5 seconds)
+    Await.result(collection.drop(failIfNotFound = false), 5 seconds)
     Await.result(ensureIndex(), 5 seconds)
   }
 }
