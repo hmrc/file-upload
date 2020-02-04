@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload
 import java.net.InetSocketAddress
 import java.util.UUID
 
-import akka.actor.ActorRef
+import akka.actor.{ActorRef, ActorSystem}
 import com.codahale.metrics.graphite.{Graphite, GraphiteReporter}
 import com.codahale.metrics.{MetricFilter, SharedMetricRegistries}
 import com.kenshoo.play.metrics.{MetricsController, MetricsFilterImpl, MetricsImpl}
@@ -47,7 +47,7 @@ import uk.gov.hmrc.fileupload.manualdihealth.{Routes => HealthRoutes}
 import uk.gov.hmrc.fileupload.prod.Routes
 import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => EnvelopeService, _}
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
-import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor}
+import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor, StatsLogWriter, StatsLogger, StatsLoggingConfiguration, StatsLoggingScheduler, Repository => StatsRepository}
 import uk.gov.hmrc.fileupload.routing.{Routes => RoutingRoutes}
 import uk.gov.hmrc.fileupload.testonly.TestOnlyController
 import uk.gov.hmrc.fileupload.transfer.{Routes => TransferRoutes}
@@ -134,6 +134,11 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   actorSystem.actorOf(StatsActor.props(subscribe, findEnvelope, sendNotification, saveFileQuarantinedStat,
     deleteVirusDetectedStat, deleteFileStoredStat, deleteFiles), "statsActor")
 
+  private def initializeStatsLogging(system: ActorSystem, repository: StatsRepository, configuration: StatsLoggingConfiguration): Unit = {
+    new StatsLoggingScheduler(system, configuration, new StatsLogger(repository, new StatsLogWriter()))
+  }
+
+  initializeStatsLogging(actorSystem, statsRepository, statsLoggingConfiguration)
 
   override lazy val httpFilters: Seq[EssentialFilter] = Seq(
     new UserAgentRequestFilter(metrics.defaultRegistry, UserAgent.allKnown, UserAgent.defaultIgnoreList),
@@ -161,7 +166,8 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute, wsClient) _
 
 
-  lazy val statsRepository = uk.gov.hmrc.fileupload.read.stats.Repository.apply(db)
+  lazy val statsLoggingConfiguration = StatsLoggingConfiguration.from(runModeConfiguration)
+  lazy val statsRepository = StatsRepository.apply(db)
   lazy val saveFileQuarantinedStat = Stats.save(statsRepository.insert) _
   lazy val deleteFileStoredStat = Stats.deleteFileStored(statsRepository.delete) _
   lazy val deleteVirusDetectedStat = Stats.deleteVirusDetected(statsRepository.delete) _
