@@ -135,8 +135,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     deleteVirusDetectedStat, deleteFileStoredStat, deleteFiles), "statsActor")
 
   // initialize in-progress files logging actor
-  val statsLoggingScheduler: StatsLoggingScheduler =
-    new StatsLoggingScheduler(actorSystem, statsLoggingConfiguration, new StatsLogger(statsRepository, new StatsLogWriter()))
+  StatsLoggingScheduler.initialize(actorSystem, statsLoggingConfiguration, new StatsLogger(statsRepository, new StatsLogWriter()))
 
   override lazy val httpFilters: Seq[EssentialFilter] = Seq(
     new UserAgentRequestFilter(metrics.defaultRegistry, UserAgent.allKnown, UserAgent.defaultIgnoreList),

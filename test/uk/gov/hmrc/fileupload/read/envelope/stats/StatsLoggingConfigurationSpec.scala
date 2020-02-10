@@ -27,25 +27,27 @@ class StatsLoggingConfigurationSpec extends UnitSpec {
   "Given a valid set of configuration values, creating logging configuration" should {
     "return the expected logging configuration" in {
       val runModeConfiguration = Configuration.from(Map(
-        "stats.inprogressfiles.initialdelay" -> 500,
-        "stats.inprogressfiles.interval" -> 1000)
-      )
+        "stats.inprogressfiles.initialdelay" -> "500 milliseconds",
+        "stats.inprogressfiles.interval" -> "1 second",
+        "stats.inprogressfiles.timeperiod" -> "1 day"
+      ))
       val loggingConfiguration = StatsLoggingConfiguration(runModeConfiguration)
       loggingConfiguration shouldBe
-        StatsLoggingConfiguration(Duration(500, MILLISECONDS), Duration(1000, MILLISECONDS), None)
+        StatsLoggingConfiguration(Duration(500, MILLISECONDS), Duration(1000, MILLISECONDS), Duration(1, DAYS), None)
     }
   }
 
   "Given a valid set of configuration values including maximum in progress files, creating logging configuration" should {
     "return the expected logging configuration" in {
       val runModeConfiguration = Configuration.from(Map(
-        "stats.inprogressfiles.initialdelay" -> 500,
-        "stats.inprogressfiles.interval" -> 1000,
+        "stats.inprogressfiles.initialdelay" -> "500 milliseconds",
+        "stats.inprogressfiles.interval" -> "1 second",
+        "stats.inprogressfiles.timeperiod" -> "1 days",
         "stats.inprogressfiles.maximum" -> 25
       ))
       val loggingConfiguration = StatsLoggingConfiguration(runModeConfiguration)
       loggingConfiguration shouldBe
-        StatsLoggingConfiguration(Duration(500, MILLISECONDS), Duration(1000, MILLISECONDS), Some(25))
+        StatsLoggingConfiguration(Duration(500, MILLISECONDS), Duration(1000, MILLISECONDS), Duration(1, DAYS), Some(25))
     }
   }
 
@@ -69,8 +71,7 @@ class StatsLoggingConfigurationSpec extends UnitSpec {
       val configurationError = intercept[RuntimeException] {
         StatsLoggingConfiguration(runModeConfiguration)
       }
-      assert(configurationError.getMessage.contains(
-        "Invalid value at 'stats.inprogressfiles.initialdelay'"))
+      assert(configurationError.getMessage.contains("Invalid value at 'stats.inprogressfiles.initialdelay"))
     }
   }
 }

@@ -51,8 +51,10 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually wit
   val previousFile1 = InProgressFile(FileRefId("abc"), EnvelopeId(), FileId(), previousDayAsMilli)
   val previousFile2 = InProgressFile(FileRefId("def"), EnvelopeId(), FileId(), previousDayAsMilli)
 
+  val oneDayDuration = FiniteDuration(1, DAYS)
+
   "Given an in-progress-files repository, when the logging function is called" should {
-    "log the number of in-progress files added today as warning if it exceeds the maximum" in {
+    "log the number of in-progress files added over a time period as warning if it exceeds the maximum" in {
       val repository = Repository(mongo)
       repository.removeAll().futureValue
 
@@ -65,7 +67,7 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually wit
         Await.result(repository.all().size, 500.millis) shouldBe 2
       }
 
-      statsLogger.logAddedToday(Some(0))
+      statsLogger.logAddedOverTimePeriod(oneDayDuration, Some(0))
       eventually {
         verify(playLogger).logRepoWarning(2, 0)
       }
@@ -84,7 +86,7 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually wit
         Await.result(repository.all().size, 500.millis) shouldBe 2
       }
 
-      statsLogger.logAddedToday(Some(10))
+      statsLogger.logAddedOverTimePeriod(oneDayDuration, Some(10))
       eventually {
         verify(playLogger).logRepoSize(2)
       }
@@ -103,7 +105,7 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually wit
         Await.result(repository.all().size, 500.millis) shouldBe 2
       }
 
-      statsLogger.logAddedToday(Some(0))
+      statsLogger.logAddedOverTimePeriod(oneDayDuration, Some(0))
       eventually {
         verify(playLogger).logRepoSize(0)
       }
@@ -124,7 +126,7 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually wit
         Await.result(repository.all().size, 500.millis) shouldBe 4
       }
 
-      statsLogger.logAddedToday(Some(0))
+      statsLogger.logAddedOverTimePeriod(oneDayDuration, Some(0))
       eventually {
         verify(playLogger).logRepoWarning(2, 0)
       }

@@ -16,23 +16,28 @@
 
 package uk.gov.hmrc.fileupload.read.stats
 
-import java.time.Instant
-import java.time.temporal.ChronoUnit.DAYS
+import java.time.{Instant, Duration => JDuration}
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, Cancellable}
 import play.api.libs.json._
 import play.api.{Configuration, Logger}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Success, Try}
 
-class StatsLoggingScheduler(actorSystem: ActorSystem,
-                            configuration: StatsLoggingConfiguration,
-                            statsLogger: StatsLogger)
-                           (implicit executionContext: ExecutionContext) {
+object StatsLoggingScheduler {
 
-  actorSystem.scheduler.schedule(configuration.initialDelay, configuration.interval) {
-    statsLogger.logAddedToday(configuration.maximumInProgressFiles)
+  def initialize(actorSystem: ActorSystem,
+                 configuration: StatsLoggingConfiguration,
+                 statsLogger: StatsLogger)
+                (implicit executionContext: ExecutionContext): Cancellable = {
+
+    actorSystem.scheduler.schedule(configuration.initialDelay, configuration.interval) {
+      statsLogger.logAddedOverTimePeriod(
+        configuration.timePeriod, configuration.maximumInProgressFiles
+      )
+    }
   }
 }
 
@@ -40,22 +45,23 @@ class StatsLogger(statsRepository: Repository,
                   statsLogger: StatsLogWriter)
                  (implicit executionContext: ExecutionContext) {
 
-  def logAddedToday(maximumInProgressFiles: Option[Int]): Future[Unit] = {
-    countAddedToday().map { added =>
+  def logAddedOverTimePeriod(timePeriod: Duration,
+                             maximumInProgressFiles: Option[Int]): Future[Unit] = {
+    countAddedOverTimePeriod(timePeriod).map { added =>
       maximumInProgressFiles match {
-        case Some(maximum: Int) => checkIfAddedTodayExceedsMaximum(added, maximum)
+        case Some(maximum: Int) => checkIfAddedExceedsMaximum(added, maximum)
         case None => statsLogger.logRepoSize(added)
       }
     }
   }
 
-  private def checkIfAddedTodayExceedsMaximum(added: Int, maximum: Int): Unit = {
+  private def checkIfAddedExceedsMaximum(added: Int, maximum: Int): Unit = {
       if (added > maximum) statsLogger.logRepoWarning(added, maximum)
       else statsLogger.logRepoSize(added)
   }
 
-  private def countAddedToday(): Future[Int] = {
-    countAddedSince(Instant.now.minus(1, DAYS))
+  private def countAddedOverTimePeriod(duration: Duration): Future[Int] = {
+    countAddedSince(Instant.now.minus(JDuration.ofMillis(duration.toMillis)))
   }
 
   private def countAddedSince(start: Instant): Future[Int] = {
@@ -80,21 +86,24 @@ object StatsLoggingConfiguration {
   def apply(runModeConfiguration: Configuration): StatsLoggingConfiguration = {
     val initialDelayKey = "stats.inprogressfiles.initialdelay"
     val intervalKey = "stats.inprogressfiles.interval"
+    val timePeriodKey = "stats.inprogressfiles.timeperiod"
     val maximumInProgressFiles = "stats.inprogressfiles.maximum"
 
-    val delayFromConfig: FiniteDuration = durationFromConfig(initialDelayKey, runModeConfiguration)
-    val intervalFromConfig: FiniteDuration = durationFromConfig(intervalKey, runModeConfiguration)
-    val maximumFromConfig = runModeConfiguration.getInt(maximumInProgressFiles)
-
-    StatsLoggingConfiguration(delayFromConfig, intervalFromConfig, maximumFromConfig)
+    StatsLoggingConfiguration(
+      initialDelay = durationFromConfig(initialDelayKey, runModeConfiguration),
+      interval = durationFromConfig(intervalKey, runModeConfiguration),
+      timePeriod = durationFromConfig(timePeriodKey, runModeConfiguration),
+      maximumInProgressFiles = runModeConfiguration.getInt(maximumInProgressFiles))
   }
 
   private def durationFromConfig(key: String, configuration: Configuration): FiniteDuration = {
-    configuration
-      .getMilliseconds(key)
+    configuration.getMilliseconds(key)
       .map(Duration(_, MILLISECONDS))
       .getOrElse(throw new RuntimeException(s"Missing configuration value for StatsLoggingConfiguration: $key"))
   }
 }
 
-case class StatsLoggingConfiguration(initialDelay: FiniteDuration, interval: FiniteDuration, maximumInProgressFiles: Option[Int])
+case class StatsLoggingConfiguration(initialDelay: FiniteDuration,
+                                     interval: FiniteDuration,
+                                     timePeriod: FiniteDuration,
+                                     maximumInProgressFiles: Option[Int])
