@@ -30,7 +30,7 @@ class StatsLoggingConfigurationSpec extends UnitSpec {
         "stats.inprogressfiles.initialdelay" -> 500,
         "stats.inprogressfiles.interval" -> 1000)
       )
-      val loggingConfiguration = StatsLoggingConfiguration.from(runModeConfiguration)
+      val loggingConfiguration = StatsLoggingConfiguration(runModeConfiguration)
       loggingConfiguration shouldBe
         StatsLoggingConfiguration(Duration(500, MILLISECONDS), Duration(1000, MILLISECONDS), None)
     }
@@ -43,7 +43,7 @@ class StatsLoggingConfigurationSpec extends UnitSpec {
         "stats.inprogressfiles.interval" -> 1000,
         "stats.inprogressfiles.maximum" -> 25
       ))
-      val loggingConfiguration = StatsLoggingConfiguration.from(runModeConfiguration)
+      val loggingConfiguration = StatsLoggingConfiguration(runModeConfiguration)
       loggingConfiguration shouldBe
         StatsLoggingConfiguration(Duration(500, MILLISECONDS), Duration(1000, MILLISECONDS), Some(25))
     }
@@ -53,7 +53,7 @@ class StatsLoggingConfigurationSpec extends UnitSpec {
     "throw a RuntimeException detailing error" in {
       val runModeConfiguration = Configuration.from(Map())
       val configurationError = intercept[RuntimeException] {
-          StatsLoggingConfiguration.from(runModeConfiguration)
+          StatsLoggingConfiguration(runModeConfiguration)
         }
       assert(configurationError.getMessage.contains(
         "Missing configuration value for StatsLoggingConfiguration: stats.inprogressfiles.initialdelay"))
@@ -67,7 +67,7 @@ class StatsLoggingConfigurationSpec extends UnitSpec {
         "stats.inprogressfiles.interval" -> "bar"
       ))
       val configurationError = intercept[RuntimeException] {
-        StatsLoggingConfiguration.from(runModeConfiguration)
+        StatsLoggingConfiguration(runModeConfiguration)
       }
       assert(configurationError.getMessage.contains(
         "Invalid value at 'stats.inprogressfiles.initialdelay'"))

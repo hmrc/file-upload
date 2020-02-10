@@ -134,11 +134,9 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   actorSystem.actorOf(StatsActor.props(subscribe, findEnvelope, sendNotification, saveFileQuarantinedStat,
     deleteVirusDetectedStat, deleteFileStoredStat, deleteFiles), "statsActor")
 
-  private def initializeStatsLogging(system: ActorSystem, repository: StatsRepository, configuration: StatsLoggingConfiguration): Unit = {
-    new StatsLoggingScheduler(system, configuration, new StatsLogger(repository, new StatsLogWriter()))
-  }
-
-  initializeStatsLogging(actorSystem, statsRepository, statsLoggingConfiguration)
+  // initialize in-progress files logging actor
+  val statsLoggingScheduler: StatsLoggingScheduler =
+    new StatsLoggingScheduler(actorSystem, statsLoggingConfiguration, new StatsLogger(statsRepository, new StatsLogWriter()))
 
   override lazy val httpFilters: Seq[EssentialFilter] = Seq(
     new UserAgentRequestFilter(metrics.defaultRegistry, UserAgent.allKnown, UserAgent.defaultIgnoreList),
@@ -166,7 +164,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute, wsClient) _
 
 
-  lazy val statsLoggingConfiguration = StatsLoggingConfiguration.from(runModeConfiguration)
+  lazy val statsLoggingConfiguration = StatsLoggingConfiguration(runModeConfiguration)
   lazy val statsRepository = StatsRepository.apply(db)
   lazy val saveFileQuarantinedStat = Stats.save(statsRepository.insert) _
   lazy val deleteFileStoredStat = Stats.deleteFileStored(statsRepository.delete) _

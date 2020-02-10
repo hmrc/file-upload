@@ -14,7 +14,7 @@ private object AppDependencies {
   private val microserviceBootstrapVersion = "10.6.0"
   private val domainVersion = "5.2.0"
   private val hmrcTestVersion = "3.3.0"
-  private val simpleReactiveMongoVesion = "7.20.0-play-25"
+  private val simpleReactiveMongoVesion = "7.23.0-play-25"
   private val akkaVersion = "2.5.18"
   private val catsVersion = "0.7.0"
   private val authClientVersion = "2.27.0-play-25"

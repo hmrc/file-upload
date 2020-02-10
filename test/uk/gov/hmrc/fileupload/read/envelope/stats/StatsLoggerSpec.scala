@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.read.envelope.stats
 
 import java.time.{LocalDateTime, ZoneId}
 
-import org.mockito.Mockito.{verify, verifyZeroInteractions}
+import org.mockito.Mockito.verify
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.mockito.MockitoSugar.{mock => mmock}
@@ -29,8 +29,8 @@ import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually with ScalaFutures with BeforeAndAfterAll {
 
@@ -52,7 +52,7 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually wit
   val previousFile2 = InProgressFile(FileRefId("def"), EnvelopeId(), FileId(), previousDayAsMilli)
 
   "Given an in-progress-files repository, when the logging function is called" should {
-    "log the number of in-progress files added today" in {
+    "log the number of in-progress files added today as warning if it exceeds the maximum" in {
       val repository = Repository(mongo)
       repository.removeAll().futureValue
 
@@ -62,77 +62,16 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually wit
       repository.insert(todayFile1)
       repository.insert(todayFile2)
       eventually {
-        Await.result(repository.count, 500.millis) shouldBe 2
+        Await.result(repository.all().size, 500.millis) shouldBe 2
       }
 
-      statsLogger.logAddedToday()
-      eventually {
-        verify(playLogger).logRepoSize(2)
-      }
-    }
-
-    "not log files added on previous days" in {
-      val repository = Repository(mongo)
-      repository.removeAll().futureValue
-
-      val playLogger = mmock[StatsLogWriter]
-      val statsLogger = new StatsLogger(repository, playLogger)
-
-      repository.insert(previousFile1)
-      repository.insert(previousFile2)
-      eventually {
-        Await.result(repository.count, 500.millis) shouldBe 2
-      }
-
-      statsLogger.logAddedToday()
-      eventually {
-        verify(playLogger).logRepoSize(0)
-      }
-    }
-
-    "only log files from today" in {
-      val repository = Repository(mongo)
-      repository.removeAll().futureValue
-
-      val playLogger = mmock[StatsLogWriter]
-      val statsLogger = new StatsLogger(repository, playLogger)
-
-      repository.insert(previousFile1)
-      repository.insert(previousFile2)
-      repository.insert(todayFile1)
-      repository.insert(todayFile2)
-      eventually {
-        Await.result(repository.count, 500.millis) shouldBe 4
-      }
-
-      statsLogger.logAddedToday()
-      eventually {
-        verify(playLogger).logRepoSize(2)
-      }
-    }
-  }
-
-  "Given an in-progress-files repository, when the checking function is called" should {
-    "log the number of in-progress files added today if it exceeds the maximum" in {
-      val repository = Repository(mongo)
-      repository.removeAll().futureValue
-
-      val playLogger = mmock[StatsLogWriter]
-      val statsLogger = new StatsLogger(repository, playLogger)
-
-      repository.insert(todayFile1)
-      repository.insert(todayFile2)
-      eventually {
-        Await.result(repository.count, 500.millis) shouldBe 2
-      }
-
-      statsLogger.checkAddedToday(0)
+      statsLogger.logAddedToday(Some(0))
       eventually {
         verify(playLogger).logRepoWarning(2, 0)
       }
     }
 
-    "not log the number of in-progress files added today if it is less than the maximum" in {
+    "log the number of in-progress files added today as info if it is less than the maximum" in {
       val repository = Repository(mongo)
       repository.removeAll().futureValue
 
@@ -142,16 +81,16 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually wit
       repository.insert(todayFile1)
       repository.insert(todayFile2)
       eventually {
-        Await.result(repository.count, 500.millis) shouldBe 2
+        Await.result(repository.all().size, 500.millis) shouldBe 2
       }
 
-      statsLogger.checkAddedToday(10)
+      statsLogger.logAddedToday(Some(10))
       eventually {
-        verifyZeroInteractions(playLogger)
+        verify(playLogger).logRepoSize(2)
       }
     }
 
-    "not log files added on previous days" in {
+    "not count files added on previous days in logs" in {
       val repository = Repository(mongo)
       repository.removeAll().futureValue
 
@@ -161,16 +100,16 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually wit
       repository.insert(previousFile1)
       repository.insert(previousFile2)
       eventually {
-        Await.result(repository.count, 500.millis) shouldBe 2
+        Await.result(repository.all().size, 500.millis) shouldBe 2
       }
 
-      statsLogger.checkAddedToday(0)
+      statsLogger.logAddedToday(Some(0))
       eventually {
-        verifyZeroInteractions(playLogger)
+        verify(playLogger).logRepoSize(0)
       }
     }
 
-    "only log files from today" in {
+    "only count files from today in logs" in {
       val repository = Repository(mongo)
       repository.removeAll().futureValue
 
@@ -182,10 +121,10 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually wit
       repository.insert(todayFile1)
       repository.insert(todayFile2)
       eventually {
-        Await.result(repository.count, 500.millis) shouldBe 4
+        Await.result(repository.all().size, 500.millis) shouldBe 4
       }
 
-      statsLogger.checkAddedToday(0)
+      statsLogger.logAddedToday(Some(0))
       eventually {
         verify(playLogger).logRepoWarning(2, 0)
       }

@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.fileupload.read.stats
 
-import java.time.{LocalDateTime, ZoneId}
+import java.time.Instant
+import java.time.temporal.ChronoUnit.DAYS
 
 import akka.actor.ActorSystem
 import play.api.libs.json._
@@ -31,44 +32,42 @@ class StatsLoggingScheduler(actorSystem: ActorSystem,
                            (implicit executionContext: ExecutionContext) {
 
   actorSystem.scheduler.schedule(configuration.initialDelay, configuration.interval) {
-    configuration.maximumInProgressFiles match {
-      case Some(maximumFilesInProgress: Int) => statsLogger.checkAddedToday(maximumFilesInProgress)
-      case None => statsLogger.logAddedToday()
-    }
+    statsLogger.logAddedToday(configuration.maximumInProgressFiles)
   }
 }
 
-class StatsLogger(statsRepository: Repository, statsLogger: StatsLogWriter)(implicit executionContext: ExecutionContext) {
+class StatsLogger(statsRepository: Repository,
+                  statsLogger: StatsLogWriter)
+                 (implicit executionContext: ExecutionContext) {
 
-  def logAddedToday(): Future[Unit] = {
-    addedToday().map { added =>
-      statsLogger.logRepoSize(added)
+  def logAddedToday(maximumInProgressFiles: Option[Int]): Future[Unit] = {
+    countAddedToday().map { added =>
+      maximumInProgressFiles match {
+        case Some(maximum: Int) => checkIfAddedTodayExceedsMaximum(added, maximum)
+        case None => statsLogger.logRepoSize(added)
+      }
     }
   }
 
-  def checkAddedToday(maximum: Int): Future[Unit] = {
-    addedToday().map { added =>
+  private def checkIfAddedTodayExceedsMaximum(added: Int, maximum: Int): Unit = {
       if (added > maximum) statsLogger.logRepoWarning(added, maximum)
       else statsLogger.logRepoSize(added)
-    }
   }
 
-  private def addedToday(): Future[Int] = {
-    val startCurrentDate: Long = LocalDateTime.now()
-      .minusDays(1)
-      .atZone(ZoneId.of("UTC"))
-      .toInstant
-      .toEpochMilli
+  private def countAddedToday(): Future[Int] = {
+    countAddedSince(Instant.now.minus(1, DAYS))
+  }
 
-    statsRepository.find("startedAt" -> Json.obj(("$gt" -> startCurrentDate))).map { addedToday =>
-      addedToday.size
+  private def countAddedSince(start: Instant): Future[Int] = {
+    statsRepository.find("startedAt" -> Json.obj("$gt" -> start.toEpochMilli)).map { addedSinceStart =>
+      addedSinceStart.size
     }
   }
 }
 
 class StatsLogWriter {
   def logRepoSize(count: Int): Unit = {
-    Logger.debug(s"Number of in progress files added today is: $count")
+    Logger.info(s"Number of in progress files added today is: $count")
   }
 
   def logRepoWarning(count: Int, maximum: Int): Unit = {
@@ -78,26 +77,23 @@ class StatsLogWriter {
 
 object StatsLoggingConfiguration {
 
-  def from(runModeConfiguration: Configuration): StatsLoggingConfiguration = {
+  def apply(runModeConfiguration: Configuration): StatsLoggingConfiguration = {
     val initialDelayKey = "stats.inprogressfiles.initialdelay"
     val intervalKey = "stats.inprogressfiles.interval"
     val maximumInProgressFiles = "stats.inprogressfiles.maximum"
 
-    val delayFromConfig: FiniteDuration = runModeConfiguration
-      .getMilliseconds(initialDelayKey)
-      .map(Duration(_, MILLISECONDS))
-      .getOrElse(throwConfigurationException(initialDelayKey))
-    val intervalFromConfig: FiniteDuration = runModeConfiguration
-      .getMilliseconds(intervalKey)
-      .map(Duration(_, MILLISECONDS))
-      .getOrElse(throwConfigurationException(intervalKey))
+    val delayFromConfig: FiniteDuration = durationFromConfig(initialDelayKey, runModeConfiguration)
+    val intervalFromConfig: FiniteDuration = durationFromConfig(intervalKey, runModeConfiguration)
     val maximumFromConfig = runModeConfiguration.getInt(maximumInProgressFiles)
 
     StatsLoggingConfiguration(delayFromConfig, intervalFromConfig, maximumFromConfig)
   }
 
-  private def throwConfigurationException(key: String) = {
-    throw new RuntimeException(s"Missing configuration value for StatsLoggingConfiguration: $key")
+  private def durationFromConfig(key: String, configuration: Configuration): FiniteDuration = {
+    configuration
+      .getMilliseconds(key)
+      .map(Duration(_, MILLISECONDS))
+      .getOrElse(throw new RuntimeException(s"Missing configuration value for StatsLoggingConfiguration: $key"))
   }
 }
 
