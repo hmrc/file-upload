@@ -14,7 +14,7 @@ private object AppDependencies {
   private val microserviceBootstrapVersion = "10.6.0"
   private val domainVersion = "5.2.0"
   private val hmrcTestVersion = "3.3.0"
-  private val simpleReactiveMongoVesion = "7.20.0-play-25"
+  private val simpleReactiveMongoVesion = "7.23.0-play-25"
   private val akkaVersion = "2.5.18"
   private val catsVersion = "0.7.0"
   private val authClientVersion = "2.27.0-play-25"
@@ -50,7 +50,9 @@ private object AppDependencies {
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
         "uk.gov.hmrc" %% "reactivemongo-test" % "4.15.0-play-25" % scope,
         "com.typesafe.akka" % "akka-testkit_2.11" % akkaVersion % scope,
-        "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlusPlayVersion % scope
+        "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlusPlayVersion % scope,
+        "org.mockito" % "mockito-core" % "2.21.0" % scope,
+        "org.scalamock" %% "scalamock-scalatest-support" % "3.6.0" % scope
       )
     }.test
   }
