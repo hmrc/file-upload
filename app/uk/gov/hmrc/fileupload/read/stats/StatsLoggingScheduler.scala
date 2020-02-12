@@ -24,7 +24,6 @@ import play.api.{Configuration, Logger}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Success, Try}
 
 object StatsLoggingScheduler {
 
@@ -49,15 +48,15 @@ class StatsLogger(statsRepository: Repository,
                              maximumInProgressFiles: Option[Int]): Future[Unit] = {
     countAddedOverTimePeriod(timePeriod).map { added =>
       maximumInProgressFiles match {
-        case Some(maximum: Int) => checkIfAddedExceedsMaximum(added, maximum)
-        case None => statsLogger.logRepoSize(added)
+        case Some(maximum: Int) => checkIfAddedExceedsMaximum(added, maximum, timePeriod)
+        case None => statsLogger.logRepoSize(added, timePeriod)
       }
     }
   }
 
-  private def checkIfAddedExceedsMaximum(added: Int, maximum: Int): Unit = {
-      if (added > maximum) statsLogger.logRepoWarning(added, maximum)
-      else statsLogger.logRepoSize(added)
+  private def checkIfAddedExceedsMaximum(added: Int, maximum: Int, timePeriod: Duration): Unit = {
+      if (added > maximum) statsLogger.logRepoWarning(added, maximum, timePeriod)
+      else statsLogger.logRepoSize(added, timePeriod)
   }
 
   private def countAddedOverTimePeriod(duration: Duration): Future[Int] = {
@@ -72,13 +71,14 @@ class StatsLogger(statsRepository: Repository,
 }
 
 class StatsLogWriter {
-  def logRepoSize(count: Int): Unit = {
-    Logger.info(s"Number of in progress files added today is: $count")
-  }
+  def logRepoSize(count: Int, timePeriod: Duration): Unit =
+    Logger.info(addedOverTimePeriod(count, timePeriod))
 
-  def logRepoWarning(count: Int, maximum: Int): Unit = {
-    Logger.warn(s"Number of in progress files is $count, maximum healthy size is: $maximum")
-  }
+  def logRepoWarning(count: Int, maximum: Int, timePeriod: Duration): Unit =
+    Logger.warn(s"Number of in progress files exceeds maximum $maximum. " + addedOverTimePeriod(count, timePeriod))
+
+  private def addedOverTimePeriod(count: Int, timePeriod: Duration): String =
+    s"Number of in progress files added is: $count over ${timePeriod.toMinutes} minutes"
 }
 
 object StatsLoggingConfiguration {

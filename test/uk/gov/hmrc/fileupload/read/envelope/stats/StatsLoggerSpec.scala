@@ -69,7 +69,7 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually wit
 
       statsLogger.logAddedOverTimePeriod(oneDayDuration, Some(0))
       eventually {
-        verify(playLogger).logRepoWarning(2, 0)
+        verify(playLogger).logRepoWarning(2, 0, oneDayDuration)
       }
     }
 
@@ -88,7 +88,7 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually wit
 
       statsLogger.logAddedOverTimePeriod(oneDayDuration, Some(10))
       eventually {
-        verify(playLogger).logRepoSize(2)
+        verify(playLogger).logRepoSize(2, oneDayDuration)
       }
     }
 
@@ -107,7 +107,7 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually wit
 
       statsLogger.logAddedOverTimePeriod(oneDayDuration, Some(0))
       eventually {
-        verify(playLogger).logRepoSize(0)
+        verify(playLogger).logRepoSize(0, oneDayDuration)
       }
     }
 
@@ -128,7 +128,7 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually wit
 
       statsLogger.logAddedOverTimePeriod(oneDayDuration, Some(0))
       eventually {
-        verify(playLogger).logRepoWarning(2, 0)
+        verify(playLogger).logRepoWarning(2, 0, oneDayDuration)
       }
     }
   }
