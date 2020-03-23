@@ -70,7 +70,7 @@ Clients that aim to upload a single file and have no need for "routing", can fol
 
 - Once the file is CLEANED, it is moved to the TRANSIENT bucket and the status of the file changes to AVAILABLE.
 
-- If a file is found to have a virus, the file remains in the QUARANTINE bucket and the status changes to INFECTED (click [here](TODO add section about how to recover) for how to recover from this).
+- If a file is found to have a virus, the file is permanently deleted (please note, files that are known to contain a virus must be deleted under storage provider terms, and cannot remain in QUARANTINE).
 
 #### File Statuses
 
@@ -87,7 +87,7 @@ Clients that aim to upload a single file and have no need for "routing", can fol
 This happens when an envelope contains one or more files that have been found to be infected.
 
 #### What happens to INFECTED files?
-If a file is found to be INFECTED, the client has a number of options: - 
+If a file is found to be INFECTED, the file is deleted from storage. 
 
 ##### Get notified
 If a callbackUrl was provided, the client will be notified about the infected file, for example: - 
@@ -102,7 +102,6 @@ If a callbackUrl was provided, the client will be notified about the infected fi
 ##### Manually check and recover
 The client can take the following steps: - 
 - Request for the status of the envelope; this will retrieve the current state of the envelope and will list the status of all the files contained within the envelope ([show envelope endpoint](https://github.com/hmrc/file-upload#show-envelope))
-- Delete the INFECTED file ([delete file endpoint](https://github.com/hmrc/file-upload#hard-delete-a-file))
 - Download the AVAILABLE files ([download file endpoint](https://github.com/hmrc/file-upload#download-file))
 - Re-upload files
 
