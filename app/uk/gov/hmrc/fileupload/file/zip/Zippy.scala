@@ -67,17 +67,24 @@ object Zippy {
               Some(() => retrieveS3File(envelopeWithFiles._id, f.fileId).map { sourceToEnumerator })
             )
         }
-        Xor.right( ZipStreamEnumerator(zipFiles))
+        Xor.right(ZipStreamEnumerator(zipFiles))
 
       case Xor.Right(envelopeWithoutFiles @ Envelope(_, _, EnvelopeStatusClosed, _, _, _, _, None, _, _)) =>
-
+        Logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope was empty - returning empty ZIP file.")
         Xor.Right(emptyZip())
 
-      case Xor.Right(envelopeWithWrongStatus: Envelope) => Xor.left(EnvelopeNotRoutedYet)
+      case Xor.Right(envelopeWithWrongStatus: Envelope) =>
+        Logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope has wrong status [${envelopeWithWrongStatus.status}], returned error")
+        Xor.left(EnvelopeNotRoutedYet)
 
-      case Xor.Left(FindEnvelopeNotFoundError) => Xor.left(ZipEnvelopeNotFoundError)
+      case Xor.Left(FindEnvelopeNotFoundError) =>
+        Logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope not found, returned error")
+        Xor.left(ZipEnvelopeNotFoundError)
 
-      case Xor.Left(FindServiceError(message)) => Xor.left(ZipProcessingError(message))
+      case Xor.Left(FindServiceError(message)) =>
+        Logger.warn(s"Retrieving zipped envelope [$envelopeId]. Other error [$message]")
+        Xor.left(ZipProcessingError(message))
+
     }
   }
 
