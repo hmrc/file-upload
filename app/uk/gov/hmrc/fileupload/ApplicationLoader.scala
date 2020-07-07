@@ -236,6 +236,8 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   lazy val routingController = new RoutingController(envelopeCommandHandler)
 
+  lazy val sdesCallbackController = new SDESCallbackController()
+
   lazy val healthRoutes = new HealthRoutes(httpErrorHandler, new uk.gov.hmrc.play.health.HealthController(configuration, context.environment))
 
   lazy val appRoutes = new AppRoutes(httpErrorHandler, envelopeController, fileController, eventController,
@@ -243,7 +245,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   lazy val transferRoutes = new TransferRoutes(httpErrorHandler, transferController)
 
-  lazy val routingRoutes = new RoutingRoutes(httpErrorHandler, routingController)
+  lazy val routingRoutes = new RoutingRoutes(httpErrorHandler, routingController, sdesCallbackController)
 
   lazy val metricsController = new MetricsController(metrics)
   lazy val adminRoutes = new AdminRoutes(httpErrorHandler, new Provider[MetricsController] {
