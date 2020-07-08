@@ -46,7 +46,7 @@ import uk.gov.hmrc.fileupload.infrastructure._
 import uk.gov.hmrc.fileupload.manualdihealth.{Routes => HealthRoutes}
 import uk.gov.hmrc.fileupload.prod.Routes
 import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => EnvelopeService, _}
-import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository, RoutingNotifierActor}
+import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository, RoutingActor}
 import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor, StatsLogWriter, StatsLogger, StatsLoggingConfiguration, StatsLoggingScheduler, Repository => StatsRepository}
 import uk.gov.hmrc.fileupload.routing.{Routes => RoutingRoutes}
 import uk.gov.hmrc.fileupload.testonly.TestOnlyController
@@ -130,22 +130,11 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val db = new ReactiveMongoComponentImpl(configuration, environment, applicationLifecycle).mongoConnector.db
 
 
-  def buildDownloadLink(envelopeId: EnvelopeId): scala.concurrent.Future[String] = scala.concurrent.Future.successful{
-    // TODO we may need to call the frontend to generate a pre-signed URL instead...
-    val host = configuration.getString("microservice.services.self.host")
-    val downloadCall = uk.gov.hmrc.fileupload.controllers.transfer.routes.TransferController.download(envelopeId)
-    s"https://$host$downloadCall"
-  }
-
-  def lookupPublishUrl(destination: String): Option[String] = configuration.getString(s"publishurl.$destination")
-
-  lazy val publishDownloadLink = NotifierRepository.publishDownloadLink(auditedHttpExecute, wsClient) _
-
   // notifier
   actorSystem.actorOf(NotifierActor.props(subscribe, findEnvelope, sendNotification), "notifierActor")
   actorSystem.actorOf(StatsActor.props(subscribe, findEnvelope, sendNotification, saveFileQuarantinedStat,
     deleteVirusDetectedStat, deleteFileStoredStat, deleteFiles), "statsActor")
-  actorSystem.actorOf(RoutingNotifierActor.props(subscribe, buildDownloadLink, lookupPublishUrl, findEnvelope, publishDownloadLink), "routingNotifierActor")
+
 
   // initialize in-progress files logging actor
   StatsLoggingScheduler.initialize(actorSystem, statsLoggingConfiguration, new StatsLogger(statsRepository, new StatsLogWriter()))
@@ -224,6 +213,29 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val commandController = {
     new CommandController(envelopeCommandHandler)
   }
+
+  def buildDownloadLink(envelopeId: EnvelopeId): scala.concurrent.Future[String] = scala.concurrent.Future.successful{
+    // TODO we may need to call the frontend to generate a pre-signed URL instead...
+    val host = configuration.getString("microservice.services.self.host")
+    val downloadCall = uk.gov.hmrc.fileupload.controllers.transfer.routes.TransferController.download(envelopeId)
+    s"https://$host$downloadCall"
+  }
+
+  def lookupPublishUrl(destination: String): Option[String] = configuration.getString(s"publishurl.$destination")
+
+  lazy val publishDownloadLink = NotifierRepository.publishDownloadLink(auditedHttpExecute, wsClient) _
+
+  // it listens for RouteRequested events, but it could also run on a scheduler for retries...
+  actorSystem.actorOf(
+    RoutingActor.props(
+      subscribe,
+      buildDownloadLink,
+      lookupPublishUrl,
+      findEnvelope,
+      publishDownloadLink,
+      handleCommand = envelopeCommandHandler
+      ),
+    "routingActor")
 
   lazy val fileUploadFrontendBaseUrl = baseUrl("file-upload-frontend")
 

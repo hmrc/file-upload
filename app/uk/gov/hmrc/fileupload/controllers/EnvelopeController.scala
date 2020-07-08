@@ -93,7 +93,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
         case Some(url) =>
           for {
             parsedUrl <- Either.catchNonFatal(new URL(url)).leftMap(_ => InvalidCallbackUrl(url))
-            _ <- if (allowedProtocols.contains(parsedUrl.getProtocol)) Right() else Left(InvalidCallbackUrl(url))
+            _ <- if (allowedProtocols.contains(parsedUrl.getProtocol)) Right(()) else Left(InvalidCallbackUrl(url))
           } yield ()
       }
     } else {
@@ -151,7 +151,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
       case Xor.Right(_) => Ok
       case Xor.Left(FileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
       case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Left(EnvelopeAlreadyRoutedError | EnvelopeSealedError) =>
+      case Xor.Left(EnvelopeRoutingAlreadyRequestedError | EnvelopeSealedError) =>
         ExceptionHandler(LOCKED, s"File not deleted, as routing request already received for envelope: $id sealed")
       case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "File not deleted")
     }.recover { case e => ExceptionHandler(e) }

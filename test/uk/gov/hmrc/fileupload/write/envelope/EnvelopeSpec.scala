@@ -203,7 +203,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         envelopeCreated And envelopeRouted,
         QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
-        EnvelopeAlreadyRoutedError
+        EnvelopeRoutingAlreadyRequestedError
       )
     }
 
@@ -524,7 +524,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         envelopeCreated And envelopeRouted,
         DeleteEnvelope(envelopeId),
-        EnvelopeAlreadyRoutedError
+        EnvelopeRoutingAlreadyRequestedError
       )
     }
 
@@ -649,7 +649,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         envelopeCreated And envelopeRouted,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
-        EnvelopeAlreadyRoutedError
+        EnvelopeRoutingAlreadyRequestedError
       )
     }
 
@@ -724,7 +724,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         envelopeCreated And envelopeRouted,
         UnsealEnvelope(envelopeId),
-        EnvelopeAlreadyRoutedError
+        EnvelopeRoutingAlreadyRequestedError
       )
     }
 

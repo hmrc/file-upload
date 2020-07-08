@@ -54,6 +54,8 @@ case class SealEnvelope(id: EnvelopeId, routingRequestId: String, destination: S
 
 case class UnsealEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
+case class MarkAsRouted(id: EnvelopeId) extends EnvelopeCommand // TODO name for this? Can we avoid it? (e.g. fire an event rather than handle a command after routing?)
+
 case class ArchiveEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
 // events
@@ -85,6 +87,8 @@ case class EnvelopeSealed(id: EnvelopeId, routingRequestId: String, destination:
 
 case class EnvelopeUnsealed(id: EnvelopeId) extends EnvelopeEvent
 
+case class EnvelopeRouteRequested(id: EnvelopeId) extends EnvelopeEvent
+
 case class EnvelopeRouted(id: EnvelopeId) extends EnvelopeEvent
 
 case class EnvelopeArchived(id: EnvelopeId) extends EnvelopeEvent
@@ -107,6 +111,7 @@ object Formatters {
   implicit val envelopeDeletedFormat: Format[EnvelopeDeleted] = Json.format[EnvelopeDeleted]
   implicit val envelopeSealedFormat: Format[EnvelopeSealed] = Json.format[EnvelopeSealed]
   implicit val envelopeUnsealedFormat: Format[EnvelopeUnsealed] = Json.format[EnvelopeUnsealed]
+  implicit val envelopeRouteRequestedFormat: Format[EnvelopeRouteRequested] = Json.format[EnvelopeRouteRequested]
   implicit val envelopeRoutedFormat: Format[EnvelopeRouted] = Json.format[EnvelopeRouted]
   implicit val envelopeArchivedFormat: Format[EnvelopeArchived] = Json.format[EnvelopeArchived]
 }
@@ -124,6 +129,7 @@ object EventSerializer {
   private val envelopeDeleted = nameOf(EnvelopeDeleted.getClass)
   private val envelopeSealed = nameOf(EnvelopeSealed.getClass)
   private val envelopeUnsealed = nameOf(EnvelopeUnsealed.getClass)
+  private val envelopeRouteRequested = nameOf(EnvelopeRouteRequested.getClass)
   private val envelopeRouted = nameOf(EnvelopeRouted.getClass)
   private val envelopeArchived = nameOf(EnvelopeArchived.getClass)
 
@@ -141,6 +147,7 @@ object EventSerializer {
       case `envelopeDeleted` => Json.fromJson[EnvelopeDeleted](value).get
       case `envelopeSealed` => Json.fromJson[EnvelopeSealed](value).get
       case `envelopeUnsealed` => Json.fromJson[EnvelopeUnsealed](value).get
+      case `envelopeRouteRequested` => Json.fromJson[EnvelopeRouteRequested](value).get
       case `envelopeRouted` => Json.fromJson[EnvelopeRouted](value).get
       case `envelopeArchived` => Json.fromJson[EnvelopeArchived](value).get
     }
@@ -156,6 +163,7 @@ object EventSerializer {
       case e: EnvelopeDeleted => Json.toJson(e)
       case e: EnvelopeSealed => Json.toJson(e)
       case e: EnvelopeUnsealed => Json.toJson(e)
+      case e: EnvelopeRouteRequested => Json.toJson(e)
       case e: EnvelopeRouted => Json.toJson(e)
       case e: EnvelopeArchived => Json.toJson(e)
     }
@@ -213,4 +221,4 @@ case object FileAlreadyProcessed extends EnvelopeCommandNotAccepted
 
 case object EnvelopeArchivedError extends EnvelopeCommandNotAccepted
 
-case object EnvelopeAlreadyRoutedError extends EnvelopeCommandNotAccepted
+case object EnvelopeRoutingAlreadyRequestedError extends EnvelopeCommandNotAccepted

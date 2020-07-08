@@ -39,8 +39,10 @@ class RoutingController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNo
       import requestParams._
       val requestId = newId()
       handleCommand(SealEnvelope(envelopeId, requestId, destination, application)).map {
-        case Xor.Right(_) => Created.withHeaders(LOCATION -> uk.gov.hmrc.fileupload.controllers.routing.routes.RoutingController.routingStatus(requestId).url)
-        case Xor.Left(EnvelopeSealedError) | Xor.Left(EnvelopeAlreadyRoutedError) =>
+        case Xor.Right(_) =>
+          Created.withHeaders(LOCATION -> uk.gov.hmrc.fileupload.controllers.routing.routes.RoutingController.routingStatus(requestId).url)
+        case Xor.Left(EnvelopeSealedError)
+           | Xor.Left(EnvelopeRoutingAlreadyRequestedError) =>
           ExceptionHandler(BAD_REQUEST, s"Routing request already received for envelope: $envelopeId")
         case Xor.Left(FilesWithError(ids)) =>
           ExceptionHandler(BAD_REQUEST, s"Files: ${ids.mkString("[", ", ", "]")} contain errors")

@@ -55,9 +55,9 @@ class RoutingControllerSpec extends UnitSpec with ApplicationComponents with Sca
       result.header.status shouldBe Status.CREATED
       result.header.headers(LOCATION) shouldBe uk.gov.hmrc.fileupload.controllers.routing.routes.RoutingController.routingStatus(routingRequestId).url
     }
-    "return 400 bad request if envelope already routed" in {
+    "return 400 bad request if routing envelope already requested" in {
       val controller = newController(handleCommand = _ => Future.successful(
-        Xor.Left(EnvelopeAlreadyRoutedError)
+        Xor.Left(EnvelopeRoutingAlreadyRequestedError)
       ))
 
       val result = controller.createRoutingRequest()(validRequest).futureValue

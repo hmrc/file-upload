@@ -64,8 +64,8 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
       envelope.canStoreFile(command.fileId, command.fileRefId).map { _ =>
         val fileStored = FileStored(command.id, command.fileId, command.fileRefId, command.length)
 
-        if (withEvent(envelope, fileStored).canRoute.isRight) {
-          fileStored And EnvelopeRouted(command.id)
+        if (withEvent(envelope, fileStored).canRequestRoute.isRight) {
+          fileStored And EnvelopeRouteRequested(command.id)
         } else {
           fileStored
         }
@@ -81,8 +81,8 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
       envelope.canSeal(command.destination, envelope.constraints.getOrElse(acceptedConstraints)).map(_ => {
         val envelopeSealed = EnvelopeSealed(command.id, command.routingRequestId, command.destination, command.application)
 
-        if (withEvent(envelope, envelopeSealed).canRoute.isRight) {
-          envelopeSealed And EnvelopeRouted(command.id)
+        if (withEvent(envelope, envelopeSealed).canRequestRoute.isRight) {
+          envelopeSealed And EnvelopeRouteRequested(command.id)
         } else {
           envelopeSealed
         }
@@ -159,7 +159,12 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
 
 }
 
-case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated, constraints: Option[EnvelopeFilesConstraints] = None) {
+case class Envelope(
+  files        : Map[FileId, File]                = Map.empty,
+  state        : State                            = NotCreated,
+  constraints  : Option[EnvelopeFilesConstraints] = None,
+  isRoutePushed: Boolean                          = false
+) {
 
   def canCreate: CanResult = state.canCreate
 
@@ -182,7 +187,9 @@ case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCrea
 
   def canDelete: CanResult = state.canDelete
 
-  def canRoute: CanResult = state.canRoute(files.values.toSeq)
+  def canRequestRoute: CanResult = state.canRequestRoute(files.values.toSeq)
+
+  def canRoute(requiresPush: Boolean): CanResult = state.canRoute(requiresPush, isRoutePushed)
 
   def canArchive: CanResult = state.canArchive
 }
@@ -197,7 +204,7 @@ object State {
   val fileNotFoundError = Xor.left(FileNotFoundError)
   val envelopeSealedError = Xor.left(EnvelopeSealedError)
   val envelopeAlreadyArchivedError = Xor.left(EnvelopeArchivedError)
-  val envelopeAlreadyRoutedError = Xor.left(EnvelopeAlreadyRoutedError)
+  val envelopeRoutingAlreadyRequestedError = Xor.left(EnvelopeRoutingAlreadyRequestedError)
   val fileAlreadyProcessedError = Xor.left(FileAlreadyProcessed)
 }
 
@@ -224,7 +231,9 @@ sealed trait State {
 
   def canDelete: CanResult = genericError
 
-  def canRoute(files: Seq[File]): CanResult = genericError
+  def canRequestRoute(files: Seq[File]): CanResult = genericError
+
+  def canRoute(requiresPush: Boolean, isRoutePushed: Boolean): CanResult = genericError
 
   def canArchive: CanResult = genericError
 
@@ -325,7 +334,7 @@ object Sealed extends State {
 
   override def canUnseal: CanResult = successResult
 
-  override def canRoute(files: Seq[File]): CanResult = {
+  override def canRequestRoute(files: Seq[File]): CanResult = {
     val filesNotAvailable = files.filter(!_.isAvailable)
     if (filesNotAvailable.isEmpty) {
       successResult
@@ -337,13 +346,25 @@ object Sealed extends State {
   override def genericError: CanResult = envelopeSealedError
 }
 
+object RouteRequested extends State {
+  import State._
+
+  override def canRoute(requiresPush: Boolean, isRoutePushed: Boolean): CanResult =
+    if (!requiresPush || isRoutePushed)
+      successResult
+    else
+      genericError //Xor.Left(PushRequiredError)
+
+  override def genericError: CanResult = envelopeRoutingAlreadyRequestedError
+}
+
 object Routed extends State {
 
   import State._
 
   override def canArchive: CanResult = successResult
 
-  override def genericError: CanResult = envelopeAlreadyRoutedError
+  override def genericError: CanResult = envelopeRoutingAlreadyRequestedError // TODO new one?
 }
 
 object Archived extends State {
