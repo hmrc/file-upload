@@ -62,14 +62,12 @@ class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
     }
 
     case (s: Envelope, e: EnvelopeRouteRequested) => Some {
-      s.copy(status = EnvelopeStatusClosed)
+      s.copy(status = EnvelopeStatusRouteRequested)
     }
 
-    /* TODO do we need to distinguish between RouteRequested and Closed?
-    It must be closed to be downloadable, how would we display that it routing was requested, but not yet effected?
     case (s: Envelope, e: EnvelopeRouted) => Some {
       s.copy(status = EnvelopeStatusClosed)
-    }*/
+    }
 
     case (s: Envelope, e: EnvelopeArchived) => Some {
       s.copy(status = EnvelopeStatusDeleted)

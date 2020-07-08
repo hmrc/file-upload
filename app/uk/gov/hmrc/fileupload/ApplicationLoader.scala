@@ -46,7 +46,7 @@ import uk.gov.hmrc.fileupload.infrastructure._
 import uk.gov.hmrc.fileupload.manualdihealth.{Routes => HealthRoutes}
 import uk.gov.hmrc.fileupload.prod.Routes
 import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => EnvelopeService, _}
-import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository, RoutingActor}
+import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository, RoutingActor, RoutingActorConfig}
 import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor, StatsLogWriter, StatsLogger, StatsLoggingConfiguration, StatsLoggingScheduler, Repository => StatsRepository}
 import uk.gov.hmrc.fileupload.routing.{Routes => RoutingRoutes}
 import uk.gov.hmrc.fileupload.testonly.TestOnlyController
@@ -191,9 +191,10 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
       )(eventStore, defaultContext).handleCommand(command)
   }
 
+  lazy val getEnvelopesByStatus = envelopeRepository.getByStatus _
+
   lazy val envelopeController = {
     val nextId = () => EnvelopeId(UUID.randomUUID().toString)
-    val getEnvelopesByStatus = envelopeRepository.getByStatus _
     new EnvelopeController(
       withBasicAuth = withBasicAuth,
       nextId = nextId,
@@ -225,13 +226,17 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   lazy val publishDownloadLink = NotifierRepository.publishDownloadLink(auditedHttpExecute, wsClient) _
 
+  lazy val routingActorConfig = RoutingActorConfig(configuration)
+
   // it listens for RouteRequested events, but it could also run on a scheduler for retries...
   actorSystem.actorOf(
     RoutingActor.props(
+      config = routingActorConfig,
       subscribe,
       buildDownloadLink,
       lookupPublishUrl,
       findEnvelope,
+      getEnvelopesByStatus,
       publishDownloadLink,
       handleCommand = envelopeCommandHandler
       ),
