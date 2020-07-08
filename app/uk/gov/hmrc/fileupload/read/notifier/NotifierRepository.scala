@@ -49,4 +49,30 @@ object NotifierRepository {
         case _ => Xor.left(NotifyError(notification.envelopeId, notification.fileId, s"${response.status} ${response.body}"))
       }
     }
+
+  // TODO move to PublishRepository
+
+  type PublishResult = Xor[PublishError, Unit]
+  case class PublishError(downloadLink: String, publishUrl: String, reason: String)
+
+  def publishDownloadLink(
+    httpCall: WSRequest => Future[Xor[PlayHttpError, WSResponse]],
+    wSClient: WSClient
+  )(downloadLink: String,
+    publishUrl : String
+  )(implicit executionContext: ExecutionContext
+  ): Future[PublishResult] =
+    httpCall(
+      wSClient
+        .url(s"$publishUrl")
+        .withHeaders("User-Agent" -> "file-upload")
+        .withBody(downloadLink) // TODO payload?
+        .withMethod("POST")
+    ).map {
+      case Xor.Left(error) => Xor.left(PublishError(downloadLink, publishUrl, error.message))
+      case Xor.Right(response) => response.status match {
+        case Status.OK => Xor.right(())
+        case _ => Xor.left(PublishError(downloadLink, publishUrl, s"${response.status} ${response.body}"))
+      }
+    }
 }
