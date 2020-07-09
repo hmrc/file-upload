@@ -46,7 +46,8 @@ import uk.gov.hmrc.fileupload.infrastructure._
 import uk.gov.hmrc.fileupload.manualdihealth.{Routes => HealthRoutes}
 import uk.gov.hmrc.fileupload.prod.Routes
 import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => EnvelopeService, _}
-import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository, RoutingActor, RoutingActorConfig}
+import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
+import uk.gov.hmrc.fileupload.read.routing.{RoutingActor, RoutingConfig, RoutingRepository}
 import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor, StatsLogWriter, StatsLogger, StatsLoggingConfiguration, StatsLoggingScheduler, Repository => StatsRepository}
 import uk.gov.hmrc.fileupload.routing.{Routes => RoutingRoutes}
 import uk.gov.hmrc.fileupload.testonly.TestOnlyController
@@ -129,12 +130,10 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   lazy val db = new ReactiveMongoComponentImpl(configuration, environment, applicationLifecycle).mongoConnector.db
 
-
   // notifier
   actorSystem.actorOf(NotifierActor.props(subscribe, findEnvelope, sendNotification), "notifierActor")
   actorSystem.actorOf(StatsActor.props(subscribe, findEnvelope, sendNotification, saveFileQuarantinedStat,
     deleteVirusDetectedStat, deleteFileStoredStat, deleteFiles), "statsActor")
-
 
   // initialize in-progress files logging actor
   StatsLoggingScheduler.initialize(actorSystem, statsLoggingConfiguration, new StatsLogger(statsRepository, new StatsLogWriter()))
@@ -215,6 +214,8 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     new CommandController(envelopeCommandHandler)
   }
 
+  lazy val routingConfig = RoutingConfig(configuration)
+
   def buildDownloadLink(envelopeId: EnvelopeId): scala.concurrent.Future[String] = scala.concurrent.Future.successful{
     // TODO we may need to call the frontend to generate a pre-signed URL instead...
     val host = configuration.getString("microservice.services.self.host")
@@ -222,19 +223,15 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     s"https://$host$downloadCall"
   }
 
-  def lookupPublishUrl(destination: String): Option[String] = configuration.getString(s"publishurl.$destination")
-
-  lazy val publishDownloadLink = NotifierRepository.publishDownloadLink(auditedHttpExecute, wsClient) _
-
-  lazy val routingActorConfig = RoutingActorConfig(configuration)
+  lazy val publishDownloadLink = RoutingRepository.publishDownloadLink(auditedHttpExecute, wsClient) _
 
   // it listens for RouteRequested events, but it could also run on a scheduler for retries...
   actorSystem.actorOf(
     RoutingActor.props(
-      config = routingActorConfig,
+      config = routingConfig,
       subscribe,
       buildDownloadLink,
-      lookupPublishUrl,
+      lookupPublishUrl = routingConfig.lookupPublishUrl,
       findEnvelope,
       getEnvelopesByStatus,
       publishDownloadLink,

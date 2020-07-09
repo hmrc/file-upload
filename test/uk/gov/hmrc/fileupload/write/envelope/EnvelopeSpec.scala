@@ -57,6 +57,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
   val envelopeDeleted = EnvelopeDeleted(envelopeId)
   val envelopeSealed = EnvelopeSealed(envelopeId, "testRoutingRequestId", "DMS", "testApplication")
   val envelopeUnsealed = EnvelopeUnsealed(envelopeId)
+  val envelopeRouteRequested = EnvelopeRouteRequested(envelopeId)
   val envelopeRouted = EnvelopeRouted(envelopeId)
   val envelopeArchived = EnvelopeArchived(envelopeId)
 
@@ -410,7 +411,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         envelopeCreated And fileQuarantined And noVirusDetected And envelopeSealed,
         StoreFile(envelopeId, fileId, fileRefId, 100),
-        fileStored And envelopeRouted
+        fileStored And envelopeRouteRequested
       )
     }
 
@@ -545,7 +546,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         envelopeCreated,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
-        envelopeSealed And envelopeRouted
+        envelopeSealed And envelopeRouteRequested
       )
     }
 
@@ -595,7 +596,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         envelopeCreated And fileQuarantined And fileStored,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
-        envelopeSealed And envelopeRouted
+        envelopeSealed And envelopeRouteRequested
       )
     }
 
@@ -604,7 +605,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         envelopeCreated,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
-        envelopeSealed And envelopeRouted
+        envelopeSealed And envelopeRouteRequested
       )
     }
 
@@ -613,7 +614,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         envelopeCreated,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DESTINATION_X", "testApplication"),
-        envelopeSealed.copy(destination = "DESTINATION_X") And envelopeRouted
+        envelopeSealed.copy(destination = "DESTINATION_X") And envelopeRouteRequested
       )
     }
 

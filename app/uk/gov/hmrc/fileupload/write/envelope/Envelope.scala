@@ -93,6 +93,11 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
         EnvelopeUnsealed(command.id)
       })
 
+    case (command: MarkEnvelopeAsRouted, envelope: Envelope) =>
+      // TODO do we need requiresPush check? if may be enough to say if we get this command and we're in RequiresRouting state.
+      // otherwise need to feed through in MarkEnvelopeAsRouted (it comes from configuration)
+      envelope.canRoute(requiresPush = false).map(_ => EnvelopeRouted(command.id))
+
     case (command: ArchiveEnvelope, envelope: Envelope) =>
       envelope.canArchive.map(_ => EnvelopeArchived(command.id))
   }
@@ -124,6 +129,9 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
 
     case (envelope: Envelope, e: EnvelopeUnsealed) =>
       envelope.copy(state = Open)
+
+    case (envelope: Envelope, e: EnvelopeRouteRequested) =>
+      envelope.copy(state = RouteRequested)
 
     case (envelope: Envelope, e: EnvelopeRouted) =>
       envelope.copy(state = Routed)
@@ -353,7 +361,7 @@ object RouteRequested extends State {
     if (!requiresPush || isRoutePushed)
       successResult
     else
-      genericError //Xor.Left(PushRequiredError)
+      genericError // TODO Xor.Left(PushRequiredError)
 
   override def genericError: CanResult = envelopeRoutingAlreadyRequestedError
 }

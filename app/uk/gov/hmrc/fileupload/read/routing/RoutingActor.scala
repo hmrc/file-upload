@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.fileupload.read.notifier
+package uk.gov.hmrc.fileupload.read.routing
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import cats.data.Xor
@@ -23,25 +23,23 @@ import play.api.libs.iteratee.Enumerator
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusRouteRequested}
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
-import uk.gov.hmrc.fileupload.read.notifier.NotifierRepository.PublishResult
-import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeRouteRequested, MarkAsRouted}
+import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeRouteRequested, MarkEnvelopeAsRouted}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted, Event, EventData}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{DurationLong, FiniteDuration}
 
-// Notifies the backend when the file is routed
-// TODO either this is required, and only when successful, is the state changed to EnvelopeRouted
-// or it's not required, and the state changes immediately.
-// Is this the best way to do it? notifiers are for side-effects, which don't change the state?
+/** When the envelope is routed, if there is a registered endpoint, it will notify the recipient.
+  * It is triggered by the [[EnvelopeRouteRequested]] event, but also checks periodically for files needing routing, to retry.
+  */
 class RoutingActor(
-   config              :                                    RoutingActorConfig,
+   config              :                                    RoutingConfig,
    subscribe           : (ActorRef, Class[_])            => Boolean,
    buildDownloadLink   : EnvelopeId                      => Future[String],
    lookupPublishUrl    : String                          => Option[String],
    findEnvelope        : EnvelopeId                      => Future[FindResult],
    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope],
-   publishDownloadLink : (String, String)                => Future[PublishResult],
+   publishDownloadLink : (String, String)                => Future[RoutingRepository.PublishResult],
    handleCommand       : EnvelopeCommand                 => Future[Xor[CommandNotAccepted, CommandAccepted.type]]
  )(implicit executionContext: ExecutionContext
  ) extends Actor {
@@ -115,7 +113,7 @@ class RoutingActor(
       if (isRouted)
         // If this fails, consquence will be that it will be republished again... (once we set this up to run on a scheduler, picking up anything in RouteRequested state)
         // TODO to give up after x attempts, need to store attempt number somewhere...
-        handleCommand(MarkAsRouted(envelope._id)).map {
+        handleCommand(MarkEnvelopeAsRouted(envelope._id)).map {
           case Xor.Right(_) =>
           case Xor.Left(error) => logger.error(s"Could not mark envelope [${envelope._id}] as routed: $error")
         }.recover { case e => logger.error(s"Could not mark envelope [${envelope._id}] as routed: ${e.getMessage}", e) }
@@ -127,13 +125,13 @@ object RoutingActor {
   case object PushIfWaiting
 
   def props(
-    config              :                                    RoutingActorConfig,
+    config              :                                    RoutingConfig,
     subscribe           : (ActorRef, Class[_])            => Boolean,
     buildDownloadLink   : EnvelopeId                      => Future[String],
     lookupPublishUrl    : String                          => Option[String],
     findEnvelope        : EnvelopeId                      => Future[FindResult],
     getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope],
-    publishDownloadLink : (String, String)                => Future[PublishResult],
+    publishDownloadLink : (String, String)                => Future[RoutingRepository.PublishResult],
     handleCommand       : EnvelopeCommand                 => Future[Xor[CommandNotAccepted, CommandAccepted.type]]
   )(implicit executionContext: ExecutionContext
   ) =
@@ -147,22 +145,4 @@ object RoutingActor {
       publishDownloadLink  = publishDownloadLink,
       handleCommand        = handleCommand
     ))
-}
-
-// TODO rename to RoutingConfig, and move all routing related configuration here (incl. publish urls)
-case class RoutingActorConfig(
-  initialDelay: FiniteDuration,
-  interval    : FiniteDuration
-)
-
-object RoutingActorConfig {
-
-  def apply(config: Configuration): RoutingActorConfig = {
-    def getDuration(key: String) =
-      config.getMilliseconds(key).getOrElse(sys.error(s"Missing configuration: $key")).millis
-    RoutingActorConfig(
-      initialDelay = getDuration("routing.initialDelay"),
-      interval     = getDuration("routing.interval")
-    )
-  }
 }

@@ -54,7 +54,7 @@ case class SealEnvelope(id: EnvelopeId, routingRequestId: String, destination: S
 
 case class UnsealEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
-case class MarkAsRouted(id: EnvelopeId) extends EnvelopeCommand // TODO name for this? Can we avoid it? (e.g. fire an event rather than handle a command after routing?)
+case class MarkEnvelopeAsRouted(id: EnvelopeId) extends EnvelopeCommand
 
 case class ArchiveEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
