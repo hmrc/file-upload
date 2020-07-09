@@ -23,7 +23,7 @@ import play.api.libs.iteratee.Enumerator
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusRouteRequested}
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
-import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeRouteRequested, MarkEnvelopeAsRouted}
+import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeRouteRequested, MarkEnvelopeAsRouted, MarkEnvelopeAsRoutingAttempted}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted, Event, EventData}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -74,6 +74,9 @@ class RoutingActor(
   def receive = {
     case event: Event => event.eventData match {
       case e: EnvelopeRouteRequested =>
+        // race condition? we have the event EnvelopeRouteRequested, but it hasn't necessarily been serialised when we read back?
+        // TODO can we just rely on the scheduling?
+        Thread.sleep(1000)
         findEnvelope(e.id).flatMap {
           case Xor.Right(envelope) =>
             routeEnvelope(envelope)
@@ -97,23 +100,29 @@ class RoutingActor(
   }
 
   def routeEnvelope(envelope: Envelope): Future[Unit] = {
-    logger.info(s"Routing envelope [${envelope._id}] to: ${envelope.destination}")
-    envelope.destination.flatMap(lookupPublishUrl).fold(Future.successful(true)){ publishUrl =>
-      logger.info(s"envelope [${envelope._id}] to '${envelope.destination}' will be routed to '$publishUrl'")
-      for {
-        downloadLink <- buildDownloadLink(envelope._id)
-        res          <- publishDownloadLink(downloadLink, publishUrl)
-      } yield res match {
-        case Xor.Right(())   => logger.info(s"Successfully published routing for envelope [${envelope._id}]")
-                                true
-        case Xor.Left(error) => logger.warn(s"Failed to publish routing for envelope [${envelope._id}]. Reason [${error.reason}]")
-                                false
-      }
+    logger.info(s"Routing envelope [${envelope._id}] to: ${envelope.destination} (numRoutingAttempts= ${envelope.numRoutingAttempts})")
+    envelope.destination.flatMap(lookupPublishUrl)
+      .filter(_ => envelope.numRoutingAttempts.getOrElse(0) < config.maxNumRoutingAttempts) // this will mark the file as routed when we reach the maximum - TODO is it better to move to another state, e.g. MarkAsUndelivered?
+      .fold(Future.successful(true)){ publishUrl =>
+        logger.info(s"envelope [${envelope._id}] to '${envelope.destination}' will be routed to '$publishUrl'")
+        for {
+          downloadLink <- buildDownloadLink(envelope._id)
+          res          <- publishDownloadLink(downloadLink, publishUrl)
+        } yield res match {
+          case Xor.Right(())   => logger.info(s"Successfully published routing for envelope [${envelope._id}]")
+                                  true
+          case Xor.Left(error) => logger.warn(s"Failed to publish routing for envelope [${envelope._id}]. Reason [${error.reason}]")
+                                  false
+        }
     }.map { isRouted =>
       if (isRouted)
         // If this fails, consquence will be that it will be republished again... (once we set this up to run on a scheduler, picking up anything in RouteRequested state)
-        // TODO to give up after x attempts, need to store attempt number somewhere...
         handleCommand(MarkEnvelopeAsRouted(envelope._id)).map {
+          case Xor.Right(_) =>
+          case Xor.Left(error) => logger.error(s"Could not mark envelope [${envelope._id}] as routed: $error")
+        }.recover { case e => logger.error(s"Could not mark envelope [${envelope._id}] as routed: ${e.getMessage}", e) }
+      else
+        handleCommand(MarkEnvelopeAsRoutingAttempted(envelope._id)).map {
           case Xor.Right(_) =>
           case Xor.Left(error) => logger.error(s"Could not mark envelope [${envelope._id}] as routed: $error")
         }.recover { case e => logger.error(s"Could not mark envelope [${envelope._id}] as routed: ${e.getMessage}", e) }

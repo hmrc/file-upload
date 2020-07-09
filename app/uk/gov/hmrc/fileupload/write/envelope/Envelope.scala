@@ -64,6 +64,7 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
       envelope.canStoreFile(command.fileId, command.fileRefId).map { _ =>
         val fileStored = FileStored(command.id, command.fileId, command.fileRefId, command.length)
 
+        // TODO do we need this auto routing when storing files? will it cause pushes (and multiple) before the file is sealed?
         if (withEvent(envelope, fileStored).canRequestRoute.isRight) {
           fileStored And EnvelopeRouteRequested(command.id)
         } else {
@@ -78,7 +79,7 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
       envelope.canDelete.map(_ => EnvelopeDeleted(command.id))
 
     case (command: SealEnvelope, envelope: Envelope) =>
-      envelope.canSeal(command.destination, envelope.constraints.getOrElse(acceptedConstraints)).map(_ => {
+      envelope.canSeal(command.destination, envelope.constraints.getOrElse(acceptedConstraints)).map { _ =>
         val envelopeSealed = EnvelopeSealed(command.id, command.routingRequestId, command.destination, command.application)
 
         if (withEvent(envelope, envelopeSealed).canRequestRoute.isRight) {
@@ -86,16 +87,17 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
         } else {
           envelopeSealed
         }
-      })
+      }
 
     case (command: UnsealEnvelope, envelope: Envelope) =>
-      envelope.canUnseal.map(_ => {
-        EnvelopeUnsealed(command.id)
-      })
+      envelope.canUnseal.map(_ => EnvelopeUnsealed(command.id))
+
+    case (command: MarkEnvelopeAsRoutingAttempted, envelope: Envelope) =>
+      envelope.canAttemptRouting.map(_ => EnvelopeRouteAttempted(command.id))
 
     case (command: MarkEnvelopeAsRouted, envelope: Envelope) =>
       // TODO do we need requiresPush check? if may be enough to say if we get this command and we're in RequiresRouting state.
-      // otherwise need to feed through in MarkEnvelopeAsRouted (it comes from configuration)
+      // otherwise need to feed the requiresPush value through in MarkEnvelopeAsRouted (it comes from configuration)
       envelope.canRoute(requiresPush = false).map(_ => EnvelopeRouted(command.id))
 
     case (command: ArchiveEnvelope, envelope: Envelope) =>
@@ -131,7 +133,13 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
       envelope.copy(state = Open)
 
     case (envelope: Envelope, e: EnvelopeRouteRequested) =>
-      envelope.copy(state = RouteRequested)
+      envelope.copy(
+        state           = RouteRequested//,
+        //isPushRequired  = e.isPushRequired, // TODO can we add to event? (it comes from destination/configuration)
+      )
+
+    case (envelope: Envelope, e: EnvelopeRouteAttempted) =>
+      envelope.copy(numRoutingAttempt = envelope.numRoutingAttempt + 1)
 
     case (envelope: Envelope, e: EnvelopeRouted) =>
       envelope.copy(state = Routed)
@@ -168,10 +176,12 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
 }
 
 case class Envelope(
-  files        : Map[FileId, File]                = Map.empty,
-  state        : State                            = NotCreated,
-  constraints  : Option[EnvelopeFilesConstraints] = None,
-  isRoutePushed: Boolean                          = false
+  files            : Map[FileId, File]                = Map.empty,
+  state            : State                            = NotCreated,
+  constraints      : Option[EnvelopeFilesConstraints] = None,
+  isPushRequired   : Boolean                          = false,
+  isRoutePushed    : Boolean                          = false,
+  numRoutingAttempt: Int                              = 0
 ) {
 
   def canCreate: CanResult = state.canCreate
@@ -196,6 +206,8 @@ case class Envelope(
   def canDelete: CanResult = state.canDelete
 
   def canRequestRoute: CanResult = state.canRequestRoute(files.values.toSeq)
+
+  def canAttemptRouting: CanResult = state.canAttemptRouting
 
   def canRoute(requiresPush: Boolean): CanResult = state.canRoute(requiresPush, isRoutePushed)
 
@@ -240,6 +252,8 @@ sealed trait State {
   def canDelete: CanResult = genericError
 
   def canRequestRoute(files: Seq[File]): CanResult = genericError
+
+  def canAttemptRouting: CanResult = genericError
 
   def canRoute(requiresPush: Boolean, isRoutePushed: Boolean): CanResult = genericError
 
@@ -362,6 +376,8 @@ object RouteRequested extends State {
       successResult
     else
       genericError // TODO Xor.Left(PushRequiredError)
+
+  override def canAttemptRouting: CanResult = successResult
 
   override def genericError: CanResult = envelopeRoutingAlreadyRequestedError
 }
