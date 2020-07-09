@@ -225,7 +225,6 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   lazy val publishDownloadLink = RoutingRepository.publishDownloadLink(auditedHttpExecute, wsClient) _
 
-  // it listens for RouteRequested events, but it could also run on a scheduler for retries...
   actorSystem.actorOf(
     RoutingActor.props(
       config = routingConfig,

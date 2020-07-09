@@ -96,9 +96,7 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
       envelope.canAttemptRouting.map(_ => EnvelopeRouteAttempted(command.id))
 
     case (command: MarkEnvelopeAsRouted, envelope: Envelope) =>
-      // TODO do we need requiresPush check? if may be enough to say if we get this command and we're in RequiresRouting state.
-      // otherwise need to feed the requiresPush value through in MarkEnvelopeAsRouted (it comes from configuration)
-      envelope.canRoute(requiresPush = false).map(_ => EnvelopeRouted(command.id))
+      envelope.canRoute.map(_ => EnvelopeRouted(command.id))
 
     case (command: ArchiveEnvelope, envelope: Envelope) =>
       envelope.canArchive.map(_ => EnvelopeArchived(command.id))
@@ -179,8 +177,6 @@ case class Envelope(
   files            : Map[FileId, File]                = Map.empty,
   state            : State                            = NotCreated,
   constraints      : Option[EnvelopeFilesConstraints] = None,
-  isPushRequired   : Boolean                          = false,
-  isRoutePushed    : Boolean                          = false,
   numRoutingAttempt: Int                              = 0
 ) {
 
@@ -209,7 +205,7 @@ case class Envelope(
 
   def canAttemptRouting: CanResult = state.canAttemptRouting
 
-  def canRoute(requiresPush: Boolean): CanResult = state.canRoute(requiresPush, isRoutePushed)
+  def canRoute: CanResult = state.canRoute
 
   def canArchive: CanResult = state.canArchive
 }
@@ -255,7 +251,7 @@ sealed trait State {
 
   def canAttemptRouting: CanResult = genericError
 
-  def canRoute(requiresPush: Boolean, isRoutePushed: Boolean): CanResult = genericError
+  def canRoute: CanResult = genericError
 
   def canArchive: CanResult = genericError
 
@@ -371,11 +367,7 @@ object Sealed extends State {
 object RouteRequested extends State {
   import State._
 
-  override def canRoute(requiresPush: Boolean, isRoutePushed: Boolean): CanResult =
-    if (!requiresPush || isRoutePushed)
-      successResult
-    else
-      genericError // TODO Xor.Left(PushRequiredError)
+  override def canRoute: CanResult = successResult
 
   override def canAttemptRouting: CanResult = successResult
 
