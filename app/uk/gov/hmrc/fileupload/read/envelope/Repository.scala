@@ -16,9 +16,10 @@
 
 package uk.gov.hmrc.fileupload.read.envelope
 
+import akka.stream.scaladsl.Source
 import cats.data.Xor
-import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.Json
+import play.api.libs.streams.Streams
 import play.api.mvc.{Result, Results}
 import reactivemongo.api.commands.{WriteConcern, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
@@ -115,17 +116,18 @@ class Repository(mongo: () => DB with DBMetaCommands)
     collection.find(query).cursor[Envelope](ReadPreference.secondaryPreferred).collect[List](-1, Cursor.FailOnError())
   }
 
-  def getByStatus(status: List[EnvelopeStatus], inclusive: Boolean)(implicit ec: ExecutionContext): Enumerator[Envelope] = {
-
+  def getByStatus(status: List[EnvelopeStatus], inclusive: Boolean)(implicit ec: ExecutionContext): Source[Envelope, akka.NotUsed] = {
     import reactivemongo.play.iteratees.cursorProducer
 
     val operator = if (inclusive) "$in" else "$nin"
     val query = Json.obj("status" -> Json.obj(operator -> status.map(_.name)))
 
-    collection
+    val enumerator = collection
       .find(query)
       .cursor[Envelope](ReadPreference.secondaryPreferred)
       .enumerator()
+
+    Source.fromPublisher(Streams.enumeratorToPublisher(enumerator))
   }
 
   def all()(implicit ec: ExecutionContext): Future[List[Envelope]] = {

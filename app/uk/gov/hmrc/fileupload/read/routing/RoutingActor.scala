@@ -17,9 +17,9 @@
 package uk.gov.hmrc.fileupload.read.routing
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import akka.stream.scaladsl.{Sink, Source}
 import cats.data.Xor
 import play.api.{Configuration, Logger}
-import play.api.libs.iteratee.Enumerator
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusRouteRequested}
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
@@ -38,7 +38,7 @@ class RoutingActor(
    buildDownloadLink   : EnvelopeId                      => Future[String],
    lookupPublishUrl    : String                          => Option[String],
    findEnvelope        : EnvelopeId                      => Future[FindResult],
-   getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope],
+   getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
    publishDownloadLink : (String, String)                => Future[RoutingRepository.PublishResult],
    handleCommand       : EnvelopeCommand                 => Future[Xor[CommandNotAccepted, CommandAccepted.type]]
  )(implicit executionContext: ExecutionContext
@@ -92,12 +92,9 @@ class RoutingActor(
 
     case PushIfWaiting =>
       logger.info(s"Push any waiting messages")
-      // TODO move conversion of play.enumerator to akka.source into getEnvelopesByStatus?
-      import play.api.libs.streams.Streams
-      import akka.stream.scaladsl.{Sink, Source}
-      val s: Source[Envelope, akka.NotUsed] =
-         Source.fromPublisher(Streams.enumeratorToPublisher(getEnvelopesByStatus(List(EnvelopeStatusRouteRequested), true)))
-      s.mapAsync(parallelism = 1)(routeEnvelope).runWith(Sink.ignore)
+      getEnvelopesByStatus(List(EnvelopeStatusRouteRequested), true)
+        .mapAsync(parallelism = 1)(routeEnvelope)
+        .runWith(Sink.ignore)
   }
 
   def routeEnvelope(envelope: Envelope): Future[Unit] =
@@ -147,7 +144,7 @@ object RoutingActor {
     buildDownloadLink   : EnvelopeId                      => Future[String],
     lookupPublishUrl    : String                          => Option[String],
     findEnvelope        : EnvelopeId                      => Future[FindResult],
-    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope],
+    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
     publishDownloadLink : (String, String)                => Future[RoutingRepository.PublishResult],
     handleCommand       : EnvelopeCommand                 => Future[Xor[CommandNotAccepted, CommandAccepted.type]]
   )(implicit executionContext: ExecutionContext
