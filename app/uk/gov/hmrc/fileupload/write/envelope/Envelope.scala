@@ -64,7 +64,6 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
       envelope.canStoreFile(command.fileId, command.fileRefId).map { _ =>
         val fileStored = FileStored(command.id, command.fileId, command.fileRefId, command.length)
 
-        // TODO do we need this auto routing when storing files? will it cause pushes (and multiple) before the file is sealed?
         if (withEvent(envelope, fileStored).canRequestRoute.isRight) {
           fileStored And EnvelopeRouteRequested(command.id)
         } else {
@@ -131,10 +130,7 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
       envelope.copy(state = Open)
 
     case (envelope: Envelope, e: EnvelopeRouteRequested) =>
-      envelope.copy(
-        state           = RouteRequested//,
-        //isPushRequired  = e.isPushRequired, // TODO can we add to event? (it comes from destination/configuration)
-      )
+      envelope.copy(state = RouteRequested)
 
     case (envelope: Envelope, e: EnvelopeRouteAttempted) =>
       envelope.copy(numRoutingAttempt = envelope.numRoutingAttempt + 1)
@@ -255,7 +251,7 @@ sealed trait State {
 
   def canArchive: CanResult = genericError
 
-  def genericError: CanResult = envelopeNotFoundError
+  def genericError: CanResult = envelopeNotFoundError // confusing when it says envelope not found, because the envelope was in the wrong state...
 
   def checkCanMarkFileAsCleanOrInfected(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
     files.get(fileId).filter(_.isSame(fileRefId)).map(f =>
@@ -266,7 +262,7 @@ sealed trait State {
       }).getOrElse(fileNotFoundError)
 
   def checkCanStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
-    files.get(fileId).filter(_.isSame(fileRefId)).map(f => {
+    files.get(fileId).filter(_.isSame(fileRefId)).map(f =>
       if (!f.hasError) {
         if (!f.isScanned) {
           fileNotFoundError
@@ -278,7 +274,7 @@ sealed trait State {
       } else {
         Xor.left(FileWithError)
       }
-    }).getOrElse(fileNotFoundError)
+    ).getOrElse(fileNotFoundError)
 
 
   def isValidSize(size: Long, acceptedSize: Long): Boolean = {

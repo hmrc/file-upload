@@ -74,9 +74,10 @@ class RoutingActor(
   def receive = {
     case event: Event => event.eventData match {
       case e: EnvelopeRouteRequested =>
-        // race condition? we have the event EnvelopeRouteRequested, but it hasn't necessarily been serialised when we read back?
-        // TODO can we just rely on the scheduling?
-        Thread.sleep(1000)
+        // the read model may not have been updated yet, since it's serialised buy another event subscriber
+        // so we check the status of the read model, to see if it's ready (otherwise we may have a missing destination)
+        // TODO we can either sleep a little, or can we just rely on the scheduling to pick it up?
+        Thread.sleep(500)
         findEnvelope(e.id).flatMap {
           case Xor.Right(envelope) =>
             routeEnvelope(envelope)
@@ -99,12 +100,19 @@ class RoutingActor(
       s.mapAsync(parallelism = 1)(routeEnvelope).runWith(Sink.ignore)
   }
 
-  def routeEnvelope(envelope: Envelope): Future[Unit] = {
+  def routeEnvelope(envelope: Envelope): Future[Unit] =
+    // check that destination is available on read model, if it's not, then we're not ready to route...
+    envelope.destination match {
+      case None              => Future.successful(logger.info(s"Can't route yet - Sealed event has not been applied to read model yet"))
+      case Some(destination) => routeEnvelopeWithDestination(envelope, destination)
+    }
+
+  def routeEnvelopeWithDestination(envelope: Envelope, destination: String): Future[Unit] = {
     logger.info(s"Routing envelope [${envelope._id}] to: ${envelope.destination} (numRoutingAttempts= ${envelope.numRoutingAttempts})")
-    envelope.destination.flatMap(lookupPublishUrl)
+    lookupPublishUrl(destination)
       .filter(_ => envelope.numRoutingAttempts.getOrElse(0) < config.maxNumRoutingAttempts) // this will mark the file as routed when we reach the maximum - TODO is it better to move to another state, e.g. MarkAsUndelivered?
       .fold(Future.successful(true)){ publishUrl =>
-        logger.info(s"envelope [${envelope._id}] to '${envelope.destination}' will be routed to '$publishUrl'")
+        logger.info(s"envelope [${envelope._id}] to '$destination' will be routed to '$publishUrl'")
         for {
           downloadLink <- buildDownloadLink(envelope._id)
           res          <- publishDownloadLink(downloadLink, publishUrl)
