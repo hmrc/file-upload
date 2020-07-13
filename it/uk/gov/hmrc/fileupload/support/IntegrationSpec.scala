@@ -19,12 +19,11 @@ trait IntegrationSpec extends FeatureSpec with GivenWhenThen with ScalaFutures
 
   val nextUtf8String = () => Random.nextString(36)
 
-  override def beforeEach{
+  override def beforeEach {
     new Repository(mongo).removeAll().futureValue
   }
 
   override def afterAll {
     mongo.apply().drop.futureValue
   }
-
 }

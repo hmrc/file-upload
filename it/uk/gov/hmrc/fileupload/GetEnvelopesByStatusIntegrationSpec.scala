@@ -15,6 +15,7 @@ class GetEnvelopesByStatusIntegrationSpec extends IntegrationSpec with EnvelopeA
       And("There exist one envelope with status CLOSED")
       val id = createEnvelope()
       submitRoutingRequest(id, "TEST")
+      Thread.sleep(1000)
 
       And("There exist two envelope with status OPEN")
       createEnvelope()
@@ -42,6 +43,7 @@ class GetEnvelopesByStatusIntegrationSpec extends IntegrationSpec with EnvelopeA
 
       And("There exist one envelope with status CLOSED")
       submitRoutingRequest(createEnvelope(), "TEST")
+      Thread.sleep(1000)
 
       And("There exist two envelope with status OPEN")
       createEnvelope()

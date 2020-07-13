@@ -9,7 +9,7 @@ class FileTransferIntegrationSpec extends IntegrationSpec with EnvelopeActions {
 
     scenario("List Envelopes for a given destination") {
       Given("I know a destination for envelopes")
-      val destination = "DMS"
+      val destination = "NO-PUSH"
 
       And("There exist CLOSED envelopes that match it")
       submitRoutingRequest(createEnvelope(), destination)
@@ -18,8 +18,9 @@ class FileTransferIntegrationSpec extends IntegrationSpec with EnvelopeActions {
       createEnvelope()
 
       eventually {
-        val response = getEnvelopesForDestination(Some(destination))
+        val response = getEnvelopesForStatus(status = List("CLOSED"), inclusive = true)
         response.status shouldBe OK
+        response.body.isEmpty shouldBe false
       }
 
       When(s"I invoke GET /file-transfer/envelopes?destination=$destination")
@@ -35,18 +36,20 @@ class FileTransferIntegrationSpec extends IntegrationSpec with EnvelopeActions {
 
     scenario("List Envelopes without specifying destination") {
       Given("There exist CLOSED envelopes in the DB")
+      val destination = "NO-PUSH"
 
       val expectedNumberOfEnvelopes = 2
       (1 to expectedNumberOfEnvelopes).foreach { _ =>
-        submitRoutingRequest(createEnvelope(), "DMS")
+        submitRoutingRequest(createEnvelope(), destination)
       }
 
       And("There exist envelopes with other statuses")
       createEnvelope()
 
       eventually {
-        val response = getEnvelopesForDestination(None)
+        val response = getEnvelopesForStatus(status = List("CLOSED"), inclusive = true)
         response.status shouldBe OK
+        response.body.isEmpty shouldBe false
       }
 
       When(s"I invoke GET /file-transfer/envelopes (without passing destination")
@@ -65,7 +68,7 @@ class FileTransferIntegrationSpec extends IntegrationSpec with EnvelopeActions {
 
     scenario("Archive Envelope") {
       Given("I know a destination for envelopes")
-      val destination = "DMS"
+      val destination = "NO-PUSH"
 
       And("There exist CLOSED envelopes that match it")
       val envelopeId = createEnvelope()
@@ -73,6 +76,12 @@ class FileTransferIntegrationSpec extends IntegrationSpec with EnvelopeActions {
 
       And("There exist other envelopes with different statuses")
       createEnvelope()
+
+      eventually {
+        val response = getEnvelopesForStatus(status = List("CLOSED"), inclusive = true)
+        response.status shouldBe OK
+        response.body.isEmpty shouldBe false
+      }
 
       When("I archive the envelope")
       archiveEnvelopFor(envelopeId)
