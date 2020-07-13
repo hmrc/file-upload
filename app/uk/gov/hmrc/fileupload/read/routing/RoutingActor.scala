@@ -50,14 +50,11 @@ class RoutingActor(
 
   implicit val actorMaterializer = akka.stream.ActorMaterializer()
 
-  private val schedulers = List[Cancellable](
-    // scheduler for checking scheduled pushes
-    context.system.scheduler.schedule(
-        initialDelay = config.initialDelay,
-        interval     = config.interval,
-        receiver     = self,
-        message      = PushIfWaiting
-    ))
+  // rather than launching a scheduler to run at defined intervals, we'll set one to run once, each time we finish.
+  // this ensures we don't end up with overlapping executions, and allows us to bring the next run forward, if we have
+  // a relevant event.
+  private var scheduler: Cancellable =
+    context.system.scheduler.scheduleOnce(config.initialDelay, self, PushIfWaiting)
 
   override def preStart =
     subscribe(self, classOf[Event])
@@ -68,26 +65,19 @@ class RoutingActor(
   }
 
   override def postStop(): Unit =
-    schedulers.foreach(_.cancel())
+    scheduler.cancel()
 
-  // TODO prevent processing multiple at same time (block in the actor) - otherwise we may process Event and pick up same envelope with PushIfWaiting
+
   def receive = {
     case event: Event => event.eventData match {
       case e: EnvelopeRouteRequested =>
-        // the read model may not have been updated yet, since it's serialised buy another event subscriber
-        // so we check the status of the read model, to see if it's ready (otherwise we may have a missing destination)
-        // TODO we can either sleep a little, or can we just rely on the scheduling to pick it up?
-        Thread.sleep(500)
-        findEnvelope(e.id).flatMap {
-          case Xor.Right(envelope) =>
-            routeEnvelope(envelope)
-          case Xor.Left(e) =>
-            Logger.warn(e.toString)
-            Future.successful(())
-        }
+        // let's bring the next poll forward since we know we have a new event
+        // but wait a little, to ensure the new event has been serialised by another event subscriber (or we won't pick up destination)
+        scheduler.cancel()
+        scheduler = context.system.scheduler.scheduleOnce(500.millis, self, PushIfWaiting)
 
       case e: EventData =>
-        logger.info(s"Not notifying for ${e.getClass.getName}")
+        logger.debug(s"Not notifying for ${e.getClass.getName}")
     }
 
     case PushIfWaiting =>
@@ -95,6 +85,9 @@ class RoutingActor(
       getEnvelopesByStatus(List(EnvelopeStatusRouteRequested), true)
         .mapAsync(parallelism = 1)(routeEnvelope)
         .runWith(Sink.ignore)
+        .andThen {
+          case _ => scheduler = context.system.scheduler.scheduleOnce(config.interval, self, PushIfWaiting)
+        }
   }
 
   def routeEnvelope(envelope: Envelope): Future[Unit] =
@@ -121,7 +114,6 @@ class RoutingActor(
         }
     }.map { isRouted =>
       if (isRouted)
-        // If this fails, consquence will be that it will be republished again... (once we set this up to run on a scheduler, picking up anything in RouteRequested state)
         handleCommand(MarkEnvelopeAsRouted(envelope._id)).map {
           case Xor.Right(_) =>
           case Xor.Left(error) => logger.error(s"Could not mark envelope [${envelope._id}] as routed: $error")
