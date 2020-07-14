@@ -91,11 +91,11 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
     case (command: UnsealEnvelope, envelope: Envelope) =>
       envelope.canUnseal.map(_ => EnvelopeUnsealed(command.id))
 
-    case (command: MarkEnvelopeAsRoutingAttempted, envelope: Envelope) =>
-      envelope.canAttemptRouting.map(_ => EnvelopeRouteAttempted(command.id))
+    case (command: MarkEnvelopeAsPushAttempted, envelope: Envelope) =>
+      envelope.canAttemptRouting.map(_ => EnvelopePushAttempted(command.id))
 
     case (command: MarkEnvelopeAsRouted, envelope: Envelope) =>
-      envelope.canRoute.map(_ => EnvelopeRouted(command.id))
+      envelope.canRoute.map(_ => EnvelopeRouted(command.id, command.isPushed))
 
     case (command: ArchiveEnvelope, envelope: Envelope) =>
       envelope.canArchive.map(_ => EnvelopeArchived(command.id))
@@ -131,9 +131,6 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
 
     case (envelope: Envelope, e: EnvelopeRouteRequested) =>
       envelope.copy(state = RouteRequested)
-
-    case (envelope: Envelope, e: EnvelopeRouteAttempted) =>
-      envelope.copy(numRoutingAttempt = envelope.numRoutingAttempt + 1)
 
     case (envelope: Envelope, e: EnvelopeRouted) =>
       envelope.copy(state = Routed)
@@ -172,8 +169,7 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
 case class Envelope(
   files            : Map[FileId, File]                = Map.empty,
   state            : State                            = NotCreated,
-  constraints      : Option[EnvelopeFilesConstraints] = None,
-  numRoutingAttempt: Int                              = 0
+  constraints      : Option[EnvelopeFilesConstraints] = None
 ) {
 
   def canCreate: CanResult = state.canCreate

@@ -22,10 +22,10 @@ import scala.concurrent.duration.{DurationLong, FiniteDuration}
 
 
 case class RoutingConfig(
-  initialDelay         :           FiniteDuration,
-  interval             :           FiniteDuration,
-  maxNumRoutingAttempts:           Int,
-  lookupPublishUrl     : String => Option[String]
+  initialDelay      :           FiniteDuration,
+  interval          :           FiniteDuration,
+  maxNumPushAttempts:           Int,
+  lookupPublishUrl  : String => Option[String]
 )
 
 object RoutingConfig {
@@ -36,10 +36,10 @@ object RoutingConfig {
     def getDuration(key: String) =
       config.getMilliseconds(key).getOrElse(sys.error(s"Missing configuration: $key")).millis
     RoutingConfig(
-      initialDelay          = getDuration("routing.initialDelay"),
-      interval              = getDuration("routing.interval"),
-      maxNumRoutingAttempts = getInt("routing.maxNumRoutingAttempts"),
-      lookupPublishUrl      = (destination: String) => config.getString(s"routing.publishurl.$destination")
+      initialDelay       = getDuration("routing.initialDelay"),
+      interval           = getDuration("routing.interval"),
+      maxNumPushAttempts = getInt("routing.maxNumPushAttempts"),
+      lookupPublishUrl   = (destination: String) => config.getString(s"routing.publishurl.$destination")
     )
   }
 }

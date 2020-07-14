@@ -54,9 +54,9 @@ case class SealEnvelope(id: EnvelopeId, routingRequestId: String, destination: S
 
 case class UnsealEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
-case class MarkEnvelopeAsRoutingAttempted(id: EnvelopeId) extends EnvelopeCommand
+case class MarkEnvelopeAsPushAttempted(id: EnvelopeId) extends EnvelopeCommand
 
-case class MarkEnvelopeAsRouted(id: EnvelopeId) extends EnvelopeCommand
+case class MarkEnvelopeAsRouted(id: EnvelopeId, isPushed: Boolean) extends EnvelopeCommand
 
 case class ArchiveEnvelope(id: EnvelopeId) extends EnvelopeCommand
 
@@ -91,9 +91,11 @@ case class EnvelopeUnsealed(id: EnvelopeId) extends EnvelopeEvent
 
 case class EnvelopeRouteRequested(id: EnvelopeId) extends EnvelopeEvent
 
-case class EnvelopeRouteAttempted(id: EnvelopeId) extends EnvelopeEvent
+case class EnvelopePushNotNeeded(id: EnvelopeId) extends EnvelopeEvent
 
-case class EnvelopeRouted(id: EnvelopeId) extends EnvelopeEvent
+case class EnvelopePushAttempted(id: EnvelopeId) extends EnvelopeEvent
+
+case class EnvelopeRouted(id: EnvelopeId, isPushed: Boolean) extends EnvelopeEvent
 
 case class EnvelopeArchived(id: EnvelopeId) extends EnvelopeEvent
 
@@ -116,7 +118,7 @@ object Formatters {
   implicit val envelopeSealedFormat: Format[EnvelopeSealed] = Json.format[EnvelopeSealed]
   implicit val envelopeUnsealedFormat: Format[EnvelopeUnsealed] = Json.format[EnvelopeUnsealed]
   implicit val envelopeRouteRequestedFormat: Format[EnvelopeRouteRequested] = Json.format[EnvelopeRouteRequested]
-  implicit val envelopeRouteAttemptedFormat: Format[EnvelopeRouteAttempted] = Json.format[EnvelopeRouteAttempted]
+  implicit val envelopePushAttemptedFormat: Format[EnvelopePushAttempted] = Json.format[EnvelopePushAttempted]
   implicit val envelopeRoutedFormat: Format[EnvelopeRouted] = Json.format[EnvelopeRouted]
   implicit val envelopeArchivedFormat: Format[EnvelopeArchived] = Json.format[EnvelopeArchived]
 }
@@ -135,7 +137,7 @@ object EventSerializer {
   private val envelopeSealed = nameOf(EnvelopeSealed.getClass)
   private val envelopeUnsealed = nameOf(EnvelopeUnsealed.getClass)
   private val envelopeRouteRequested = nameOf(EnvelopeRouteRequested.getClass)
-  private val envelopeRouteAttempted = nameOf(EnvelopeRouteAttempted.getClass)
+  private val envelopePushAttempted = nameOf(EnvelopePushAttempted.getClass)
   private val envelopeRouted = nameOf(EnvelopeRouted.getClass)
   private val envelopeArchived = nameOf(EnvelopeArchived.getClass)
 
@@ -154,7 +156,7 @@ object EventSerializer {
       case `envelopeSealed` => Json.fromJson[EnvelopeSealed](value).get
       case `envelopeUnsealed` => Json.fromJson[EnvelopeUnsealed](value).get
       case `envelopeRouteRequested` => Json.fromJson[EnvelopeRouteRequested](value).get
-      case `envelopeRouteAttempted` => Json.fromJson[EnvelopeRouteAttempted](value).get
+      case `envelopePushAttempted` => Json.fromJson[EnvelopePushAttempted](value).get
       case `envelopeRouted` => Json.fromJson[EnvelopeRouted](value).get
       case `envelopeArchived` => Json.fromJson[EnvelopeArchived](value).get
     }
@@ -171,7 +173,7 @@ object EventSerializer {
       case e: EnvelopeSealed => Json.toJson(e)
       case e: EnvelopeUnsealed => Json.toJson(e)
       case e: EnvelopeRouteRequested => Json.toJson(e)
-      case e: EnvelopeRouteAttempted => Json.toJson(e)
+      case e: EnvelopePushAttempted => Json.toJson(e)
       case e: EnvelopeRouted => Json.toJson(e)
       case e: EnvelopeArchived => Json.toJson(e)
     }

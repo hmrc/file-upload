@@ -23,7 +23,7 @@ import play.api.{Configuration, Logger}
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusRouteRequested}
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
-import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeRouteRequested, MarkEnvelopeAsRouted, MarkEnvelopeAsRoutingAttempted}
+import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeRouteRequested, MarkEnvelopeAsRouted, MarkEnvelopeAsPushAttempted}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted, Event, EventData}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -90,39 +90,30 @@ class RoutingActor(
         }
   }
 
-  def routeEnvelope(envelope: Envelope): Future[Unit] =
-    // check that destination is available on read model, if it's not, then we're not ready to route...
-    envelope.destination match {
-      case None              => Future.successful(logger.info(s"Can't route yet - Sealed event has not been applied to read model yet"))
-      case Some(destination) => routeEnvelopeWithDestination(envelope, destination)
-    }
+  def routeEnvelope(envelope: Envelope): Future[Unit] = {
+    // we may want to restrict pushing to a sender whitelist too
+    val sender = envelope.metadata.flatMap(js => (js \ "sender" \ "service").asOpt[String])
+    logger.info(s"Routing envelope [${envelope._id}] from: ${sender} to: ${envelope.destination} (numPushAttempts= ${envelope.numPushAttempts})")
 
-  def routeEnvelopeWithDestination(envelope: Envelope, destination: String): Future[Unit] = {
-    logger.info(s"Routing envelope [${envelope._id}] to: ${envelope.destination} (numRoutingAttempts= ${envelope.numRoutingAttempts})")
-    lookupPublishUrl(destination)
-      .filter(_ => envelope.numRoutingAttempts.getOrElse(0) < config.maxNumRoutingAttempts) // this will mark the file as routed when we reach the maximum - TODO is it better to move to another state, e.g. MarkAsUndelivered?
-      .fold(Future.successful(true)){ publishUrl =>
-        logger.info(s"envelope [${envelope._id}] to '$destination' will be routed to '$publishUrl'")
+    // we will push any envelope which has a publishUrl defined for the destination
+    envelope.destination.flatMap(lookupPublishUrl)
+      .filter(_ => envelope.numPushAttempts.getOrElse(0) < config.maxNumPushAttempts) // this will mark the file as routed when we reach the maximum - TODO is it better to move to another state, e.g. MarkAsUndelivered?
+      .fold(Future.successful(MarkEnvelopeAsRouted(envelope._id, isPushed = false): EnvelopeCommand)){ publishUrl =>
+        logger.info(s"envelope [${envelope._id}] to '${envelope.destination}' will be routed to '$publishUrl'")
         for {
           downloadLink <- buildDownloadLink(envelope._id)
           res          <- publishDownloadLink(downloadLink, publishUrl)
         } yield res match {
           case Xor.Right(())   => logger.info(s"Successfully published routing for envelope [${envelope._id}]")
-                                  true
+                                  MarkEnvelopeAsRouted(envelope._id, isPushed = true)
           case Xor.Left(error) => logger.warn(s"Failed to publish routing for envelope [${envelope._id}]. Reason [${error.reason}]")
-                                  false
+                                  MarkEnvelopeAsPushAttempted(envelope._id)
         }
-    }.map { isRouted =>
-      if (isRouted)
-        handleCommand(MarkEnvelopeAsRouted(envelope._id)).map {
-          case Xor.Right(_) =>
-          case Xor.Left(error) => logger.error(s"Could not mark envelope [${envelope._id}] as routed: $error")
-        }.recover { case e => logger.error(s"Could not mark envelope [${envelope._id}] as routed: ${e.getMessage}", e) }
-      else
-        handleCommand(MarkEnvelopeAsRoutingAttempted(envelope._id)).map {
-          case Xor.Right(_) =>
-          case Xor.Left(error) => logger.error(s"Could not mark envelope [${envelope._id}] as routed: $error")
-        }.recover { case e => logger.error(s"Could not mark envelope [${envelope._id}] as routed: ${e.getMessage}", e) }
+    }.map { cmd =>
+      handleCommand(cmd).map {
+        case Xor.Right(_) =>
+        case Xor.Left(error) => logger.error(s"Could not process $cmd for [${envelope._id}]: $error")
+      }.recover { case e => logger.error(s"Could not process $cmd for [${envelope._id}]: ${e.getMessage}", e) }
     }
   }
 }

@@ -90,11 +90,10 @@ class Repository(mongo: () => DB with DBMetaCommands)
     }
   }
 
-  def get(id: EnvelopeId)(implicit ec: ExecutionContext): Future[Option[Envelope]] = {
+  def get(id: EnvelopeId)(implicit ec: ExecutionContext): Future[Option[Envelope]] =
     find("_id" -> id).map(_.headOption)
-  }
 
-  def delete(id: EnvelopeId)(implicit ec: ExecutionContext): Future[DeleteResult] = {
+  def delete(id: EnvelopeId)(implicit ec: ExecutionContext): Future[DeleteResult] =
     remove("_id" -> id).map { r =>
       if (toBoolean(r)) {
         deleteSuccess
@@ -105,14 +104,13 @@ class Repository(mongo: () => DB with DBMetaCommands)
       case f: Throwable =>
         Xor.left(DeleteError(f.getMessage))
     }
-  }
 
   def getByDestination(maybeDestination: Option[String])(implicit ec: ExecutionContext): Future[List[Envelope]] = {
-    val query = maybeDestination.map { d =>
-      Json.obj("status" -> EnvelopeStatusClosed.name, "destination" -> d)
-    } getOrElse {
-      Json.obj("status" -> EnvelopeStatusClosed.name)
-    }
+    val query =
+      Json.obj(
+        "status" -> EnvelopeStatusClosed.name,
+        "pushed" -> Json.obj("$ne" -> true)
+      ) ++ maybeDestination.fold(Json.obj())(d => Json.obj("destination" -> d))
     collection.find(query).cursor[Envelope](ReadPreference.secondaryPreferred).collect[List](-1, Cursor.FailOnError())
   }
 
@@ -130,9 +128,8 @@ class Repository(mongo: () => DB with DBMetaCommands)
     Source.fromPublisher(Streams.enumeratorToPublisher(enumerator))
   }
 
-  def all()(implicit ec: ExecutionContext): Future[List[Envelope]] = {
+  def all()(implicit ec: ExecutionContext): Future[List[Envelope]] =
     findAll()
-  }
 
   def recreate()(implicit ec: ExecutionContext): Unit = {
     Await.result(collection.drop(failIfNotFound = false), 5 seconds)

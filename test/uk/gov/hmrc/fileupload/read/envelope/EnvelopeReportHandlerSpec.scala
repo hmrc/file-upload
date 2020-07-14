@@ -147,11 +147,14 @@ class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
       modifiedEnvelope shouldBe expectedEnvelope
     }
     "route envelope" in new UpdateEnvelopeFixture {
-      val event = EnvelopeRouted(initialState._id)
+      val event = EnvelopeRouted(initialState._id, isPushed = false)
 
       sendEvent(event)
 
-      val expectedEnvelope = initialState.copy(version = Version(1), status = EnvelopeStatusClosed)
+      val expectedEnvelope = initialState.copy(
+        version = Version(1),
+        status = EnvelopeStatusClosed,
+        isPushed = Some(event.isPushed))
       modifiedEnvelope shouldBe expectedEnvelope
     }
     "delete envelope" in new UpdateEnvelopeFixture {

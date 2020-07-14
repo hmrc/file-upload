@@ -56,7 +56,8 @@ class EnvelopeSpec extends UnitSpec {
                                     constraints = None,
                                     callbackUrl = Some("http://absolute.callback.url"),
                                     expiryDate = Some(formatter.parseDateTime(formattedExpiryDate)),
-                                    metadata = Some(Json.obj("anything" -> "the caller wants to add to the envelope")))
+                                    metadata = Some(Json.obj("anything" -> "the caller wants to add to the envelope")),
+                                    isPushed = None)
 
       result shouldEqual expectedResult
     }
