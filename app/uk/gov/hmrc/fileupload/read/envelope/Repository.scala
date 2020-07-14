@@ -109,7 +109,7 @@ class Repository(mongo: () => DB with DBMetaCommands)
     val query =
       Json.obj(
         "status" -> EnvelopeStatusClosed.name,
-        "pushed" -> Json.obj("$ne" -> true)
+        "isPushed" -> Json.obj("$ne" -> true) // tests with $ne since it may not be present in db
       ) ++ maybeDestination.fold(Json.obj())(d => Json.obj("destination" -> d))
     collection.find(query).cursor[Envelope](ReadPreference.secondaryPreferred).collect[List](-1, Cursor.FailOnError())
   }

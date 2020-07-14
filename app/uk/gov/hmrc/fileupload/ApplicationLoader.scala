@@ -228,7 +228,6 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   actorSystem.actorOf(
     RoutingActor.props(
       config = routingConfig,
-      subscribe,
       buildDownloadLink,
       lookupPublishUrl = routingConfig.lookupPublishUrl,
       findEnvelope,

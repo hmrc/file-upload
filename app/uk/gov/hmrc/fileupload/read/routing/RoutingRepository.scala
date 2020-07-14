@@ -38,7 +38,7 @@ object RoutingRepository {
   ): Future[PublishResult] =
     httpCall(
       wSClient
-        .url(s"$publishUrl")
+        .url(publishUrl)
         .withHeaders("User-Agent" -> "file-upload")
         .withBody(downloadLink) // TODO payload?
         .withMethod("POST")

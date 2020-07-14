@@ -65,10 +65,6 @@ class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
       s.copy(status = EnvelopeStatusRouteRequested)
     )
 
-    case (s: Envelope, e: EnvelopePushAttempted) => Some(
-      s.copy(numPushAttempts = Some(s.numPushAttempts.getOrElse(0) + 1))
-    )
-
     case (s: Envelope, e: EnvelopeArchived) => Some {
       s.copy(status = EnvelopeStatusDeleted)
     }

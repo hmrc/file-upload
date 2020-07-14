@@ -38,10 +38,11 @@ trait IntegrationTestApplicationComponents extends OneServerPerSuite with MongoS
       "mongodb.uri" -> s"mongodb://localhost:27017/$databaseName",
       "auditing.enabled" -> "false",
       "feature.basicAuthEnabled" -> "true",
-      "constraints.enforceHttps" -> "false"
+      "constraints.enforceHttps" -> "false",
+      "routing.initialDelay" -> "1.second",
+      "routing.interval" -> "1.second"
     ))
   }
-
 }
 
 class IntegrationTestApplicationModule(context: Context) extends ApplicationModule(context = context) {

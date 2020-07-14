@@ -19,11 +19,12 @@ package uk.gov.hmrc.fileupload.read.routing
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import akka.stream.scaladsl.{Sink, Source}
 import cats.data.Xor
+import org.joda.time.DateTime
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusRouteRequested}
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
-import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeRouteRequested, MarkEnvelopeAsRouted, MarkEnvelopeAsPushAttempted}
+import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeRouteRequested, MarkEnvelopeAsRouted}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted, Event, EventData}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -32,9 +33,9 @@ import scala.concurrent.duration.{DurationLong, FiniteDuration}
 /** When the envelope is routed, if there is a registered endpoint, it will notify the recipient.
   * It is triggered by the [[EnvelopeRouteRequested]] event, but also checks periodically for files needing routing, to retry.
   */
+// TODO use mongolock to ensure only one instance is processing
 class RoutingActor(
    config              :                                    RoutingConfig,
-   subscribe           : (ActorRef, Class[_])            => Boolean,
    buildDownloadLink   : EnvelopeId                      => Future[String],
    lookupPublishUrl    : String                          => Option[String],
    findEnvelope        : EnvelopeId                      => Future[FindResult],
@@ -56,9 +57,6 @@ class RoutingActor(
   private var scheduler: Cancellable =
     context.system.scheduler.scheduleOnce(config.initialDelay, self, PushIfWaiting)
 
-  override def preStart =
-    subscribe(self, classOf[Event])
-
   override def preRestart(reason: Throwable, message: Option[Any]) = {
     super.preRestart(reason, message)
     logger.error(s"Unhandled exception for message: $message", reason)
@@ -69,17 +67,6 @@ class RoutingActor(
 
 
   def receive = {
-    case event: Event => event.eventData match {
-      case e: EnvelopeRouteRequested =>
-        // let's bring the next poll forward since we know we have a new event
-        // but wait a little, to ensure the new event has been serialised by another event subscriber (or we won't pick up destination)
-        scheduler.cancel()
-        scheduler = context.system.scheduler.scheduleOnce(500.millis, self, PushIfWaiting)
-
-      case e: EventData =>
-        logger.debug(s"Not notifying for ${e.getClass.getName}")
-    }
-
     case PushIfWaiting =>
       logger.info(s"Push any waiting messages")
       getEnvelopesByStatus(List(EnvelopeStatusRouteRequested), true)
@@ -93,28 +80,27 @@ class RoutingActor(
   def routeEnvelope(envelope: Envelope): Future[Unit] = {
     // we may want to restrict pushing to a sender whitelist too
     val sender = envelope.metadata.flatMap(js => (js \ "sender" \ "service").asOpt[String])
-    logger.info(s"Routing envelope [${envelope._id}] from: ${sender} to: ${envelope.destination} (numPushAttempts= ${envelope.numPushAttempts})")
+    logger.info(s"Routing envelope [${envelope._id}] from: ${sender} to: ${envelope.destination}")
 
     // we will push any envelope which has a publishUrl defined for the destination
     envelope.destination.flatMap(lookupPublishUrl)
-      .filter(_ => envelope.numPushAttempts.getOrElse(0) < config.maxNumPushAttempts) // this will mark the file as routed when we reach the maximum - TODO is it better to move to another state, e.g. MarkAsUndelivered?
-      .fold(Future.successful(MarkEnvelopeAsRouted(envelope._id, isPushed = false): EnvelopeCommand)){ publishUrl =>
+      .fold(Future.successful(Some(MarkEnvelopeAsRouted(envelope._id, isPushed = false)): Option[EnvelopeCommand])){ publishUrl =>
         logger.info(s"envelope [${envelope._id}] to '${envelope.destination}' will be routed to '$publishUrl'")
         for {
           downloadLink <- buildDownloadLink(envelope._id)
           res          <- publishDownloadLink(downloadLink, publishUrl)
         } yield res match {
           case Xor.Right(())   => logger.info(s"Successfully published routing for envelope [${envelope._id}]")
-                                  MarkEnvelopeAsRouted(envelope._id, isPushed = true)
-          case Xor.Left(error) => logger.warn(s"Failed to publish routing for envelope [${envelope._id}]. Reason [${error.reason}]")
-                                  MarkEnvelopeAsPushAttempted(envelope._id)
+                                  Some(MarkEnvelopeAsRouted(envelope._id, isPushed = true))
+          case Xor.Left(error) => logger.warn(s"Failed to publish routing for envelope [${envelope._id}] to ${envelope.destination}. Reason [${error.reason}]")
+                                  None
         }
-    }.map { cmd =>
+    }.map(_.map(cmd =>
       handleCommand(cmd).map {
         case Xor.Right(_) =>
         case Xor.Left(error) => logger.error(s"Could not process $cmd for [${envelope._id}]: $error")
       }.recover { case e => logger.error(s"Could not process $cmd for [${envelope._id}]: ${e.getMessage}", e) }
-    }
+    ))
   }
 }
 
@@ -123,7 +109,6 @@ object RoutingActor {
 
   def props(
     config              :                                    RoutingConfig,
-    subscribe           : (ActorRef, Class[_])            => Boolean,
     buildDownloadLink   : EnvelopeId                      => Future[String],
     lookupPublishUrl    : String                          => Option[String],
     findEnvelope        : EnvelopeId                      => Future[FindResult],
@@ -134,7 +119,6 @@ object RoutingActor {
   ) =
     Props(new RoutingActor(
       config               = config,
-      subscribe            = subscribe,
       buildDownloadLink    = buildDownloadLink,
       lookupPublishUrl     = lookupPublishUrl,
       findEnvelope         = findEnvelope,

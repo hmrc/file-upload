@@ -91,9 +91,6 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
     case (command: UnsealEnvelope, envelope: Envelope) =>
       envelope.canUnseal.map(_ => EnvelopeUnsealed(command.id))
 
-    case (command: MarkEnvelopeAsPushAttempted, envelope: Envelope) =>
-      envelope.canAttemptRouting.map(_ => EnvelopePushAttempted(command.id))
-
     case (command: MarkEnvelopeAsRouted, envelope: Envelope) =>
       envelope.canRoute.map(_ => EnvelopeRouted(command.id, command.isPushed))
 
