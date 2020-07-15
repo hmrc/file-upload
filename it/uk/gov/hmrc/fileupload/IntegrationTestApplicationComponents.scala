@@ -31,17 +31,22 @@ trait IntegrationTestApplicationComponents extends OneServerPerSuite with MongoS
   // accessed to get the components in tests
   lazy val components: ApplicationModule = new IntegrationTestApplicationModule(context)
 
+  lazy val dmsServiceUrl: Option[String] = None
+
   lazy val context: ApplicationLoader.Context = {
     val classLoader = ApplicationLoader.getClass.getClassLoader
     val env = new Environment(new java.io.File("."), classLoader, Mode.Test)
-    ApplicationLoader.createContext(env, initialSettings = Map(
-      "mongodb.uri" -> s"mongodb://localhost:27017/$databaseName",
-      "auditing.enabled" -> "false",
-      "feature.basicAuthEnabled" -> "true",
-      "constraints.enforceHttps" -> "false",
-      "routing.initialDelay" -> "1.second",
-      "routing.interval" -> "1.second"
-    ))
+    ApplicationLoader.createContext(
+      env,
+      initialSettings = Map(
+        "mongodb.uri" -> s"mongodb://localhost:27017/$databaseName",
+        "auditing.enabled" -> "false",
+        "feature.basicAuthEnabled" -> "true",
+        "constraints.enforceHttps" -> "false",
+        "routing.initialDelay" -> "1.second",
+        "routing.interval" -> "1.second"
+      ) ++ dmsServiceUrl.fold(Map.empty[String, String])(url => Map("routing.publishurl.DMS" -> url))
+    )
   }
 }
 
