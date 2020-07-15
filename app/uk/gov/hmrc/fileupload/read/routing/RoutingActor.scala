@@ -37,10 +37,9 @@ import scala.concurrent.duration.{DurationLong, FiniteDuration}
 class RoutingActor(
    config              :                                       RoutingConfig,
    buildNotification   : EnvelopeId                         => Future[FileTransferNotification],
-   lookupPublishUrl    : String                             => Option[String],
    findEnvelope        : EnvelopeId                         => Future[FindResult],
    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean)    => Source[Envelope, akka.NotUsed],
-   publishNotification : (FileTransferNotification, String) => Future[RoutingRepository.PublishResult],
+   pushNotification    : (FileTransferNotification, String) => Future[RoutingRepository.PushResult],
    handleCommand       : EnvelopeCommand                    => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
    lockRepository      :                                       LockRepository
  )(implicit executionContext: ExecutionContext
@@ -83,17 +82,17 @@ class RoutingActor(
     val sender = envelope.metadata.flatMap(js => (js \ "sender" \ "service").asOpt[String])
     logger.info(s"Routing envelope [${envelope._id}] from: ${sender} to: ${envelope.destination}")
 
-    // we will push any envelope which has a publishUrl defined for the destination
-    envelope.destination.flatMap(lookupPublishUrl)
-      .fold(Future.successful(Some(MarkEnvelopeAsRouted(envelope._id, isPushed = false)): Option[EnvelopeCommand])){ publishUrl =>
-        logger.info(s"envelope [${envelope._id}] to '${envelope.destination}' will be routed to '$publishUrl'")
+    // we will push any envelope which has a pushUrl defined for the destination
+    envelope.destination.flatMap(config.lookupPushUrl)
+      .fold(Future.successful(Some(MarkEnvelopeAsRouted(envelope._id, isPushed = false)): Option[EnvelopeCommand])){ pushUrl =>
+        logger.info(s"envelope [${envelope._id}] to '${envelope.destination}' will be routed to '$pushUrl'")
         for {
           notification <- buildNotification(envelope._id)
-          res          <- publishNotification(notification, publishUrl)
+          res          <- pushNotification(notification, pushUrl)
         } yield res match {
-          case Xor.Right(())   => logger.info(s"Successfully published routing for envelope [${envelope._id}]")
+          case Xor.Right(())   => logger.info(s"Successfully pushed routing for envelope [${envelope._id}]")
                                   Some(MarkEnvelopeAsRouted(envelope._id, isPushed = true))
-          case Xor.Left(error) => logger.warn(s"Failed to publish routing for envelope [${envelope._id}] to ${envelope.destination}. Reason [${error.reason}]")
+          case Xor.Left(error) => logger.warn(s"Failed to push routing for envelope [${envelope._id}] to ${envelope.destination}. Reason [${error.reason}]")
                                   None
         }
     }.map(_.map(cmd =>
@@ -111,10 +110,9 @@ object RoutingActor {
   def props(
     config              :                                       RoutingConfig,
     buildNotification   : EnvelopeId                         => Future[FileTransferNotification],
-    lookupPublishUrl    : String                             => Option[String],
     findEnvelope        : EnvelopeId                         => Future[FindResult],
     getEnvelopesByStatus: (List[EnvelopeStatus], Boolean)    => Source[Envelope, akka.NotUsed],
-    publishNotification : (FileTransferNotification, String) => Future[RoutingRepository.PublishResult],
+    pushNotification    : (FileTransferNotification, String) => Future[RoutingRepository.PushResult],
     handleCommand       : EnvelopeCommand                    => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
     lockRepository      :                                       LockRepository
   )(implicit executionContext: ExecutionContext
@@ -122,10 +120,9 @@ object RoutingActor {
     Props(new RoutingActor(
       config               = config,
       buildNotification    = buildNotification,
-      lookupPublishUrl     = lookupPublishUrl,
       findEnvelope         = findEnvelope,
       getEnvelopesByStatus = getEnvelopesByStatus,
-      publishNotification  = publishNotification,
+      pushNotification     = pushNotification,
       handleCommand        = handleCommand,
       lockRepository       = lockRepository
     ))

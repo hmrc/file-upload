@@ -27,29 +27,29 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object RoutingRepository {
 
-  type PublishResult = Xor[PublishError, Unit]
-  case class PublishError(correlationId: String, publishUrl: String, reason: String)
+  type PushResult = Xor[PushError, Unit]
+  case class PushError(correlationId: String, pushUrl: String, reason: String)
 
   implicit val ftnw = FileTransferNotification.writes
 
-  def publishFileTransferNotification(
+  def pushFileTransferNotification(
     httpCall: WSRequest => Future[Xor[PlayHttpError, WSResponse]],
     wSClient: WSClient
   )(fileTransferNotification: FileTransferNotification,
-    publishUrl : String
+    pushUrl : String
   )(implicit executionContext: ExecutionContext
-  ): Future[PublishResult] =
+  ): Future[PushResult] =
     httpCall(
       wSClient
-        .url(publishUrl)
+        .url(pushUrl)
         .withHeaders("User-Agent" -> "file-upload")
         .withBody(Json.toJson(fileTransferNotification))
         .withMethod("POST")
     ).map {
-      case Xor.Left(error) => Xor.left(PublishError(fileTransferNotification.audit.correlationId, publishUrl, error.message))
+      case Xor.Left(error) => Xor.left(PushError(fileTransferNotification.audit.correlationId, pushUrl, error.message))
       case Xor.Right(response) => response.status match {
         case Status.OK => Xor.right(())
-        case _ => Xor.left(PublishError(fileTransferNotification.audit.correlationId, publishUrl, s"${response.status} ${response.body}"))
+        case _ => Xor.left(PushError(fileTransferNotification.audit.correlationId, pushUrl, s"${response.status} ${response.body}"))
       }
     }
 

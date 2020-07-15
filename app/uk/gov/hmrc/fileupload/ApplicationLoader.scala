@@ -218,7 +218,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val routingConfig = RoutingConfig(configuration)
 
   lazy val buildFileTransferNotification = RoutingRepository.buildFileTransferNotification(routingConfig) _
-  lazy val publishFileTransferNotification = RoutingRepository.publishFileTransferNotification(auditedHttpExecute, wsClient) _
+  lazy val pushFileTransferNotification = RoutingRepository.pushFileTransferNotification(auditedHttpExecute, wsClient) _
 
   lazy val lockRepository = new LockRepository()(db)
 
@@ -226,10 +226,9 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     RoutingActor.props(
       config = routingConfig,
       buildNotification = buildFileTransferNotification,
-      lookupPublishUrl = routingConfig.lookupPublishUrl,
       findEnvelope,
       getEnvelopesByStatus,
-      publishNotification = publishFileTransferNotification,
+      pushNotification = pushFileTransferNotification,
       handleCommand = envelopeCommandHandler,
       lockRepository = lockRepository
     ),
