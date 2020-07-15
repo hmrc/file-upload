@@ -224,3 +224,5 @@ case object FileAlreadyProcessed extends EnvelopeCommandNotAccepted
 case object EnvelopeArchivedError extends EnvelopeCommandNotAccepted
 
 case object EnvelopeRoutingAlreadyRequestedError extends EnvelopeCommandNotAccepted
+
+case object EnvelopeAlreadyRoutedError extends EnvelopeCommandNotAccepted

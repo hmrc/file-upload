@@ -192,8 +192,6 @@ case class Envelope(
 
   def canRequestRoute: CanResult = state.canRequestRoute(files.values.toSeq)
 
-  def canAttemptRouting: CanResult = state.canAttemptRouting
-
   def canRoute: CanResult = state.canRoute
 
   def canArchive: CanResult = state.canArchive
@@ -210,6 +208,7 @@ object State {
   val envelopeSealedError = Xor.left(EnvelopeSealedError)
   val envelopeAlreadyArchivedError = Xor.left(EnvelopeArchivedError)
   val envelopeRoutingAlreadyRequestedError = Xor.left(EnvelopeRoutingAlreadyRequestedError)
+  val envelopeAlreadyRoutedError = Xor.left(EnvelopeAlreadyRoutedError)
   val fileAlreadyProcessedError = Xor.left(FileAlreadyProcessed)
 }
 
@@ -238,13 +237,11 @@ sealed trait State {
 
   def canRequestRoute(files: Seq[File]): CanResult = genericError
 
-  def canAttemptRouting: CanResult = genericError
-
   def canRoute: CanResult = genericError
 
   def canArchive: CanResult = genericError
 
-  def genericError: CanResult = envelopeNotFoundError // confusing when it says envelope not found, because the envelope was in the wrong state...
+  def genericError: CanResult = envelopeNotFoundError
 
   def checkCanMarkFileAsCleanOrInfected(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
     files.get(fileId).filter(_.isSame(fileRefId)).map(f =>
@@ -358,8 +355,6 @@ object RouteRequested extends State {
 
   override def canRoute: CanResult = successResult
 
-  override def canAttemptRouting: CanResult = successResult
-
   override def genericError: CanResult = envelopeRoutingAlreadyRequestedError
 }
 
@@ -369,7 +364,7 @@ object Routed extends State {
 
   override def canArchive: CanResult = successResult
 
-  override def genericError: CanResult = envelopeRoutingAlreadyRequestedError // TODO new one?
+  override def genericError: CanResult = envelopeAlreadyRoutedError
 }
 
 object Archived extends State {
