@@ -47,7 +47,7 @@ import uk.gov.hmrc.fileupload.manualdihealth.{Routes => HealthRoutes}
 import uk.gov.hmrc.fileupload.prod.Routes
 import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => EnvelopeService, _}
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
-import uk.gov.hmrc.fileupload.read.routing.{RoutingActor, RoutingConfig, RoutingRepository}
+import uk.gov.hmrc.fileupload.read.routing.{FileTransferNotification, RoutingActor, RoutingConfig, RoutingRepository}
 import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor, StatsLogWriter, StatsLogger, StatsLoggingConfiguration, StatsLoggingScheduler, Repository => StatsRepository}
 import uk.gov.hmrc.fileupload.routing.{Routes => RoutingRoutes}
 import uk.gov.hmrc.fileupload.testonly.TestOnlyController
@@ -217,25 +217,19 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   lazy val routingConfig = RoutingConfig(configuration)
 
-  def buildDownloadLink(envelopeId: EnvelopeId): scala.concurrent.Future[String] = scala.concurrent.Future.successful{
-    // TODO we may need to call the frontend to generate a pre-signed URL instead...
-    val host = configuration.getString("microservice.services.self.host")
-    val downloadCall = uk.gov.hmrc.fileupload.controllers.transfer.routes.TransferController.download(envelopeId)
-    s"https://$host$downloadCall"
-  }
-
-  lazy val publishDownloadLink = RoutingRepository.publishDownloadLink(auditedHttpExecute, wsClient) _
+  lazy val buildFileTransferNotification = RoutingRepository.buildFileTransferNotification(routingConfig) _
+  lazy val publishFileTransferNotification = RoutingRepository.publishFileTransferNotification(auditedHttpExecute, wsClient) _
 
   lazy val lockRepository = new LockRepository()(db)
 
   actorSystem.actorOf(
     RoutingActor.props(
       config = routingConfig,
-      buildDownloadLink,
+      buildNotification = buildFileTransferNotification,
       lookupPublishUrl = routingConfig.lookupPublishUrl,
       findEnvelope,
       getEnvelopesByStatus,
-      publishDownloadLink,
+      publishNotification = publishFileTransferNotification,
       handleCommand = envelopeCommandHandler,
       lockRepository = lockRepository
     ),

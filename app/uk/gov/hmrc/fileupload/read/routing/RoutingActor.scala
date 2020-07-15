@@ -35,14 +35,14 @@ import scala.concurrent.duration.{DurationLong, FiniteDuration}
   * It checks periodically for files needing routing - this will retry any that previously failed to be delivered.
   */
 class RoutingActor(
-   config              :                                    RoutingConfig,
-   buildDownloadLink   : EnvelopeId                      => Future[String],
-   lookupPublishUrl    : String                          => Option[String],
-   findEnvelope        : EnvelopeId                      => Future[FindResult],
-   getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
-   publishDownloadLink : (String, String)                => Future[RoutingRepository.PublishResult],
-   handleCommand       : EnvelopeCommand                 => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
-   lockRepository      :                                    LockRepository
+   config              :                                       RoutingConfig,
+   buildNotification   : EnvelopeId                         => Future[FileTransferNotification],
+   lookupPublishUrl    : String                             => Option[String],
+   findEnvelope        : EnvelopeId                         => Future[FindResult],
+   getEnvelopesByStatus: (List[EnvelopeStatus], Boolean)    => Source[Envelope, akka.NotUsed],
+   publishNotification : (FileTransferNotification, String) => Future[RoutingRepository.PublishResult],
+   handleCommand       : EnvelopeCommand                    => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
+   lockRepository      :                                       LockRepository
  )(implicit executionContext: ExecutionContext
  ) extends Actor {
 
@@ -88,8 +88,8 @@ class RoutingActor(
       .fold(Future.successful(Some(MarkEnvelopeAsRouted(envelope._id, isPushed = false)): Option[EnvelopeCommand])){ publishUrl =>
         logger.info(s"envelope [${envelope._id}] to '${envelope.destination}' will be routed to '$publishUrl'")
         for {
-          downloadLink <- buildDownloadLink(envelope._id)
-          res          <- publishDownloadLink(downloadLink, publishUrl)
+          notification <- buildNotification(envelope._id)
+          res          <- publishNotification(notification, publishUrl)
         } yield res match {
           case Xor.Right(())   => logger.info(s"Successfully published routing for envelope [${envelope._id}]")
                                   Some(MarkEnvelopeAsRouted(envelope._id, isPushed = true))
@@ -109,23 +109,23 @@ object RoutingActor {
   case object PushIfWaiting
 
   def props(
-    config              :                                    RoutingConfig,
-    buildDownloadLink   : EnvelopeId                      => Future[String],
-    lookupPublishUrl    : String                          => Option[String],
-    findEnvelope        : EnvelopeId                      => Future[FindResult],
-    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
-    publishDownloadLink : (String, String)                => Future[RoutingRepository.PublishResult],
-    handleCommand       : EnvelopeCommand                 => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
-    lockRepository      :                                    LockRepository
+    config              :                                       RoutingConfig,
+    buildNotification   : EnvelopeId                         => Future[FileTransferNotification],
+    lookupPublishUrl    : String                             => Option[String],
+    findEnvelope        : EnvelopeId                         => Future[FindResult],
+    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean)    => Source[Envelope, akka.NotUsed],
+    publishNotification : (FileTransferNotification, String) => Future[RoutingRepository.PublishResult],
+    handleCommand       : EnvelopeCommand                    => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
+    lockRepository      :                                       LockRepository
   )(implicit executionContext: ExecutionContext
   ) =
     Props(new RoutingActor(
       config               = config,
-      buildDownloadLink    = buildDownloadLink,
+      buildNotification    = buildNotification,
       lookupPublishUrl     = lookupPublishUrl,
       findEnvelope         = findEnvelope,
       getEnvelopesByStatus = getEnvelopesByStatus,
-      publishDownloadLink  = publishDownloadLink,
+      publishNotification  = publishNotification,
       handleCommand        = handleCommand,
       lockRepository       = lockRepository
     ))

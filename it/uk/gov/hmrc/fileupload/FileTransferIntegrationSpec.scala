@@ -131,13 +131,17 @@ class FileTransferIntegrationSpec
       stubPushEndpoint()
 
       And("I route an envelope")
-      submitRoutingRequest(createEnvelope(), destination)
+      val envelopeId = createEnvelope()
+      submitRoutingRequest(envelopeId, destination)
 
       Then("There exist CLOSED envelopes that match it")
       eventually {
         val response = getEnvelopesForStatus(status = List("CLOSED"), inclusive = true)
         response.body.isEmpty shouldBe false
       }
+
+      And("The push notification was successful")
+      verifyPushNotification(envelopeId)
 
       When(s"I invoke GET /file-transfer/envelopes?destination=$destination")
       val response = getEnvelopesForDestination(Some(destination))

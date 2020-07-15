@@ -24,7 +24,8 @@ import scala.concurrent.duration.{DurationLong, FiniteDuration}
 case class RoutingConfig(
   initialDelay    :           FiniteDuration,
   interval        :           FiniteDuration,
-  lookupPublishUrl: String => Option[String]
+  lookupPublishUrl: String => Option[String],
+  host            :           String
 )
 
 object RoutingConfig {
@@ -32,12 +33,15 @@ object RoutingConfig {
   def apply(config: Configuration): RoutingConfig = {
     def getInt(key: String) =
       config.getInt(key).getOrElse(sys.error(s"Missing configuration: $key"))
+    def getString(key: String) =
+      config.getString(key).getOrElse(sys.error(s"Missing configuration: $key"))
     def getDuration(key: String) =
       config.getMilliseconds(key).getOrElse(sys.error(s"Missing configuration: $key")).millis
     RoutingConfig(
       initialDelay     = getDuration("routing.initialDelay"),
       interval         = getDuration("routing.interval"),
-      lookupPublishUrl = (destination: String) => config.getString(s"routing.publishurl.$destination")
+      lookupPublishUrl = (destination: String) => config.getString(s"routing.publishurl.$destination"),
+      host             = getString("microservice.services.self.host")
     )
   }
 }
