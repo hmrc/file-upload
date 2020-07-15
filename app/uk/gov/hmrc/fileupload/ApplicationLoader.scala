@@ -55,6 +55,7 @@ import uk.gov.hmrc.fileupload.transfer.{Routes => TransferRoutes}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
 import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, MongoEventStore, StreamId}
+import uk.gov.hmrc.lock.LockRepository
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode, ServicesConfig}
 import uk.gov.hmrc.play.microservice.config.LoadAuditingConfig
@@ -225,6 +226,8 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   lazy val publishDownloadLink = RoutingRepository.publishDownloadLink(auditedHttpExecute, wsClient) _
 
+  lazy val lockRepository = new LockRepository()(db)
+
   actorSystem.actorOf(
     RoutingActor.props(
       config = routingConfig,
@@ -233,8 +236,9 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
       findEnvelope,
       getEnvelopesByStatus,
       publishDownloadLink,
-      handleCommand = envelopeCommandHandler
-      ),
+      handleCommand = envelopeCommandHandler,
+      lockRepository = lockRepository
+    ),
     "routingActor")
 
   lazy val fileUploadFrontendBaseUrl = baseUrl("file-upload-frontend")

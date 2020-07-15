@@ -26,14 +26,14 @@ import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeS
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeRouteRequested, MarkEnvelopeAsRouted}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted, Event, EventData}
+import uk.gov.hmrc.lock.LockRepository
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{DurationLong, FiniteDuration}
 
 /** When the envelope is routed, if there is a registered endpoint, it will notify the recipient.
-  * It is triggered by the [[EnvelopeRouteRequested]] event, but also checks periodically for files needing routing, to retry.
+  * It checks periodically for files needing routing - this will retry any that previously failed to be delivered.
   */
-// TODO use mongolock to ensure only one instance is processing
 class RoutingActor(
    config              :                                    RoutingConfig,
    buildDownloadLink   : EnvelopeId                      => Future[String],
@@ -41,7 +41,8 @@ class RoutingActor(
    findEnvelope        : EnvelopeId                      => Future[FindResult],
    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
    publishDownloadLink : (String, String)                => Future[RoutingRepository.PublishResult],
-   handleCommand       : EnvelopeCommand                 => Future[Xor[CommandNotAccepted, CommandAccepted.type]]
+   handleCommand       : EnvelopeCommand                 => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
+   lockRepository      :                                    LockRepository
  )(implicit executionContext: ExecutionContext
  ) extends Actor {
 
@@ -51,11 +52,8 @@ class RoutingActor(
 
   implicit val actorMaterializer = akka.stream.ActorMaterializer()
 
-  // rather than launching a scheduler to run at defined intervals, we'll set one to run once, each time we finish.
-  // this ensures we don't end up with overlapping executions, and allows us to bring the next run forward, if we have
-  // a relevant event.
   private var scheduler: Cancellable =
-    context.system.scheduler.scheduleOnce(config.initialDelay, self, PushIfWaiting)
+    context.system.scheduler.schedule(config.initialDelay, config.interval, self, PushIfWaiting)
 
   override def preRestart(reason: Throwable, message: Option[Any]) = {
     super.preRestart(reason, message)
@@ -65,16 +63,19 @@ class RoutingActor(
   override def postStop(): Unit =
     scheduler.cancel()
 
-
   def receive = {
     case PushIfWaiting =>
-      logger.info(s"Push any waiting messages")
-      getEnvelopesByStatus(List(EnvelopeStatusRouteRequested), true)
-        .mapAsync(parallelism = 1)(routeEnvelope)
-        .runWith(Sink.ignore)
-        .andThen {
-          case _ => scheduler = context.system.scheduler.scheduleOnce(config.interval, self, PushIfWaiting)
-        }
+      logger.info(s"received PushIfWaiting")
+      Lock.takeLock(lockRepository).flatMap {
+        case None =>
+          Future.successful(logger.info(s"no lock aquired"))
+        case Some(lock) =>
+          logger.info(s"aquired lock - pushing any waiting messages")
+          getEnvelopesByStatus(List(EnvelopeStatusRouteRequested), true)
+            .mapAsync(parallelism = 1)(routeEnvelope)
+            .runWith(Sink.ignore)
+            .andThen { case _ => lock.release() }
+      }
   }
 
   def routeEnvelope(envelope: Envelope): Future[Unit] = {
@@ -114,7 +115,8 @@ object RoutingActor {
     findEnvelope        : EnvelopeId                      => Future[FindResult],
     getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
     publishDownloadLink : (String, String)                => Future[RoutingRepository.PublishResult],
-    handleCommand       : EnvelopeCommand                 => Future[Xor[CommandNotAccepted, CommandAccepted.type]]
+    handleCommand       : EnvelopeCommand                 => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
+    lockRepository      :                                    LockRepository
   )(implicit executionContext: ExecutionContext
   ) =
     Props(new RoutingActor(
@@ -124,6 +126,23 @@ object RoutingActor {
       findEnvelope         = findEnvelope,
       getEnvelopesByStatus = getEnvelopesByStatus,
       publishDownloadLink  = publishDownloadLink,
-      handleCommand        = handleCommand
+      handleCommand        = handleCommand,
+      lockRepository       = lockRepository
     ))
+}
+
+case class Lock(release: () => Future[Unit])
+
+object Lock {
+  private val reqLockId = "RoutingActor"
+  private val reqOwner = java.util.UUID.randomUUID().toString
+  private val forceReleaseAfter = 1.hour
+
+  def takeLock(lockRepository: LockRepository)(implicit ec: ExecutionContext): Future[Option[Lock]] = {
+    lockRepository.lock(reqLockId, reqOwner, new org.joda.time.Duration(forceReleaseAfter.toMillis))
+      .map { taken =>
+        if (taken) Some(Lock(() => lockRepository.releaseLock(reqLockId, reqOwner)))
+        else None
+      }
+  }
 }
