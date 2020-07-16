@@ -45,7 +45,7 @@ trait IntegrationTestApplicationComponents extends OneServerPerSuite with MongoS
         "constraints.enforceHttps" -> "false",
         "routing.initialDelay" -> "1.second",
         "routing.interval" -> "1.second"
-      ) ++ dmsServiceUrl.fold(Map.empty[String, String])(url => Map("routing.publishurl.DMS" -> url))
+      ) ++ dmsServiceUrl.fold(Map.empty[String, String])(url => Map("routing.pushurl.DMS" -> url))
     )
   }
 }
