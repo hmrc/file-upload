@@ -37,6 +37,7 @@ class SDESCallbackIntegrationSpec extends IntegrationSpec with ActionsSupport {
       filename = "ourref.xyz.doc",
       checksumAlgorithm = MD5,
       checksum = "83HQWQ93D909Q0QWIJQE39831312EUIUQIWOEU398931293DHDAHBAS",
+      correlationId = "d1800c47-29b0-440a-9e2e-9d7362795e10",
       availableUntil = Some(Instant.now()),
       failureReason = Some("We were unable to successfully do some action"),
       dateTime = Instant.now()
