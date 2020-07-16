@@ -58,6 +58,7 @@ case class NotificationItem(notification: Notification,
                             filename: String,
                             checksumAlgorithm: ChecksumAlgorithm,
                             checksum: String,
+                            correlationId: String,
                             availableUntil: Option[Instant],
                             failureReason: Option[String],
                             dateTime: Instant)
@@ -94,6 +95,7 @@ object NotificationItem {
       ~ (__ \ "filename").format[String]
       ~ (__ \ "checksumAlgorithm").format[ChecksumAlgorithm]
       ~ (__ \ "checksum").format[String]
+      ~ (__ \ "correlationId").format[String]
       ~ (__ \ "availableUntil").formatNullable[Instant]
       ~ (__ \ "failureReason").formatNullable[String]
       ~ (__ \ "dateTime").format[Instant]
