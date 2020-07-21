@@ -3,17 +3,18 @@ package uk.gov.hmrc.fileupload
 import java.time.Instant
 
 import play.api.libs.json.Json
-import uk.gov.hmrc.fileupload.controllers.{FileProcessed, MD5, NotificationItem}
+import uk.gov.hmrc.fileupload.controllers.{FileProcessed, FileReceived, MD5, Notification, NotificationItem}
 import uk.gov.hmrc.fileupload.support.{ActionsSupport, IntegrationSpec}
 
 class SDESCallbackIntegrationSpec extends IntegrationSpec with ActionsSupport {
 
   feature("SDES Callbacks") {
     scenario("handle SDES callbacks and return OK") {
+      val item = notificationItem(FileReceived)
       val response =
         client
           .url(s"$fileRoutingUrl/sdes-callback")
-          .post(Json.toJson(notificationItem))
+          .post(Json.toJson(item))
           .futureValue
 
       response.status shouldBe OK
@@ -30,9 +31,9 @@ class SDESCallbackIntegrationSpec extends IntegrationSpec with ActionsSupport {
     }
   }
 
-  private def notificationItem =
+  private def notificationItem(notification: Notification) =
     NotificationItem(
-      notification = FileProcessed,
+      notification = notification,
       informationType = Some("S18"),
       filename = "ourref.xyz.doc",
       checksumAlgorithm = MD5,

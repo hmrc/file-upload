@@ -236,7 +236,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   lazy val routingController = new RoutingController(envelopeCommandHandler)
 
-  lazy val sdesCallbackController = new SDESCallbackController()
+  lazy val sdesCallbackController = new SDESCallbackController(envelopeCommandHandler)
 
   lazy val healthRoutes = new HealthRoutes(httpErrorHandler, new uk.gov.hmrc.play.health.HealthController(configuration, context.environment))
 
