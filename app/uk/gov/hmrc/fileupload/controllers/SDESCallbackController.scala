@@ -18,22 +18,45 @@ package uk.gov.hmrc.fileupload.controllers
 
 import java.time.Instant
 
+import cats.data.Xor
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import play.api.mvc.{Action, Controller, Request, Result}
+import uk.gov.hmrc.fileupload.EnvelopeId
+import uk.gov.hmrc.fileupload.write.envelope.{ArchiveEnvelope, EnvelopeArchivedError, EnvelopeCommand, EnvelopeNotFoundError}
+import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
-class SDESCallbackController()(implicit executionContext: ExecutionContext) extends Controller {
+class SDESCallbackController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
+                            (implicit executionContext: ExecutionContext) extends Controller {
 
   def callback() = Action.async(parse.json) { implicit request =>
     withJsonBody[NotificationItem] { item =>
       Logger.info(s"Received SDES callback: $item")
-      Future successful Ok
+
+      // we only action items that are 'FileProcessed'; we delete the corresponding envelopes.
+      // we have no retry mechanisms built that will retry if we're notified of an error here.
+      val envelopeId = EnvelopeId(item.correlationId)
+      item.notification match {
+        case FileProcessed => tryDelete(envelopeId)
+        case _             => Future successful Ok
+      }
     }
   }
+
+  private def tryDelete(envelopeId: EnvelopeId) =
+    handleCommand(ArchiveEnvelope(envelopeId)).map {
+      case Xor.Right(_) => Ok
+      case Xor.Left(EnvelopeArchivedError) =>
+        Logger.info(s"Received another request to delete envelope [$envelopeId]. It was previously deleted")
+        Ok
+      case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(BAD_REQUEST, s"CorrelationId $envelopeId not found")
+      case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Xor.Left(_) => ExceptionHandler(INTERNAL_SERVER_ERROR, s"Envelope with id: $envelopeId locked")
+    }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
 
   /**
    * This method is copy-pasted from elsewhere in the project, but has additional logging, as it'll make life easier
