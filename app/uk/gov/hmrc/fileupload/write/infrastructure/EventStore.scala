@@ -59,7 +59,7 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
                      (implicit ec: ExecutionContext,
                       reader: BSONDocumentReader[UnitOfWork],
                       writer: BSONDocumentWriter[UnitOfWork]) extends EventStore {
-  
+
   val collection: BSONCollection = mongo().collection[BSONCollection]("events")
 
   ensureIndex()
@@ -86,7 +86,7 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
       case e: DatabaseException if e.code == duplicateKeyErrorCode =>
         Xor.Left(VersionConflictError)
       case e =>
-        Xor.left(NotSavedError(e.getMessage))
+        Xor.left(NotSavedError(s"not saved: ${e.getMessage}"))
     }.map { e =>
       context.stop()
       e

@@ -64,8 +64,8 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
       envelope.canStoreFile(command.fileId, command.fileRefId).map { _ =>
         val fileStored = FileStored(command.id, command.fileId, command.fileRefId, command.length)
 
-        if (withEvent(envelope, fileStored).canRoute.isRight) {
-          fileStored And EnvelopeRouted(command.id)
+        if (withEvent(envelope, fileStored).canRequestRoute.isRight) {
+          fileStored And EnvelopeRouteRequested(command.id)
         } else {
           fileStored
         }
@@ -78,20 +78,21 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
       envelope.canDelete.map(_ => EnvelopeDeleted(command.id))
 
     case (command: SealEnvelope, envelope: Envelope) =>
-      envelope.canSeal(command.destination, envelope.constraints.getOrElse(acceptedConstraints)).map(_ => {
+      envelope.canSeal(command.destination, envelope.constraints.getOrElse(acceptedConstraints)).map { _ =>
         val envelopeSealed = EnvelopeSealed(command.id, command.routingRequestId, command.destination, command.application)
 
-        if (withEvent(envelope, envelopeSealed).canRoute.isRight) {
-          envelopeSealed And EnvelopeRouted(command.id)
+        if (withEvent(envelope, envelopeSealed).canRequestRoute.isRight) {
+          envelopeSealed And EnvelopeRouteRequested(command.id)
         } else {
           envelopeSealed
         }
-      })
+      }
 
     case (command: UnsealEnvelope, envelope: Envelope) =>
-      envelope.canUnseal.map(_ => {
-        EnvelopeUnsealed(command.id)
-      })
+      envelope.canUnseal.map(_ => EnvelopeUnsealed(command.id))
+
+    case (command: MarkEnvelopeAsRouted, envelope: Envelope) =>
+      envelope.canRoute.map(_ => EnvelopeRouted(command.id, command.isPushed))
 
     case (command: ArchiveEnvelope, envelope: Envelope) =>
       envelope.canArchive.map(_ => EnvelopeArchived(command.id))
@@ -124,6 +125,9 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
 
     case (envelope: Envelope, e: EnvelopeUnsealed) =>
       envelope.copy(state = Open)
+
+    case (envelope: Envelope, e: EnvelopeRouteRequested) =>
+      envelope.copy(state = RouteRequested)
 
     case (envelope: Envelope, e: EnvelopeRouted) =>
       envelope.copy(state = Routed)
@@ -159,7 +163,11 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
 
 }
 
-case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCreated, constraints: Option[EnvelopeFilesConstraints] = None) {
+case class Envelope(
+  files            : Map[FileId, File]                = Map.empty,
+  state            : State                            = NotCreated,
+  constraints      : Option[EnvelopeFilesConstraints] = None
+) {
 
   def canCreate: CanResult = state.canCreate
 
@@ -182,7 +190,9 @@ case class Envelope(files: Map[FileId, File] = Map.empty, state: State = NotCrea
 
   def canDelete: CanResult = state.canDelete
 
-  def canRoute: CanResult = state.canRoute(files.values.toSeq)
+  def canRequestRoute: CanResult = state.canRequestRoute(files.values.toSeq)
+
+  def canRoute: CanResult = state.canRoute
 
   def canArchive: CanResult = state.canArchive
 }
@@ -197,6 +207,7 @@ object State {
   val fileNotFoundError = Xor.left(FileNotFoundError)
   val envelopeSealedError = Xor.left(EnvelopeSealedError)
   val envelopeAlreadyArchivedError = Xor.left(EnvelopeArchivedError)
+  val envelopeRoutingAlreadyRequestedError = Xor.left(EnvelopeRoutingAlreadyRequestedError)
   val envelopeAlreadyRoutedError = Xor.left(EnvelopeAlreadyRoutedError)
   val fileAlreadyProcessedError = Xor.left(FileAlreadyProcessed)
 }
@@ -224,7 +235,9 @@ sealed trait State {
 
   def canDelete: CanResult = genericError
 
-  def canRoute(files: Seq[File]): CanResult = genericError
+  def canRequestRoute(files: Seq[File]): CanResult = genericError
+
+  def canRoute: CanResult = genericError
 
   def canArchive: CanResult = genericError
 
@@ -239,7 +252,7 @@ sealed trait State {
       }).getOrElse(fileNotFoundError)
 
   def checkCanStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
-    files.get(fileId).filter(_.isSame(fileRefId)).map(f => {
+    files.get(fileId).filter(_.isSame(fileRefId)).map(f =>
       if (!f.hasError) {
         if (!f.isScanned) {
           fileNotFoundError
@@ -251,7 +264,7 @@ sealed trait State {
       } else {
         Xor.left(FileWithError)
       }
-    }).getOrElse(fileNotFoundError)
+    ).getOrElse(fileNotFoundError)
 
 
   def isValidSize(size: Long, acceptedSize: Long): Boolean = {
@@ -325,7 +338,7 @@ object Sealed extends State {
 
   override def canUnseal: CanResult = successResult
 
-  override def canRoute(files: Seq[File]): CanResult = {
+  override def canRequestRoute(files: Seq[File]): CanResult = {
     val filesNotAvailable = files.filter(!_.isAvailable)
     if (filesNotAvailable.isEmpty) {
       successResult
@@ -335,6 +348,14 @@ object Sealed extends State {
   }
 
   override def genericError: CanResult = envelopeSealedError
+}
+
+object RouteRequested extends State {
+  import State._
+
+  override def canRoute: CanResult = successResult
+
+  override def genericError: CanResult = envelopeRoutingAlreadyRequestedError
 }
 
 object Routed extends State {

@@ -30,7 +30,7 @@ import play.api.libs.streams.Streams
 import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
 import uk.gov.hmrc.fileupload.file.zip.ZipStream.{ZipFileInfo, ZipStreamEnumerator}
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindEnvelopeNotFoundError, FindResult, FindServiceError}
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatusClosed}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatusClosed, EnvelopeStatusRouteRequested}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -57,7 +57,7 @@ object Zippy {
     }
 
     getEnvelope(envelopeId) map {
-      case Xor.Right(envelopeWithFiles @ Envelope(_, _, EnvelopeStatusClosed, _, _, _, _, Some(files), _, _)) =>
+      case Xor.Right(envelopeWithFiles @ Envelope(_, _, EnvelopeStatusRouteRequested | EnvelopeStatusClosed, _, _, _, _, Some(files), _, _, _)) =>
         val zipFiles = files.collect {
           case f =>
             val fileName = f.name.getOrElse(UUID.randomUUID().toString)
@@ -69,7 +69,7 @@ object Zippy {
         }
         Xor.right(ZipStreamEnumerator(zipFiles))
 
-      case Xor.Right(envelopeWithoutFiles @ Envelope(_, _, EnvelopeStatusClosed, _, _, _, _, None, _, _)) =>
+      case Xor.Right(envelopeWithoutFiles @ Envelope(_, _, EnvelopeStatusRouteRequested | EnvelopeStatusClosed, _, _, _, _, None, _, _, _)) =>
         Logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope was empty - returning empty ZIP file.")
         Xor.Right(emptyZip())
 

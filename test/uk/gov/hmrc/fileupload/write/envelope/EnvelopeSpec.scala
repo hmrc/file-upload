@@ -57,7 +57,8 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
   val envelopeDeleted = EnvelopeDeleted(envelopeId)
   val envelopeSealed = EnvelopeSealed(envelopeId, "testRoutingRequestId", "DMS", "testApplication")
   val envelopeUnsealed = EnvelopeUnsealed(envelopeId)
-  val envelopeRouted = EnvelopeRouted(envelopeId)
+  val envelopeRouteRequested = EnvelopeRouteRequested(envelopeId)
+  val envelopeRouted = EnvelopeRouted(envelopeId, isPushed = true)
   val envelopeArchived = EnvelopeArchived(envelopeId)
 
   def defaultFileRefId = FileRefId(UUID.randomUUID().toString)
@@ -198,8 +199,15 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Quarantine a new file for a routed envelope") {
+    scenario("Quarantine a new file for a route requested envelope") {
+      givenWhenThen(
+        envelopeCreated And envelopeRouteRequested,
+        QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
+        EnvelopeRoutingAlreadyRequestedError
+      )
+    }
 
+    scenario("Quarantine a new file for a routed envelope") {
       givenWhenThen(
         envelopeCreated And envelopeRouted,
         QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
@@ -410,7 +418,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         envelopeCreated And fileQuarantined And noVirusDetected And envelopeSealed,
         StoreFile(envelopeId, fileId, fileRefId, 100),
-        fileStored And envelopeRouted
+        fileStored And envelopeRouteRequested
       )
     }
 
@@ -519,8 +527,15 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Delete routed envelope") {
+    scenario("Delete a route requested envelope") {
+      givenWhenThen(
+        envelopeCreated And envelopeRouteRequested,
+        DeleteEnvelope(envelopeId),
+        EnvelopeRoutingAlreadyRequestedError
+      )
+    }
 
+    scenario("Delete routed envelope") {
       givenWhenThen(
         envelopeCreated And envelopeRouted,
         DeleteEnvelope(envelopeId),
@@ -545,7 +560,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         envelopeCreated,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
-        envelopeSealed And envelopeRouted
+        envelopeSealed And envelopeRouteRequested
       )
     }
 
@@ -595,7 +610,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         envelopeCreated And fileQuarantined And fileStored,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
-        envelopeSealed And envelopeRouted
+        envelopeSealed And envelopeRouteRequested
       )
     }
 
@@ -604,7 +619,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         envelopeCreated,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
-        envelopeSealed And envelopeRouted
+        envelopeSealed And envelopeRouteRequested
       )
     }
 
@@ -613,7 +628,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       givenWhenThen(
         envelopeCreated,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DESTINATION_X", "testApplication"),
-        envelopeSealed.copy(destination = "DESTINATION_X") And envelopeRouted
+        envelopeSealed.copy(destination = "DESTINATION_X") And envelopeRouteRequested
       )
     }
 
@@ -644,8 +659,16 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Seal routed envelope") {
 
+    scenario("Seal for a route requested envelope") {
+      givenWhenThen(
+        envelopeCreated And envelopeRouteRequested,
+        SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
+        EnvelopeRoutingAlreadyRequestedError
+      )
+    }
+
+    scenario("Seal routed envelope") {
       givenWhenThen(
         envelopeCreated And envelopeRouted,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
@@ -719,8 +742,15 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Unseal routed envelope") {
+    scenario("Unseal for a route requested envelope") {
+      givenWhenThen(
+        envelopeCreated And envelopeRouteRequested,
+        UnsealEnvelope(envelopeId),
+        EnvelopeRoutingAlreadyRequestedError
+      )
+    }
 
+    scenario("Unseal routed envelope") {
       givenWhenThen(
         envelopeCreated And envelopeRouted,
         UnsealEnvelope(envelopeId),

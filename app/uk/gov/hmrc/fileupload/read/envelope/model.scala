@@ -31,11 +31,11 @@ case class Envelope(_id: EnvelopeId = EnvelopeId(),
                     metadata: Option[JsObject] = None,
                     files: Option[Seq[File]] = None,
                     destination: Option[String] = None,
-                    application: Option[String] = None) {
+                    application: Option[String] = None,
+                    isPushed: Option[Boolean] = None) {
 
-  def getFileById(fileId: FileId): Option[File] = {
-    files.flatMap { _.find { file => file.fileId == fileId }}
-  }
+  def getFileById(fileId: FileId): Option[File] =
+    files.flatMap(_.find(_.fileId == fileId))
 }
 
 case class File(fileId: FileId,
@@ -83,6 +83,9 @@ case object EnvelopeStatusOpen extends EnvelopeStatus {
 case object EnvelopeStatusSealed extends EnvelopeStatus {
   override val name: String = "SEALED"
 }
+case object EnvelopeStatusRouteRequested extends EnvelopeStatus {
+  override val name: String = "ROUTE_REQUESTED"
+}
 case object EnvelopeStatusClosed extends EnvelopeStatus {
   override val name: String = "CLOSED"
 }
@@ -103,6 +106,7 @@ object EnvelopeStatusTransformer {
     name match {
       case EnvelopeStatusOpen.name => EnvelopeStatusOpen
       case EnvelopeStatusSealed.name => EnvelopeStatusSealed
+      case EnvelopeStatusRouteRequested.name => EnvelopeStatusRouteRequested
       case EnvelopeStatusClosed.name => EnvelopeStatusClosed
       case EnvelopeStatusDeleted.name => EnvelopeStatusDeleted
     }

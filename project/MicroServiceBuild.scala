@@ -3,7 +3,7 @@ import sbt._
 object MicroServiceBuild extends Build with MicroService {
 
   val appName = "file-upload"
-  
+
   override lazy val appDependencies: Seq[ModuleID] = AppDependencies()
 }
 
@@ -14,7 +14,7 @@ private object AppDependencies {
   private val microserviceBootstrapVersion = "10.6.0"
   private val domainVersion = "5.2.0"
   private val hmrcTestVersion = "3.3.0"
-  private val simpleReactiveMongoVesion = "7.23.0-play-25"
+  private val simpleReactiveMongoVesion = "7.30.0-play-25"
   private val akkaVersion = "2.5.18"
   private val catsVersion = "0.7.0"
   private val authClientVersion = "2.27.0-play-25"
@@ -25,6 +25,7 @@ private object AppDependencies {
 
   val compile = Seq(
     "uk.gov.hmrc" %% "simple-reactivemongo" % simpleReactiveMongoVesion,
+    "uk.gov.hmrc" %% "mongo-lock"           % "6.23.0-play-25",
     ws,
     "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrapVersion,
     "uk.gov.hmrc" %% "auth-client" % authClientVersion,
@@ -32,7 +33,7 @@ private object AppDependencies {
     "com.typesafe.akka" % "akka-actor_2.11" % akkaVersion,
     "com.typesafe.akka" % "akka-testkit_2.11" % akkaVersion,
     "org.typelevel" %% "cats" % catsVersion,
-    "org.reactivemongo" %% "reactivemongo-iteratees" % "0.17.1",
+    "org.reactivemongo" %% "reactivemongo-iteratees" % "0.18.8",
     "com.typesafe.play" %% "play-iteratees" % "2.5.9" force(),
     "com.google.code.findbugs" % "jsr305" % "2.0.3")
 
@@ -48,7 +49,7 @@ private object AppDependencies {
         "org.scalatest" %% "scalatest" % "3.0.5" % scope,
         "org.pegdown" % "pegdown" % pegdownVersion % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
-        "uk.gov.hmrc" %% "reactivemongo-test" % "4.15.0-play-25" % scope,
+        "uk.gov.hmrc" %% "reactivemongo-test" % "4.21.0-play-25" % scope,
         "com.typesafe.akka" % "akka-testkit_2.11" % akkaVersion % scope,
         "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlusPlayVersion % scope,
         "org.mockito" % "mockito-core" % "2.21.0" % scope,
@@ -69,7 +70,7 @@ private object AppDependencies {
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
         "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlusPlayVersion % scope,
         "com.github.tomakehurst" % "wiremock" % "1.58" % scope,
-        "uk.gov.hmrc" %% "reactivemongo-test" % "4.15.0-play-25" % scope
+        "uk.gov.hmrc" %% "reactivemongo-test" % "4.21.0-play-25" % scope
       )
     }.test
   }

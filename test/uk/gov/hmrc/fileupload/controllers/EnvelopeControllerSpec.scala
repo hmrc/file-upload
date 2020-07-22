@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import akka.stream.scaladsl.Source
 import cats.data.Xor
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
@@ -24,7 +25,6 @@ import org.scalatest.Inside
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.http.{HeaderNames, Status}
-import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.{FakeHeaders, FakeRequest}
@@ -60,7 +60,7 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
                     findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]] = (_, _) => failed,
                     findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed,
                     deleteInProgressFile: FileRefId => Future[Boolean] = _ => failed,
-                    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope] = (_, _) => failed) =
+                    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed] = (_, _) => failed) =
     new EnvelopeController(withBasicAuth, nextId, handleCommand, findEnvelope, findMetadata,
                            findAllInProgressFile, deleteInProgressFile, getEnvelopesByStatus, envelopeConstraintsConfigure)
 

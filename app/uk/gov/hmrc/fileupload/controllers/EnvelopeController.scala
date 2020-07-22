@@ -19,14 +19,12 @@ package uk.gov.hmrc.fileupload.controllers
 import java.net.URL
 import java.time.Duration
 
-import akka.stream.scaladsl.Source.fromPublisher
+import akka.stream.scaladsl.Source
 import cats.data.Xor
 import cats.syntax.either._
 import org.joda.time.DateTime
 import play.api.Logger
-import play.api.libs.iteratee.Enumerator
 import play.api.libs.json._
-import play.api.libs.streams.Streams.enumeratorToPublisher
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.infrastructure.{BasicAuth, EnvelopeConstraintsConfiguration}
 import uk.gov.hmrc.fileupload.read.envelope.Service._
@@ -50,7 +48,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
                          findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]],
                          findAllInProgressFile: () => Future[GetInProgressFileResult],
                          deleteInProgressFile: (FileRefId) => Future[Boolean],
-                         getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Enumerator[Envelope],
+                         getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
                          envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration)
                         (implicit executionContext: ExecutionContext) extends Controller {
   import EnvelopeConstraintsConfiguration.{validateExpiryDate, durationsToDateTime}
@@ -93,7 +91,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
         case Some(url) =>
           for {
             parsedUrl <- Either.catchNonFatal(new URL(url)).leftMap(_ => InvalidCallbackUrl(url))
-            _ <- if (allowedProtocols.contains(parsedUrl.getProtocol)) Right() else Left(InvalidCallbackUrl(url))
+            _ <- if (allowedProtocols.contains(parsedUrl.getProtocol)) Right(()) else Left(InvalidCallbackUrl(url))
           } yield ()
       }
     } else {
@@ -151,7 +149,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
       case Xor.Right(_) => Ok
       case Xor.Left(FileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
       case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Left(EnvelopeAlreadyRoutedError | EnvelopeSealedError) =>
+      case Xor.Left(EnvelopeRoutingAlreadyRequestedError | EnvelopeSealedError) =>
         ExceptionHandler(LOCKED, s"File not deleted, as routing request already received for envelope: $id sealed")
       case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "File not deleted")
     }.recover { case e => ExceptionHandler(e) }
@@ -171,9 +169,10 @@ class EnvelopeController(withBasicAuth: BasicAuth,
   def list(getEnvelopesByStatusQuery: GetEnvelopesByStatus) = Action { implicit request =>
     Logger.debug(s"list by status")
     import EnvelopeReport._
-
-    val enumerator = getEnvelopesByStatus(getEnvelopesByStatusQuery.status, getEnvelopesByStatusQuery.inclusive)
-    Ok.chunked(fromPublisher(enumeratorToPublisher(enumerator.map(e => Json.toJson(fromEnvelope(e))))))
+    Ok.chunked(
+      getEnvelopesByStatus(getEnvelopesByStatusQuery.status, getEnvelopesByStatusQuery.inclusive)
+        .map(e => Json.toJson(fromEnvelope(e)))
+    )
   }
 
   def retrieveMetadata(id: EnvelopeId, fileId: FileId) = Action.async { request =>

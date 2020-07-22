@@ -47,6 +47,7 @@ import uk.gov.hmrc.fileupload.manualdihealth.{Routes => HealthRoutes}
 import uk.gov.hmrc.fileupload.prod.Routes
 import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => EnvelopeService, _}
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
+import uk.gov.hmrc.fileupload.read.routing.{FileTransferNotification, RoutingActor, RoutingConfig, RoutingRepository}
 import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor, StatsLogWriter, StatsLogger, StatsLoggingConfiguration, StatsLoggingScheduler, Repository => StatsRepository}
 import uk.gov.hmrc.fileupload.routing.{Routes => RoutingRoutes}
 import uk.gov.hmrc.fileupload.testonly.TestOnlyController
@@ -54,6 +55,7 @@ import uk.gov.hmrc.fileupload.transfer.{Routes => TransferRoutes}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
 import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, MongoEventStore, StreamId}
+import uk.gov.hmrc.lock.LockRepository
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode, ServicesConfig}
 import uk.gov.hmrc.play.microservice.config.LoadAuditingConfig
@@ -172,7 +174,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val allInProgressFile = Stats.all(statsRepository.all) _
 
   // envelope read model
-  lazy val createReportHandler = new EnvelopeReportHandler(
+  lazy val reportHandler = new EnvelopeReportHandler(
     toId = (streamId: StreamId) => EnvelopeId(streamId.value),
     updateEnvelope,
     envelopeRepository.delete,
@@ -182,15 +184,17 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val envelopeCommandHandler = {
     (command: EnvelopeCommand) =>
       new Aggregate[EnvelopeCommand, write.envelope.Envelope](
-        handler = envelopeHandler,
-        defaultState = () => write.envelope.Envelope(),
-        publish = publish,
-        publishAllEvents = createReportHandler.handle(replay = false))(eventStore, defaultContext).handleCommand(command)
+        handler          = envelopeHandler,
+        defaultState     = () => write.envelope.Envelope(),
+        publish          = publish,
+        publishAllEvents = reportHandler.handle(replay = false)
+      )(eventStore, defaultContext).handleCommand(command)
   }
+
+  lazy val getEnvelopesByStatus = envelopeRepository.getByStatus _
 
   lazy val envelopeController = {
     val nextId = () => EnvelopeId(UUID.randomUUID().toString)
-    val getEnvelopesByStatus = envelopeRepository.getByStatus _
     new EnvelopeController(
       withBasicAuth = withBasicAuth,
       nextId = nextId,
@@ -204,12 +208,31 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   }
 
   lazy val eventController = {
-    new EventController(eventStore.unitsOfWorkForAggregate, createReportHandler.handle(replay = true))
+    new EventController(eventStore.unitsOfWorkForAggregate, reportHandler.handle(replay = true))
   }
 
   lazy val commandController = {
     new CommandController(envelopeCommandHandler)
   }
+
+  lazy val routingConfig = RoutingConfig(configuration)
+
+  lazy val buildFileTransferNotification = RoutingRepository.buildFileTransferNotification(routingConfig) _
+  lazy val pushFileTransferNotification = RoutingRepository.pushFileTransferNotification(auditedHttpExecute, wsClient) _
+
+  lazy val lockRepository = new LockRepository()(db)
+
+  actorSystem.actorOf(
+    RoutingActor.props(
+      config = routingConfig,
+      buildNotification = buildFileTransferNotification,
+      findEnvelope,
+      getEnvelopesByStatus,
+      pushNotification = pushFileTransferNotification,
+      handleCommand = envelopeCommandHandler,
+      lockRepository = lockRepository
+    ),
+    "routingActor")
 
   lazy val fileUploadFrontendBaseUrl = baseUrl("file-upload-frontend")
 

@@ -13,7 +13,7 @@ trait FakeConsumingService extends BeforeAndAfterAll with ScalaFutures {
 
   lazy val consumingServicePort = 8900
 
-  lazy val server = new WireMockServer(wireMockConfig().port(consumingServicePort))
+  private lazy val server = new WireMockServer(wireMockConfig().port(consumingServicePort))
 
   final lazy val consumingServiceBaseUrl = s"http://localhost:$consumingServicePort"
 

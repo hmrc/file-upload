@@ -61,13 +61,19 @@ class EnvelopeReportHandler(override val toId: StreamId => EnvelopeId,
       s.copy(status = EnvelopeStatusOpen, destination = None, application = None)
     }
 
-    case (s: Envelope, e: EnvelopeRouted) => Some {
-      s.copy(status = EnvelopeStatusClosed)
-    }
+    case (s: Envelope, e: EnvelopeRouteRequested) => Some(
+      s.copy(status = EnvelopeStatusRouteRequested)
+    )
 
     case (s: Envelope, e: EnvelopeArchived) => Some {
       s.copy(status = EnvelopeStatusDeleted)
     }
+
+    case (s: Envelope, e: EnvelopeRouted) => Some(
+      s.copy(
+        status   = EnvelopeStatusClosed,
+        isPushed = Some(e.isPushed))
+    )
 
     case (s: Envelope, e: FileDeleted) => Some {
       s.copy(files = s.files.orElse(Some(List.empty[File])).map(filterOutFile(_, e.fileId)))
