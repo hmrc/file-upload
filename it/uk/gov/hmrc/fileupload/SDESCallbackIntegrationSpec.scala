@@ -3,7 +3,7 @@ package uk.gov.hmrc.fileupload
 import java.time.Instant
 
 import play.api.libs.json.Json
-import uk.gov.hmrc.fileupload.controllers.{FileProcessed, FileReceived, MD5, Notification, NotificationItem}
+import uk.gov.hmrc.fileupload.controllers.routing.{FileProcessed, FileReceived, MD5, Notification, NotificationItem}
 import uk.gov.hmrc.fileupload.support.{ActionsSupport, IntegrationSpec}
 
 class SDESCallbackIntegrationSpec extends IntegrationSpec with ActionsSupport {
