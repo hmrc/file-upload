@@ -1,12 +1,16 @@
 package uk.gov.hmrc.fileupload
 
+import java.net.URL
+
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FakeDestinationService, IntegrationSpec}
+import uk.gov.hmrc.fileupload.read.routing.{Algorithm, Audit, Checksum, FileTransferFile, FileTransferNotification, Property, ZipData}
+import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FakeDestinationService, FakeFrontendService, IntegrationSpec}
 
 class FileTransferIntegrationSpec
   extends IntegrationSpec
      with EnvelopeActions
-     with FakeDestinationService {
+     with FakeDestinationService
+     with FakeFrontendService {
 
   override lazy val dmsServiceUrl = Some(destinationServiceUrl)
 
@@ -127,11 +131,21 @@ class FileTransferIntegrationSpec
       Given("I use a destination configured for push")
       val destination = "DMS"
 
+      val envelopeId = createEnvelope()
+
+      And("The frontend provides a download URL")
+      val zipData = ZipData(
+          name        = "filename",
+          size        = 1L,
+          md5Checksum = "zzz",
+          url         = new URL("http://downloadhere")
+        )
+      stubZipEndpoint(envelopeId, Right(zipData))
+
       And("The push endpoint acknowledges")
       stubPushEndpoint()
 
       And("I route an envelope")
-      val envelopeId = createEnvelope()
       submitRoutingRequest(envelopeId, destination)
 
       Then("There exist CLOSED envelopes that match it")
@@ -141,7 +155,18 @@ class FileTransferIntegrationSpec
       }
 
       And("The push notification was successful")
-      verifyPushNotification(envelopeId)
+      verifyPushNotification(FileTransferNotification(
+        informationType = destination,
+        file            = FileTransferFile(
+                            recipientOrSender = None,
+                            name              = zipData.name,
+                            location          = Some(zipData.url.toString),
+                            checksum          = Checksum(Algorithm.Md5, zipData.md5Checksum),
+                            size              = zipData.size.toInt,
+                            properties        = List.empty[Property]
+                          ),
+        audit           = Audit(correlationId = envelopeId.value)
+      ))
 
       When(s"I invoke GET /file-transfer/envelopes?destination=$destination")
       val response = getEnvelopesForDestination(Some(destination))

@@ -215,9 +215,11 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     new CommandController(envelopeCommandHandler)
   }
 
+  lazy val fileUploadFrontendBaseUrl = baseUrl("file-upload-frontend")
+
   lazy val routingConfig = RoutingConfig(configuration)
 
-  lazy val buildFileTransferNotification = RoutingRepository.buildFileTransferNotification(routingConfig) _
+  lazy val buildFileTransferNotification = RoutingRepository.buildFileTransferNotification(auditedHttpExecute, wsClient, routingConfig, fileUploadFrontendBaseUrl) _
   lazy val pushFileTransferNotification = RoutingRepository.pushFileTransferNotification(auditedHttpExecute, wsClient) _
 
   lazy val lockRepository = new LockRepository()(db)
@@ -233,8 +235,6 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
       lockRepository = lockRepository
     ),
     "routingActor")
-
-  lazy val fileUploadFrontendBaseUrl = baseUrl("file-upload-frontend")
 
   lazy val getFileFromS3 = new RetrieveFile(wsClient, fileUploadFrontendBaseUrl).download _
 

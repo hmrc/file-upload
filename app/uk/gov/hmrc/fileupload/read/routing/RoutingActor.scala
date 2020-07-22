@@ -22,7 +22,7 @@ import cats.data.Xor
 import org.joda.time.DateTime
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusRouteRequested}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusRouteRequested, File}
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeRouteRequested, MarkEnvelopeAsRouted}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted, Event, EventData}
@@ -36,7 +36,7 @@ import scala.concurrent.duration.{DurationLong, FiniteDuration}
   */
 class RoutingActor(
    config              :                                       RoutingConfig,
-   buildNotification   : EnvelopeId                         => Future[FileTransferNotification],
+   buildNotification   : Envelope                           => Future[RoutingRepository.BuildNotificationResult],
    findEnvelope        : EnvelopeId                         => Future[FindResult],
    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean)    => Source[Envelope, akka.NotUsed],
    pushNotification    : (FileTransferNotification, String) => Future[RoutingRepository.PushResult],
@@ -74,33 +74,40 @@ class RoutingActor(
             .mapAsync(parallelism = 1)(routeEnvelope)
             .runWith(Sink.ignore)
             .andThen { case _ => lock.release() }
+            .recover {
+              case ex => logger.error(s"Failed to handle PushIfWaiting: ${ex.getMessage}", ex)
+            }
       }
   }
 
   def routeEnvelope(envelope: Envelope): Future[Unit] = {
     // we may want to restrict pushing to a sender whitelist too
-    val sender = envelope.metadata.flatMap(js => (js \ "sender" \ "service").asOpt[String])
-    logger.info(s"Routing envelope [${envelope._id}] from: ${sender} to: ${envelope.destination}")
+    logger.info(s"Routing envelope [${envelope._id}] from: ${envelope.sender} to: ${envelope.destination}")
 
     // we will push any envelope which has a pushUrl defined for the destination
     envelope.destination.flatMap(config.lookupPushUrl)
-      .fold(Future.successful(Some(MarkEnvelopeAsRouted(envelope._id, isPushed = false)): Option[EnvelopeCommand])){ pushUrl =>
+      .fold(Future.successful(MarkEnvelopeAsRouted(envelope._id, isPushed = false): EnvelopeCommand)){ pushUrl =>
         logger.info(s"envelope [${envelope._id}] to '${envelope.destination}' will be routed to '$pushUrl'")
         for {
-          notification <- buildNotification(envelope._id)
-          res          <- pushNotification(notification, pushUrl)
-        } yield res match {
-          case Xor.Right(())   => logger.info(s"Successfully pushed routing for envelope [${envelope._id}]")
-                                  Some(MarkEnvelopeAsRouted(envelope._id, isPushed = true))
-          case Xor.Left(error) => logger.warn(s"Failed to push routing for envelope [${envelope._id}] to ${envelope.destination}. Reason [${error.reason}]")
-                                  None
-        }
-    }.map(_.map(cmd =>
+          notificationRes <- buildNotification(envelope)
+          notification    <- notificationRes match {
+                               case Xor.Right(notification) => Future.successful(notification)
+                               case Xor.Left(error)         => Future.failed(sys.error(s"Failed to build notification. Reason [${error.reason}]"))
+                             }
+          _               =  logger.info(s"will push $notification for envelope [${envelope._id}]")
+          pushRes         <- pushNotification(notification, pushUrl)
+          cmd             <- pushRes match {
+                               case Xor.Right(())   => logger.info(s"Successfully pushed routing for envelope [${envelope._id}]")
+                                                       Future.successful(MarkEnvelopeAsRouted(envelope._id, isPushed = true))
+                               case Xor.Left(error) => Future.failed(sys.error(s"Failed to push routing for envelope [${envelope._id}] to ${envelope.destination}. Reason [${error.reason}]"))
+                             }
+        } yield cmd
+    }.map(cmd =>
       handleCommand(cmd).map {
         case Xor.Right(_) =>
         case Xor.Left(error) => logger.error(s"Could not process $cmd for [${envelope._id}]: $error")
       }.recover { case e => logger.error(s"Could not process $cmd for [${envelope._id}]: ${e.getMessage}", e) }
-    ))
+    )
   }
 }
 
@@ -109,7 +116,7 @@ object RoutingActor {
 
   def props(
     config              :                                       RoutingConfig,
-    buildNotification   : EnvelopeId                         => Future[FileTransferNotification],
+    buildNotification   : Envelope                           => Future[RoutingRepository.BuildNotificationResult],
     findEnvelope        : EnvelopeId                         => Future[FindResult],
     getEnvelopesByStatus: (List[EnvelopeStatus], Boolean)    => Source[Envelope, akka.NotUsed],
     pushNotification    : (FileTransferNotification, String) => Future[RoutingRepository.PushResult],

@@ -36,9 +36,14 @@ object Algorithm {
   case object Md5  extends Algorithm { override val asString = "md5"  }
   case object Sha1 extends Algorithm { override val asString = "SHA1" }
   case object Sha2 extends Algorithm { override val asString = "SHA2" }
+
+  val values: List[Algorithm] = List(Md5, Sha1, Sha2)
+
+  def apply(s: String): Option[Algorithm] =
+    values.find(_.asString == s)
 }
 
-case class File(
+case class FileTransferFile(
   recipientOrSender: Option[String],
   name             : String,
   location         : Option[String],
@@ -53,38 +58,38 @@ case class Audit(
 
 case class FileTransferNotification(
   informationType: String,
-  file           : File,
+  file           : FileTransferFile,
   audit          : Audit
 )
 
 object FileTransferNotification {
 
-  val writes = {
-    implicit val propertyWrites =
-      ( (__ \ "name" ).write[String]
-      ~ (__ \ "value").write[String]
-      )(unlift(Property.unapply))
+  val format = {
+    implicit val propertyFormat =
+      ( (__ \ "name" ).format[String]
+      ~ (__ \ "value").format[String]
+      )(Property.apply, unlift(Property.unapply))
 
-    implicit val checksumWrites =
-      ( (__ \ "algorithm").write[String].contramap[Algorithm](_.asString)
-      ~ (__ \ "value"    ).write[String]
-      )(unlift(Checksum.unapply))
+    implicit val checksumFormat =
+      ( (__ \ "algorithm").format[String].inmap[Algorithm](unlift(Algorithm.apply), _.asString)
+      ~ (__ \ "value"    ).format[String]
+      )(Checksum.apply, unlift(Checksum.unapply))
 
-    implicit val auditWrites =
-      (__ \ "correlationID").write[String].contramap(unlift(Audit.unapply))
+    implicit val auditFormat =
+      (__ \ "correlationID").format[String].inmap(Audit.apply, unlift(Audit.unapply))
 
-    implicit val fileWrites =
-      ( (__ \ "recipientOrSender").writeNullable[String]
-      ~ (__ \ "name"             ).write[String]
-      ~ (__ \ "location"         ).writeNullable[String]
-      ~ (__ \ "checksum"         ).write[Checksum]
-      ~ (__ \ "size"             ).write[Int]
-      ~ (__ \ "properties"       ).write[List[Property]]
-      )(unlift(File.unapply))
+    implicit val fileFormat =
+      ( (__ \ "recipientOrSender").formatNullable[String]
+      ~ (__ \ "name"             ).format[String]
+      ~ (__ \ "location"         ).formatNullable[String]
+      ~ (__ \ "checksum"         ).format[Checksum]
+      ~ (__ \ "size"             ).format[Int]
+      ~ (__ \ "properties"       ).format[List[Property]]
+      )(FileTransferFile.apply, unlift(FileTransferFile.unapply))
 
-    ( (__ \ "informationType").write[String]
-    ~ (__ \ "file"           ).write[File]
-    ~ (__ \ "audit"          ).write[Audit]
-    )(unlift(FileTransferNotification.unapply))
+    ( (__ \ "informationType").format[String]
+    ~ (__ \ "file"           ).format[FileTransferFile]
+    ~ (__ \ "audit"          ).format[Audit]
+    )(FileTransferNotification.apply, unlift(FileTransferNotification.unapply))
   }
 }

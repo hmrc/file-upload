@@ -16,12 +16,15 @@
 
 package uk.gov.hmrc.fileupload.read.routing
 
+import java.net.URL
+
 import cats.data.Xor
 import play.api.http.Status
-import play.api.libs.json.{Format, Json}
+import play.api.libs.json.{__, Json, JsObject, JsSuccess, JsError, Writes}
 import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 import uk.gov.hmrc.fileupload.infrastructure.PlayHttp.PlayHttpError
-import uk.gov.hmrc.fileupload.EnvelopeId
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, File}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -30,7 +33,12 @@ object RoutingRepository {
   type PushResult = Xor[PushError, Unit]
   case class PushError(correlationId: String, pushUrl: String, reason: String)
 
-  implicit val ftnw = FileTransferNotification.writes
+  type BuildNotificationResult = Xor[BuildNotificationError, FileTransferNotification]
+  case class BuildNotificationError(envelopeId: EnvelopeId, reason: String)
+
+  implicit val ftnw = FileTransferNotification.format
+  implicit val zrw = ZipRequest.writes
+  implicit val zdf = ZipData.format
 
   def pushFileTransferNotification(
     httpCall: WSRequest => Future[Xor[PlayHttpError, WSResponse]],
@@ -48,33 +56,78 @@ object RoutingRepository {
     ).map {
       case Xor.Left(error) => Xor.left(PushError(fileTransferNotification.audit.correlationId, pushUrl, error.message))
       case Xor.Right(response) => response.status match {
-        case Status.OK => Xor.right(())
-        case _ => Xor.left(PushError(fileTransferNotification.audit.correlationId, pushUrl, s"${response.status} ${response.body}"))
+        case Status.NO_CONTENT => Xor.right(())
+        case _ => Xor.left(PushError(fileTransferNotification.audit.correlationId, pushUrl, s"Unexpected response: ${response.status} ${response.body}"))
       }
     }
 
   def buildFileTransferNotification(
-    routingConfig: RoutingConfig
-  )(envelopeId: EnvelopeId
-  ): Future[FileTransferNotification] = Future.successful {
-    // TODO we may need to call the frontend to generate a pre-signed URL instead...
-    // especially since we need to prezip to calculate size and checsum...
-    val host = routingConfig.host
-    val downloadCall = uk.gov.hmrc.fileupload.controllers.transfer.routes.TransferController.download(envelopeId)
+    httpCall       : WSRequest => Future[Xor[PlayHttpError, WSResponse]],
+    wSClient       : WSClient,
+    routingConfig  : RoutingConfig,
+    frontendBaseUrl: String
+  )(envelope: Envelope
+  )(implicit executionContext: ExecutionContext
+  ): Future[BuildNotificationResult] =
+    httpCall(
+      wSClient
+        .url(s"$frontendBaseUrl/internal-file-upload/zip/envelopes/${envelope._id}")
+        .withHeaders("User-Agent" -> "file-upload")
+        .withBody(Json.toJson(ZipRequest(files = envelope.files.toList.flatten.map(f => f.fileId -> f.name))))
+        .withMethod("POST")
+    ).map {
+      case Xor.Left(error) => Xor.left(BuildNotificationError(envelope._id, error.message))
+      case Xor.Right(response) => response.status match {
+          case Status.OK => response.json.validate[ZipData] match {
+              case JsSuccess(zipData, _) => Xor.right(createNotification(envelope, zipData))
+              case JsError(errors) => Xor.left(BuildNotificationError(envelope._id, s"Could not parse result $errors"))
+            }
+          case _ => Xor.left(BuildNotificationError(envelope._id, s"Unexpected response: ${response.status} ${response.body}"))
+        }
+    }
 
-    val file = File(
-      recipientOrSender = Some("String"), // TODO
-      name              = "String", // TODO
-      location          = Some(s"https://$host$downloadCall"),
-      checksum          = Checksum(Algorithm.Md5, "0"), // TODO
-      size              = 0, // TODO
+  def createNotification(envelope: Envelope, zipData: ZipData): FileTransferNotification = {
+    val file = FileTransferFile(
+      recipientOrSender = envelope.sender,
+      name              = zipData.name,
+      location          = Some(zipData.url.toString),
+      checksum          = Checksum(Algorithm.Md5, zipData.md5Checksum),
+      size              = zipData.size.toInt,
       properties        = List.empty[Property]
     )
 
     FileTransferNotification(
-      informationType = "String",  // TODO
+      informationType = envelope.destination.getOrElse("unknown"), // destination should be defined at this point
       file            = file,
-      audit           = Audit(correlationId = envelopeId.value)
+      audit           = Audit(correlationId = envelope._id.value)
     )
   }
+}
+
+case class ZipRequest(
+  files: List[(FileId, Option[String])]
+)
+
+object ZipRequest {
+  import play.api.libs.functional.syntax._
+  val writes: Writes[ZipRequest] =
+    Writes.at[JsObject](__ \ "files")
+    .contramap[ZipRequest](zr => JsObject(zr.files.map { case (fi, optS) => fi.value -> Json.toJson(optS) }.toSeq))
+}
+
+
+case class ZipData(
+  name       : String,
+  size       : Long,
+  md5Checksum: String,
+  url        : URL
+)
+object ZipData {
+  import play.api.libs.functional.syntax._
+  val format =
+    ( (__ \ "name"       ).format[String]
+    ~ (__ \ "size"       ).format[Long]
+    ~ (__ \ "md5Checksum").format[String]
+    ~ (__ \ "url"        ).format[String].inmap[URL](s => new URL(s), _.toString)
+    )(ZipData.apply _, unlift(ZipData.unapply))
 }
