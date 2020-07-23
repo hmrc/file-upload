@@ -38,7 +38,7 @@ import reactivemongo.api.commands
 import uk.gov.hmrc.fileupload.admin.{Routes => AdminRoutes}
 import uk.gov.hmrc.fileupload.app.{Routes => AppRoutes}
 import uk.gov.hmrc.fileupload.controllers._
-import uk.gov.hmrc.fileupload.controllers.routing.RoutingController
+import uk.gov.hmrc.fileupload.controllers.routing.{RoutingController, SDESCallbackController}
 import uk.gov.hmrc.fileupload.controllers.transfer.TransferController
 import uk.gov.hmrc.fileupload.file.zip.Zippy
 import uk.gov.hmrc.fileupload.filters.{UserAgent, UserAgentRequestFilter}
