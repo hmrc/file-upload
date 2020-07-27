@@ -6,7 +6,10 @@ import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration._
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import org.scalatest.concurrent.ScalaFutures
+import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
+import uk.gov.hmrc.fileupload.read.routing.FileTransferNotification
+
 
 trait FakeDestinationService extends BeforeAndAfterAll with ScalaFutures {
   this: Suite =>
@@ -29,17 +32,19 @@ trait FakeDestinationService extends BeforeAndAfterAll with ScalaFutures {
     server.stop()
   }
 
-  def stubPushEndpoint(status: Int = 200) =
+  def stubPushEndpoint(status: Int = 204) =
     server.stubFor(
       post(urlEqualTo(path))
         .willReturn(aResponse().withStatus(status))
     )
 
-  def verifyPushNotification(envelopeId: EnvelopeId): Unit =
+  def verifyPushNotification(fileTransferNotification: FileTransferNotification): Unit =
     server.verify(
       postRequestedFor(urlEqualTo(path))
         .withHeader("Content-Type", containing("application/json"))
-        .withRequestBody(equalToJson(
-          s"""{"informationType":"String","file":{"recipientOrSender":"String","name":"String","location":"https://file-upload.public/file-transfer/envelopes/$envelopeId","checksum":{"algorithm":"md5","value":"0"},"size":0,"properties":[]},"audit":{"correlationID":"$envelopeId"}}"""))
+        .withRequestBody(equalToJson {
+          implicit val ftnf = FileTransferNotification.format
+          Json.toJson(fileTransferNotification).toString
+        })
     )
 }

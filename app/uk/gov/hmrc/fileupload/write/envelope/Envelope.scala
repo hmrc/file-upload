@@ -355,6 +355,8 @@ object RouteRequested extends State {
 
   override def canRoute: CanResult = successResult
 
+  override def canArchive: CanResult = successResult
+
   override def genericError: CanResult = envelopeRoutingAlreadyRequestedError
 }
 
