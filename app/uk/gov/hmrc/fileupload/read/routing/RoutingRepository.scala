@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.read.routing
 
 import java.net.URL
+import java.util.Base64
 
 import cats.data.Xor
 import play.api.http.Status
@@ -31,7 +32,7 @@ import scala.concurrent.{ExecutionContext, Future}
 object RoutingRepository {
 
   type PushResult = Xor[PushError, Unit]
-  case class PushError(correlationId: String, pushUrl: String, reason: String)
+  case class PushError(correlationId: String, reason: String)
 
   type BuildNotificationResult = Xor[BuildNotificationError, FileTransferNotification]
   case class BuildNotificationError(envelopeId: EnvelopeId, reason: String)
@@ -41,23 +42,26 @@ object RoutingRepository {
   implicit val zdf = ZipData.format
 
   def pushFileTransferNotification(
-    httpCall: WSRequest => Future[Xor[PlayHttpError, WSResponse]],
-    wSClient: WSClient
-  )(fileTransferNotification: FileTransferNotification,
-    pushUrl : String
+    httpCall     : WSRequest => Future[Xor[PlayHttpError, WSResponse]],
+    wSClient     : WSClient,
+    routingConfig: RoutingConfig
+  )(fileTransferNotification: FileTransferNotification
   )(implicit executionContext: ExecutionContext
   ): Future[PushResult] =
     httpCall(
       wSClient
-        .url(pushUrl)
-        .withHeaders("User-Agent" -> "file-upload")
+        .url(routingConfig.pushUrl)
+        .withHeaders(
+          "X-Client-ID" -> routingConfig.clientId,
+          "User-Agent"  -> "file-upload"
+         )
         .withBody(Json.toJson(fileTransferNotification))
         .withMethod("POST")
     ).map {
-      case Xor.Left(error) => Xor.left(PushError(fileTransferNotification.audit.correlationId, pushUrl, error.message))
+      case Xor.Left(error) => Xor.left(PushError(fileTransferNotification.audit.correlationId, error.message))
       case Xor.Right(response) => response.status match {
         case Status.NO_CONTENT => Xor.right(())
-        case _ => Xor.left(PushError(fileTransferNotification.audit.correlationId, pushUrl, s"Unexpected response: ${response.status} ${response.body}"))
+        case _ => Xor.left(PushError(fileTransferNotification.audit.correlationId, s"Unexpected response: ${response.status} ${response.body}"))
       }
     }
 
@@ -91,7 +95,7 @@ object RoutingRepository {
       recipientOrSender = envelope.sender,
       name              = zipData.name,
       location          = Some(zipData.url.toString),
-      checksum          = Checksum(Algorithm.Md5, zipData.md5Checksum),
+      checksum          = Checksum(Algorithm.Md5, base64ToHex(zipData.md5Checksum)),
       size              = zipData.size.toInt,
       properties        = List.empty[Property]
     )
@@ -101,6 +105,11 @@ object RoutingRepository {
       file            = file,
       audit           = Audit(correlationId = envelope._id.value)
     )
+  }
+
+  def base64ToHex(s: String): String = {
+    val bytes = Base64.getDecoder.decode(s)
+    java.lang.String.format("%032x", new java.math.BigInteger(1, bytes))
   }
 }
 

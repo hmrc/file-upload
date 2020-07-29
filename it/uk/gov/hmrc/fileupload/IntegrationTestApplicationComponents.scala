@@ -31,7 +31,8 @@ trait IntegrationTestApplicationComponents extends OneServerPerSuite with MongoS
   // accessed to get the components in tests
   lazy val components: ApplicationModule = new IntegrationTestApplicationModule(context)
 
-  lazy val dmsServiceUrl: Option[String] = None
+  lazy val pushUrl: Option[String] = None
+  lazy val pushDestinations: Option[List[String]] = None
 
   lazy val context: ApplicationLoader.Context = {
     val classLoader = ApplicationLoader.getClass.getClassLoader
@@ -44,8 +45,11 @@ trait IntegrationTestApplicationComponents extends OneServerPerSuite with MongoS
         "feature.basicAuthEnabled" -> "true",
         "constraints.enforceHttps" -> "false",
         "routing.initialDelay" -> "1.second",
-        "routing.interval" -> "1.second"
-      ) ++ dmsServiceUrl.fold(Map.empty[String, String])(url => Map("routing.pushurl.DMS" -> url))
+        "routing.interval" -> "1.second",
+        "routing.clientId" -> "123"
+        ) ++
+        pushUrl.fold(Map.empty[String, String])(url => Map("routing.pushUrl" -> url)) ++
+        pushDestinations.fold(Map.empty[String, String])(_.zipWithIndex.map { case (destination, i) => s"routing.destinations.$i" -> destination }.toMap)
     )
   }
 }

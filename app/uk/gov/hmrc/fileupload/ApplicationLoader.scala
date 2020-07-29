@@ -220,7 +220,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val routingConfig = RoutingConfig(configuration)
 
   lazy val buildFileTransferNotification = RoutingRepository.buildFileTransferNotification(auditedHttpExecute, wsClient, routingConfig, fileUploadFrontendBaseUrl) _
-  lazy val pushFileTransferNotification = RoutingRepository.pushFileTransferNotification(auditedHttpExecute, wsClient) _
+  lazy val pushFileTransferNotification = RoutingRepository.pushFileTransferNotification(auditedHttpExecute, wsClient, routingConfig) _
 
   lazy val lockRepository = new LockRepository()(db)
 

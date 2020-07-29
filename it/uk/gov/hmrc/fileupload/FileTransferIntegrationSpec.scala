@@ -3,16 +3,18 @@ package uk.gov.hmrc.fileupload
 import java.net.URL
 
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.fileupload.read.routing.{Algorithm, Audit, Checksum, FileTransferFile, FileTransferNotification, Property, ZipData}
-import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FakeDestinationService, FakeFrontendService, IntegrationSpec}
+import uk.gov.hmrc.fileupload.read.routing.{Algorithm, Audit, Checksum, FileTransferFile, FileTransferNotification, Property, RoutingRepository, ZipData}
+import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FakePushService, FakeFrontendService, IntegrationSpec}
 
 class FileTransferIntegrationSpec
   extends IntegrationSpec
      with EnvelopeActions
-     with FakeDestinationService
+     with FakePushService
      with FakeFrontendService {
 
-  override lazy val dmsServiceUrl = Some(destinationServiceUrl)
+  override lazy val pushUrl = Some(pushServiceUrl)
+  override lazy val pushDestinations = Some(List("DMS"))
+
 
   feature("File Transfer list") {
     scenario("List Envelopes for a given destination") {
@@ -137,7 +139,7 @@ class FileTransferIntegrationSpec
       val zipData = ZipData(
           name        = "filename",
           size        = 1L,
-          md5Checksum = "zzz",
+          md5Checksum = "4vB/MVHSuPg92a8yDf5IiA==",
           url         = new URL("http://downloadhere")
         )
       stubZipEndpoint(envelopeId, Right(zipData))
@@ -161,7 +163,7 @@ class FileTransferIntegrationSpec
                             recipientOrSender = None,
                             name              = zipData.name,
                             location          = Some(zipData.url.toString),
-                            checksum          = Checksum(Algorithm.Md5, zipData.md5Checksum),
+                            checksum          = Checksum(Algorithm.Md5, RoutingRepository.base64ToHex(zipData.md5Checksum)),
                             size              = zipData.size.toInt,
                             properties        = List.empty[Property]
                           ),

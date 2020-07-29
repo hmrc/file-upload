@@ -35,13 +35,13 @@ import scala.concurrent.duration.{DurationLong, FiniteDuration}
   * It checks periodically for files needing routing - this will retry any that previously failed to be delivered.
   */
 class RoutingActor(
-   config              :                                       RoutingConfig,
-   buildNotification   : Envelope                           => Future[RoutingRepository.BuildNotificationResult],
-   findEnvelope        : EnvelopeId                         => Future[FindResult],
-   getEnvelopesByStatus: (List[EnvelopeStatus], Boolean)    => Source[Envelope, akka.NotUsed],
-   pushNotification    : (FileTransferNotification, String) => Future[RoutingRepository.PushResult],
-   handleCommand       : EnvelopeCommand                    => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
-   lockRepository      :                                       LockRepository
+   config              :                                    RoutingConfig,
+   buildNotification   : Envelope                        => Future[RoutingRepository.BuildNotificationResult],
+   findEnvelope        : EnvelopeId                      => Future[FindResult],
+   getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
+   pushNotification    : FileTransferNotification        => Future[RoutingRepository.PushResult],
+   handleCommand       : EnvelopeCommand                 => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
+   lockRepository      :                                    LockRepository
  )(implicit executionContext: ExecutionContext
  ) extends Actor {
 
@@ -74,8 +74,9 @@ class RoutingActor(
             .mapAsync(parallelism = 1)(routeEnvelope)
             .runWith(Sink.ignore)
             .andThen { case _ => lock.release() }
-            .recover {
+            .recoverWith {
               case ex => logger.error(s"Failed to handle PushIfWaiting: ${ex.getMessage}", ex)
+                         Future.failed(ex)
             }
       }
   }
@@ -84,10 +85,10 @@ class RoutingActor(
     // we may want to restrict pushing to a sender whitelist too
     logger.info(s"Routing envelope [${envelope._id}] from: ${envelope.sender} to: ${envelope.destination}")
 
-    // we will push any envelope which has a pushUrl defined for the destination
-    envelope.destination.flatMap(config.lookupPushUrl)
-      .fold(Future.successful(MarkEnvelopeAsRouted(envelope._id, isPushed = false): EnvelopeCommand)){ pushUrl =>
-        logger.info(s"envelope [${envelope._id}] to '${envelope.destination}' will be routed to '$pushUrl'")
+    // we will push any envelope which has a destination in configuration list
+    envelope.destination.filter(config.destinations.contains)
+      .fold(Future.successful(MarkEnvelopeAsRouted(envelope._id, isPushed = false): EnvelopeCommand)){ destination =>
+        logger.info(s"envelope [${envelope._id}] to '$destination' will be routed to '${config.pushUrl}'")
         for {
           notificationRes <- buildNotification(envelope)
           notification    <- notificationRes match {
@@ -95,11 +96,11 @@ class RoutingActor(
                                case Xor.Left(error)         => Future.failed(sys.error(s"Failed to build notification. Reason [${error.reason}]"))
                              }
           _               =  logger.info(s"will push $notification for envelope [${envelope._id}]")
-          pushRes         <- pushNotification(notification, pushUrl)
+          pushRes         <- pushNotification(notification)
           cmd             <- pushRes match {
                                case Xor.Right(())   => logger.info(s"Successfully pushed routing for envelope [${envelope._id}]")
                                                        Future.successful(MarkEnvelopeAsRouted(envelope._id, isPushed = true))
-                               case Xor.Left(error) => Future.failed(sys.error(s"Failed to push routing for envelope [${envelope._id}] to ${envelope.destination}. Reason [${error.reason}]"))
+                               case Xor.Left(error) => Future.failed(sys.error(s"Failed to push routing for envelope [${envelope._id}]. Reason [${error.reason}]"))
                              }
         } yield cmd
     }.map(cmd =>
@@ -115,13 +116,13 @@ object RoutingActor {
   case object PushIfWaiting
 
   def props(
-    config              :                                       RoutingConfig,
-    buildNotification   : Envelope                           => Future[RoutingRepository.BuildNotificationResult],
-    findEnvelope        : EnvelopeId                         => Future[FindResult],
-    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean)    => Source[Envelope, akka.NotUsed],
-    pushNotification    : (FileTransferNotification, String) => Future[RoutingRepository.PushResult],
-    handleCommand       : EnvelopeCommand                    => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
-    lockRepository      :                                       LockRepository
+    config              :                                    RoutingConfig,
+    buildNotification   : Envelope                        => Future[RoutingRepository.BuildNotificationResult],
+    findEnvelope        : EnvelopeId                      => Future[FindResult],
+    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
+    pushNotification    : FileTransferNotification        => Future[RoutingRepository.PushResult],
+    handleCommand       : EnvelopeCommand                 => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
+    lockRepository      :                                    LockRepository
   )(implicit executionContext: ExecutionContext
   ) =
     Props(new RoutingActor(
