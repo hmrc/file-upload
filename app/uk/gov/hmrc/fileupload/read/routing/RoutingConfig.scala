@@ -18,14 +18,16 @@ package uk.gov.hmrc.fileupload.read.routing
 
 import play.api.Configuration
 
+import scala.collection.JavaConverters._
 import scala.concurrent.duration.{DurationLong, FiniteDuration}
 
 
 case class RoutingConfig(
-  initialDelay :           FiniteDuration,
-  interval     :           FiniteDuration,
-  lookupPushUrl: String => Option[String],
-  host         :           String
+  initialDelay : FiniteDuration,
+  interval     : FiniteDuration,
+  clientId     : String,
+  pushUrl      : String,
+  destinations : List[String]
 )
 
 object RoutingConfig {
@@ -33,13 +35,16 @@ object RoutingConfig {
   def apply(config: Configuration): RoutingConfig = {
     def getString(key: String) =
       config.getString(key).getOrElse(sys.error(s"Missing configuration: $key"))
+    def getStringList(key: String) =
+      config.getStringList(key).getOrElse(sys.error(s"Missing configuration: $key")).asScala.toList
     def getDuration(key: String) =
       config.getMilliseconds(key).getOrElse(sys.error(s"Missing configuration: $key")).millis
     RoutingConfig(
-      initialDelay  = getDuration("routing.initialDelay"),
-      interval      = getDuration("routing.interval"),
-      lookupPushUrl = (destination: String) => config.getString(s"routing.pushurl.$destination"),
-      host          = getString("microservice.services.self.host")
+      initialDelay   = getDuration("routing.initialDelay"),
+      interval       = getDuration("routing.interval"),
+      clientId       = getString("routing.clientId"),
+      pushUrl        = getString("routing.pushUrl"),
+      destinations   = getStringList("routing.destinations")
     )
   }
 }

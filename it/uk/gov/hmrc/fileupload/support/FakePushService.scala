@@ -11,16 +11,16 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 import uk.gov.hmrc.fileupload.read.routing.FileTransferNotification
 
 
-trait FakeDestinationService extends BeforeAndAfterAll with ScalaFutures {
+trait FakePushService extends BeforeAndAfterAll with ScalaFutures {
   this: Suite =>
 
-  lazy val destinationServicePort = 8901
+  lazy val pushServicePort = 8901
 
   private lazy val path = "/notification/fileready"
 
-  private lazy val server = new WireMockServer(wireMockConfig().port(destinationServicePort))
+  private lazy val server = new WireMockServer(wireMockConfig().port(pushServicePort))
 
-  lazy val destinationServiceUrl: String = s"http://localhost:$destinationServicePort$path"
+  lazy val pushServiceUrl: String = s"http://localhost:$pushServicePort$path"
 
   override def beforeAll() = {
     super.beforeAll()
