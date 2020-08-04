@@ -71,7 +71,13 @@ class RoutingActor(
         case Some(lock) =>
           logger.info(s"aquired lock - pushing any waiting messages")
           getEnvelopesByStatus(List(EnvelopeStatusRouteRequested), true)
-            .mapAsync(parallelism = 1)(routeEnvelope)
+            .mapAsync(parallelism = 1)(envelope =>
+              routeEnvelope(envelope)
+              .recover {
+                case ex => // alerting is configured to trigger off this message
+                           logger.error(s"Failed to route envelope [${envelope._id}]: ${ex.getMessage}", ex)
+              }
+            )
             .runWith(Sink.ignore)
             .andThen { case _ => lock.release() }
             .recoverWith {
@@ -93,23 +99,29 @@ class RoutingActor(
           notificationRes <- buildNotification(envelope)
           notification    <- notificationRes match {
                                case Xor.Right(notification) => Future.successful(notification)
-                               case Xor.Left(error)         => Future.failed(sys.error(s"Failed to build notification. Reason [${error.reason}]"))
+                               case Xor.Left(error)         => fail(s"Failed to build notification. Reason [${error.reason}]")
                              }
           _               =  logger.info(s"will push $notification for envelope [${envelope._id}]")
           pushRes         <- pushNotification(notification)
           cmd             <- pushRes match {
                                case Xor.Right(())   => logger.info(s"Successfully pushed routing for envelope [${envelope._id}]")
                                                        Future.successful(MarkEnvelopeAsRouted(envelope._id, isPushed = true))
-                               case Xor.Left(error) => Future.failed(sys.error(s"Failed to push routing for envelope [${envelope._id}]. Reason [${error.reason}]"))
+                               case Xor.Left(error) => fail(s"Failed to push routing for envelope [${envelope._id}]. Reason [${error.reason}]")
                              }
         } yield cmd
     }.map(cmd =>
       handleCommand(cmd).map {
         case Xor.Right(_) =>
-        case Xor.Left(error) => logger.error(s"Could not process $cmd for [${envelope._id}]: $error")
-      }.recover { case e => logger.error(s"Could not process $cmd for [${envelope._id}]: ${e.getMessage}", e) }
+        case Xor.Left(error) => fail(s"Could not process $cmd for [${envelope._id}]: $error")
+      }.recover { case e => fail(s"Could not process $cmd for [${envelope._id}]: ${e.getMessage}", e) }
     )
   }
+
+  def fail[T](msg: String): Future[T] =
+    Future.failed(new RuntimeException(msg))
+
+  def fail[T](msg: String, t: Throwable): Future[T] =
+    Future.failed(new RuntimeException(msg, t))
 }
 
 object RoutingActor {
