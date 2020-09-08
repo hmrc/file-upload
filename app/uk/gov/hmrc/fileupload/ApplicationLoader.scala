@@ -87,7 +87,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   val envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration = {
     EnvelopeConstraintsConfiguration.getEnvelopeConstraintsConfiguration(runModeConfiguration) match {
       case Right(envelopeConstraints) ⇒ envelopeConstraints
-      case Left(failureReason) ⇒ throw new IllegalArgumentException(s"${failureReason}")
+      case Left(failureReason) ⇒ throw new IllegalArgumentException(s"${failureReason.message}")
     }
   }
 

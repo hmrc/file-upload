@@ -41,6 +41,7 @@ object ExceptionHandler {
   }
 
   def apply(statusCode: Int, responseMessage: String): Result = {
+    Logger.warn(s"ExceptionHandler creating result with status [$statusCode] and message [$responseMessage]")
     val response: JsObject = JsObject(Seq("error" -> Json.obj("msg" -> responseMessage)))
     val source = Source.single(ByteString.fromArray(Json.stringify(response).getBytes))
     Result(ResponseHeader(statusCode), HttpEntity.Streamed(source, None, None))
