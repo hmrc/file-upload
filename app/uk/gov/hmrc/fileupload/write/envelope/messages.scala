@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.write.envelope
 
 import org.joda.time.DateTime
+import play.api.Logger
 import play.api.libs.json._
 import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
 import uk.gov.hmrc.fileupload.read.envelope.{SizeReads, SizeWrites}
@@ -135,24 +136,36 @@ object EventSerializer {
   private val envelopeRouted = nameOf(EnvelopeRouted.getClass)
   private val envelopeArchived = nameOf(EnvelopeArchived.getClass)
 
+  private val logger = Logger(getClass)
+
   private def nameOf(clazz: Class[_]) =
     clazz.getName.replace("$", "")
 
-  def toEventData(eventType: EventType, value: JsValue): EventData =
-    eventType.value match {
-      case `envelopeCreated` => Json.fromJson[EnvelopeCreated](value).get
-      case `fileQuarantined` => Json.fromJson[FileQuarantined](value).get
-      case `noVirusDetected` => Json.fromJson[NoVirusDetected](value).get
-      case `virusDetected` => Json.fromJson[VirusDetected](value).get
-      case `fileDeleted` => Json.fromJson[FileDeleted](value).get
-      case `fileStored` => Json.fromJson[FileStored](value).get
-      case `envelopeDeleted` => Json.fromJson[EnvelopeDeleted](value).get
-      case `envelopeSealed` => Json.fromJson[EnvelopeSealed](value).get
-      case `envelopeUnsealed` => Json.fromJson[EnvelopeUnsealed](value).get
-      case `envelopeRouteRequested` => Json.fromJson[EnvelopeRouteRequested](value).get
-      case `envelopeRouted` => Json.fromJson[EnvelopeRouted](value).get
-      case `envelopeArchived` => Json.fromJson[EnvelopeArchived](value).get
+  def toEventData(eventType: EventType, value: JsValue): EventData = {
+    val jsResult = eventType.value match {
+      case `envelopeCreated` => Json.fromJson[EnvelopeCreated](value)
+      case `fileQuarantined` => Json.fromJson[FileQuarantined](value)
+      case `noVirusDetected` => Json.fromJson[NoVirusDetected](value)
+      case `virusDetected` => Json.fromJson[VirusDetected](value)
+      case `fileDeleted` => Json.fromJson[FileDeleted](value)
+      case `fileStored` => Json.fromJson[FileStored](value)
+      case `envelopeDeleted` => Json.fromJson[EnvelopeDeleted](value)
+      case `envelopeSealed` => Json.fromJson[EnvelopeSealed](value)
+      case `envelopeUnsealed` => Json.fromJson[EnvelopeUnsealed](value)
+      case `envelopeRouteRequested` => Json.fromJson[EnvelopeRouteRequested](value)
+      case `envelopeRouted` => Json.fromJson[EnvelopeRouted](value)
+      case `envelopeArchived` => Json.fromJson[EnvelopeArchived](value)
     }
+
+    jsResult.asEither.left.foreach { errors =>
+      logger.error(s"Unable to create eventData of type [${eventType.value}] due to json errors [$errors]")
+      logger.info(s"Unable to create eventData of type [${eventType.value}] from json [${Json.stringify(value)}] due to errors [$errors]")
+    }
+
+    // will throw NoSuchElementException("JsError.get") when jsResult is a JsError
+    // TODO would be better to explicitly throw a suitable exception on JsError so that details are not lost
+    jsResult.get
+  }
 
   def fromEventData(eventData: EventData): JsValue =
     eventData match {
