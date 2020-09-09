@@ -97,6 +97,8 @@ case class EnvelopeRouted(id: EnvelopeId, isPushed: Boolean) extends EnvelopeEve
 case class EnvelopeArchived(id: EnvelopeId) extends EnvelopeEvent
 
 object Formatters {
+  import play.api.libs.functional.syntax._
+
   implicit val unsealEnvelopeFormat: Format[UnsealEnvelope] = Json.format[UnsealEnvelope]
   implicit val storeFileFormat: OFormat[StoreFile] = Json.format[StoreFile]
   implicit val quarantineFileFormat: OFormat[QuarantineFile] = Json.format[QuarantineFile]
@@ -115,7 +117,13 @@ object Formatters {
   implicit val envelopeSealedFormat: Format[EnvelopeSealed] = Json.format[EnvelopeSealed]
   implicit val envelopeUnsealedFormat: Format[EnvelopeUnsealed] = Json.format[EnvelopeUnsealed]
   implicit val envelopeRouteRequestedFormat: Format[EnvelopeRouteRequested] = Json.format[EnvelopeRouteRequested]
-  implicit val envelopeRoutedFormat: Format[EnvelopeRouted] = Json.format[EnvelopeRouted]
+
+  // for backward compatibility; isPushed may not be present.
+  implicit val envelopeRoutedFormat: Format[EnvelopeRouted] =
+    ( (__ \ "id"      ).format[EnvelopeId]
+    ~ (__ \ "isPushed").formatNullable[Boolean].inmap(_.getOrElse(false), Some.apply[Boolean]) // formatWithDefault not available for this version of play-json
+    )(EnvelopeRouted.apply, unlift(EnvelopeRouted.unapply))
+
   implicit val envelopeArchivedFormat: Format[EnvelopeArchived] = Json.format[EnvelopeArchived]
 }
 
