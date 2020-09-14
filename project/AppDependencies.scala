@@ -1,12 +1,5 @@
 import sbt._
 
-object MicroServiceBuild extends Build with MicroService {
-
-  val appName = "file-upload"
-
-  override lazy val appDependencies: Seq[ModuleID] = AppDependencies()
-}
-
 private object AppDependencies {
   import play.sbt.PlayImport._
   import play.core.PlayVersion
