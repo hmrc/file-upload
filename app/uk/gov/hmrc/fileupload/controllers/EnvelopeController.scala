@@ -30,7 +30,6 @@ import uk.gov.hmrc.fileupload.infrastructure.{BasicAuth, EnvelopeConstraintsConf
 import uk.gov.hmrc.fileupload.read.envelope.Service._
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
-import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId, read}
@@ -53,7 +52,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
                         (implicit executionContext: ExecutionContext) extends Controller {
   import EnvelopeConstraintsConfiguration.{validateExpiryDate, durationsToDateTime}
 
-  def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
+  def create() = Action.async(parse.json[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
 
     val result = for {
@@ -103,7 +102,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
   }
 
 
-  def createWithId(id: EnvelopeId) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
+  def createWithId(id: EnvelopeId) = Action.async(parse.json[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
 
     val validatedUserEnvelopeConstraints = validatedEnvelopeFilesConstraints(request)

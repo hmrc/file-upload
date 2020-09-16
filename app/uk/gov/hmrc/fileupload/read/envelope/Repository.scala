@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.read.envelope
 import akka.stream.scaladsl.Source
 import cats.data.Xor
 import play.api.libs.json.Json
-import play.api.libs.streams.Streams
+import play.api.libs.iteratee.streams.IterateeStreams
 import play.api.mvc.{Result, Results}
 import reactivemongo.api.commands.{WriteConcern, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
@@ -125,7 +125,7 @@ class Repository(mongo: () => DB with DBMetaCommands)
       .cursor[Envelope](ReadPreference.secondaryPreferred)
       .enumerator()
 
-    Source.fromPublisher(Streams.enumeratorToPublisher(enumerator))
+    Source.fromPublisher(IterateeStreams.enumeratorToPublisher(enumerator))
   }
 
   def all()(implicit ec: ExecutionContext): Future[List[Envelope]] =

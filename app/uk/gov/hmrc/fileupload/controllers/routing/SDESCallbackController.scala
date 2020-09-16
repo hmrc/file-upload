@@ -63,7 +63,7 @@ class SDESCallbackController(handleCommand: (EnvelopeCommand) => Future[Xor[Comm
    * This method is copy-pasted from elsewhere in the project, but has additional logging, as it'll make life easier
    * if the interface with SDES isn't accurately described or implemented.
    * When we're happy with the API being stable, we can delete this method and replace its usage with
-   * ```Action.async(jsonBodyParser[NotificationItem])```
+   * ```Action.async(parse.json[NotificationItem])```
    */
   private def withJsonBody[T](f: (T) => Future[Result])(implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]) =
     Try(request.body.validate[T]) match {

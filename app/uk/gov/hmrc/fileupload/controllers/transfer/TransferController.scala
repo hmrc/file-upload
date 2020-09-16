@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.controllers.transfer
 import akka.stream.scaladsl.Source
 import cats.data.Xor
 import play.api.libs.iteratee.Enumeratee
-import play.api.libs.streams.Streams
+import play.api.libs.iteratee.streams.IterateeStreams
 import play.api.mvc.{Action, Controller}
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
@@ -51,7 +51,7 @@ class TransferController(withBasicAuth: BasicAuth,
     zipEnvelope(envelopeId) map {
       case Xor.Right(stream) =>
         val keepOnlyNonEmptyArrays = Enumeratee.filter[Array[Byte]] { _.length > 0 }
-        val source = Source.fromPublisher(Streams.enumeratorToPublisher(stream.through(keepOnlyNonEmptyArrays)))
+        val source = Source.fromPublisher(IterateeStreams.enumeratorToPublisher(stream.through(keepOnlyNonEmptyArrays)))
         Ok.chunked(source).as("application/zip").withHeaders(
           CONTENT_DISPOSITION -> s"""attachment; filename="$envelopeId.zip""""
         )

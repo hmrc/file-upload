@@ -21,7 +21,7 @@ private object AppDependencies {
     "org.typelevel"            %% "cats"                    % "0.7.0",
     "org.reactivemongo"        %% "reactivemongo-iteratees" % "0.18.8",
     "com.typesafe.play"        %% "play-json-joda"          % "2.6.14",
-    "com.typesafe.play"        %% "play-iteratees"          % "2.5.9" force(),
+    "com.typesafe.play"        %% "play-iteratees-reactive-streams" % "2.6.1",
     "com.google.code.findbugs" %  "jsr305"                  % "2.0.3"
   )
 

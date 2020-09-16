@@ -26,7 +26,7 @@ import akka.util.ByteString
 import cats.data.Xor
 import play.api.Logger
 import play.api.libs.iteratee.Enumerator
-import play.api.libs.streams.Streams
+import play.api.libs.iteratee.streams.IterateeStreams
 import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
 import uk.gov.hmrc.fileupload.file.zip.ZipStream.{ZipFileInfo, ZipStreamEnumerator}
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindEnvelopeNotFoundError, FindResult, FindServiceError}
@@ -51,7 +51,7 @@ object Zippy {
 
     def sourceToEnumerator(source: Source[ByteString, _]) = {
       val byteStringToArrayOfBytes = Flow[ByteString].map(_.toArray)
-      Streams.publisherToEnumerator(
+      IterateeStreams.publisherToEnumerator(
         source.via(byteStringToArrayOfBytes).runWith(Sink.asPublisher(fanout = false))
       )
     }
@@ -84,7 +84,6 @@ object Zippy {
       case Xor.Left(FindServiceError(message)) =>
         Logger.warn(s"Retrieving zipped envelope [$envelopeId]. Other error [$message]")
         Xor.left(ZipProcessingError(message))
-
     }
   }
 
@@ -94,5 +93,4 @@ object Zippy {
     out.close()
     Enumerator(baos.toByteArray)
   }
-
 }
