@@ -38,7 +38,10 @@ trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
   lazy val context: ApplicationLoader.Context = {
     val classLoader = ApplicationLoader.getClass.getClassLoader
     val env = new Environment(new java.io.File("."), classLoader, Mode.Test)
-    ApplicationLoader.createContext(env)
+    val context = ApplicationLoader.createContext(env)
+    context.copy(
+      initialConfiguration = context.initialConfiguration ++ Configuration("metrics.jvm" -> false)
+    )
   }
 
   override def newAppForTest(testData: TestData): Application = {
