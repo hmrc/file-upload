@@ -21,7 +21,6 @@ import akka.util.ByteString
 import cats.data.Xor
 import play.api.Logger
 import play.api.http.HttpEntity
-import play.api.libs.streams.Streams
 import play.api.libs.ws.WSClient
 import play.api.mvc._
 import uk.gov.hmrc.fileupload._
@@ -41,9 +40,9 @@ class RetrieveFile(wsClient: WSClient, baseUrl: String) {
     Logger.debug(s"Downloading $downloadUrl")
     val t1 = System.nanoTime()
     val data = wsClient.url(downloadUrl)
-      .withHeaders("User-Agent" -> "FU-backend")
+      .withHttpHeaders("User-Agent" -> "FU-backend")
       .stream()
-      .map(_.body)
+      .map(_.bodyAsSource)
     data.foreach { _ =>
       val lapse = (System.nanoTime() - t1) / (1000 * 1000)
       Logger.info(s"Downloading file: url=$downloadUrl time=$lapse ms")

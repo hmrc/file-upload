@@ -29,7 +29,6 @@ import net.ceedubs.ficus.Ficus._
 import play.api.ApplicationLoader.Context
 import play.api.Mode.Mode
 import play.api._
-import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.ws.ahc.AhcWSComponents
 import play.api.mvc.EssentialFilter
 import play.api.routing.Router
@@ -188,7 +187,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
         defaultState     = () => write.envelope.Envelope(),
         publish          = publish,
         publishAllEvents = reportHandler.handle(replay = false)
-      )(eventStore, defaultContext).handleCommand(command)
+      )(eventStore, executionContext).handleCommand(command)
   }
 
   lazy val getEnvelopesByStatus = envelopeRepository.getByStatus _

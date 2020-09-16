@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.write.envelope
 
 import org.joda.time.DateTime
 import play.api.Logger
-import play.api.libs.json._
+import play.api.libs.json._ 
 import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
 import uk.gov.hmrc.fileupload.read.envelope.{SizeReads, SizeWrites}
 import uk.gov.hmrc.fileupload.write.infrastructure._
@@ -107,7 +107,14 @@ object Formatters {
   implicit val sizeReads: Reads[Size] = SizeReads
   implicit val sizeWrites: Writes[Size] = SizeWrites
   implicit val constraintsFormats: OFormat[EnvelopeFilesConstraints] = Json.format[EnvelopeFilesConstraints]
-  implicit val envelopeCreatedFormat: Format[EnvelopeCreated] = Json.format[EnvelopeCreated]
+  implicit val envelopeCreatedFormat: Format[EnvelopeCreated] = {
+    // TODO
+    // previously we wrote dates as number (epoch seconds), jodaDateReads tries number first so is backward compatible
+    // which means we could use JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'"), to migrate format.
+    implicit val dateReads: Reads[DateTime] = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    implicit val dateWrites: Writes[DateTime] = JodaWrites.JodaDateTimeNumberWrites
+    Json.format[EnvelopeCreated]
+  }
   implicit val fileQuarantinedFormat: Format[FileQuarantined] = Json.format[FileQuarantined]
   implicit val fileNoVirusDetectedFormat: Format[NoVirusDetected] = Json.format[NoVirusDetected]
   implicit val fileVirusDetectedFormat: Format[VirusDetected] = Json.format[VirusDetected]
