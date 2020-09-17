@@ -18,21 +18,20 @@ package uk.gov.hmrc.fileupload
 
 import java.time.Duration
 
+import akka.actor.{ActorRef, ActorSystem}
 import org.scalatest.{BeforeAndAfterAll, TestSuite, TestData}
 import org.scalatestplus.play.OneAppPerTest
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.ApplicationLoader.Context
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.inject.bind
 import play.api._
 import play.api.mvc.EssentialFilter
 import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
 import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraintsConfiguration
 
-trait ApplicationComponents extends GuiceOneServerPerSuite /*with OneAppPerTest*/ with BeforeAndAfterAll {
+trait ApplicationComponents extends GuiceOneServerPerSuite with BeforeAndAfterAll {
   this: TestSuite =>
-
-  // accessed to get the components in tests
-  //lazy val components: ApplicationModule = new TestApplicationModule(context)
 
   // creates a new application and sets the components
   implicit override lazy val app: Application =
@@ -40,19 +39,6 @@ trait ApplicationComponents extends GuiceOneServerPerSuite /*with OneAppPerTest*
       //.disable(classOf[com.kenshoo.play.metrics.PlayModule], classOf[Module])
       .configure("metrics.jvm" -> false)
       .build()
-
-  /*lazy val context: ApplicationLoader.Context = {
-    val classLoader = ApplicationLoader.getClass.getClassLoader
-    val env = new Environment(new java.io.File("."), classLoader, Mode.Test)
-    val context = ApplicationLoader.createContext(env)
-    context.copy(
-      initialConfiguration = context.initialConfiguration ++ Configuration("metrics.jvm" -> false)
-    )
-  }
-
-  override def newAppForTest(testData: TestData): Application = {
-    newApplication
-  }*/
 
   val acceptedMaxItems: Int = 100
   val acceptedMaxSize: Size = Size("250MB").right.get //250 * 1024 * 1024

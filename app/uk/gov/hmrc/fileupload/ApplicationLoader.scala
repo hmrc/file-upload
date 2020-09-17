@@ -24,7 +24,7 @@ import com.codahale.metrics.graphite.{Graphite, GraphiteReporter}
 import com.codahale.metrics.{MetricFilter, SharedMetricRegistries}
 import com.kenshoo.play.metrics.{MetricsController, MetricsFilterImpl, MetricsImpl}
 import com.typesafe.config.Config
-import javax.inject.{Inject, Provider}
+import javax.inject.{Inject, Provider, Singleton}
 import net.ceedubs.ficus.Ficus._
 import play.api.Mode.Mode
 import play.api._
@@ -61,10 +61,12 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 //import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, _}
 
 
+@Singleton
 class ApplicationModule @Inject()(
   servicesConfig: ServicesConfig,
   reactiveMongoComponent: ReactiveMongoComponent,
   auditConnector: AuditConnector,
+  metrics: MetricsImpl,
   val applicationLifecycle: play.api.inject.ApplicationLifecycle,
   val configuration: play.api.Configuration,
   val environment: play.api.Environment,
@@ -128,9 +130,9 @@ class ApplicationModule @Inject()(
 
   // notifier
   lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute, wsClient) _
-  /*actorSystem.actorOf(NotifierActor.props(subscribe, findEnvelope, sendNotification), "notifierActor")
+  actorSystem.actorOf(NotifierActor.props(subscribe, findEnvelope, sendNotification), "notifierActor")
   actorSystem.actorOf(StatsActor.props(subscribe, findEnvelope, sendNotification, saveFileQuarantinedStat,
-    deleteVirusDetectedStat, deleteFileStoredStat, deleteFiles), "statsActor")*/
+    deleteVirusDetectedStat, deleteFileStoredStat, deleteFiles), "statsActor")
 
   // initialize in-progress files logging actor
   StatsLoggingScheduler.initialize(actorSystem, statsLoggingConfiguration, new StatsLogger(statsRepository, new StatsLogWriter()))
@@ -218,7 +220,7 @@ class ApplicationModule @Inject()(
 
   lazy val lockRepository = new LockRepository()(db)
 
-  /*actorSystem.actorOf(
+  actorSystem.actorOf(
     RoutingActor.props(
       config = routingConfig,
       buildNotification = buildFileTransferNotification,
@@ -228,7 +230,7 @@ class ApplicationModule @Inject()(
       handleCommand = envelopeCommandHandler,
       lockRepository = lockRepository
     ),
-    "routingActor")*/
+    "routingActor")
 
   lazy val getFileFromS3 = new RetrieveFile(wsClient, fileUploadFrontendBaseUrl).download _
 /*
@@ -316,12 +318,9 @@ class ApplicationModule @Inject()(
 
   lazy val loggingFilter: LoggingFilter = MicroserviceLoggingFilter
 
-  lazy val microserviceAuditFilter: AuditFilter = MicroserviceAuditFilter*/
+  lazy val microserviceAuditFilter: AuditFilter = MicroserviceAuditFilter
 
-  // Don't use uk.gov.hmrc.play.graphite.GraphiteMetricsImpl as it won't allow hot reload due to overridden onStop() method
-  lazy val metrics = new MetricsImpl(applicationLifecycle, configuration)
-
-  /*lazy val metricsFilter = new MetricsFilterImpl(metrics)
+  lazy val metricsFilter = new MetricsFilterImpl(metrics)
 
   def graphiteStart(): Unit = {
 
