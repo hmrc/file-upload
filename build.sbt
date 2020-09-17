@@ -28,7 +28,8 @@ lazy val microservice = Project(appName, file("."))
   .settings(scoverageSettings: _*)
   .settings(SbtDistributablesPlugin.publishingSettings: _*)
   .settings(
-    libraryDependencies ++= AppDependencies(),
+    libraryDependencies ++= AppDependencies.libraryDependencies,
+    dependencyOverrides := AppDependencies.dependencyOverrides,
     parallelExecution in Test := false,
     retrieveManaged := true,
     evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),

@@ -20,22 +20,28 @@ import java.time.Duration
 
 import org.scalatest.{BeforeAndAfterAll, TestSuite, TestData}
 import org.scalatestplus.play.OneAppPerTest
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.ApplicationLoader.Context
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api._
 import play.api.mvc.EssentialFilter
 import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
 import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraintsConfiguration
 
-trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
+trait ApplicationComponents extends GuiceOneServerPerSuite /*with OneAppPerTest*/ with BeforeAndAfterAll {
   this: TestSuite =>
 
   // accessed to get the components in tests
-  lazy val components: ApplicationModule = new TestApplicationModule(context)
+  //lazy val components: ApplicationModule = new TestApplicationModule(context)
 
   // creates a new application and sets the components
-  lazy val newApplication: Application = components.application
+  implicit override lazy val app: Application =
+    new GuiceApplicationBuilder()
+      //.disable(classOf[com.kenshoo.play.metrics.PlayModule], classOf[Module])
+      .configure("metrics.jvm" -> false)
+      .build()
 
-  lazy val context: ApplicationLoader.Context = {
+  /*lazy val context: ApplicationLoader.Context = {
     val classLoader = ApplicationLoader.getClass.getClassLoader
     val env = new Environment(new java.io.File("."), classLoader, Mode.Test)
     val context = ApplicationLoader.createContext(env)
@@ -46,7 +52,7 @@ trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
 
   override def newAppForTest(testData: TestData): Application = {
     newApplication
-  }
+  }*/
 
   val acceptedMaxItems: Int = 100
   val acceptedMaxSize: Size = Size("250MB").right.get //250 * 1024 * 1024
@@ -77,6 +83,8 @@ trait ApplicationComponents extends OneAppPerTest with BeforeAndAfterAll {
     true)
 }
 
+/*
 class TestApplicationModule(context: Context) extends ApplicationModule(context = context) {
   override lazy val httpFilters: Seq[EssentialFilter] = Seq()
 }
+*/

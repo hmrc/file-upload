@@ -22,6 +22,7 @@ import java.time.Duration
 import akka.stream.scaladsl.Source
 import cats.data.Xor
 import cats.syntax.either._
+import javax.inject.Inject
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json._
@@ -40,7 +41,7 @@ import uk.gov.hmrc.http.BadRequestException
 
 import scala.util.{Failure, Success, Try}
 
-class EnvelopeController(withBasicAuth: BasicAuth,
+class EnvelopeController @Inject()(withBasicAuth: BasicAuth,
                          nextId: () => EnvelopeId,
                          handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                          findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]],
@@ -75,14 +76,13 @@ class EnvelopeController(withBasicAuth: BasicAuth,
         Logger.warn(s"Validation error. user time: ${error}, user-agent: ${request.headers.get("User-Agent")}")
         Future.successful(BadRequestHandler(new BadRequestException(s"${error.message}")))
     }
-
   }
 
-  private def validateCallbackUrl(request: Request[CreateEnvelopeRequest], envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration):
-  Either[InvalidCallbackUrl, Unit] = {
-
+  private def validateCallbackUrl(
+    request: Request[CreateEnvelopeRequest],
+    envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration
+  ): Either[InvalidCallbackUrl, Unit] =
     if (envelopeConstraintsConfigure.enforceHttps) {
-
       val allowedProtocols = Seq("https")
 
       request.body.callbackUrl match {
@@ -93,13 +93,8 @@ class EnvelopeController(withBasicAuth: BasicAuth,
             _ <- if (allowedProtocols.contains(parsedUrl.getProtocol)) Right(()) else Left(InvalidCallbackUrl(url))
           } yield ()
       }
-    } else {
-
+    } else
       Right(())
-
-    }
-
-  }
 
 
   def createWithId(id: EnvelopeId) = Action.async(parse.json[CreateEnvelopeRequest]) { implicit request =>

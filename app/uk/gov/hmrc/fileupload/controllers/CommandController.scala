@@ -17,18 +17,21 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
+import javax.inject.Inject
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json, Reads}
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.write.envelope.Formatters._
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class CommandController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
-                     (implicit executionContext: ExecutionContext) extends BaseController {
+class CommandController @Inject()(
+  handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
+  cc: ControllerComponents
+)(implicit executionContext: ExecutionContext) extends BackendController(cc) {
 
   def unsealEnvelope = process[UnsealEnvelope]
 
