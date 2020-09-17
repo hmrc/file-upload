@@ -23,8 +23,10 @@ import akka.util.ByteString
 import cats.data.Xor
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
+import org.mockito.Mockito.when
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.{HeaderNames, Status}
 import play.api.mvc._
 import play.api.test.FakeRequest
@@ -38,7 +40,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class FileControllerSpec extends UnitSpec with ScalaFutures {
+class FileControllerSpec extends UnitSpec with MockitoSugar with ScalaFutures {
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
 
@@ -52,9 +54,16 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
 
   def newController(withBasicAuth:BasicAuth = AlwaysAuthorisedBasicAuth,
                     retrieveFile: (EnvelopeId, FileId) => Future[Source[ByteString, _]] = (_, _) => failed,
-                    withValidEnvelope: WithValidEnvelope = Support.envelopeAvailable(),
-                    handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed) =
-    new FileController(withBasicAuth, retrieveFile, withValidEnvelope, handleCommand)
+                    withValidEnvelope: WithValidEnvelope = new WithValidEnvelope(_ => Future.successful(Some(Support.envelope))),
+                    handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed
+  ) = {
+    val appModule = mock[ApplicationModule]
+    when(appModule.withBasicAuth).thenReturn(withBasicAuth)
+    when(appModule.getFileFromS3).thenReturn(retrieveFile)
+    when(appModule.withValidEnvelope).thenReturn(withValidEnvelope)
+    when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
+    new FileController(appModule)
+  }
 
 
   val envelopeId = EnvelopeId()

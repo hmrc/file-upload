@@ -17,11 +17,13 @@
 package uk.gov.hmrc.fileupload.controllers.transfer
 
 import cats.data.Xor
+import org.mockito.Mockito.when
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status
 import play.api.test.FakeRequest
-import uk.gov.hmrc.fileupload.Support
+import uk.gov.hmrc.fileupload.{ApplicationModule, Support}
 import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
 import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -30,7 +32,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class TransferControllerSpec extends UnitSpec with ScalaFutures {
+class TransferControllerSpec extends UnitSpec with MockitoSugar with ScalaFutures {
 
   implicit val defaultPatience =
     PatienceConfig(timeout = Span(5, Seconds), interval = Span(500, Millis))
@@ -41,8 +43,14 @@ class TransferControllerSpec extends UnitSpec with ScalaFutures {
 
   def newController(withBasicAuth: BasicAuth = AlwaysAuthorisedBasicAuth,
                     getEnvelopesByDestination: Option[String] => Future[List[Envelope]] = _ => failed,
-                    handleCommand: EnvelopeCommand => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed) =
-    new TransferController(withBasicAuth, getEnvelopesByDestination, handleCommand, null)
+                    handleCommand: EnvelopeCommand => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed
+  ) = {
+    val appModule = mock[ApplicationModule]
+    when(appModule.withBasicAuth).thenReturn(withBasicAuth)
+    when(appModule.getEnvelopesByDestination).thenReturn(getEnvelopesByDestination)
+    when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
+    new TransferController(appModule)
+  }
 
 
   "Delete envelope" should {

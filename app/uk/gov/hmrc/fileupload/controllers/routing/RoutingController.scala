@@ -19,9 +19,11 @@ package uk.gov.hmrc.fileupload.controllers.routing
 import java.util.UUID
 
 import cats.data.Xor
+import javax.inject.Inject
 import play.api.Logger
 import play.api.libs.json.{JsError, JsSuccess, JsValue, Reads}
 import play.api.mvc.{Action, Controller, Request, Result}
+import uk.gov.hmrc.fileupload.ApplicationModule
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
@@ -30,9 +32,16 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import uk.gov.hmrc.fileupload.utils.NumberFormatting.formatAsKiloOrMegabytes
 
-class RoutingController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
-                        newId: () => String = () => UUID.randomUUID().toString)
-                       (implicit executionContext: ExecutionContext) extends Controller {
+class RoutingController @Inject()(
+  /*handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
+                        newId: () => String = () => UUID.randomUUID().toString*/
+  appModule: ApplicationModule
+)(implicit executionContext: ExecutionContext
+) extends Controller {
+
+  val handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
+  val newId: () => String = appModule.newId
+
 
   def createRoutingRequest() = Action.async(parse.json) { implicit request =>
     withJsonBody[RouteEnvelopeRequest] { requestParams =>

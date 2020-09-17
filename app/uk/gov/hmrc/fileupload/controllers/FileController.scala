@@ -52,11 +52,17 @@ class RetrieveFile(wsClient: WSClient, baseUrl: String) {
   }
 }
 
-class FileController @Inject()(withBasicAuth: BasicAuth,
+class FileController @Inject()(/*withBasicAuth: BasicAuth,
                      retrieveFileS3: (EnvelopeId, FileId) => Future[Source[ByteString, _]],
                      withValidEnvelope: WithValidEnvelope,
-                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
-                    (implicit executionContext: ExecutionContext) extends Controller {
+                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],*/
+                     appModule: ApplicationModule
+)(implicit executionContext: ExecutionContext) extends Controller {
+
+  val withBasicAuth: BasicAuth = appModule.withBasicAuth
+  val retrieveFileS3: (EnvelopeId, FileId) => Future[Source[ByteString, _]] = appModule.getFileFromS3
+  val withValidEnvelope: WithValidEnvelope = appModule.withValidEnvelope
+  val handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
 
   def downloadFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { implicit request =>
     Logger.info(s"downloadFile: envelopeId=$envelopeId fileId=$fileId")

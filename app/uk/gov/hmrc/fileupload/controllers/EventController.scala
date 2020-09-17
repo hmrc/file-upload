@@ -20,6 +20,7 @@ import cats.data.Xor
 import javax.inject.Inject
 import play.api.libs.json.Json
 import play.api.mvc._
+import uk.gov.hmrc.fileupload.ApplicationModule
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.GetResult
 import uk.gov.hmrc.fileupload.write.infrastructure.{StreamId, Event => DomainEvent, EventSerializer => _}
@@ -27,9 +28,14 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{StreamId, Event => DomainEve
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
-class EventController @Inject()(unitOfWorks: StreamId => Future[GetResult],
-                      publishAllEvents: Seq[DomainEvent] => Unit)
-                     (implicit executionContext: ExecutionContext) extends Controller {
+class EventController @Inject()(/*unitOfWorks: StreamId => Future[GetResult],
+                      publishAllEvents: Seq[DomainEvent] => Unit*/
+  appModule: ApplicationModule
+)(implicit executionContext: ExecutionContext
+) extends Controller {
+
+  val unitOfWorks: StreamId => Future[GetResult] = appModule.unitOfWorks
+  val publishAllEvents: Seq[DomainEvent] => Unit = appModule.publishAllEvents
 
   implicit val eventWrites = EventSerializer.eventWrite
 

@@ -24,15 +24,14 @@ import com.codahale.metrics.graphite.{Graphite, GraphiteReporter}
 import com.codahale.metrics.{MetricFilter, SharedMetricRegistries}
 import com.kenshoo.play.metrics.{MetricsController, MetricsFilterImpl, MetricsImpl}
 import com.typesafe.config.Config
-import javax.inject.Provider
+import javax.inject.{Inject, Provider}
 import net.ceedubs.ficus.Ficus._
-import play.api.ApplicationLoader.Context
 import play.api.Mode.Mode
 import play.api._
 import play.api.libs.ws.ahc.AhcWSComponents
 import play.api.mvc.EssentialFilter
 import play.api.routing.Router
-import play.modules.reactivemongo.ReactiveMongoComponentImpl
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands
 import uk.gov.hmrc.fileupload.admin.{Routes => AdminRoutes}
 import uk.gov.hmrc.fileupload.app.{Routes => AppRoutes}
@@ -56,37 +55,33 @@ import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfW
 import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, MongoEventStore, StreamId}
 import uk.gov.hmrc.lock.LockRepository
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode, ServicesConfig}
-import uk.gov.hmrc.play.microservice.config.LoadAuditingConfig
-import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, _}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+//import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode, ServicesConfig}
+//import uk.gov.hmrc.play.microservice.config.LoadAuditingConfig
+//import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, _}
 
 
-class ApplicationLoader extends play.api.ApplicationLoader {
-  def load(context: Context) = {
-    LoggerConfigurator(context.environment.classLoader).foreach {
-      _.configure(context.environment)
-    }
-    val app = new ApplicationModule(context)
-    app.graphiteStart()
-    app.application
-  }
-}
+class ApplicationModule @Inject()(
+  servicesConfig: ServicesConfig,
+  reactiveMongoComponent: ReactiveMongoComponent,
+  auditConnector: AuditConnector,
+  val applicationLifecycle: play.api.inject.ApplicationLifecycle,
+  val configuration: play.api.Configuration,
+  val environment: play.api.Environment,
+  implicit val executionContext: scala.concurrent.ExecutionContext,
+  implicit val materializer: akka.stream.Materializer,
+  actorSystem: akka.actor.ActorSystem
+  ) extends AhcWSComponents {
 
-class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(context)
-  with AhcWSComponents with AppName with ServicesConfig {
+  lazy val db = reactiveMongoComponent.mongoConnector.db
 
   implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
   implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
 
-  override lazy val mode: Mode = context.environment.mode
-  override lazy val runModeConfiguration: Configuration = configuration
-
-  override def appNameConfiguration: Configuration = configuration
-
   val envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration = {
-    EnvelopeConstraintsConfiguration.getEnvelopeConstraintsConfiguration(runModeConfiguration) match {
-      case Right(envelopeConstraints) ⇒ envelopeConstraints
-      case Left(failureReason) ⇒ throw new IllegalArgumentException(s"${failureReason.message}")
+    EnvelopeConstraintsConfiguration.getEnvelopeConstraintsConfiguration(configuration) match {
+      case Right(envelopeConstraints) => envelopeConstraints
+      case Left(failureReason) => throw new IllegalArgumentException(s"${failureReason.message}")
     }
   }
 
@@ -128,16 +123,18 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     }
   }
 
-  lazy val db = new ReactiveMongoComponentImpl(configuration, environment, applicationLifecycle).mongoConnector.db
+  lazy val auditedHttpExecute = PlayHttp.execute(auditConnector,
+    "file-upload", Some(t => Logger.warn(t.getMessage, t))) _
 
   // notifier
-  actorSystem.actorOf(NotifierActor.props(subscribe, findEnvelope, sendNotification), "notifierActor")
+  lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute, wsClient) _
+  /*actorSystem.actorOf(NotifierActor.props(subscribe, findEnvelope, sendNotification), "notifierActor")
   actorSystem.actorOf(StatsActor.props(subscribe, findEnvelope, sendNotification, saveFileQuarantinedStat,
-    deleteVirusDetectedStat, deleteFileStoredStat, deleteFiles), "statsActor")
+    deleteVirusDetectedStat, deleteFileStoredStat, deleteFiles), "statsActor")*/
 
   // initialize in-progress files logging actor
   StatsLoggingScheduler.initialize(actorSystem, statsLoggingConfiguration, new StatsLogger(statsRepository, new StatsLogWriter()))
-
+/*
   override lazy val httpFilters: Seq[EssentialFilter] = Seq(
     new UserAgentRequestFilter(metrics.defaultRegistry, UserAgent.allKnown, UserAgent.defaultIgnoreList),
     metricsFilter,
@@ -146,12 +143,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     NoCacheFilter,
     RecoveryFilter
   )
-
-  override lazy val httpErrorHandler = new GlobalErrorHandler
-
-  lazy val auditedHttpExecute = PlayHttp.execute(MicroserviceAuditFilter.auditConnector,
-    appName, Some(t => Logger.warn(t.getMessage, t))) _
-
+*/
   lazy val envelopeRepository = uk.gov.hmrc.fileupload.read.envelope.Repository.apply(db)
 
   lazy val getEnvelope = envelopeRepository.get _
@@ -161,10 +153,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
   lazy val findEnvelope = EnvelopeService.find(getEnvelope) _
   lazy val findMetadata = EnvelopeService.findMetadata(findEnvelope) _
 
-  lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute, wsClient) _
-
-
-  lazy val statsLoggingConfiguration = StatsLoggingConfiguration(runModeConfiguration)
+  lazy val statsLoggingConfiguration = StatsLoggingConfiguration(configuration)
   lazy val statsRepository = StatsRepository.apply(db)
   lazy val saveFileQuarantinedStat = Stats.save(statsRepository.insert) _
   lazy val deleteFileStoredStat = Stats.deleteFileStored(statsRepository.delete) _
@@ -192,7 +181,11 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   lazy val getEnvelopesByStatus = envelopeRepository.getByStatus _
 
-  lazy val envelopeController = {
+  lazy val deleteInProgressFile = statsRepository.deleteByFileRefId _
+
+  lazy val nextId = () => EnvelopeId(UUID.randomUUID().toString)
+
+  /*lazy val envelopeController = {
     val nextId = () => EnvelopeId(UUID.randomUUID().toString)
     new EnvelopeController(
       withBasicAuth = withBasicAuth,
@@ -204,17 +197,19 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
       deleteInProgressFile = statsRepository.deleteByFileRefId,
       getEnvelopesByStatus = getEnvelopesByStatus,
       envelopeConstraintsConfigure = envelopeConstraintsConfigure)
-  }
+  }*/
 
-  lazy val eventController = {
+  lazy val unitOfWorks = eventStore.unitsOfWorkForAggregate _
+  lazy val publishAllEvents = reportHandler.handle(replay = true) _
+
+  /*
+  lazy val eventController =
     new EventController(eventStore.unitsOfWorkForAggregate, reportHandler.handle(replay = true))
-  }
 
-  lazy val commandController = {
+  lazy val commandController =
     new CommandController(envelopeCommandHandler)
-  }
-
-  lazy val fileUploadFrontendBaseUrl = baseUrl("file-upload-frontend")
+*/
+  lazy val fileUploadFrontendBaseUrl = servicesConfig.baseUrl("file-upload-frontend")
 
   lazy val routingConfig = RoutingConfig(configuration)
 
@@ -223,7 +218,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   lazy val lockRepository = new LockRepository()(db)
 
-  actorSystem.actorOf(
+  /*actorSystem.actorOf(
     RoutingActor.props(
       config = routingConfig,
       buildNotification = buildFileTransferNotification,
@@ -233,10 +228,10 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
       handleCommand = envelopeCommandHandler,
       lockRepository = lockRepository
     ),
-    "routingActor")
+    "routingActor")*/
 
   lazy val getFileFromS3 = new RetrieveFile(wsClient, fileUploadFrontendBaseUrl).download _
-
+/*
   lazy val fileController = {
     new FileController(
       withBasicAuth = withBasicAuth,
@@ -244,19 +239,24 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
       withValidEnvelope = withValidEnvelope,
       handleCommand = envelopeCommandHandler)
   }
+*/
 
-  lazy val transferController = {
     val getEnvelopesByDestination = envelopeRepository.getByDestination _
-    //Todo: remove getFileFromMongoDB when mongoDB is not in use at all.
     val zipEnvelope = Zippy.zipEnvelope(findEnvelope, getFileFromS3) _
+
+  /*
+  lazy val transferController = {
     new TransferController(withBasicAuth, getEnvelopesByDestination, envelopeCommandHandler, zipEnvelope)
   }
 
   lazy val testOnlyController = {
     new TestOnlyController(recreateCollections = List(eventStore.recreate, envelopeRepository.recreate, statsRepository.recreate))
   }
+  */
 
-  lazy val routingController = new RoutingController(envelopeCommandHandler)
+  val newId: () => String = () => UUID.randomUUID().toString
+
+  /*lazy val routingController = new RoutingController(envelopeCommandHandler)
 
   lazy val sdesCallbackController = new SDESCallbackController(envelopeCommandHandler)
 
@@ -297,7 +297,7 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
     override protected def runModeConfiguration: Configuration = configuration
   }
 
-  object MicroserviceAuditFilter extends AuditFilter with AppName {
+  object MicroserviceAuditFilter extends AuditFilter {
     override def mat = materializer
 
     override val auditConnector = MicroserviceAuditConnector
@@ -316,12 +316,12 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
 
   lazy val loggingFilter: LoggingFilter = MicroserviceLoggingFilter
 
-  lazy val microserviceAuditFilter: AuditFilter = MicroserviceAuditFilter
+  lazy val microserviceAuditFilter: AuditFilter = MicroserviceAuditFilter*/
 
   // Don't use uk.gov.hmrc.play.graphite.GraphiteMetricsImpl as it won't allow hot reload due to overridden onStop() method
   lazy val metrics = new MetricsImpl(applicationLifecycle, configuration)
 
-  lazy val metricsFilter = new MetricsFilterImpl(metrics)
+  /*lazy val metricsFilter = new MetricsFilterImpl(metrics)
 
   def graphiteStart(): Unit = {
 
@@ -360,5 +360,5 @@ class ApplicationModule(context: Context) extends BuiltInComponentsFromContext(c
       reporter.start(metricsConfig.getLong("graphite.interval").getOrElse(10L), SECONDS)
     }
   }
-
+*/
 }

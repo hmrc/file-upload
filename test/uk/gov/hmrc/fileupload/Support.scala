@@ -73,10 +73,6 @@ object Support {
 
   def farInTheFutureEnvelope = envelope.copy(expiryDate = Some(DateTime.now().plusDays(3)))
 
-  def envelopeAvailable(e: Envelope = envelope): WithValidEnvelope = new WithValidEnvelope(
-    _ => Future.successful(Some(e))
-  )
-
   val envelopeNotFound: WithValidEnvelope = new WithValidEnvelope(
     _ => Future.successful(None)
   )

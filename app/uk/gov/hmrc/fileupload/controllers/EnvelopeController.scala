@@ -33,7 +33,7 @@ import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId, read}
+import uk.gov.hmrc.fileupload.{ApplicationModule, EnvelopeId, FileId, FileRefId, read}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -41,7 +41,7 @@ import uk.gov.hmrc.http.BadRequestException
 
 import scala.util.{Failure, Success, Try}
 
-class EnvelopeController @Inject()(withBasicAuth: BasicAuth,
+class EnvelopeController @Inject()(/*withBasicAuth: BasicAuth,
                          nextId: () => EnvelopeId,
                          handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                          findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]],
@@ -49,8 +49,20 @@ class EnvelopeController @Inject()(withBasicAuth: BasicAuth,
                          findAllInProgressFile: () => Future[GetInProgressFileResult],
                          deleteInProgressFile: (FileRefId) => Future[Boolean],
                          getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
-                         envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration)
-                        (implicit executionContext: ExecutionContext) extends Controller {
+                         envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration,*/
+                         appModule: ApplicationModule
+)(implicit executionContext: ExecutionContext) extends Controller {
+
+  val withBasicAuth: BasicAuth = appModule.withBasicAuth
+  val nextId: () => EnvelopeId = appModule.nextId
+  val handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
+  val findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]] = appModule.findEnvelope
+  val findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]] = appModule.findMetadata
+  val findAllInProgressFile: () => Future[GetInProgressFileResult] = appModule.allInProgressFile
+  val deleteInProgressFile: (FileRefId) => Future[Boolean] = appModule.deleteInProgressFile
+  val getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed] = appModule.getEnvelopesByStatus
+  val envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration = appModule.envelopeConstraintsConfigure
+
   import EnvelopeConstraintsConfiguration.{validateExpiryDate, durationsToDateTime}
 
   def create() = Action.async(parse.json[CreateEnvelopeRequest]) { implicit request =>

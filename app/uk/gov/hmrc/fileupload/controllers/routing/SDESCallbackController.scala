@@ -19,11 +19,12 @@ package uk.gov.hmrc.fileupload.controllers.routing
 import java.time.Instant
 
 import cats.data.Xor
+import javax.inject.Inject
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import play.api.mvc.{Action, Controller, Request, Result}
-import uk.gov.hmrc.fileupload.EnvelopeId
+import uk.gov.hmrc.fileupload.{ApplicationModule, EnvelopeId}
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.write.envelope.{ArchiveEnvelope, EnvelopeArchivedError, EnvelopeCommand, EnvelopeNotFoundError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
@@ -31,8 +32,12 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandErro
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
-class SDESCallbackController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
-                            (implicit executionContext: ExecutionContext) extends Controller {
+class SDESCallbackController @Inject()(/*handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]]*/
+  appModule: ApplicationModule
+)(implicit executionContext: ExecutionContext
+) extends Controller {
+
+  val handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
 
   def callback() = Action.async(parse.json) { implicit request =>
     withJsonBody[NotificationItem] { item =>

@@ -17,11 +17,14 @@
 package uk.gov.hmrc.fileupload.controllers.routing
 
 import cats.data.Xor
+import org.mockito.Mockito.when
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.HeaderNames._
 import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
+import uk.gov.hmrc.fileupload.ApplicationModule
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, ApplicationComponents}
@@ -29,7 +32,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class RoutingControllerSpec extends UnitSpec with ApplicationComponents with ScalaFutures {
+class RoutingControllerSpec extends UnitSpec with MockitoSugar with ApplicationComponents with ScalaFutures {
 
   implicit val ec = ExecutionContext.global
   import uk.gov.hmrc.fileupload.Support.StreamImplicits.materializer
@@ -37,8 +40,13 @@ class RoutingControllerSpec extends UnitSpec with ApplicationComponents with Sca
   val failed = Future.failed(new Exception("not good"))
 
   def newController(handleCommand: EnvelopeCommand => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
-                    newId: () => String = () => "testId") =
-    new RoutingController(handleCommand, newId)
+                    newId: () => String = () => "testId"
+  ) = {
+    val appModule = mock[ApplicationModule]
+    when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
+    when(appModule.newId).thenReturn(newId)
+    new RoutingController(appModule)
+  }
 
   val destination = "testDestination"
   val envelopeId = EnvelopeId()

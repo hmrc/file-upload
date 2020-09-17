@@ -21,6 +21,7 @@ import javax.inject.Inject
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json, Reads}
 import play.api.mvc._
+import uk.gov.hmrc.fileupload.ApplicationModule
 import uk.gov.hmrc.fileupload.write.envelope.Formatters._
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
@@ -29,9 +30,12 @@ import uk.gov.hmrc.play.bootstrap.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 
 class CommandController @Inject()(
-  handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
+  /*handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],*/
+  appModule: ApplicationModule,
   cc: ControllerComponents
 )(implicit executionContext: ExecutionContext) extends BackendController(cc) {
+
+  val handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
 
   def unsealEnvelope = process[UnsealEnvelope]
 

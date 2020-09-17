@@ -22,7 +22,7 @@ import javax.inject.Inject
 import play.api.libs.iteratee.Enumeratee
 import play.api.libs.iteratee.streams.IterateeStreams
 import play.api.mvc.{Action, Controller}
-import uk.gov.hmrc.fileupload.EnvelopeId
+import uk.gov.hmrc.fileupload.{ApplicationModule, EnvelopeId}
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.file.zip.Zippy._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
@@ -33,11 +33,18 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandErro
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
-class TransferController @Inject()(withBasicAuth: BasicAuth,
+class TransferController @Inject()(/*withBasicAuth: BasicAuth,
                          getEnvelopesByDestination: Option[String] => Future[List[Envelope]],
                          handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
-                         zipEnvelope: EnvelopeId => Future[ZipResult])
+                         zipEnvelope: EnvelopeId => Future[ZipResult]*/
+                         appModule: ApplicationModule
+                         )
                         (implicit executionContext: ExecutionContext) extends Controller {
+
+  val withBasicAuth: BasicAuth = appModule.withBasicAuth
+  val getEnvelopesByDestination: Option[String] => Future[List[Envelope]] = appModule.getEnvelopesByDestination
+  val handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
+  val zipEnvelope: EnvelopeId => Future[ZipResult] = appModule.zipEnvelope
 
   def list() = Action.async { implicit request =>
     withBasicAuth {

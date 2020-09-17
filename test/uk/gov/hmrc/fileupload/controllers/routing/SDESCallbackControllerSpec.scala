@@ -19,12 +19,14 @@ package uk.gov.hmrc.fileupload.controllers.routing
 import java.time.Instant
 
 import cats.data.Xor
+import org.mockito.Mockito.when
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import uk.gov.hmrc.fileupload.Support
+import uk.gov.hmrc.fileupload.{ApplicationModule, Support}
 import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
 import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -33,7 +35,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class SDESCallbackControllerSpec extends UnitSpec with ScalaFutures {
+class SDESCallbackControllerSpec extends UnitSpec with MockitoSugar with ScalaFutures {
 
   implicit val defaultPatience =
     PatienceConfig(timeout = Span(5, Seconds), interval = Span(500, Millis))
@@ -42,9 +44,12 @@ class SDESCallbackControllerSpec extends UnitSpec with ScalaFutures {
 
   val failed = Future.failed(new Exception("not good"))
 
-  def newController(handleCommand: EnvelopeCommand => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed) =
-    new SDESCallbackController(handleCommand)
-
+  def newController(handleCommand: EnvelopeCommand => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed
+  ) = {
+    val appModule = mock[ApplicationModule]
+    when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
+    new SDESCallbackController(appModule)
+  }
 
   "callback" should {
 

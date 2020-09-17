@@ -21,9 +21,11 @@ import cats.data.Xor
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
 import org.joda.time.DateTime
+import org.mockito.Mockito.when
 import org.scalatest.Inside
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.{HeaderNames, Status}
 import play.api.libs.json.Json
 import play.api.mvc.Result
@@ -39,7 +41,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
-class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with ScalaFutures {
+class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with ApplicationComponents with ScalaFutures {
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(10, Seconds), interval = Span(10, Millis))
 
@@ -60,35 +62,42 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
                     findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]] = (_, _) => failed,
                     findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed,
                     deleteInProgressFile: FileRefId => Future[Boolean] = _ => failed,
-                    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed] = (_, _) => failed) =
-    new EnvelopeController(withBasicAuth, nextId, handleCommand, findEnvelope, findMetadata,
-                           findAllInProgressFile, deleteInProgressFile, getEnvelopesByStatus, envelopeConstraintsConfigure)
+                    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed] = (_, _) => failed
+  ) = {
+    val appModule = mock[ApplicationModule]
+    when(appModule.withBasicAuth).thenReturn(withBasicAuth)
+    when(appModule.nextId).thenReturn(nextId)
+    when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
+    when(appModule.findEnvelope).thenReturn(findEnvelope)
+    when(appModule.findMetadata).thenReturn(findMetadata)
+    when(appModule.allInProgressFile).thenReturn(findAllInProgressFile)
+    when(appModule.deleteInProgressFile).thenReturn(deleteInProgressFile)
+    when(appModule.getEnvelopesByStatus).thenReturn(getEnvelopesByStatus)
+    when(appModule.envelopeConstraintsConfigure).thenReturn(envelopeConstraintsConfigure)
+    new EnvelopeController(appModule)
+  }
 
   "Create envelope with a request" should {
     "return response with OK status and a Location header specifying the envelope endpoint" in {
-	    val serverUrl = "http://production.com:8000"
+	    val host = "production.com:8000"
 
-	    val fakeRequest = FakeRequest("POST", "/envelopes", FakeHeaders(), body = CreateEnvelopeRequest())/*TODO {
-		    override lazy val host = serverUrl
-	    }*/
+	    val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest())
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
       val result: Result = controller.create()(fakeRequest).futureValue
 
       result.header.status shouldBe Status.CREATED
 	    val location = result.header.headers("Location")
-	    location shouldBe s"$serverUrl${uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(EnvelopeId("abc-def")).url}"
+	    location shouldBe s"$host${uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(EnvelopeId("abc-def")).url}"
     }
   }
 
   "Create envelope with a request with expiryDate == maxLimit" should {
     "return response with OK status" in {
-      val serverUrl = "http://production.com:8000"
+      val host = "production.com:8000"
 
-      val fakeRequest = FakeRequest("POST", "/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(None,
-        Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.toHours.toInt))))/*{
-        override lazy val host = serverUrl
-      }*/
+      val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(None,
+        Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.toHours.toInt))))
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
       val result: Result = controller.create()(fakeRequest).futureValue
@@ -99,12 +108,10 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
 
   "Create envelope with unsupported callback url protocol" should {
     "return response with OK status" in {
-      val serverUrl = "http://production.com:8000"
+      val host = "production.com:8000"
 
-      val fakeRequest = FakeRequest("POST", "/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(Some("ftp://localhost/123"),
-        Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.toHours.toInt))))/*{
-        override lazy val host = serverUrl
-      }*/
+      val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(Some("ftp://localhost/123"),
+        Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.toHours.toInt))))
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
       val result: Result = controller.create()(fakeRequest).futureValue
@@ -115,12 +122,10 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
 
   "Create envelope with malformed callback url protocol" should {
     "return response with BAD_REQUEST status" in {
-      val serverUrl = "http://production.com:8000"
+      val host = "production.com:8000"
 
-      val fakeRequest = FakeRequest("POST", "/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(Some("%$#@%#$%#$%"),
-        Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.toHours.toInt))))/*{
-        override lazy val host = serverUrl
-      }*/
+      val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(Some("%$#@%#$%#$%"),
+        Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.toHours.toInt))))
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
       val result: Result = controller.create()(fakeRequest).futureValue
@@ -131,12 +136,10 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
 
   "Create envelope with valid callback url protocol" should  {
     "return response with OK status" in {
-      val serverUrl = "http://production.com:8000"
+      val host = "production.com:8000"
 
-      val fakeRequest = FakeRequest("POST", "/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(Some("https://localhost:123"),
-        Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.toHours.toInt))))/*{
-        override lazy val host = serverUrl
-      }*/
+      val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(Some("https://localhost:123"),
+        Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.toHours.toInt))))
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
       val result: Result = controller.create()(fakeRequest).futureValue
@@ -149,12 +152,10 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
 
   "Create envelope with a request with too long expiryDate" should {
     "return response with BAD_REQUEST status" in {
-      val serverUrl = "http://production.com:8000"
+      val host = "production.com:8000"
 
-      val fakeRequest = FakeRequest("POST", "/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(None,
-        Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.plusHours(1).toHours.toInt))))/*{
-        override lazy val host = serverUrl
-      }*/
+      val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(None,
+        Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.plusHours(1).toHours.toInt))))
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
       val result: Result = controller.create()(fakeRequest).futureValue
@@ -165,45 +166,39 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
 
   "Create envelope with no body" should {
     "return response with OK status and a Location header specifying the envelope endpoint" in {
-      val serverUrl = "http://production.com:8000"
+      val host = "production.com:8000"
 
-      val fakeRequest = FakeRequest("POST", "/envelopes", FakeHeaders(), body = CreateEnvelopeRequest())/* {
-        override lazy val host = serverUrl
-      }*/
+      val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest())
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
       val result: Result = controller.create()(fakeRequest).futureValue
 
       result.header.status shouldBe Status.CREATED
       val location = result.header.headers("Location")
-      location shouldBe s"$serverUrl${uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(EnvelopeId("abc-def")).url}"
+      location shouldBe s"$host${uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(EnvelopeId("abc-def")).url}"
     }
   }
 
   "Create envelope with id" should {
     "return response with OK status and a Location header specifying the envelope endpoint" in {
-      val serverUrl = "http://production.com:8000"
+      val host = "production.com:8000"
 
-      val fakeRequest = FakeRequest("POST", "/envelopes", FakeHeaders(), body = CreateEnvelopeRequest())/*{
-        override lazy val host = serverUrl
-      }*/
+      val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest())
 
       val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
       val result: Result = controller.createWithId(EnvelopeId("aaa-bbb"))(fakeRequest).futureValue
 
       result.header.status shouldBe Status.CREATED
       val location = result.header.headers("Location")
-      location shouldBe s"$serverUrl${uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(EnvelopeId("aaa-bbb")).url}"
+      location shouldBe s"$host${uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(EnvelopeId("aaa-bbb")).url}"
     }
   }
 
   "Create envelope" should {
     "default to allowing zero length files" in {
-      val serverUrl = "http://production.com:8000"
+      val host = "production.com:8000"
 
-      val fakeRequest = FakeRequest("POST", "/envelopes", FakeHeaders(), body = CreateEnvelopeRequest())/*{
-        override lazy val host = serverUrl
-      }*/
+      val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest())
 
       val eventPromise = Promise[EnvelopeCommand]
 
@@ -226,13 +221,11 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
 
   "Create envelope" should {
     "can be overriden to disallow zero length files" in {
-      val serverUrl = "http://production.com:8000"
+      val host = "production.com:8000"
 
-      val fakeRequest = FakeRequest("POST", "/envelopes", FakeHeaders(),
+      val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(),
         body = CreateEnvelopeRequest(constraints =
-          Some(EnvelopeConstraintsUserSetting(allowZeroLengthFiles = Some(false)))))/*{
-        override lazy val host = serverUrl
-      }*/
+          Some(EnvelopeConstraintsUserSetting(allowZeroLengthFiles = Some(false)))))
 
       val eventPromise = Promise[EnvelopeCommand]
 
@@ -353,5 +346,4 @@ class EnvelopeControllerSpec extends UnitSpec with ApplicationComponents with Sc
       result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
     }
   }
-
 }
