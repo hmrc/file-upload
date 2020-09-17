@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.ApplicationModule
@@ -28,6 +28,7 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{StreamId, Event => DomainEve
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
+@Singleton
 class EventController @Inject()(/*unitOfWorks: StreamId => Future[GetResult],
                       publishAllEvents: Seq[DomainEvent] => Unit*/
   appModule: ApplicationModule

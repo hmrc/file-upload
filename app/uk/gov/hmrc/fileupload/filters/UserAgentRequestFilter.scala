@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload.filters
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 
 import akka.stream.Materializer
 import com.codahale.metrics.MetricRegistry
@@ -41,9 +41,11 @@ object UserAgent {
   val unknownUserAgent = UserAgent("UnknownUserAgent")
 }
 
-class UserAgentRequestFilter @Inject()(metricRegistry: MetricRegistry,
-                                       userAgentWhitelist: Set[UserAgent],
-                                       userAgentIgnoreList: Set[UserAgent])(implicit val mat: Materializer, ec: ExecutionContext) extends Filter {
+class UserAgentRequestFilter(
+  metricRegistry: MetricRegistry,
+  userAgentWhitelist: Set[UserAgent] = UserAgent.allKnown,
+  userAgentIgnoreList: Set[UserAgent] = UserAgent.defaultIgnoreList
+)(implicit val mat: Materializer, ec: ExecutionContext) extends Filter {
 
   override def apply(nextFilter: (RequestHeader) => Future[Result])(rh: RequestHeader): Future[Result] = {
     def timeWith(userAgent: UserAgent): Future[Result] = {

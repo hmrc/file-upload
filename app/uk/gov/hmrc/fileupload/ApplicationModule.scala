@@ -22,7 +22,7 @@ import java.util.UUID
 import akka.actor.{ActorRef, ActorSystem}
 import com.codahale.metrics.graphite.{Graphite, GraphiteReporter}
 import com.codahale.metrics.{MetricFilter, SharedMetricRegistries}
-import com.kenshoo.play.metrics.{MetricsController, MetricsFilterImpl, MetricsImpl}
+import com.kenshoo.play.metrics.{MetricsController, MetricsImpl}
 import com.typesafe.config.Config
 import javax.inject.{Inject, Provider, Singleton}
 import net.ceedubs.ficus.Ficus._
@@ -80,12 +80,11 @@ class ApplicationModule @Inject()(
   implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
   implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
 
-  val envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration = {
+  val envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration =
     EnvelopeConstraintsConfiguration.getEnvelopeConstraintsConfiguration(configuration) match {
       case Right(envelopeConstraints) => envelopeConstraints
       case Left(failureReason) => throw new IllegalArgumentException(s"${failureReason.message}")
     }
-  }
 
   val envelopeHandler = new EnvelopeHandler(envelopeConstraintsConfigure)
 
@@ -136,16 +135,7 @@ class ApplicationModule @Inject()(
 
   // initialize in-progress files logging actor
   StatsLoggingScheduler.initialize(actorSystem, statsLoggingConfiguration, new StatsLogger(statsRepository, new StatsLogWriter()))
-/*
-  override lazy val httpFilters: Seq[EssentialFilter] = Seq(
-    new UserAgentRequestFilter(metrics.defaultRegistry, UserAgent.allKnown, UserAgent.defaultIgnoreList),
-    metricsFilter,
-    microserviceAuditFilter,
-    loggingFilter,
-    NoCacheFilter,
-    RecoveryFilter
-  )
-*/
+
   lazy val envelopeRepository = uk.gov.hmrc.fileupload.read.envelope.Repository.apply(db)
 
   lazy val getEnvelope = envelopeRepository.get _
@@ -290,37 +280,6 @@ class ApplicationModule @Inject()(
   object AuthParamsControllerConfiguration {
     lazy val controllerConfigs = ControllerConfiguration.controllerConfigs
   }
-
-  object MicroserviceAuditConnector extends AuditConnector with RunMode {
-    override lazy val auditingConfig = LoadAuditingConfig(s"auditing")
-
-    override protected def mode: Mode = context.environment.mode
-
-    override protected def runModeConfiguration: Configuration = configuration
-  }
-
-  object MicroserviceAuditFilter extends AuditFilter {
-    override def mat = materializer
-
-    override val auditConnector = MicroserviceAuditConnector
-
-    override def controllerNeedsAuditing(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsAuditing
-
-    override protected def appNameConfiguration: Configuration = configuration
-  }
-
-  object MicroserviceLoggingFilter extends LoggingFilter {
-    override def mat = materializer
-
-    override def controllerNeedsLogging(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsLogging
-  }
-
-
-  lazy val loggingFilter: LoggingFilter = MicroserviceLoggingFilter
-
-  lazy val microserviceAuditFilter: AuditFilter = MicroserviceAuditFilter
-
-  lazy val metricsFilter = new MetricsFilterImpl(metrics)
 
   def graphiteStart(): Unit = {
 

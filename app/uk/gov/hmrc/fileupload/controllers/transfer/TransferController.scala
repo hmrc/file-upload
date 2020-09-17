@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.controllers.transfer
 
 import akka.stream.scaladsl.Source
 import cats.data.Xor
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import play.api.libs.iteratee.Enumeratee
 import play.api.libs.iteratee.streams.IterateeStreams
 import play.api.mvc.{Action, Controller}
@@ -33,6 +33,7 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandErro
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
+@Singleton
 class TransferController @Inject()(/*withBasicAuth: BasicAuth,
                          getEnvelopesByDestination: Option[String] => Future[List[Envelope]],
                          handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],

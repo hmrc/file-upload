@@ -22,7 +22,7 @@ import java.time.Duration
 import akka.stream.scaladsl.Source
 import cats.data.Xor
 import cats.syntax.either._
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json._
@@ -41,6 +41,7 @@ import uk.gov.hmrc.http.BadRequestException
 
 import scala.util.{Failure, Success, Try}
 
+@Singleton
 class EnvelopeController @Inject()(/*withBasicAuth: BasicAuth,
                          nextId: () => EnvelopeId,
                          handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],

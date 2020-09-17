@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.controllers
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import cats.data.Xor
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.http.HttpEntity
 import play.api.libs.ws.WSClient
@@ -52,6 +52,7 @@ class RetrieveFile(wsClient: WSClient, baseUrl: String) {
   }
 }
 
+@Singleton
 class FileController @Inject()(/*withBasicAuth: BasicAuth,
                      retrieveFileS3: (EnvelopeId, FileId) => Future[Source[ByteString, _]],
                      withValidEnvelope: WithValidEnvelope,

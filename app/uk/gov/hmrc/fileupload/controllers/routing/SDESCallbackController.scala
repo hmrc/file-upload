@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.controllers.routing
 import java.time.Instant
 
 import cats.data.Xor
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
@@ -32,6 +32,7 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandErro
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
+@Singleton
 class SDESCallbackController @Inject()(/*handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]]*/
   appModule: ApplicationModule
 )(implicit executionContext: ExecutionContext

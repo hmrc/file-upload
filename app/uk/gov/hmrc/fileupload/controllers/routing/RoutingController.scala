@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.controllers.routing
 import java.util.UUID
 
 import cats.data.Xor
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json.{JsError, JsSuccess, JsValue, Reads}
 import play.api.mvc.{Action, Controller, Request, Result}
@@ -32,6 +32,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import uk.gov.hmrc.fileupload.utils.NumberFormatting.formatAsKiloOrMegabytes
 
+@Singleton
 class RoutingController @Inject()(
   /*handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
                         newId: () => String = () => UUID.randomUUID().toString*/

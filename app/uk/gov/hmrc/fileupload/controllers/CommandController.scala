@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import cats.data.Xor
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json, Reads}
 import play.api.mvc._
@@ -29,6 +29,7 @@ import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
+@Singleton
 class CommandController @Inject()(
   /*handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],*/
   appModule: ApplicationModule,
