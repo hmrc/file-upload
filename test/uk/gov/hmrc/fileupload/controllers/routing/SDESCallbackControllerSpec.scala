@@ -25,8 +25,9 @@ import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status
 import play.api.libs.json.Json
+import play.api.mvc.ControllerComponents
 import play.api.test.FakeRequest
-import uk.gov.hmrc.fileupload.{ApplicationModule, Support}
+import uk.gov.hmrc.fileupload.{ApplicationModule, Support, TestApplicationComponents}
 import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
 import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -35,7 +36,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class SDESCallbackControllerSpec extends UnitSpec with MockitoSugar with ScalaFutures {
+class SDESCallbackControllerSpec extends UnitSpec with TestApplicationComponents with MockitoSugar with ScalaFutures {
 
   implicit val defaultPatience =
     PatienceConfig(timeout = Span(5, Seconds), interval = Span(500, Millis))
@@ -48,7 +49,7 @@ class SDESCallbackControllerSpec extends UnitSpec with MockitoSugar with ScalaFu
   ) = {
     val appModule = mock[ApplicationModule]
     when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
-    new SDESCallbackController(appModule)
+    new SDESCallbackController(appModule, app.injector.instanceOf[ControllerComponents])
   }
 
   "callback" should {

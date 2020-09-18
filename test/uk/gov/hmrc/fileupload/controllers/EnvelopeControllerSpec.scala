@@ -28,7 +28,7 @@ import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.{HeaderNames, Status}
 import play.api.libs.json.Json
-import play.api.mvc.Result
+import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
@@ -74,7 +74,7 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
     when(appModule.deleteInProgressFile).thenReturn(deleteInProgressFile)
     when(appModule.getEnvelopesByStatus).thenReturn(getEnvelopesByStatus)
     when(appModule.envelopeConstraintsConfigure).thenReturn(envelopeConstraintsConfigure)
-    new EnvelopeController(appModule)
+    new EnvelopeController(appModule, app.injector.instanceOf[ControllerComponents])
   }
 
   "Create envelope with a request" should {

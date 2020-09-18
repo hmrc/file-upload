@@ -51,7 +51,7 @@ object RoutingRepository {
     httpCall(
       wSClient
         .url(routingConfig.pushUrl)
-        .withHeaders(
+        .withHttpHeaders(
           "X-Client-ID" -> routingConfig.clientId,
           "User-Agent"  -> "file-upload"
          )
@@ -76,7 +76,7 @@ object RoutingRepository {
     httpCall(
       wSClient
         .url(s"$frontendBaseUrl/internal-file-upload/zip/envelopes/${envelope._id}")
-        .withHeaders("User-Agent" -> "file-upload")
+        .withHttpHeaders("User-Agent" -> "file-upload")
         .withBody(Json.toJson(ZipRequest(files = envelope.files.toList.flatten.map(f => f.fileId -> f.name))))
         .withMethod("POST")
     ).map {

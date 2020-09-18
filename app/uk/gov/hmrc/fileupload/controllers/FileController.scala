@@ -30,6 +30,7 @@ import uk.gov.hmrc.fileupload.read.envelope.{Envelope, FileStatusAvailable, With
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeCommand
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.fileupload.read.stats.Stats.FileFound
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -54,9 +55,10 @@ class RetrieveFile(wsClient: WSClient, baseUrl: String) {
 
 @Singleton
 class FileController @Inject()(
-  appModule: ApplicationModule
+  appModule: ApplicationModule,
+  cc: ControllerComponents
 )(implicit executionContext: ExecutionContext
-) extends Controller {
+) extends BackendController(cc) {
 
   val withBasicAuth: BasicAuth = appModule.withBasicAuth
   val retrieveFileS3: (EnvelopeId, FileId) => Future[Source[ByteString, _]] = appModule.getFileFromS3

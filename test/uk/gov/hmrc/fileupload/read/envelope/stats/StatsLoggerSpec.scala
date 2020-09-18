@@ -21,8 +21,8 @@ import java.time.{LocalDateTime, ZoneId}
 import org.mockito.Mockito.verify
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.mockito.MockitoSugar.{mock => mmock}
 import org.scalatest.time.{Milliseconds, Seconds, Span}
+import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.fileupload.read.stats._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 import uk.gov.hmrc.mongo.MongoSpecSupport
@@ -32,7 +32,7 @@ import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
-class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually with ScalaFutures with BeforeAndAfterAll {
+class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with MockitoSugar with Eventually with ScalaFutures with BeforeAndAfterAll {
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(2, Seconds), interval = scaled(Span(100, Milliseconds)))
 
@@ -58,7 +58,7 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually wit
       val repository = Repository(mongo)
       repository.removeAll().futureValue
 
-      val playLogger = mmock[StatsLogWriter]
+      val playLogger = mock[StatsLogWriter]
       val statsLogger = new StatsLogger(repository, playLogger)
 
       repository.insert(todayFile1)
@@ -77,7 +77,7 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually wit
       val repository = Repository(mongo)
       repository.removeAll().futureValue
 
-      val playLogger = mmock[StatsLogWriter]
+      val playLogger = mock[StatsLogWriter]
       val statsLogger = new StatsLogger(repository, playLogger)
 
       repository.insert(todayFile1)
@@ -96,7 +96,7 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually wit
       val repository = Repository(mongo)
       repository.removeAll().futureValue
 
-      val playLogger = mmock[StatsLogWriter]
+      val playLogger = mock[StatsLogWriter]
       val statsLogger = new StatsLogger(repository, playLogger)
 
       repository.insert(previousFile1)
@@ -115,7 +115,7 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with Eventually wit
       val repository = Repository(mongo)
       repository.removeAll().futureValue
 
-      val playLogger = mmock[StatsLogWriter]
+      val playLogger = mock[StatsLogWriter]
       val statsLogger = new StatsLogger(repository, playLogger)
 
       repository.insert(previousFile1)

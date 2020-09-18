@@ -76,7 +76,7 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
 
   override def saveUnitOfWork(streamId: StreamId, unitOfWork: UnitOfWork): Future[SaveResult] = {
     val context = saveTimer.time()
-    collection.insert(unitOfWork, writeConcern).map { r =>
+    collection.insert(ordered = false, writeConcern = writeConcern).one(unitOfWork).map { r =>
       if (r.ok) {
         EventStore.saveSuccess
       } else {

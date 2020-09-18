@@ -22,21 +22,23 @@ import cats.data.Xor
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json.{JsError, JsSuccess, JsValue, Reads}
-import play.api.mvc.{Action, Controller, Request, Result}
+import play.api.mvc.{Action, Controller, ControllerComponents, Request, Result}
 import uk.gov.hmrc.fileupload.ApplicationModule
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
+import uk.gov.hmrc.fileupload.utils.NumberFormatting.formatAsKiloOrMegabytes
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
-import uk.gov.hmrc.fileupload.utils.NumberFormatting.formatAsKiloOrMegabytes
 
 @Singleton
 class RoutingController @Inject()(
-  appModule: ApplicationModule
+  appModule: ApplicationModule,
+  cc: ControllerComponents
 )(implicit executionContext: ExecutionContext
-) extends Controller {
+) extends BackendController(cc) {
 
   val handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
   val newId: () => String = appModule.newId
@@ -70,12 +72,4 @@ class RoutingController @Inject()(
   def routingStatus(id: String) = Action {
     ExceptionHandler(NOT_IMPLEMENTED, "Not implemented as part of MVP")
   }
-
-  private def withJsonBody[T](f: (T) => Future[Result])(implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]) =
-    Try(request.body.validate[T]) match {
-      case Success(JsSuccess(payload, _)) => f(payload)
-      case Success(JsError(errs)) => Future.successful(BadRequest(s"Invalid ${m.runtimeClass.getSimpleName} payload: $errs"))
-      case Failure(e) => Future.successful(BadRequest(s"could not parse body due to ${e.getMessage}"))
-    }
-
 }

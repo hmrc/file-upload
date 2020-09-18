@@ -23,20 +23,22 @@ import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import play.api.mvc.{Action, Controller, Request, Result}
+import play.api.mvc.{Action, Controller, ControllerComponents, Request, Result}
 import uk.gov.hmrc.fileupload.{ApplicationModule, EnvelopeId}
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.write.envelope.{ArchiveEnvelope, EnvelopeArchivedError, EnvelopeCommand, EnvelopeNotFoundError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 @Singleton
 class SDESCallbackController @Inject()(
-  appModule: ApplicationModule
+  appModule: ApplicationModule,
+  cc: ControllerComponents
 )(implicit executionContext: ExecutionContext
-) extends Controller {
+) extends BackendController(cc) {
 
   val handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
 
@@ -66,12 +68,11 @@ class SDESCallbackController @Inject()(
     }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
 
   /**
-   * This method is copy-pasted from elsewhere in the project, but has additional logging, as it'll make life easier
+   * This method has been overridden to provide additional logging, as it'll make life easier
    * if the interface with SDES isn't accurately described or implemented.
-   * When we're happy with the API being stable, we can delete this method and replace its usage with
-   * ```Action.async(parse.json[NotificationItem])```
+   * When we're happy with the API being stable, we can delete this override.
    */
-  private def withJsonBody[T](f: (T) => Future[Result])(implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]) =
+  override protected def withJsonBody[T](f: T => Future[Result])(implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]): Future[Result] =
     Try(request.body.validate[T]) match {
       case Success(JsSuccess(payload, _)) => f(payload)
       case Success(JsError(errs)) =>

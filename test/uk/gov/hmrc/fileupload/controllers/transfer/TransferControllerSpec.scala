@@ -22,8 +22,9 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status
+import play.api.mvc.ControllerComponents
 import play.api.test.FakeRequest
-import uk.gov.hmrc.fileupload.{ApplicationModule, Support}
+import uk.gov.hmrc.fileupload.{ApplicationModule, Support, TestApplicationComponents}
 import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
 import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -32,7 +33,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class TransferControllerSpec extends UnitSpec with MockitoSugar with ScalaFutures {
+class TransferControllerSpec extends UnitSpec with TestApplicationComponents with MockitoSugar with ScalaFutures {
 
   implicit val defaultPatience =
     PatienceConfig(timeout = Span(5, Seconds), interval = Span(500, Millis))
@@ -49,7 +50,7 @@ class TransferControllerSpec extends UnitSpec with MockitoSugar with ScalaFuture
     when(appModule.withBasicAuth).thenReturn(withBasicAuth)
     when(appModule.getEnvelopesByDestination).thenReturn(getEnvelopesByDestination)
     when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
-    new TransferController(appModule)
+    new TransferController(appModule, app.injector.instanceOf[ControllerComponents])
   }
 
 

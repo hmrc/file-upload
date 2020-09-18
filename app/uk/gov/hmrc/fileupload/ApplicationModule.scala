@@ -32,7 +32,7 @@ import play.api.libs.ws.ahc.AhcWSComponents
 import play.api.mvc.EssentialFilter
 import play.api.routing.Router
 import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands
+import reactivemongo.api.commands.WriteConcern
 import uk.gov.hmrc.fileupload.controllers.RetrieveFile
 import uk.gov.hmrc.fileupload.file.zip.Zippy
 import uk.gov.hmrc.fileupload.filters.{UserAgent, UserAgentRequestFilter}
@@ -80,21 +80,21 @@ class ApplicationModule @Inject()(
   val publish: (AnyRef) => Unit = actorSystem.eventStream.publish
   val withBasicAuth: BasicAuth = BasicAuth(basicAuthConfiguration(configuration))
 
-  val eventStore = if (environment.mode == Mode.Prod && configuration.getBoolean("Prod.mongodb.replicaSetInUse").getOrElse(true)) {
-    new MongoEventStore(db, metrics.defaultRegistry, writeConcern = commands.WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = true))
+  val eventStore = if (environment.mode == Mode.Prod && configuration.getOptional[Boolean]("Prod.mongodb.replicaSetInUse").getOrElse(true)) {
+    new MongoEventStore(db, metrics.defaultRegistry, writeConcern = WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = true))
   } else {
     new MongoEventStore(db, metrics.defaultRegistry)
   }
 
-  val updateEnvelope = if (environment.mode == Mode.Prod && configuration.getBoolean("Prod.mongodb.replicaSetInUse").getOrElse(true)) {
-    envelopeRepository.update(writeConcern = commands.WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = true)) _
+  val updateEnvelope = if (environment.mode == Mode.Prod && configuration.getOptional[Boolean]("Prod.mongodb.replicaSetInUse").getOrElse(true)) {
+    envelopeRepository.update(writeConcern = WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = true)) _
   } else {
     envelopeRepository.update() _
   }
 
   def basicAuthConfiguration(config: Configuration): BasicAuthConfiguration = {
     def getUsers(config: Configuration): List[User] = {
-      config.getString("basicAuth.authorizedUsers").map { s =>
+      config.getOptional[String]("basicAuth.authorizedUsers").map { s =>
         s.split(";").flatMap(
           user => {
             user.split(":") match {
@@ -106,7 +106,7 @@ class ApplicationModule @Inject()(
       }.getOrElse(List.empty)
     }
 
-    config.getBoolean("feature.basicAuthEnabled").getOrElse(false) match {
+    config.getOptional[Boolean]("feature.basicAuthEnabled").getOrElse(false) match {
       case true => BasicAuthEnabled(getUsers(config))
       case false => BasicAuthDisabled
     }

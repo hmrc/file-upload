@@ -34,6 +34,7 @@ import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{ApplicationModule, EnvelopeId, FileId, FileRefId, read}
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -43,9 +44,10 @@ import scala.util.{Failure, Success, Try}
 
 @Singleton
 class EnvelopeController @Inject()(
-  appModule: ApplicationModule
+  appModule: ApplicationModule,
+  cc: ControllerComponents
 )(implicit executionContext: ExecutionContext
-) extends Controller {
+) extends BackendController(cc) {
 
   val withBasicAuth: BasicAuth = appModule.withBasicAuth
   val nextId: () => EnvelopeId = appModule.nextId

@@ -40,7 +40,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class FileControllerSpec extends UnitSpec with MockitoSugar with ScalaFutures {
+class FileControllerSpec extends UnitSpec with TestApplicationComponents with MockitoSugar with ScalaFutures {
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
 
@@ -62,7 +62,7 @@ class FileControllerSpec extends UnitSpec with MockitoSugar with ScalaFutures {
     when(appModule.getFileFromS3).thenReturn(retrieveFile)
     when(appModule.withValidEnvelope).thenReturn(withValidEnvelope)
     when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
-    new FileController(appModule)
+    new FileController(appModule, app.injector.instanceOf[ControllerComponents])
   }
 
 

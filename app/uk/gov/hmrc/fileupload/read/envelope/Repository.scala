@@ -76,18 +76,21 @@ class Repository(mongo: () => DB with DBMetaCommands)
         _Id -> envelope._id.value)
     }
 
-    collection.update(selector = selector, update = envelope, writeConcern = writeConcern, upsert = true, multi = false).map { r =>
-      if (r.ok) {
-        updateSuccess
-      } else {
-        Xor.left(NotUpdatedError("No report updated"))
+    collection
+      .update(ordered = false, writeConcern = writeConcern)
+      .one(q = selector, u = envelope, upsert = true, multi = false)
+      .map { r =>
+        if (r.ok) {
+          updateSuccess
+        } else {
+          Xor.left(NotUpdatedError("No report updated"))
+        }
+      }.recover {
+        case f: DatabaseException =>
+          Xor.left(NewerVersionAvailable)
+        case f: Throwable =>
+          Xor.left(NotUpdatedError(f.getMessage))
       }
-    }.recover {
-      case f: DatabaseException =>
-        Xor.left(NewerVersionAvailable)
-      case f: Throwable =>
-        Xor.left(NotUpdatedError(f.getMessage))
-    }
   }
 
   def get(id: EnvelopeId)(implicit ec: ExecutionContext): Future[Option[Envelope]] =

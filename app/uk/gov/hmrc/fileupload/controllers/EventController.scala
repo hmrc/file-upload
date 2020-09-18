@@ -24,15 +24,17 @@ import uk.gov.hmrc.fileupload.ApplicationModule
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.GetResult
 import uk.gov.hmrc.fileupload.write.infrastructure.{StreamId, Event => DomainEvent, EventSerializer => _}
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 @Singleton
 class EventController @Inject()(
-  appModule: ApplicationModule
+  appModule: ApplicationModule,
+  cc: ControllerComponents
 )(implicit executionContext: ExecutionContext
-) extends Controller {
+) extends BackendController(cc) {
 
   val unitOfWorks: StreamId => Future[GetResult] = appModule.unitOfWorks
   val publishAllEvents: Seq[DomainEvent] => Unit = appModule.publishAllEvents

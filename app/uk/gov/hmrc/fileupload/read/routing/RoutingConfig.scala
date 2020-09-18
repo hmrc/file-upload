@@ -33,17 +33,13 @@ case class RoutingConfig(
 object RoutingConfig {
 
   def apply(config: Configuration): RoutingConfig = {
-    def getString(key: String) =
-      config.getString(key).getOrElse(sys.error(s"Missing configuration: $key"))
     def getStringList(key: String) =
-      config.getStringList(key).getOrElse(sys.error(s"Missing configuration: $key")).asScala.toList
-    def getDuration(key: String) =
-      config.getMilliseconds(key).getOrElse(sys.error(s"Missing configuration: $key")).millis
+      config.underlying.getStringList(key).asScala.toList
     RoutingConfig(
-      initialDelay   = getDuration("routing.initialDelay"),
-      interval       = getDuration("routing.interval"),
-      clientId       = getString("routing.clientId"),
-      pushUrl        = getString("routing.pushUrl"),
+      initialDelay   = config.get[FiniteDuration]("routing.initialDelay"),
+      interval       = config.get[FiniteDuration]("routing.interval"),
+      clientId       = config.get[String]("routing.clientId"),
+      pushUrl        = config.get[String]("routing.pushUrl"),
       destinations   = getStringList("routing.destinations")
     )
   }

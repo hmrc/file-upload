@@ -23,6 +23,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.HeaderNames._
 import play.api.http.Status
 import play.api.libs.json.Json
+import play.api.mvc.ControllerComponents
 import play.api.test.FakeRequest
 import uk.gov.hmrc.fileupload.ApplicationModule
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -45,7 +46,7 @@ class RoutingControllerSpec extends UnitSpec with MockitoSugar with TestApplicat
     val appModule = mock[ApplicationModule]
     when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
     when(appModule.newId).thenReturn(newId)
-    new RoutingController(appModule)
+    new RoutingController(appModule, app.injector.instanceOf[ControllerComponents])
   }
 
   val destination = "testDestination"
