@@ -17,13 +17,10 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import java.net.URL
-import java.time.Duration
 
 import akka.stream.scaladsl.Source
-import cats.data.Xor
 import cats.syntax.either._
 import javax.inject.{Inject, Singleton}
-import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
@@ -34,13 +31,11 @@ import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{ApplicationModule, EnvelopeId, FileId, FileRefId, read}
+import uk.gov.hmrc.http.BadRequestException
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.postfixOps
-import uk.gov.hmrc.http.BadRequestException
 
-import scala.util.{Failure, Success, Try}
 
 @Singleton
 class EnvelopeController @Inject()(
@@ -51,9 +46,9 @@ class EnvelopeController @Inject()(
 
   val withBasicAuth: BasicAuth = appModule.withBasicAuth
   val nextId: () => EnvelopeId = appModule.nextId
-  val handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
-  val findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]] = appModule.findEnvelope
-  val findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]] = appModule.findMetadata
+  val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
+  val findEnvelope: EnvelopeId => Future[Either[FindError, Envelope]] = appModule.findEnvelope
+  val findMetadata: (EnvelopeId, FileId) => Future[Either[FindMetadataError, read.envelope.File]] = appModule.findMetadata
   val findAllInProgressFile: () => Future[GetInProgressFileResult] = appModule.allInProgressFile
   val deleteInProgressFile: (FileRefId) => Future[Boolean] = appModule.deleteInProgressFile
   val getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed] = appModule.getEnvelopesByStatus
@@ -124,10 +119,10 @@ class EnvelopeController @Inject()(
 
   private def handleCreate(envelopeLocation: EnvelopeId => (String, String), command: CreateEnvelope): Future[Result] = {
     handleCommand(command).map {
-      case Xor.Right(_) => Created.withHeaders(envelopeLocation(command.id))
-      case Xor.Left(EnvelopeAlreadyCreatedError) => ExceptionHandler(BAD_REQUEST, "Envelope already created")
-      case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Left(error) => ExceptionHandler(BAD_REQUEST, s"Envelope not created due to: $error")
+      case Right(_) => Created.withHeaders(envelopeLocation(command.id))
+      case Left(EnvelopeAlreadyCreatedError) => ExceptionHandler(BAD_REQUEST, "Envelope already created")
+      case Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Left(error) => ExceptionHandler(BAD_REQUEST, s"Envelope not created due to: $error")
     }.recover { case e => ExceptionHandler(e) }
   }
 
@@ -136,10 +131,10 @@ class EnvelopeController @Inject()(
 
     withBasicAuth {
       handleCommand(DeleteEnvelope(id)).map {
-        case Xor.Right(_) => Ok
-        case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
-        case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-        case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not deleted")
+        case Right(_) => Ok
+        case Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
+        case Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+        case Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not deleted")
       }.recover { case e => ExceptionHandler(e) }
     }
   }
@@ -148,12 +143,12 @@ class EnvelopeController @Inject()(
     Logger.debug(s"deleteFile: EnvelopeId=$id fileId=$fileId")
 
     handleCommand(DeleteFile(id, fileId)).map {
-      case Xor.Right(_) => Ok
-      case Xor.Left(FileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
-      case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Left(EnvelopeRoutingAlreadyRequestedError | EnvelopeSealedError) =>
+      case Right(_) => Ok
+      case Left(FileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
+      case Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Left(EnvelopeRoutingAlreadyRequestedError | EnvelopeSealedError) =>
         ExceptionHandler(LOCKED, s"File not deleted, as routing request already received for envelope: $id sealed")
-      case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "File not deleted")
+      case Left(_) => ExceptionHandler(BAD_REQUEST, "File not deleted")
     }.recover { case e => ExceptionHandler(e) }
   }
 
@@ -162,9 +157,9 @@ class EnvelopeController @Inject()(
     Logger.debug(s"show: EnvelopeId=$id")
 
     findEnvelope(id).map {
-      case Xor.Right(e) => Ok(Json.toJson(fromEnvelope(e)))
-      case Xor.Left(FindEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
-      case Xor.Left(FindServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Right(e) => Ok(Json.toJson(fromEnvelope(e)))
+      case Left(FindEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
+      case Left(FindServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
     }.recover { case e => ExceptionHandler(e) }
   }
 
@@ -182,17 +177,17 @@ class EnvelopeController @Inject()(
     import GetFileMetadataReport._
 
     findMetadata(id, fileId).map {
-      case Xor.Right(f) => Ok(Json.toJson(fromFile(id, f)))
-      case Xor.Left(FindMetadataEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
-      case Xor.Left(FindMetadataFileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
-      case Xor.Left(FindMetadataServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Right(f) => Ok(Json.toJson(fromFile(id, f)))
+      case Left(FindMetadataEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
+      case Left(FindMetadataFileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
+      case Left(FindMetadataServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
     }.recover { case e => ExceptionHandler(e) }
   }
 
   def inProgressFiles() = Action.async {
     findAllInProgressFile().map {
-      case Xor.Right(inProgressFiles) => Ok(Json.toJson(inProgressFiles))
-      case Xor.Left(error) => InternalServerError("It was not possible to retrieve in progress files")
+      case Right(inProgressFiles) => Ok(Json.toJson(inProgressFiles))
+      case Left(error) => InternalServerError("It was not possible to retrieve in progress files")
     }
   }
 

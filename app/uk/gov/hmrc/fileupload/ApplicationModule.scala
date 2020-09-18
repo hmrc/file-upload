@@ -16,30 +16,21 @@
 
 package uk.gov.hmrc.fileupload
 
-import java.net.InetSocketAddress
 import java.util.UUID
 
-import akka.actor.{ActorRef, ActorSystem}
-import com.codahale.metrics.graphite.{Graphite, GraphiteReporter}
-import com.codahale.metrics.{MetricFilter, SharedMetricRegistries}
-import com.kenshoo.play.metrics.{MetricsController, MetricsImpl}
-import com.typesafe.config.Config
-import javax.inject.{Inject, Provider, Singleton}
-import net.ceedubs.ficus.Ficus._
-import play.api.Mode.Mode
+import akka.actor.ActorRef
+import com.kenshoo.play.metrics.MetricsImpl
+import javax.inject.{Inject, Singleton}
 import play.api._
 import play.api.libs.ws.ahc.AhcWSComponents
-import play.api.mvc.EssentialFilter
-import play.api.routing.Router
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteConcern
 import uk.gov.hmrc.fileupload.controllers.RetrieveFile
 import uk.gov.hmrc.fileupload.file.zip.Zippy
-import uk.gov.hmrc.fileupload.filters.{UserAgent, UserAgentRequestFilter}
 import uk.gov.hmrc.fileupload.infrastructure._
 import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => EnvelopeService, _}
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
-import uk.gov.hmrc.fileupload.read.routing.{FileTransferNotification, RoutingActor, RoutingConfig, RoutingRepository}
+import uk.gov.hmrc.fileupload.read.routing.{RoutingActor, RoutingConfig, RoutingRepository}
 import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor, StatsLogWriter, StatsLogger, StatsLoggingConfiguration, StatsLoggingScheduler, Repository => StatsRepository}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}

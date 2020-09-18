@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import cats.data.Xor
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json
 import play.api.mvc._
@@ -27,7 +26,6 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{StreamId, Event => DomainEve
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.postfixOps
 
 @Singleton
 class EventController @Inject()(
@@ -43,19 +41,19 @@ class EventController @Inject()(
 
   def get(streamId: StreamId) = Action.async { implicit request =>
     unitOfWorks(streamId) map {
-      case Xor.Right(r) =>
+      case Right(r) =>
         Ok(Json.toJson(r.flatMap(_.events)))
-      case Xor.Left(e) =>
+      case Left(e) =>
         ExceptionHandler(INTERNAL_SERVER_ERROR, e.message)
     }
   }
 
   def replay(streamId: StreamId) = Action.async { implicit request =>
     unitOfWorks(streamId).map {
-      case Xor.Right(sequence) =>
+      case Right(sequence) =>
         publishAllEvents(sequence.flatMap(_.events))
         Ok
-      case Xor.Left(error) => InternalServerError(s"Unexpected result: ${error.message}")
+      case Left(error) => InternalServerError(s"Unexpected result: ${error.message}")
     }
   }
 }

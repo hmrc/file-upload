@@ -19,7 +19,6 @@ package uk.gov.hmrc.fileupload.file.zip
 import play.api.libs.iteratee._
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.language.reflectiveCalls
 
 object Utils {
 

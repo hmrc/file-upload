@@ -20,7 +20,6 @@ import org.scalatest.TestSuite
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api._
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.mvc.EssentialFilter
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
 trait IntegrationTestApplicationComponents extends GuiceOneServerPerSuite with MongoSpecSupport {

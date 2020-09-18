@@ -16,13 +16,9 @@
 
 package uk.gov.hmrc.fileupload.controllers.routing
 
-import java.util.UUID
-
-import cats.data.Xor
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
-import play.api.libs.json.{JsError, JsSuccess, JsValue, Reads}
-import play.api.mvc.{Action, Controller, ControllerComponents, Request, Result}
+import play.api.mvc.ControllerComponents
 import uk.gov.hmrc.fileupload.ApplicationModule
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.utils.NumberFormatting.formatAsKiloOrMegabytes
@@ -31,7 +27,6 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotA
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
 
 @Singleton
 class RoutingController @Inject()(
@@ -40,7 +35,7 @@ class RoutingController @Inject()(
 )(implicit executionContext: ExecutionContext
 ) extends BackendController(cc) {
 
-  val handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
+  val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
   val newId: () => String = appModule.newId
 
 
@@ -49,20 +44,20 @@ class RoutingController @Inject()(
       import requestParams._
       val requestId = newId()
       handleCommand(SealEnvelope(envelopeId, requestId, destination, application)).map {
-        case Xor.Right(_) =>
+        case Right(_) =>
           Created.withHeaders(LOCATION -> uk.gov.hmrc.fileupload.controllers.routing.routes.RoutingController.routingStatus(requestId).url)
-        case Xor.Left(EnvelopeSealedError)
-           | Xor.Left(EnvelopeRoutingAlreadyRequestedError) =>
+        case Left(EnvelopeSealedError)
+           | Left(EnvelopeRoutingAlreadyRequestedError) =>
           ExceptionHandler(BAD_REQUEST, s"Routing request already received for envelope: $envelopeId")
-        case Xor.Left(FilesWithError(ids)) =>
+        case Left(FilesWithError(ids)) =>
           ExceptionHandler(BAD_REQUEST, s"Files: ${ids.mkString("[", ", ", "]")} contain errors")
-        case Xor.Left(EnvelopeItemCountExceededError(allowed, actual)) =>
+        case Left(EnvelopeItemCountExceededError(allowed, actual)) =>
           ExceptionHandler(BAD_REQUEST, s"Envelope item count exceeds maximum of $allowed, actual: $actual")
-        case Xor.Left(EnvelopeMaxSizeExceededError(allowedLimit)) =>
+        case Left(EnvelopeMaxSizeExceededError(allowedLimit)) =>
           ExceptionHandler(BAD_REQUEST, s"Envelope size exceeds maximum of ${ formatAsKiloOrMegabytes(allowedLimit) }")
-        case Xor.Left(EnvelopeNotFoundError) =>
+        case Left(EnvelopeNotFoundError) =>
           ExceptionHandler(BAD_REQUEST, s"Envelope with id: $envelopeId not found")
-        case Xor.Left(otherError) =>
+        case Left(otherError) =>
           Logger.warn(otherError.toString)
           ExceptionHandler(BAD_REQUEST, otherError.toString)
       }.recover { case e => ExceptionHandler(e) }

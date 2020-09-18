@@ -47,7 +47,7 @@ object Support {
 
   val blockingExeContext: ExecutionContext = new BlockingExecutionContext()
 
-  def consume(data: HttpEntity)(implicit ec: ExecutionContext) = {
+  def consume(data: HttpEntity) = {
     import StreamImplicits.materializer
     Await.result(data.consumeData, 500.millis).toArray
   }

@@ -16,15 +16,7 @@
 
 package uk.gov.hmrc.fileupload.utils
 
-import akka.util.ByteString
-import play.api.libs.iteratee.Iteratee
 import play.api.libs.json._
-import play.api.mvc.{BodyParser, RequestHeader, Result}
-import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
-
-import scala.concurrent.ExecutionContext
-import scala.util.control.NonFatal
-import scala.util.{Failure, Success, Try}
 
 object JsonUtils {
   def oFormat[A](format: Format[A]): OFormat[A] = new OFormat[A] {

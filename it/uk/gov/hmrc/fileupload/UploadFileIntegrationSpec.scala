@@ -145,9 +145,6 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       And("FileScanned")
       sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
 
-      And("I have no file attached to the request body")
-      val data = "".getBytes
-
       When(s"StoreFile($envelopeId, $fileId, $fileRefId, 0) command is sent")
       val response: WSResponse = sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, 0))
 

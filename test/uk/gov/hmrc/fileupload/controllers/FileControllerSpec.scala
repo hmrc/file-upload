@@ -20,7 +20,6 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
-import cats.data.Xor
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
 import org.mockito.Mockito.when
@@ -55,7 +54,7 @@ class FileControllerSpec extends UnitSpec with TestApplicationComponents with Mo
   def newController(withBasicAuth:BasicAuth = AlwaysAuthorisedBasicAuth,
                     retrieveFile: (EnvelopeId, FileId) => Future[Source[ByteString, _]] = (_, _) => failed,
                     withValidEnvelope: WithValidEnvelope = new WithValidEnvelope(_ => Future.successful(Some(Support.envelope))),
-                    handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed
+                    handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = _ => failed
   ) = {
     val appModule = mock[ApplicationModule]
     when(appModule.withBasicAuth).thenReturn(withBasicAuth)

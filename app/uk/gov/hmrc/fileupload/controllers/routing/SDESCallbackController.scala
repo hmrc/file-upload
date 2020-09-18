@@ -18,12 +18,11 @@ package uk.gov.hmrc.fileupload.controllers.routing
 
 import java.time.Instant
 
-import cats.data.Xor
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import play.api.mvc.{Action, Controller, ControllerComponents, Request, Result}
+import play.api.mvc.{ControllerComponents, Request, Result}
 import uk.gov.hmrc.fileupload.{ApplicationModule, EnvelopeId}
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.write.envelope.{ArchiveEnvelope, EnvelopeArchivedError, EnvelopeCommand, EnvelopeNotFoundError}
@@ -40,7 +39,7 @@ class SDESCallbackController @Inject()(
 )(implicit executionContext: ExecutionContext
 ) extends BackendController(cc) {
 
-  val handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
+  val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
 
   def callback() = Action.async(parse.json) { implicit request =>
     withJsonBody[NotificationItem] { item =>
@@ -58,13 +57,13 @@ class SDESCallbackController @Inject()(
 
   private def tryDelete(envelopeId: EnvelopeId) =
     handleCommand(ArchiveEnvelope(envelopeId)).map {
-      case Xor.Right(_) => Ok
-      case Xor.Left(EnvelopeArchivedError) =>
+      case Right(_) => Ok
+      case Left(EnvelopeArchivedError) =>
         Logger.info(s"Received another request to delete envelope [$envelopeId]. It was previously deleted")
         Ok
-      case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(BAD_REQUEST, s"CorrelationId $envelopeId not found")
-      case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Left(_) => ExceptionHandler(INTERNAL_SERVER_ERROR, s"Envelope with id: $envelopeId locked")
+      case Left(EnvelopeNotFoundError) => ExceptionHandler(BAD_REQUEST, s"CorrelationId $envelopeId not found")
+      case Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Left(_) => ExceptionHandler(INTERNAL_SERVER_ERROR, s"Envelope with id: $envelopeId locked")
     }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
 
   /**

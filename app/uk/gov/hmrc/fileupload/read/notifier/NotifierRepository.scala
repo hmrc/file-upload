@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.fileupload.read.notifier
 
-import cats.data.Xor
 import play.api.http.Status
 import play.api.libs.json.{Format, Json}
 import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
@@ -27,7 +26,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object NotifierRepository {
 
-  type NotifyResult = Xor[NotifyError, EnvelopeId]
+  type NotifyResult = Either[NotifyError, EnvelopeId]
 
   case class Notification(envelopeId: EnvelopeId, fileId: FileId, status: String, reason: Option[String])
 
@@ -35,7 +34,7 @@ object NotifierRepository {
 
   case class NotifyError(envelopeId: EnvelopeId, fileId: FileId, reason: String)
 
-  def notify(httpCall: (WSRequest => Future[Xor[PlayHttpError, WSResponse]]), wSClient: WSClient)
+  def notify(httpCall: (WSRequest => Future[Either[PlayHttpError, WSResponse]]), wSClient: WSClient)
             (notification: Notification, url: String)
             (implicit executionContext: ExecutionContext): Future[NotifyResult] =
     httpCall(
@@ -45,10 +44,10 @@ object NotifierRepository {
         .withBody(Json.toJson(notification))
         .withMethod("POST")
     ).map {
-      case Xor.Left(error) => Xor.left(NotifyError(notification.envelopeId, notification.fileId, error.message))
-      case Xor.Right(response) => response.status match {
-        case Status.OK => Xor.right(notification.envelopeId)
-        case _ => Xor.left(NotifyError(notification.envelopeId, notification.fileId, s"${response.status} ${response.body}"))
+      case Left(error) => Left(NotifyError(notification.envelopeId, notification.fileId, error.message))
+      case Right(response) => response.status match {
+        case Status.OK => Right(notification.envelopeId)
+        case _ => Left(NotifyError(notification.envelopeId, notification.fileId, s"${response.status} ${response.body}"))
       }
     }
 }

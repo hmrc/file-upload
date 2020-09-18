@@ -7,11 +7,9 @@ import play.api.http.HeaderNames
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.controllers.FileScanned
 
 trait EnvelopeActions extends ActionsSupport {
   this: TestSuite =>
-
 
   def basic64(s: String): String = {
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))

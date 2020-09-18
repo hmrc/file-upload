@@ -20,7 +20,7 @@ import java.lang.Math._
 
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import play.api.libs.json.{JsString, Json}
+import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.write.infrastructure.Version
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 import uk.gov.hmrc.play.test.UnitSpec

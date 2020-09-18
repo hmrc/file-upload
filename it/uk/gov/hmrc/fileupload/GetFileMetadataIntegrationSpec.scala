@@ -1,7 +1,6 @@
 package uk.gov.hmrc.fileupload
 
 import play.api.libs.json.JsObject
-import uk.gov.hmrc.fileupload.controllers.FileInQuarantineStored
 import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport.prettify
 import uk.gov.hmrc.fileupload.support.FileMetadataReportSupport._
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActions, IntegrationSpec}

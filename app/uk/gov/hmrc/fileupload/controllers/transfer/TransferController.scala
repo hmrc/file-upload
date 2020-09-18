@@ -17,11 +17,10 @@
 package uk.gov.hmrc.fileupload.controllers.transfer
 
 import akka.stream.scaladsl.Source
-import cats.data.Xor
 import javax.inject.{Inject, Singleton}
 import play.api.libs.iteratee.Enumeratee
 import play.api.libs.iteratee.streams.IterateeStreams
-import play.api.mvc.{Action, Controller, ControllerComponents}
+import play.api.mvc.ControllerComponents
 import uk.gov.hmrc.fileupload.{ApplicationModule, EnvelopeId}
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.file.zip.Zippy._
@@ -32,7 +31,6 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandErro
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.postfixOps
 
 @Singleton
 class TransferController @Inject()(
@@ -43,7 +41,7 @@ class TransferController @Inject()(
 
   val withBasicAuth: BasicAuth = appModule.withBasicAuth
   val getEnvelopesByDestination: Option[String] => Future[List[Envelope]] = appModule.getEnvelopesByDestination
-  val handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
+  val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
   val zipEnvelope: EnvelopeId => Future[ZipResult] = appModule.zipEnvelope
 
   def list() = Action.async { implicit request =>
@@ -57,26 +55,26 @@ class TransferController @Inject()(
 
   def download(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId) = Action.async { implicit request =>
     zipEnvelope(envelopeId) map {
-      case Xor.Right(stream) =>
+      case Right(stream) =>
         val keepOnlyNonEmptyArrays = Enumeratee.filter[Array[Byte]] { _.length > 0 }
         val source = Source.fromPublisher(IterateeStreams.enumeratorToPublisher(stream.through(keepOnlyNonEmptyArrays)))
         Ok.chunked(source).as("application/zip").withHeaders(
           CONTENT_DISPOSITION -> s"""attachment; filename="$envelopeId.zip""""
         )
-      case Xor.Left(ZipEnvelopeNotFoundError | EnvelopeNotRoutedYet) =>
+      case Left(ZipEnvelopeNotFoundError | EnvelopeNotRoutedYet) =>
         ExceptionHandler(404, s"Envelope with id: $envelopeId not found")
-      case Xor.Left(ZipProcessingError(message)) =>
+      case Left(ZipProcessingError(message)) =>
         ExceptionHandler(INTERNAL_SERVER_ERROR, message)
     }
   }
 
   def delete(envelopeId: EnvelopeId) = Action.async { implicit request =>
     handleCommand(ArchiveEnvelope(envelopeId)).map {
-      case Xor.Right(_) => Ok
-      case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $envelopeId not found")
-      case Xor.Left(EnvelopeArchivedError) => ExceptionHandler(GONE, s"Envelope with id: $envelopeId already deleted")
-      case Xor.Left(_) => ExceptionHandler(LOCKED, s"Envelope with id: $envelopeId locked")
+      case Right(_) => Ok
+      case Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $envelopeId not found")
+      case Left(EnvelopeArchivedError) => ExceptionHandler(GONE, s"Envelope with id: $envelopeId already deleted")
+      case Left(_) => ExceptionHandler(LOCKED, s"Envelope with id: $envelopeId locked")
     }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
   }
 

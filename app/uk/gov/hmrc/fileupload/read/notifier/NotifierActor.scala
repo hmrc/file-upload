@@ -17,7 +17,6 @@
 package uk.gov.hmrc.fileupload.read.notifier
 
 import akka.actor.{Actor, ActorRef, Props}
-import cats.data.Xor
 import play.api.Logger
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
@@ -55,17 +54,17 @@ class NotifierActor(subscribe: (ActorRef, Class[_]) => Boolean,
 
   def notifyEnvelopeCallback(notification: Notification) = {
     findEnvelope(notification.envelopeId).flatMap {
-      case Xor.Right(envelope) =>
+      case Right(envelope) =>
         envelope.callbackUrl.map {
           callbackUrl =>
             notify(notification, callbackUrl).map {
-              case Xor.Right(envelopeId) => Logger.info(s"Successfully sent notification [${notification.status}] for envelope [$envelopeId]")
-              case Xor.Left(error) => Logger.warn(
+              case Right(envelopeId) => Logger.info(s"Successfully sent notification [${notification.status}] for envelope [$envelopeId]")
+              case Left(error) => Logger.warn(
                 s"Failed to send notification [${notification.status}] for envelope [${error.envelopeId}]. Reason [${error.reason}]"
               )
             }
         }.getOrElse(Future.successful(()))
-      case Xor.Left(e) =>
+      case Left(e) =>
         Logger.warn(e.toString)
         Future.successful(())
     }

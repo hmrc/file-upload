@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.fileupload.read.envelope
 
-import cats.data.Xor
 import org.scalatest.concurrent.ScalaFutures
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindEnvelopeNotFoundError, FindServiceError}
@@ -35,7 +34,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
       val result = find(envelope._id).futureValue
 
-      result shouldBe Xor.right(envelope)
+      result shouldBe Right(envelope)
     }
 
     "be not found" in {
@@ -44,7 +43,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
       val result = find(envelope._id).futureValue
 
-      result shouldBe Xor.left(FindEnvelopeNotFoundError)
+      result shouldBe Left(FindEnvelopeNotFoundError)
     }
 
     "be a find service error" in {
@@ -53,7 +52,7 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
 
       val result = find(envelope._id).futureValue
 
-      result shouldBe Xor.left(FindServiceError("not good"))
+      result shouldBe Left(FindServiceError("not good"))
     }
   }
 
@@ -61,11 +60,11 @@ class ServiceSpec extends UnitSpec with ScalaFutures {
     "be successful" in {
       val file = File(FileId(), FileRefId(), FileStatusQuarantined)
       val envelope = Envelope(files = Some(List(file)))
-      val findMetadata = Service.findMetadata(_ => Future.successful(Xor.right(envelope))) _
+      val findMetadata = Service.findMetadata(_ => Future.successful(Right(envelope))) _
 
       val result = findMetadata(envelope._id, file.fileId).futureValue
 
-      result shouldBe Xor.Right(file)
+      result shouldBe Right(file)
     }
   }
 }

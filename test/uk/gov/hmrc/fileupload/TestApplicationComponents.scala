@@ -18,13 +18,10 @@ package uk.gov.hmrc.fileupload
 
 import java.time.Duration
 
-import akka.actor.{ActorRef, ActorSystem}
-import org.scalatest.{BeforeAndAfterAll, TestSuite, TestData}
+import org.scalatest.{BeforeAndAfterAll, TestSuite}
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.inject.bind
 import play.api._
-import play.api.mvc.EssentialFilter
 import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
 import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraintsConfiguration
 

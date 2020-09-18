@@ -23,15 +23,15 @@ import uk.gov.hmrc.fileupload.read.notifier.NotifierRepository.{Notification, No
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.Event
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 class StatsActor(subscribe: (ActorRef, Class[_]) => Boolean,
                  notify: (Notification, String) => Future[NotifyResult],
                  save: (FileQuarantined) => Unit,
                  deleteVirusDetected: (VirusDetected) => Unit,
                  deleteFileStored: (FileStored) => Unit,
-                 deleteFiles: (EnvelopeDeleted) => Unit)
-                (implicit executionContext: ExecutionContext) extends Actor {
+                 deleteFiles: (EnvelopeDeleted) => Unit
+) extends Actor {
 
   override def preStart = subscribe(self, classOf[Event])
 
@@ -57,8 +57,8 @@ object StatsActor {
             save: (FileQuarantined) => Unit,
             deleteVirusDetected: (VirusDetected) => Unit,
             deleteFileStored: (FileStored) => Unit,
-            deleteFiles: (EnvelopeDeleted) => Unit)
-           (implicit executionContext: ExecutionContext) =
+            deleteFiles: (EnvelopeDeleted) => Unit
+  ) =
     Props(new StatsActor(subscribe = subscribe, notify = notify, save = save, deleteFileStored = deleteFileStored,
                          deleteVirusDetected = deleteVirusDetected, deleteFiles = deleteFiles))
 }

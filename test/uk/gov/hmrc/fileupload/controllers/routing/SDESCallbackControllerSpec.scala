@@ -18,7 +18,6 @@ package uk.gov.hmrc.fileupload.controllers.routing
 
 import java.time.Instant
 
-import cats.data.Xor
 import org.mockito.Mockito.when
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -28,8 +27,6 @@ import play.api.libs.json.Json
 import play.api.mvc.ControllerComponents
 import play.api.test.FakeRequest
 import uk.gov.hmrc.fileupload.{ApplicationModule, Support, TestApplicationComponents}
-import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
-import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
 import uk.gov.hmrc.play.test.UnitSpec
@@ -45,7 +42,7 @@ class SDESCallbackControllerSpec extends UnitSpec with TestApplicationComponents
 
   val failed = Future.failed(new Exception("not good"))
 
-  def newController(handleCommand: EnvelopeCommand => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed
+  def newController(handleCommand: EnvelopeCommand => Future[Either[CommandNotAccepted, CommandAccepted.type]] = _ => failed
   ) = {
     val appModule = mock[ApplicationModule]
     when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
@@ -60,7 +57,7 @@ class SDESCallbackControllerSpec extends UnitSpec with TestApplicationComponents
       s"return response with 200 if notification is ${notification.value}" in {
         val request = FakeRequest().withBody(Json.toJson(notificationItem(notification)))
 
-        val controller = newController(handleCommand = _ => Future.successful(Xor.Left(CommandError("this shouldn't be called"))))
+        val controller = newController(handleCommand = _ => Future.successful(Left(CommandError("this shouldn't be called"))))
         val result = controller.callback()(request).futureValue
 
         result.header.status shouldBe Status.OK
@@ -68,10 +65,9 @@ class SDESCallbackControllerSpec extends UnitSpec with TestApplicationComponents
     }
 
     "return response with 500 if handler returns error for FileProcessed" in {
-      val envelope = Support.envelope
       val request = FakeRequest().withBody(Json.toJson(notificationItem(FileProcessed)))
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(CommandError("not good"))))
+      val controller = newController(handleCommand = _ => Future.successful(Left(CommandError("not good"))))
       val result = controller.callback()(request).futureValue
 
       result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
@@ -80,7 +76,7 @@ class SDESCallbackControllerSpec extends UnitSpec with TestApplicationComponents
     "return BadRequest if EnvelopeId not found" in {
       val request = FakeRequest().withBody(Json.toJson(notificationItem(FileProcessed)))
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(EnvelopeNotFoundError)))
+      val controller = newController(handleCommand = _ => Future.successful(Left(EnvelopeNotFoundError)))
       val result = controller.callback()(request).futureValue
 
       result.header.status shouldBe Status.BAD_REQUEST
@@ -89,14 +85,13 @@ class SDESCallbackControllerSpec extends UnitSpec with TestApplicationComponents
     "return 200 response if handling duplicate request" in {
       val request = FakeRequest().withBody(Json.toJson(notificationItem(FileProcessed)))
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(EnvelopeArchivedError)))
+      val controller = newController(handleCommand = _ => Future.successful(Left(EnvelopeArchivedError)))
       val result = controller.callback()(request).futureValue
 
       result.header.status shouldBe Status.OK
     }
 
     "return response with 503" in {
-      val envelope = Support.envelope
       val request = FakeRequest().withBody(Json.toJson(notificationItem(FileProcessed)))
 
       val controller = newController(handleCommand = _ => failed)

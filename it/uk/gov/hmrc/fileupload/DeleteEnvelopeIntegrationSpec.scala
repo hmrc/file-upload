@@ -3,7 +3,7 @@ package uk.gov.hmrc.fileupload
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.controllers.FileScanned
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, IntegrationSpec}
-import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, MarkFileAsInfected, QuarantineFile}
+import uk.gov.hmrc.fileupload.write.envelope.QuarantineFile
 
 /**
   * Integration tests for FILE-65

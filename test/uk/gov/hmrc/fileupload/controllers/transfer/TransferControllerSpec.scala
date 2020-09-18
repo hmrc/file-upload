@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.fileupload.controllers.transfer
 
-import cats.data.Xor
 import org.mockito.Mockito.when
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -44,7 +43,7 @@ class TransferControllerSpec extends UnitSpec with TestApplicationComponents wit
 
   def newController(withBasicAuth: BasicAuth = AlwaysAuthorisedBasicAuth,
                     getEnvelopesByDestination: Option[String] => Future[List[Envelope]] = _ => failed,
-                    handleCommand: EnvelopeCommand => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed
+                    handleCommand: EnvelopeCommand => Future[Either[CommandNotAccepted, CommandAccepted.type]] = _ => failed
   ) = {
     val appModule = mock[ApplicationModule]
     when(appModule.withBasicAuth).thenReturn(withBasicAuth)
@@ -59,7 +58,7 @@ class TransferControllerSpec extends UnitSpec with TestApplicationComponents wit
       val envelope = Support.envelope
       val request = FakeRequest()
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.Right(CommandAccepted)))
+      val controller = newController(handleCommand = _ => Future.successful(Right(CommandAccepted)))
       val result = controller.delete(envelope._id)(request).futureValue
 
       result.header.status shouldBe Status.OK
@@ -69,7 +68,7 @@ class TransferControllerSpec extends UnitSpec with TestApplicationComponents wit
       val envelope = Support.envelope
       val request = FakeRequest()
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(CommandError("not good"))))
+      val controller = newController(handleCommand = _ => Future.successful(Left(CommandError("not good"))))
       val result = controller.delete(envelope._id)(request).futureValue
 
       result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
@@ -79,7 +78,7 @@ class TransferControllerSpec extends UnitSpec with TestApplicationComponents wit
       val envelope = Support.envelope
       val request = FakeRequest()
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(EnvelopeNotFoundError)))
+      val controller = newController(handleCommand = _ => Future.successful(Left(EnvelopeNotFoundError)))
       val result = controller.delete(envelope._id)(request).futureValue
 
       result.header.status shouldBe Status.NOT_FOUND
@@ -89,7 +88,7 @@ class TransferControllerSpec extends UnitSpec with TestApplicationComponents wit
       val envelope = Support.envelope
       val request = FakeRequest()
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(EnvelopeArchivedError)))
+      val controller = newController(handleCommand = _ => Future.successful(Left(EnvelopeArchivedError)))
       val result = controller.delete(envelope._id)(request).futureValue
 
       result.header.status shouldBe Status.GONE
@@ -99,7 +98,7 @@ class TransferControllerSpec extends UnitSpec with TestApplicationComponents wit
       val envelope = Support.envelope
       val request = FakeRequest()
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(EnvelopeSealedError)))
+      val controller = newController(handleCommand = _ => Future.successful(Left(EnvelopeSealedError)))
       val result = controller.delete(envelope._id)(request).futureValue
 
       result.header.status shouldBe Status.LOCKED

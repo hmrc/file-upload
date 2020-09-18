@@ -19,22 +19,21 @@ package uk.gov.hmrc.fileupload.read.routing
 import java.net.URL
 import java.util.Base64
 
-import cats.data.Xor
 import play.api.http.Status
 import play.api.libs.json.{__, Json, JsObject, JsSuccess, JsError, Writes}
 import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 import uk.gov.hmrc.fileupload.infrastructure.PlayHttp.PlayHttpError
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, File}
+import uk.gov.hmrc.fileupload.read.envelope.Envelope
 
 import scala.concurrent.{ExecutionContext, Future}
 
 object RoutingRepository {
 
-  type PushResult = Xor[PushError, Unit]
+  type PushResult = Either[PushError, Unit]
   case class PushError(correlationId: String, reason: String)
 
-  type BuildNotificationResult = Xor[BuildNotificationError, FileTransferNotification]
+  type BuildNotificationResult = Either[BuildNotificationError, FileTransferNotification]
   case class BuildNotificationError(envelopeId: EnvelopeId, reason: String)
 
   implicit val ftnw = FileTransferNotification.format
@@ -42,7 +41,7 @@ object RoutingRepository {
   implicit val zdf = ZipData.format
 
   def pushFileTransferNotification(
-    httpCall     : WSRequest => Future[Xor[PlayHttpError, WSResponse]],
+    httpCall     : WSRequest => Future[Either[PlayHttpError, WSResponse]],
     wSClient     : WSClient,
     routingConfig: RoutingConfig
   )(fileTransferNotification: FileTransferNotification
@@ -58,15 +57,15 @@ object RoutingRepository {
         .withBody(Json.toJson(fileTransferNotification))
         .withMethod("POST")
     ).map {
-      case Xor.Left(error) => Xor.left(PushError(fileTransferNotification.audit.correlationId, error.message))
-      case Xor.Right(response) => response.status match {
-        case Status.NO_CONTENT => Xor.right(())
-        case _ => Xor.left(PushError(fileTransferNotification.audit.correlationId, s"Unexpected response: ${response.status} ${response.body}"))
+      case Left(error) => Left(PushError(fileTransferNotification.audit.correlationId, error.message))
+      case Right(response) => response.status match {
+        case Status.NO_CONTENT => Right(())
+        case _ => Left(PushError(fileTransferNotification.audit.correlationId, s"Unexpected response: ${response.status} ${response.body}"))
       }
     }
 
   def buildFileTransferNotification(
-    httpCall       : WSRequest => Future[Xor[PlayHttpError, WSResponse]],
+    httpCall       : WSRequest => Future[Either[PlayHttpError, WSResponse]],
     wSClient       : WSClient,
     routingConfig  : RoutingConfig,
     frontendBaseUrl: String
@@ -80,13 +79,13 @@ object RoutingRepository {
         .withBody(Json.toJson(ZipRequest(files = envelope.files.toList.flatten.map(f => f.fileId -> f.name))))
         .withMethod("POST")
     ).map {
-      case Xor.Left(error) => Xor.left(BuildNotificationError(envelope._id, error.message))
-      case Xor.Right(response) => response.status match {
+      case Left(error) => Left(BuildNotificationError(envelope._id, error.message))
+      case Right(response) => response.status match {
           case Status.OK => response.json.validate[ZipData] match {
-              case JsSuccess(zipData, _) => Xor.right(createNotification(envelope, zipData))
-              case JsError(errors) => Xor.left(BuildNotificationError(envelope._id, s"Could not parse result $errors"))
+              case JsSuccess(zipData, _) => Right(createNotification(envelope, zipData))
+              case JsError(errors) => Left(BuildNotificationError(envelope._id, s"Could not parse result $errors"))
             }
-          case _ => Xor.left(BuildNotificationError(envelope._id, s"Unexpected response: ${response.status} ${response.body}"))
+          case _ => Left(BuildNotificationError(envelope._id, s"Unexpected response: ${response.status} ${response.body}"))
         }
     }
 

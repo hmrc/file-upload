@@ -83,7 +83,7 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
       sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
       sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
       sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, 0))
-      val response = upload("test".getBytes, envelopeId, fileId, fileRefId)
+      upload("test".getBytes, envelopeId, fileId, fileRefId)
 
       eventually { verifyAvailableCallbackReceived(callbackPath, envelopeId, fileId ) }
     }

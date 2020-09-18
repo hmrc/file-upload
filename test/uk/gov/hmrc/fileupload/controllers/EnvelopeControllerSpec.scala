@@ -17,7 +17,6 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import akka.stream.scaladsl.Source
-import cats.data.Xor
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
 import org.joda.time.DateTime
@@ -35,7 +34,7 @@ import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAu
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindError, FindMetadataError}
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, File, FileStatusQuarantined}
 import uk.gov.hmrc.fileupload.read.stats.Stats._
-import uk.gov.hmrc.fileupload.write.envelope.{CreateEnvelope, EnvelopeCommand, EnvelopeCreated, EnvelopeNotFoundError}
+import uk.gov.hmrc.fileupload.write.envelope.{CreateEnvelope, EnvelopeCommand, EnvelopeNotFoundError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -57,9 +56,9 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
 
   def newController(withBasicAuth: BasicAuth = AlwaysAuthorisedBasicAuth,
                     nextId: () => EnvelopeId = () => EnvelopeId("abc-def"),
-                    handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
-                    findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]] = _ => failed,
-                    findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]] = (_, _) => failed,
+                    handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
+                    findEnvelope: EnvelopeId => Future[Either[FindError, Envelope]] = _ => failed,
+                    findMetadata: (EnvelopeId, FileId) => Future[Either[FindMetadataError, read.envelope.File]] = (_, _) => failed,
                     findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed,
                     deleteInProgressFile: FileRefId => Future[Boolean] = _ => failed,
                     getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed] = (_, _) => failed
@@ -83,7 +82,7 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
 
 	    val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest())
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
+      val controller = newController(handleCommand = _ => Future.successful(Right(CommandAccepted)))
       val result: Result = controller.create()(fakeRequest).futureValue
 
       result.header.status shouldBe Status.CREATED
@@ -99,7 +98,7 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
       val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(None,
         Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.toHours.toInt))))
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
+      val controller = newController(handleCommand = _ => Future.successful(Right(CommandAccepted)))
       val result: Result = controller.create()(fakeRequest).futureValue
 
       result.header.status shouldBe Status.CREATED
@@ -113,7 +112,7 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
       val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(Some("ftp://localhost/123"),
         Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.toHours.toInt))))
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
+      val controller = newController(handleCommand = _ => Future.successful(Right(CommandAccepted)))
       val result: Result = controller.create()(fakeRequest).futureValue
 
       result.header.status shouldBe Status.BAD_REQUEST
@@ -127,7 +126,7 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
       val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(Some("%$#@%#$%#$%"),
         Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.toHours.toInt))))
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
+      val controller = newController(handleCommand = _ => Future.successful(Right(CommandAccepted)))
       val result: Result = controller.create()(fakeRequest).futureValue
 
       result.header.status shouldBe Status.BAD_REQUEST
@@ -141,7 +140,7 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
       val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(Some("https://localhost:123"),
         Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.toHours.toInt))))
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
+      val controller = newController(handleCommand = _ => Future.successful(Right(CommandAccepted)))
       val result: Result = controller.create()(fakeRequest).futureValue
 
       result.header.status shouldBe Status.CREATED
@@ -157,7 +156,7 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
       val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest(None,
         Some(DateTime.now().plusHours(envelopeConstraintsConfigure.maxExpirationDuration.plusHours(1).toHours.toInt))))
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
+      val controller = newController(handleCommand = _ => Future.successful(Right(CommandAccepted)))
       val result: Result = controller.create()(fakeRequest).futureValue
 
       result.header.status shouldBe Status.BAD_REQUEST
@@ -170,7 +169,7 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
 
       val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest())
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
+      val controller = newController(handleCommand = _ => Future.successful(Right(CommandAccepted)))
       val result: Result = controller.create()(fakeRequest).futureValue
 
       result.header.status shouldBe Status.CREATED
@@ -185,7 +184,7 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
 
       val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest())
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
+      val controller = newController(handleCommand = _ => Future.successful(Right(CommandAccepted)))
       val result: Result = controller.createWithId(EnvelopeId("aaa-bbb"))(fakeRequest).futureValue
 
       result.header.status shouldBe Status.CREATED
@@ -204,7 +203,7 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
 
       val controller = newController(handleCommand = command => {
         eventPromise.success(command)
-        Future.successful(Xor.right(CommandAccepted))
+        Future.successful(Right(CommandAccepted))
       })
       val result: Result = controller.createWithId(EnvelopeId("aaa-bbb"))(fakeRequest).futureValue
 
@@ -231,7 +230,7 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
 
       val controller = newController(handleCommand = command => {
         eventPromise.success(command)
-        Future.successful(Xor.right(CommandAccepted))
+        Future.successful(Right(CommandAccepted))
       })
       val result: Result = controller.createWithId(EnvelopeId("aaa-bbb"))(fakeRequest).futureValue
 
@@ -251,7 +250,7 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
 			val envelope = Support.envelope
 			val request = FakeRequest("DELETE", s"/envelopes/${envelope._id}").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.right(CommandAccepted)))
+      val controller = newController(handleCommand = _ => Future.successful(Right(CommandAccepted)))
 			val result = controller.delete(envelope._id)(request).futureValue
 
 			status(result) shouldBe Status.OK
@@ -261,7 +260,7 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
 			val id = EnvelopeId()
 			val request = FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.left(EnvelopeNotFoundError)))
+      val controller = newController(handleCommand = _ => Future.successful(Left(EnvelopeNotFoundError)))
 			val result = controller.delete(id)(request).futureValue
 
 			val actualRespone = Json.parse(consume(result.body))
@@ -291,7 +290,7 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
       val envelope = Support.envelope
       val request = FakeRequest()
 
-      val controller = newController(findEnvelope = _ => Xor.right(envelope))
+      val controller = newController(findEnvelope = _ => Right(envelope))
       val result = controller.show(envelope._id)(request).futureValue
 
       val actualResponse = Json.parse(consume(result.body))
@@ -310,7 +309,7 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
       val file = File(FileId(), FileRefId(), FileStatusQuarantined)
       val request = FakeRequest()
 
-      val controller = newController(findMetadata = (_, _) => Xor.right(file))
+      val controller = newController(findMetadata = (_, _) => Right(file))
       val result = controller.retrieveMetadata(envelopeId, file.fileId)(request).futureValue
 
       val actualResponse = Json.parse(consume(result.body))

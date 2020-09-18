@@ -18,7 +18,6 @@ package uk.gov.hmrc.fileupload.controllers
 
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
-import cats.data.Xor
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.http.HttpEntity
@@ -29,11 +28,9 @@ import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, FileStatusAvailable, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeCommand
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.fileupload.read.stats.Stats.FileFound
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.postfixOps
 
 class RetrieveFile(wsClient: WSClient, baseUrl: String) {
   def download(envelopeId: EnvelopeId, fileId: FileId)(implicit ec: ExecutionContext): Future[Source[ByteString, _]] = {
@@ -63,7 +60,7 @@ class FileController @Inject()(
   val withBasicAuth: BasicAuth = appModule.withBasicAuth
   val retrieveFileS3: (EnvelopeId, FileId) => Future[Source[ByteString, _]] = appModule.getFileFromS3
   val withValidEnvelope: WithValidEnvelope = appModule.withValidEnvelope
-  val handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
+  val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
 
   def downloadFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { implicit request =>
     Logger.info(s"downloadFile: envelopeId=$envelopeId fileId=$fileId")

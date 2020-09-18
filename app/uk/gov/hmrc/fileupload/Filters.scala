@@ -20,7 +20,6 @@ import javax.inject.{Inject, Singleton}
 
 import akka.stream.Materializer
 import com.codahale.metrics.MetricRegistry
-import com.kenshoo.play.metrics.MetricsFilter
 import play.api.http.HttpFilters
 import play.api.mvc.EssentialFilter
 import uk.gov.hmrc.play.bootstrap.filters.MicroserviceFilters

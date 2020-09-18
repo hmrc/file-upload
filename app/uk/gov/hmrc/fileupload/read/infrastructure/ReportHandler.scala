@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.fileupload.read.infrastructure
 
-import cats.data.Xor
 import play.api.Logger
 import uk.gov.hmrc.fileupload.read.envelope.Repository._
 import uk.gov.hmrc.fileupload.write.infrastructure._
@@ -56,11 +55,11 @@ trait ReportHandler[T, Id] {
           update(updatedVersion, !replay).onComplete {
             case Success(result) =>
               result match {
-                case Xor.Right(_) =>
+                case Right(_) =>
                   Logger.info(s"Report successfully updated $updatedVersion")
-                case Xor.Left(NewerVersionAvailable) =>
+                case Left(NewerVersionAvailable) =>
                   Logger.info(s"Report not stored: NewerVersionAvailable for $updatedVersion")
-                case Xor.Left(NotUpdatedError(m)) =>
+                case Left(NotUpdatedError(m)) =>
                   Logger.info(s"Report not stored: NoUpdatedError $m for $updatedVersion")
               }
             case Failure(f) =>
@@ -76,9 +75,9 @@ trait ReportHandler[T, Id] {
     delete(id).onComplete {
       case Success(result) =>
         result match {
-          case Xor.Right(_) =>
+          case Right(_) =>
             Logger.info(s"Report successfully deleted $id")
-          case Xor.Left(DeleteError(m)) =>
+          case Left(DeleteError(m)) =>
             Logger.info(s"Report not deleted: $m for $id")
         }
       case Failure(f) =>

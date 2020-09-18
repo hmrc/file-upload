@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.fileupload.filters
 
-import javax.inject.{Inject, Singleton}
-
 import akka.stream.Materializer
 import com.codahale.metrics.MetricRegistry
 import play.api.Logger

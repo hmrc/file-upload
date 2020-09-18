@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import com.codahale.metrics.{MetricRegistry, Timer}
+import com.codahale.metrics.MetricRegistry
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 import play.api.http.HeaderNames

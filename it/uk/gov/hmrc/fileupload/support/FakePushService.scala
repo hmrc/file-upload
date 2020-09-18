@@ -1,13 +1,11 @@
 package uk.gov.hmrc.fileupload.support
 
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration._
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.json.Json
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 import uk.gov.hmrc.fileupload.read.routing.FileTransferNotification
 
 

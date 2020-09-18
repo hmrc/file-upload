@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.fileupload.write.envelope
 
-import cats.data.Xor
 import uk.gov.hmrc.fileupload.controllers.EnvelopeFilesConstraints
 import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraintsConfiguration
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.CanResult
@@ -24,7 +23,7 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{EventData, Handler}
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 
 object EnvelopeHandler {
-  type CanResult = Xor[EnvelopeCommandNotAccepted, Unit.type]
+  type CanResult = Either[EnvelopeCommandNotAccepted, Unit]
   type ContentTypes = String
 }
 
@@ -32,11 +31,11 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
 
   val acceptedConstraints: EnvelopeFilesConstraints = envelopeConstraintsConfigure.acceptedEnvelopeConstraints
 
-  override def handle: PartialFunction[(EnvelopeCommand, Envelope), Xor[EnvelopeCommandNotAccepted, List[EventData]]] = {
+  override def handle: PartialFunction[(EnvelopeCommand, Envelope), Either[EnvelopeCommandNotAccepted, List[EventData]]] = {
     case (command: CreateEnvelope, envelope: Envelope) =>
         envelope.canCreate match {
-        case Xor.Left(error) => error
-        case Xor.Right(_) => command.constraints match {
+        case Left(error) => error
+        case Right(_) => command.constraints match {
           case Some(value) => envelope.canCreateWithFilesCapacityAndSizeAndContentTypes(value, acceptedConstraints).map(_ =>
             EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, Some(value)))
           case _ => EnvelopeCreated(command.id, command.callbackUrl, command.expiryDate, command.metadata, Some(acceptedConstraints))
@@ -141,17 +140,17 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
 
   import scala.language.implicitConversions
 
-  implicit def EventDataToListEventData(event: EventData): List[EventData] =
+  implicit def eventDataToListEventData(event: EventData): List[EventData] =
     List(event)
 
-  implicit def EventDataToXorRight(event: EventData): Xor[EnvelopeCommandNotAccepted, List[EventData]] =
-    Xor.right(List(event))
+  implicit def eventDataToXorRight(event: EventData): Either[EnvelopeCommandNotAccepted, List[EventData]] =
+    Right(List(event))
 
-  implicit def EventsDataToXorRight(events: List[EventData]): Xor[EnvelopeCommandNotAccepted, List[EventData]] =
-    Xor.right(events)
+  implicit def eventsDataToXorRight(events: List[EventData]): Either[EnvelopeCommandNotAccepted, List[EventData]] =
+    Right(events)
 
-  implicit def CommandNotAcceptedToXorLeft(error: EnvelopeCommandNotAccepted): Xor[EnvelopeCommandNotAccepted, List[EventData]] =
-    Xor.left(error)
+  implicit def commandNotAcceptedToXorLeft(error: EnvelopeCommandNotAccepted): Either[EnvelopeCommandNotAccepted, List[EventData]] =
+    Left(error)
 
   implicit class AddEventDataToList(item: EventData) {
     def And(another: EventData) = List(item, another)
@@ -198,18 +197,18 @@ case class Envelope(
 }
 
 object State {
-  val successResult = Xor.right(Unit)
-  val envelopeNotFoundError = Xor.left(EnvelopeNotFoundError)
-  val envelopeAlreadyCreatedError = Xor.left(EnvelopeAlreadyCreatedError)
-  val envelopeMaxSizeExceededError = Xor.left(InvalidMaxSizeConstraintError)
-  val envelopeMaxSizePerItemExceededError = Xor.left(InvalidMaxSizePerItemConstraintError)
-  val envelopeMaxItemCountExceededError = Xor.left(InvalidMaxItemCountConstraintError)
-  val fileNotFoundError = Xor.left(FileNotFoundError)
-  val envelopeSealedError = Xor.left(EnvelopeSealedError)
-  val envelopeAlreadyArchivedError = Xor.left(EnvelopeArchivedError)
-  val envelopeRoutingAlreadyRequestedError = Xor.left(EnvelopeRoutingAlreadyRequestedError)
-  val envelopeAlreadyRoutedError = Xor.left(EnvelopeAlreadyRoutedError)
-  val fileAlreadyProcessedError = Xor.left(FileAlreadyProcessed)
+  val successResult = Right(())
+  val envelopeNotFoundError = Left(EnvelopeNotFoundError)
+  val envelopeAlreadyCreatedError = Left(EnvelopeAlreadyCreatedError)
+  val envelopeMaxSizeExceededError = Left(InvalidMaxSizeConstraintError)
+  val envelopeMaxSizePerItemExceededError = Left(InvalidMaxSizePerItemConstraintError)
+  val envelopeMaxItemCountExceededError = Left(InvalidMaxItemCountConstraintError)
+  val fileNotFoundError = Left(FileNotFoundError)
+  val envelopeSealedError = Left(EnvelopeSealedError)
+  val envelopeAlreadyArchivedError = Left(EnvelopeArchivedError)
+  val envelopeRoutingAlreadyRequestedError = Left(EnvelopeRoutingAlreadyRequestedError)
+  val envelopeAlreadyRoutedError = Left(EnvelopeAlreadyRoutedError)
+  val fileAlreadyProcessedError = Left(FileAlreadyProcessed)
 }
 
 sealed trait State {
@@ -248,7 +247,7 @@ sealed trait State {
       if (!f.isScanned && !f.isAvailable) {
         successResult
       } else {
-        Xor.left(FileAlreadyProcessed)
+        Left(FileAlreadyProcessed)
       }).getOrElse(fileNotFoundError)
 
   def checkCanStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
@@ -257,12 +256,12 @@ sealed trait State {
         if (!f.isScanned) {
           fileNotFoundError
         } else if (f.isAvailable) {
-          Xor.left(FileAlreadyProcessed)
+          Left(FileAlreadyProcessed)
         } else {
           successResult
         }
       } else {
-        Xor.left(FileWithError)
+        Left(FileWithError)
       }
     ).getOrElse(fileNotFoundError)
 
@@ -295,9 +294,9 @@ object Open extends State {
     files.get(fileId).map(_ => successResult).getOrElse(fileNotFoundError)
 
   // Could be useful in the future (should we check for name duplicates):
-  // files.find(f => f.fileId != fileId && f.name == name).map(f => Xor.Left(FileNameDuplicateError(f.fileId))).getOrElse(successResult)
+  // files.find(f => f.fileId != fileId && f.name == name).map(f => Left(FileNameDuplicateError(f.fileId))).getOrElse(successResult)
   override def canQuarantine(fileId: FileId, fileRefId: FileRefId, name: String, files: Map[FileId, File]): CanResult =
-  files.get(fileId).filter(_.isSame(fileRefId)).map(_ => Xor.left(FileAlreadyProcessed)).getOrElse(successResult)
+  files.get(fileId).filter(_.isSame(fileRefId)).map(_ => Left(FileAlreadyProcessed)).getOrElse(successResult)
 
   override def canMarkFileAsCleanOrInfected(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
     checkCanMarkFileAsCleanOrInfected(fileId, fileRefId, files)
@@ -310,13 +309,13 @@ object Open extends State {
   override def canSeal(files: Seq[File], destination: String, constraints: EnvelopeFilesConstraints): CanResult = {
     val filesWithError = files.filter(_.hasError)
     if (filesWithError.nonEmpty) {
-      Xor.Left(FilesWithError(filesWithError.map(_.fileId)))
+      Left(FilesWithError(filesWithError.map(_.fileId)))
     }
     else if (files.size > constraints.maxItems) {
-      Xor.Left(EnvelopeItemCountExceededError(constraints.maxItems, files.size))
+      Left(EnvelopeItemCountExceededError(constraints.maxItems, files.size))
     }
     else if (files.map(_.fileLength).sum > constraints.maxSizeInBytes) {
-      Xor.Left(EnvelopeMaxSizeExceededError(constraints.maxSizeInBytes))
+      Left(EnvelopeMaxSizeExceededError(constraints.maxSizeInBytes))
     }
     else {
       successResult
@@ -343,7 +342,7 @@ object Sealed extends State {
     if (filesNotAvailable.isEmpty) {
       successResult
     } else {
-      Xor.Left(FilesNotAvailableError(filesNotAvailable.map(_.fileId)))
+      Left(FilesNotAvailableError(filesNotAvailable.map(_.fileId)))
     }
   }
 

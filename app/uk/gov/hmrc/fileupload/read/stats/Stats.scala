@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.fileupload.read.stats
 
-import cats.data.Xor
 import play.api.Logger
 import play.api.libs.iteratee.Enumerator
 import reactivemongo.api.commands.WriteResult
@@ -27,7 +26,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object Stats {
 
-  type GetInProgressFileResult = GetInProgressFileError Xor List[InProgressFile]
+  type GetInProgressFileResult = Either[GetInProgressFileError, List[InProgressFile]]
   case class FileFound(name: Option[String] = None, length: Long, data: Enumerator[Array[Byte]])
   sealed trait GetInProgressFileError
   object GetInProgressFileGenericError extends GetInProgressFileError
@@ -39,7 +38,7 @@ object Stats {
                   s"started on: ${fileQuarantined.created}, For envelope ${fileQuarantined.id}")
       insert(InProgressFile(_id = fileQuarantined.fileRefId, envelopeId = fileQuarantined.id, fileId = fileQuarantined.fileId,
                             startedAt = fileQuarantined.created))
-    }.onFailure {
+    }.failed.foreach {
       case e => Logger.warn(s"It was not possible to store an in progress file for ${fileQuarantined.id}" +
                             s" - ${fileQuarantined.fileId} - ${fileQuarantined.fileRefId}", e)
     }
@@ -49,7 +48,7 @@ object Stats {
                          (implicit ec: ExecutionContext): Unit = {
     Future {
       deleteInProgressFile(virusDetected.id, virusDetected.fileId)
-    }.onFailure {
+    }.failed.foreach {
       case e => Logger.warn(s"It was not possible to delete the virus file for " +
                             s"${virusDetected.id} - ${virusDetected.fileId} - ${virusDetected.fileRefId}", e)
     }
@@ -59,7 +58,7 @@ object Stats {
                       (implicit ec: ExecutionContext): Unit = {
     Future {
       deleteInProgressFile(fileStored.id, fileStored.fileId)
-    }.onFailure {
+    }.failed.foreach {
       case e => Logger.warn(s"It was not possible to delete the file for ${fileStored.id} - ${fileStored.fileId} - ${fileStored.fileRefId}", e)
     }
   }
@@ -68,17 +67,17 @@ object Stats {
                          (implicit ec: ExecutionContext): Unit = {
     Future {
       deleteEnvelope(envelopeDeleted.id)
-    }.onFailure {
+    }.failed.foreach {
       case e => Logger.warn(s"It was not possible to delete the envelope for ${envelopeDeleted.id}", e)
     }
   }
 
   def all(findAllInProgressFile: () => Future[List[InProgressFile]])()
          (implicit ec: ExecutionContext): Future[GetInProgressFileResult] = {
-    findAllInProgressFile().map(Xor.right).recover {
+    findAllInProgressFile().map(Right.apply).recover {
       case e =>
         Logger.warn("It was not possible to retrieve in progress files", e)
-        Xor.left(GetInProgressFileGenericError)
+        Left(GetInProgressFileGenericError)
     }
   }
 }

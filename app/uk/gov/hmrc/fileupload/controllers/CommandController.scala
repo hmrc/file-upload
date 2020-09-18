@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import cats.data.Xor
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json, Reads}
@@ -36,7 +35,7 @@ class CommandController @Inject()(
 )(implicit executionContext: ExecutionContext
 ) extends BackendController(cc) {
 
-  val handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
+  val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
 
   def unsealEnvelope = process[UnsealEnvelope]
 
@@ -52,14 +51,14 @@ class CommandController @Inject()(
     bindCommandFromRequest[T] { command =>
       Logger.info(s"Requested command: $command to be processed")
       handleCommand(command).map {
-        case Xor.Right(_) => Ok
-        case Xor.Left(EnvelopeNotFoundError) =>
+        case Right(_) => Ok
+        case Left(EnvelopeNotFoundError) =>
           ExceptionHandler(NOT_FOUND, s"Envelope with id: ${command.id} not found")
-        case Xor.Left(FileAlreadyProcessed) =>
+        case Left(FileAlreadyProcessed) =>
           ExceptionHandler(BAD_REQUEST, s"File already processed, command was: $command")
-        case Xor.Left(EnvelopeRoutingAlreadyRequestedError | EnvelopeSealedError) =>
+        case Left(EnvelopeRoutingAlreadyRequestedError | EnvelopeSealedError) =>
           ExceptionHandler(LOCKED, s"Routing request already received for envelope: ${command.id}")
-        case Xor.Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
+        case Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
       }
     }
   }

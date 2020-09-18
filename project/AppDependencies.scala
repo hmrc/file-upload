@@ -18,7 +18,7 @@ private object AppDependencies {
     "uk.gov.hmrc"              %% "domain"                  % domainVersion,
     "com.typesafe.akka"        %% "akka-actor"              % akkaVersion,
     "com.typesafe.akka"        %% "akka-testkit"            % akkaVersion,
-    "org.typelevel"            %% "cats"                    % "0.7.0",
+    "org.typelevel"            %% "cats"                    % "0.9.0",
     "org.reactivemongo"        %% "reactivemongo-iteratees" % "0.18.8",
     "com.typesafe.play"        %% "play-json-joda"          % "2.6.14",
     "com.typesafe.play"        %% "play-iteratees-reactive-streams" % "2.6.1",
@@ -40,7 +40,7 @@ private object AppDependencies {
 
   val libraryDependencies = compile ++ test
 
-  val dependencyOverrides = Set(
+  val dependencyOverrides = Seq(
     "com.typesafe.akka" %% "akka-actor"    % "2.5.23",
     "com.typesafe.akka" %% "akka-protobuf" % "2.5.23",
     "com.typesafe.akka" %% "akka-slf4j"    % "2.5.23",

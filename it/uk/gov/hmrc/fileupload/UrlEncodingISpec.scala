@@ -1,10 +1,6 @@
 package uk.gov.hmrc.fileupload
 
-import com.github.tomakehurst.wiremock.client.WireMock
-import com.github.tomakehurst.wiremock.client.WireMock._
 import play.api.libs.json._
-import play.api.libs.ws.WSResponse
-import play.utils.UriEncoding
 import uk.gov.hmrc.fileupload.support._
 import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, QuarantineFile, StoreFile}
 
