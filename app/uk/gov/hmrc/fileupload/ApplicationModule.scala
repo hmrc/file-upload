@@ -33,33 +33,20 @@ import play.api.mvc.EssentialFilter
 import play.api.routing.Router
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands
-import uk.gov.hmrc.fileupload.admin.{Routes => AdminRoutes}
-import uk.gov.hmrc.fileupload.app.{Routes => AppRoutes}
-import uk.gov.hmrc.fileupload.controllers._
-import uk.gov.hmrc.fileupload.controllers.routing.{RoutingController, SDESCallbackController}
-import uk.gov.hmrc.fileupload.controllers.transfer.TransferController
+import uk.gov.hmrc.fileupload.controllers.RetrieveFile
 import uk.gov.hmrc.fileupload.file.zip.Zippy
 import uk.gov.hmrc.fileupload.filters.{UserAgent, UserAgentRequestFilter}
 import uk.gov.hmrc.fileupload.infrastructure._
-import uk.gov.hmrc.fileupload.manualdihealth.{Routes => HealthRoutes}
-import uk.gov.hmrc.fileupload.prod.Routes
 import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => EnvelopeService, _}
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
 import uk.gov.hmrc.fileupload.read.routing.{FileTransferNotification, RoutingActor, RoutingConfig, RoutingRepository}
 import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor, StatsLogWriter, StatsLogger, StatsLoggingConfiguration, StatsLoggingScheduler, Repository => StatsRepository}
-import uk.gov.hmrc.fileupload.routing.{Routes => RoutingRoutes}
-import uk.gov.hmrc.fileupload.testonly.TestOnlyController
-import uk.gov.hmrc.fileupload.transfer.{Routes => TransferRoutes}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
 import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, MongoEventStore, StreamId}
 import uk.gov.hmrc.lock.LockRepository
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-//import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode, ServicesConfig}
-//import uk.gov.hmrc.play.microservice.config.LoadAuditingConfig
-//import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, _}
-
 
 @Singleton
 class ApplicationModule @Inject()(
@@ -70,10 +57,11 @@ class ApplicationModule @Inject()(
   val applicationLifecycle: play.api.inject.ApplicationLifecycle,
   val configuration: play.api.Configuration,
   val environment: play.api.Environment,
-  implicit val executionContext: scala.concurrent.ExecutionContext,
-  implicit val materializer: akka.stream.Materializer,
   actorSystem: akka.actor.ActorSystem
-  ) extends AhcWSComponents {
+)(implicit
+  val executionContext: scala.concurrent.ExecutionContext,
+  val materializer: akka.stream.Materializer
+) extends AhcWSComponents {
 
   lazy val db = reactiveMongoComponent.mongoConnector.db
 
@@ -177,30 +165,9 @@ class ApplicationModule @Inject()(
 
   lazy val nextId = () => EnvelopeId(UUID.randomUUID().toString)
 
-  /*lazy val envelopeController = {
-    val nextId = () => EnvelopeId(UUID.randomUUID().toString)
-    new EnvelopeController(
-      withBasicAuth = withBasicAuth,
-      nextId = nextId,
-      handleCommand = envelopeCommandHandler,
-      findEnvelope = findEnvelope,
-      findMetadata = findMetadata,
-      findAllInProgressFile = allInProgressFile,
-      deleteInProgressFile = statsRepository.deleteByFileRefId,
-      getEnvelopesByStatus = getEnvelopesByStatus,
-      envelopeConstraintsConfigure = envelopeConstraintsConfigure)
-  }*/
-
   lazy val unitOfWorks = eventStore.unitsOfWorkForAggregate _
   lazy val publishAllEvents = reportHandler.handle(replay = true) _
 
-  /*
-  lazy val eventController =
-    new EventController(eventStore.unitsOfWorkForAggregate, reportHandler.handle(replay = true))
-
-  lazy val commandController =
-    new CommandController(envelopeCommandHandler)
-*/
   lazy val fileUploadFrontendBaseUrl = servicesConfig.baseUrl("file-upload-frontend")
 
   lazy val routingConfig = RoutingConfig(configuration)
@@ -223,100 +190,11 @@ class ApplicationModule @Inject()(
     "routingActor")
 
   lazy val getFileFromS3 = new RetrieveFile(wsClient, fileUploadFrontendBaseUrl).download _
-/*
-  lazy val fileController = {
-    new FileController(
-      withBasicAuth = withBasicAuth,
-      retrieveFileS3 = getFileFromS3,
-      withValidEnvelope = withValidEnvelope,
-      handleCommand = envelopeCommandHandler)
-  }
-*/
 
-    val getEnvelopesByDestination = envelopeRepository.getByDestination _
-    val zipEnvelope = Zippy.zipEnvelope(findEnvelope, getFileFromS3) _
+  val getEnvelopesByDestination = envelopeRepository.getByDestination _
+  val zipEnvelope = Zippy.zipEnvelope(findEnvelope, getFileFromS3) _
 
-  /*
-  lazy val transferController = {
-    new TransferController(withBasicAuth, getEnvelopesByDestination, envelopeCommandHandler, zipEnvelope)
-  }
-
-  lazy val testOnlyController = {
-    new TestOnlyController(recreateCollections = List(eventStore.recreate, envelopeRepository.recreate, statsRepository.recreate))
-  }
-  */
+  val recreateCollections: List[() => Unit] = List(eventStore.recreate, envelopeRepository.recreate, statsRepository.recreate)
 
   val newId: () => String = () => UUID.randomUUID().toString
-
-  /*lazy val routingController = new RoutingController(envelopeCommandHandler)
-
-  lazy val sdesCallbackController = new SDESCallbackController(envelopeCommandHandler)
-
-  lazy val healthRoutes = new HealthRoutes(httpErrorHandler, new uk.gov.hmrc.play.health.HealthController(configuration, context.environment))
-
-  lazy val appRoutes = new AppRoutes(httpErrorHandler, envelopeController, fileController, eventController,
-    commandController)
-
-  lazy val transferRoutes = new TransferRoutes(httpErrorHandler, transferController)
-
-  lazy val routingRoutes = new RoutingRoutes(httpErrorHandler, routingController, sdesCallbackController)
-
-  lazy val metricsController = new MetricsController(metrics)
-  lazy val adminRoutes = new AdminRoutes(httpErrorHandler, new Provider[MetricsController] {
-    override def get(): MetricsController = metricsController
-  })
-
-  lazy val prodRoutes = new Routes(httpErrorHandler, appRoutes, transferRoutes, routingRoutes,
-    healthRoutes, adminRoutes)
-
-  lazy val testRoutes = new testOnlyDoNotUseInAppConf.Routes(httpErrorHandler, testOnlyController, prodRoutes)
-
-  lazy val router: Router = if (configuration.getString("application.router").get == "testOnlyDoNotUseInAppConf.Routes") testRoutes else prodRoutes
-
-  object ControllerConfiguration extends ControllerConfig {
-    lazy val controllerConfigs = configuration.underlying.as[Config]("controllers")
-  }
-
-  object AuthParamsControllerConfiguration {
-    lazy val controllerConfigs = ControllerConfiguration.controllerConfigs
-  }
-
-  def graphiteStart(): Unit = {
-
-    val graphiteConfig = configuration.getConfig(s"$env.microservice.metrics")
-
-    def enabled: Boolean = {
-      val status = metricsPluginEnabled && graphitePublisherEnabled
-      Logger.info(s"graphitePublisherEnabled: $env=$status")
-      status
-    }
-
-    def metricsPluginEnabled: Boolean = configuration.getBoolean("metrics.enabled").getOrElse(false)
-
-    def graphitePublisherEnabled: Boolean = graphiteConfig.flatMap(
-      _.getBoolean("graphite.enabled")).getOrElse(false)
-
-    if (enabled) {
-      val metricsConfig = graphiteConfig.getOrElse(throw new Exception("The application does not contain required metrics configuration"))
-
-      val graphite = new Graphite(new InetSocketAddress(
-        metricsConfig.getString("graphite.host").getOrElse("graphite"),
-        metricsConfig.getInt("graphite.port").getOrElse(2003)))
-
-      val prefix = metricsConfig.getString("graphite.prefix").getOrElse(s"tax.${configuration.getString("appName")}")
-
-      import java.util.concurrent.TimeUnit._
-
-      val reporter = GraphiteReporter.forRegistry(
-        SharedMetricRegistries.getOrCreate(configuration.getString("metrics.name").getOrElse("default")))
-        .prefixedWith(s"$prefix.${java.net.InetAddress.getLocalHost.getHostName}")
-        .convertRatesTo(SECONDS)
-        .convertDurationsTo(MILLISECONDS)
-        .filter(MetricFilter.ALL)
-        .build(graphite)
-
-      reporter.start(metricsConfig.getLong("graphite.interval").getOrElse(10L), SECONDS)
-    }
-  }
-*/
 }

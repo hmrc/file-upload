@@ -97,5 +97,4 @@ class UserAgentMetricsFilterIntegrationSpec extends FunSuite with BeforeAndAfter
       metrics.getTimers.size() shouldBe 0
     }
   }
-
 }

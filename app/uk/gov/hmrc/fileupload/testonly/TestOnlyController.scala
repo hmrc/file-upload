@@ -16,13 +16,18 @@
 
 package uk.gov.hmrc.fileupload.testonly
 
+import javax.inject.{Inject, Singleton}
 import play.api.mvc.Action
 import play.api.mvc.Results._
+import uk.gov.hmrc.fileupload.ApplicationModule
 
 import scala.concurrent.ExecutionContext
 
-class TestOnlyController(recreateCollections: List[() => Unit])
+@Singleton
+class TestOnlyController @Inject()(appModule: ApplicationModule)
                         (implicit executionContext: ExecutionContext) {
+
+  val recreateCollections: List[() => Unit] = appModule.recreateCollections
 
   def recreate() = Action { implicit request =>
     recreateCollections.foreach(_())
