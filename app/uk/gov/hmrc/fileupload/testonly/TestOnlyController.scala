@@ -24,8 +24,10 @@ import uk.gov.hmrc.fileupload.ApplicationModule
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class TestOnlyController @Inject()(appModule: ApplicationModule)
-                        (implicit executionContext: ExecutionContext) {
+class TestOnlyController @Inject()(
+  appModule: ApplicationModule
+)(implicit executionContext: ExecutionContext
+) {
 
   val recreateCollections: List[() => Unit] = appModule.recreateCollections
 

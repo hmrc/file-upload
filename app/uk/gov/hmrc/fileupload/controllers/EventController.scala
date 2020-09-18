@@ -29,8 +29,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 @Singleton
-class EventController @Inject()(/*unitOfWorks: StreamId => Future[GetResult],
-                      publishAllEvents: Seq[DomainEvent] => Unit*/
+class EventController @Inject()(
   appModule: ApplicationModule
 )(implicit executionContext: ExecutionContext
 ) extends Controller {

@@ -34,8 +34,6 @@ import uk.gov.hmrc.fileupload.utils.NumberFormatting.formatAsKiloOrMegabytes
 
 @Singleton
 class RoutingController @Inject()(
-  /*handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
-                        newId: () => String = () => UUID.randomUUID().toString*/
   appModule: ApplicationModule
 )(implicit executionContext: ExecutionContext
 ) extends Controller {

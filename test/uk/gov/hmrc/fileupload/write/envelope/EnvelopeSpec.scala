@@ -26,7 +26,7 @@ import uk.gov.hmrc.fileupload.write.infrastructure.EventData
 
 import scala.collection.mutable.ListBuffer
 
-class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with ApplicationComponents {
+class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with TestApplicationComponents {
 
   override val handler = new EnvelopeHandler(envelopeConstraintsConfigure)
 

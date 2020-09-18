@@ -53,12 +53,10 @@ class RetrieveFile(wsClient: WSClient, baseUrl: String) {
 }
 
 @Singleton
-class FileController @Inject()(/*withBasicAuth: BasicAuth,
-                     retrieveFileS3: (EnvelopeId, FileId) => Future[Source[ByteString, _]],
-                     withValidEnvelope: WithValidEnvelope,
-                     handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],*/
-                     appModule: ApplicationModule
-)(implicit executionContext: ExecutionContext) extends Controller {
+class FileController @Inject()(
+  appModule: ApplicationModule
+)(implicit executionContext: ExecutionContext
+) extends Controller {
 
   val withBasicAuth: BasicAuth = appModule.withBasicAuth
   val retrieveFileS3: (EnvelopeId, FileId) => Future[Source[ByteString, _]] = appModule.getFileFromS3

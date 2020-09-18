@@ -14,5 +14,5 @@ trait ActionsSupport extends ScalaFutures with Status with IntegrationTestApplic
   val url = "http://localhost:9000/file-upload"
   val fileTransferUrl = "http://localhost:9000/file-transfer"
   val fileRoutingUrl = "http://localhost:9000/file-routing"
-  val client = components.wsClient
+  val client = new play.api.test.WsTestClient.InternalWSClient(scheme = "http", port = -1)
 }

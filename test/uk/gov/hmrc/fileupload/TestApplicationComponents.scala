@@ -20,9 +20,7 @@ import java.time.Duration
 
 import akka.actor.{ActorRef, ActorSystem}
 import org.scalatest.{BeforeAndAfterAll, TestSuite, TestData}
-import org.scalatestplus.play.OneAppPerTest
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
-import play.api.ApplicationLoader.Context
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.inject.bind
 import play.api._
@@ -30,13 +28,12 @@ import play.api.mvc.EssentialFilter
 import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
 import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraintsConfiguration
 
-trait ApplicationComponents extends GuiceOneServerPerSuite with BeforeAndAfterAll {
+trait TestApplicationComponents extends GuiceOneServerPerSuite with BeforeAndAfterAll {
   this: TestSuite =>
 
   // creates a new application and sets the components
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
-      //.disable(classOf[com.kenshoo.play.metrics.PlayModule], classOf[Module])
       .configure("metrics.jvm" -> false)
       .build()
 
@@ -68,9 +65,3 @@ trait ApplicationComponents extends GuiceOneServerPerSuite with BeforeAndAfterAl
     Duration.parse("PT1H"),
     true)
 }
-
-/*
-class TestApplicationModule(context: Context) extends ApplicationModule(context = context) {
-  override lazy val httpFilters: Seq[EssentialFilter] = Seq()
-}
-*/

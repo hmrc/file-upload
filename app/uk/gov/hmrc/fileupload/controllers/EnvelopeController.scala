@@ -42,17 +42,10 @@ import uk.gov.hmrc.http.BadRequestException
 import scala.util.{Failure, Success, Try}
 
 @Singleton
-class EnvelopeController @Inject()(/*withBasicAuth: BasicAuth,
-                         nextId: () => EnvelopeId,
-                         handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
-                         findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]],
-                         findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]],
-                         findAllInProgressFile: () => Future[GetInProgressFileResult],
-                         deleteInProgressFile: (FileRefId) => Future[Boolean],
-                         getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
-                         envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration,*/
-                         appModule: ApplicationModule
-)(implicit executionContext: ExecutionContext) extends Controller {
+class EnvelopeController @Inject()(
+  appModule: ApplicationModule
+)(implicit executionContext: ExecutionContext
+) extends Controller {
 
   val withBasicAuth: BasicAuth = appModule.withBasicAuth
   val nextId: () => EnvelopeId = appModule.nextId

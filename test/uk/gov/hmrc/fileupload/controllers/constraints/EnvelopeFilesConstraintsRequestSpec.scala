@@ -23,7 +23,7 @@ import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, EnvelopeCon
 import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraintsConfiguration
 import uk.gov.hmrc.fileupload.write.envelope._
 
-class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with ApplicationComponents {
+class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with TestApplicationComponents {
 
   override val handler = new EnvelopeHandler(envelopeConstraintsConfigure)
 

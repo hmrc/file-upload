@@ -41,7 +41,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
-class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with ApplicationComponents with ScalaFutures {
+class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplicationComponents with ScalaFutures {
 
   implicit override val patienceConfig = PatienceConfig(timeout = Span(10, Seconds), interval = Span(10, Millis))
 

@@ -17,44 +17,39 @@
 package uk.gov.hmrc.fileupload
 
 import org.scalatest.TestSuite
-import org.scalatestplus.play.OneServerPerSuite
-import play.api.ApplicationLoader.Context
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api._
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.EssentialFilter
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
-trait IntegrationTestApplicationComponents extends OneServerPerSuite with MongoSpecSupport {
+trait IntegrationTestApplicationComponents extends GuiceOneServerPerSuite with MongoSpecSupport {
   this: TestSuite =>
-  override implicit lazy val app = components.application
-  override lazy val port: Int = 9000
 
-  // accessed to get the components in tests
-  lazy val components: ApplicationModule = new IntegrationTestApplicationModule(context)
+  override lazy val port: Int = 9000
 
   lazy val pushUrl: Option[String] = None
   lazy val pushDestinations: Option[List[String]] = None
 
-  lazy val context: ApplicationLoader.Context = {
-    val classLoader = ApplicationLoader.getClass.getClassLoader
-    val env = new Environment(new java.io.File("."), classLoader, Mode.Test)
-    ApplicationLoader.createContext(
-      env,
-      initialSettings = Map(
-        "mongodb.uri" -> s"mongodb://localhost:27017/$databaseName",
-        "auditing.enabled" -> "false",
-        "feature.basicAuthEnabled" -> "true",
-        "constraints.enforceHttps" -> "false",
-        "routing.initialDelay" -> "1.second",
-        "routing.interval" -> "1.second",
-        "routing.clientId" -> "123"
-        ) ++
-        pushUrl.fold(Map.empty[String, String])(url => Map("routing.pushUrl" -> url)) ++
-        pushDestinations.fold(Map.empty[String, String])(_.zipWithIndex.map { case (destination, i) => s"routing.destinations.$i" -> destination }.toMap)
-    )
-  }
-}
+  val conf =
+    Seq(
+      "metrics.jvm" -> false,
+      "mongodb.uri" -> s"mongodb://localhost:27017/$databaseName",
+      "auditing.enabled" -> "false",
+      "feature.basicAuthEnabled" -> "true",
+      "constraints.enforceHttps" -> "false",
+      "routing.initialDelay" -> "1.second",
+      "routing.interval" -> "1.second",
+      "routing.clientId" -> "123",
+      "Test.microservice.services.file-upload-frontend.host" -> "localhost",
+      "Test.microservice.services.file-upload-frontend.port" -> "8017"
+    ) ++
+    pushUrl.fold(Map.empty[String, String])(url => Map("routing.pushUrl" -> url)) ++
+    pushDestinations.fold(Map.empty[String, String])(_.zipWithIndex.map { case (destination, i) => s"routing.destinations.$i" -> destination }.toMap)
 
-class IntegrationTestApplicationModule(context: Context) extends ApplicationModule(context = context) {
-  override lazy val httpFilters: Seq[EssentialFilter] = Seq()
-  override lazy val fileUploadFrontendBaseUrl = "http://localhost:8017"
+  // creates a new application and sets the components
+  implicit override lazy val app: Application =
+    new GuiceApplicationBuilder()
+      .configure(conf: _*)
+      .build()
 }

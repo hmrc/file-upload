@@ -34,13 +34,10 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 @Singleton
-class TransferController @Inject()(/*withBasicAuth: BasicAuth,
-                         getEnvelopesByDestination: Option[String] => Future[List[Envelope]],
-                         handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
-                         zipEnvelope: EnvelopeId => Future[ZipResult]*/
-                         appModule: ApplicationModule
-                         )
-                        (implicit executionContext: ExecutionContext) extends Controller {
+class TransferController @Inject()(
+  appModule: ApplicationModule
+)(implicit executionContext: ExecutionContext
+) extends Controller {
 
   val withBasicAuth: BasicAuth = appModule.withBasicAuth
   val getEnvelopesByDestination: Option[String] => Future[List[Envelope]] = appModule.getEnvelopesByDestination

@@ -31,10 +31,10 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class CommandController @Inject()(
-  /*handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],*/
   appModule: ApplicationModule,
   cc: ControllerComponents
-)(implicit executionContext: ExecutionContext) extends BackendController(cc) {
+)(implicit executionContext: ExecutionContext
+) extends BackendController(cc) {
 
   val handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
 

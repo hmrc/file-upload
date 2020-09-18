@@ -33,7 +33,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 @Singleton
-class SDESCallbackController @Inject()(/*handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]]*/
+class SDESCallbackController @Inject()(
   appModule: ApplicationModule
 )(implicit executionContext: ExecutionContext
 ) extends Controller {
