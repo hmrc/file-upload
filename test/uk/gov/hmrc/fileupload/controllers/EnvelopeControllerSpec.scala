@@ -21,9 +21,8 @@ import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
 import org.joda.time.DateTime
 import org.mockito.Mockito.when
-import org.scalatest.Inside
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatest.{Inside, Matchers, WordSpecLike}
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.{HeaderNames, Status}
 import play.api.libs.json.Json
@@ -36,13 +35,16 @@ import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, File, Fil
 import uk.gov.hmrc.fileupload.read.stats.Stats._
 import uk.gov.hmrc.fileupload.write.envelope.{CreateEnvelope, EnvelopeCommand, EnvelopeNotFoundError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
-class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplicationComponents with ScalaFutures {
-
-  implicit override val patienceConfig = PatienceConfig(timeout = Span(10, Seconds), interval = Span(10, Millis))
+class EnvelopeControllerSpec
+  extends WordSpecLike
+     with Matchers
+     with MockitoSugar
+     with TestApplicationComponents
+     with ScalaFutures
+     with IntegrationPatience {
 
   import Support._
 
@@ -61,7 +63,7 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
                     findMetadata: (EnvelopeId, FileId) => Future[Either[FindMetadataError, read.envelope.File]] = (_, _) => failed,
                     findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed,
                     deleteInProgressFile: FileRefId => Future[Boolean] = _ => failed,
-                    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed] = (_, _) => failed
+                    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed] = (_, _) => Source.failed(new Exception("not good"))
   ) = {
     val appModule = mock[ApplicationModule]
     when(appModule.withBasicAuth).thenReturn(withBasicAuth)
@@ -253,7 +255,7 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
       val controller = newController(handleCommand = _ => Future.successful(Right(CommandAccepted)))
 			val result = controller.delete(envelope._id)(request).futureValue
 
-			status(result) shouldBe Status.OK
+			result.header.status shouldBe Status.OK
 		}
 
 		"respond with 404 NOT FOUND status" in {
@@ -290,7 +292,7 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
       val envelope = Support.envelope
       val request = FakeRequest()
 
-      val controller = newController(findEnvelope = _ => Right(envelope))
+      val controller = newController(findEnvelope = _ => Future.successful(Right(envelope)))
       val result = controller.show(envelope._id)(request).futureValue
 
       val actualResponse = Json.parse(consume(result.body))
@@ -309,7 +311,7 @@ class EnvelopeControllerSpec extends UnitSpec with MockitoSugar with TestApplica
       val file = File(FileId(), FileRefId(), FileStatusQuarantined)
       val request = FakeRequest()
 
-      val controller = newController(findMetadata = (_, _) => Right(file))
+      val controller = newController(findMetadata = (_, _) => Future.successful(Right(file)))
       val result = controller.retrieveMetadata(envelopeId, file.fileId)(request).futureValue
 
       val actualResponse = Json.parse(consume(result.body))

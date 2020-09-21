@@ -18,9 +18,9 @@ package uk.gov.hmrc.fileupload.write.envelope
 
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.play.test.UnitSpec
+import org.scalatest.{Matchers, WordSpecLike}
 
-class FormattersSpec extends UnitSpec {
+class FormattersSpec extends WordSpecLike with Matchers {
 
   import Formatters._
 

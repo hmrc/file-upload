@@ -17,22 +17,27 @@
 package uk.gov.hmrc.fileupload.controllers.routing
 
 import org.mockito.Mockito.when
+import org.scalatest.{Matchers, OptionValues, WordSpecLike}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.http.HeaderNames._
-import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.mvc.ControllerComponents
 import play.api.test.FakeRequest
+import play.api.test.Helpers._
 import uk.gov.hmrc.fileupload.ApplicationModule
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, TestApplicationComponents}
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class RoutingControllerSpec extends UnitSpec with MockitoSugar with TestApplicationComponents with ScalaFutures {
+class RoutingControllerSpec
+  extends WordSpecLike
+     with Matchers
+     with MockitoSugar
+     with TestApplicationComponents
+     with ScalaFutures
+     with OptionValues {
 
   implicit val ec = ExecutionContext.global
   import uk.gov.hmrc.fileupload.Support.StreamImplicits.materializer
@@ -58,10 +63,10 @@ class RoutingControllerSpec extends UnitSpec with MockitoSugar with TestApplicat
       val controller = newController(handleCommand = _ => Future.successful(Right(CommandAccepted)),
         newId = () => routingRequestId)
 
-      val result = controller.createRoutingRequest()(validRequest).futureValue
+      val result = controller.createRoutingRequest()(validRequest)
 
-      result.header.status shouldBe Status.CREATED
-      result.header.headers(LOCATION) shouldBe uk.gov.hmrc.fileupload.controllers.routing.routes.RoutingController.routingStatus(routingRequestId).url
+      status(result) shouldBe CREATED
+      header(LOCATION, result).value shouldBe uk.gov.hmrc.fileupload.controllers.routing.routes.RoutingController.routingStatus(routingRequestId).url
     }
 
     "return 400 bad request if routing envelope already requested" in {
@@ -69,10 +74,10 @@ class RoutingControllerSpec extends UnitSpec with MockitoSugar with TestApplicat
         Left(EnvelopeRoutingAlreadyRequestedError)
       ))
 
-      val result = controller.createRoutingRequest()(validRequest).futureValue
+      val result = controller.createRoutingRequest()(validRequest)
 
-      result.header.status shouldBe Status.BAD_REQUEST
-      bodyOf(result) should include(s"Routing request already received for envelope: $envelopeId")
+      status(result) shouldBe BAD_REQUEST
+      contentAsString(result) should include(s"Routing request already received for envelope: $envelopeId")
     }
 
     "return 400 bad request if envelope already sealed" in {
@@ -80,10 +85,10 @@ class RoutingControllerSpec extends UnitSpec with MockitoSugar with TestApplicat
         Left(EnvelopeSealedError)
       ))
 
-      val result = controller.createRoutingRequest()(validRequest).futureValue
+      val result = controller.createRoutingRequest()(validRequest)
 
-      result.header.status shouldBe Status.BAD_REQUEST
-      bodyOf(result) should include(s"Routing request already received for envelope: $envelopeId")
+      status(result) shouldBe BAD_REQUEST
+      contentAsString(result) should include(s"Routing request already received for envelope: $envelopeId")
     }
 
     "return 400 bad request if files contained errors" in {
@@ -91,10 +96,10 @@ class RoutingControllerSpec extends UnitSpec with MockitoSugar with TestApplicat
         Left(FilesWithError(List(FileId("id1") ,FileId("id2"))))
       ))
 
-      val result = controller.createRoutingRequest()(validRequest).futureValue
+      val result = controller.createRoutingRequest()(validRequest)
 
-      result.header.status shouldBe Status.BAD_REQUEST
-      bodyOf(result) should include(s"Files: [id1, id2] contain errors")
+      status(result) shouldBe BAD_REQUEST
+      contentAsString(result) should include(s"Files: [id1, id2] contain errors")
     }
 
     "return 400 bad request if envelope was deleted or doesn't exist" in {
@@ -102,10 +107,10 @@ class RoutingControllerSpec extends UnitSpec with MockitoSugar with TestApplicat
         Left(EnvelopeNotFoundError)
       ))
 
-      val result = controller.createRoutingRequest()(validRequest).futureValue
+      val result = controller.createRoutingRequest()(validRequest)
 
-      result.header.status shouldBe Status.BAD_REQUEST
-      bodyOf(result) should include(s"Envelope with id: $envelopeId not found")
+      status(result) shouldBe BAD_REQUEST
+      contentAsString(result) should include(s"Envelope with id: $envelopeId not found")
     }
 
     "return 400 bad request if sealing was not possible for other reason" in {
@@ -114,10 +119,10 @@ class RoutingControllerSpec extends UnitSpec with MockitoSugar with TestApplicat
         Left(new CommandNotAccepted {override def toString = errorMsg })
       ))
 
-      val result = controller.createRoutingRequest()(validRequest).futureValue
+      val result = controller.createRoutingRequest()(validRequest)
 
-      result.header.status shouldBe Status.BAD_REQUEST
-      bodyOf(result) should include(errorMsg)
+      status(result) shouldBe BAD_REQUEST
+      contentAsString(result) should include(errorMsg)
     }
 
     "return 400 bad request if sealing was not possible for envelope item count exceeds is less than actual number of files" in {
@@ -126,10 +131,10 @@ class RoutingControllerSpec extends UnitSpec with MockitoSugar with TestApplicat
         Left(EnvelopeItemCountExceededError(allowedItemCount = 3, actualItemCount = 4))
       ))
 
-      val result = controller.createRoutingRequest()(validRequest).futureValue
+      val result = controller.createRoutingRequest()(validRequest)
 
-      result.header.status shouldBe Status.BAD_REQUEST
-      bodyOf(result) should include(errorMsg)
+      status(result) shouldBe BAD_REQUEST
+      contentAsString(result) should include(errorMsg)
     }
 
     "return 400 bad request if sealing was not possible for envelope size exceeds maximum has been reached" in {
@@ -138,10 +143,10 @@ class RoutingControllerSpec extends UnitSpec with MockitoSugar with TestApplicat
         Left(EnvelopeMaxSizeExceededError(maxSizeAllowed = 10 * 1024 * 1024))
       ))
 
-      val result = controller.createRoutingRequest()(validRequest).futureValue
+      val result = controller.createRoutingRequest()(validRequest)
 
-      result.header.status shouldBe Status.BAD_REQUEST
-      bodyOf(result) should include(errorMsg)
+      status(result) shouldBe BAD_REQUEST
+      contentAsString(result) should include(errorMsg)
     }
   }
 }

@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.controllers.transfer
 
 import org.mockito.Mockito.when
+import org.scalatest.{Matchers, WordSpecLike}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatestplus.mockito.MockitoSugar
@@ -28,11 +29,15 @@ import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAu
 import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class TransferControllerSpec extends UnitSpec with TestApplicationComponents with MockitoSugar with ScalaFutures {
+class TransferControllerSpec
+  extends WordSpecLike
+     with Matchers
+     with TestApplicationComponents
+     with MockitoSugar
+     with ScalaFutures {
 
   implicit val defaultPatience =
     PatienceConfig(timeout = Span(5, Seconds), interval = Span(500, Millis))

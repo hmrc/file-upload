@@ -65,16 +65,17 @@ trait EnvelopeActions extends ActionsSupport {
       .delete()
       .futureValue
 
-  def submitRoutingRequest(envelopeId: EnvelopeId, destination: String, application: String = "testApplication"): WSResponse = {
-    val payload = Json.obj(
-      "envelopeId" -> envelopeId,
-      "destination" -> destination,
-      "application" -> application
-    )
-    client.url(s"$fileRoutingUrl/requests")
-      .post(payload)
+  def submitRoutingRequest(envelopeId: EnvelopeId, destination: String, application: String = "testApplication"): WSResponse =
+    client
+      .url(s"$fileRoutingUrl/requests")
+      .post(
+         Json.obj(
+           "envelopeId"  -> envelopeId,
+           "destination" -> destination,
+           "application" -> application
+        )
+      )
       .futureValue
-  }
 
   def getEnvelopesForDestination(destination: Option[String]): WSResponse = {
     client

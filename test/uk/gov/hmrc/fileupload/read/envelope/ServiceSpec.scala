@@ -16,14 +16,14 @@
 
 package uk.gov.hmrc.fileupload.read.envelope
 
+import org.scalatest.{Matchers, WordSpecLike}
 import org.scalatest.concurrent.ScalaFutures
 import uk.gov.hmrc.fileupload.{FileId, FileRefId}
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindEnvelopeNotFoundError, FindServiceError}
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class ServiceSpec extends UnitSpec with ScalaFutures {
+class ServiceSpec extends WordSpecLike with Matchers with ScalaFutures {
 
   implicit val ec = ExecutionContext.global
 

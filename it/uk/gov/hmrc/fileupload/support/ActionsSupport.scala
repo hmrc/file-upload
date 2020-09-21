@@ -1,18 +1,15 @@
 package uk.gov.hmrc.fileupload.support
 
 import org.scalatest.TestSuite
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import play.api.http.Status
 import uk.gov.hmrc.fileupload.IntegrationTestApplicationComponents
 
-trait ActionsSupport extends ScalaFutures with Status with IntegrationTestApplicationComponents{
+trait ActionsSupport extends ScalaFutures with Status with IntegrationTestApplicationComponents with IntegrationPatience {
   this: TestSuite =>
 
-  implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
-
-  val url = "http://localhost:9000/file-upload"
-  val fileTransferUrl = "http://localhost:9000/file-transfer"
-  val fileRoutingUrl = "http://localhost:9000/file-routing"
+  lazy val url = s"http://localhost:$port/file-upload"
+  lazy val fileTransferUrl = s"http://localhost:$port/file-transfer"
+  lazy val fileRoutingUrl = s"http://localhost:$port/file-routing"
   val client = new play.api.test.WsTestClient.InternalWSClient(scheme = "http", port = -1)
 }

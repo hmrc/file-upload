@@ -17,17 +17,16 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 import org.joda.time.{DateTime, DateTimeZone}
-import org.scalatest.Matchers
+import org.scalatest.{Matchers, WordSpecLike}
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class EnvelopeReportHandlerSpec extends UnitSpec with Matchers {
+class EnvelopeReportHandlerSpec extends WordSpecLike with Matchers {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 

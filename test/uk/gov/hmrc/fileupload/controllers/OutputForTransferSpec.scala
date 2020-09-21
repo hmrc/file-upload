@@ -17,14 +17,14 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import org.joda.time.DateTime
+import org.scalatest.{Matchers, WordSpecLike}
 import play.api.http.HeaderNames
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.read.envelope._
-import uk.gov.hmrc.play.test.UnitSpec
 
-class OutputForTransferSpec extends UnitSpec with TestApplicationComponents {
+class OutputForTransferSpec extends WordSpecLike with Matchers with TestApplicationComponents {
 
   "Presenting individual files" should {
     "include all fields if values are present" in {

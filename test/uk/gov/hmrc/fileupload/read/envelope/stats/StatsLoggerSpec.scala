@@ -19,22 +19,25 @@ package uk.gov.hmrc.fileupload.read.envelope.stats
 import java.time.{LocalDateTime, ZoneId}
 
 import org.mockito.Mockito.verify
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.time.{Milliseconds, Seconds, Span}
+import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
+import org.scalatest.concurrent.{Eventually, IntegrationPatience, ScalaFutures}
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.fileupload.read.stats._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 import uk.gov.hmrc.mongo.MongoSpecSupport
-import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
+import scala.concurrent.duration.DurationInt
 
-class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with MockitoSugar with Eventually with ScalaFutures with BeforeAndAfterAll {
-
-  implicit override val patienceConfig = PatienceConfig(timeout = Span(2, Seconds), interval = scaled(Span(100, Milliseconds)))
+class StatsLoggerSpec
+  extends MongoSpecSupport
+     with WordSpecLike
+     with Matchers
+     with MockitoSugar
+     with Eventually
+     with ScalaFutures
+     with BeforeAndAfterAll
+     with IntegrationPatience {
 
   override def afterAll {
     mongo.apply().drop.futureValue
@@ -51,7 +54,7 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with MockitoSugar w
   val previousFile1 = InProgressFile(FileRefId("abc"), EnvelopeId(), FileId(), previousDayAsMilli)
   val previousFile2 = InProgressFile(FileRefId("def"), EnvelopeId(), FileId(), previousDayAsMilli)
 
-  val oneDayDuration = FiniteDuration(1, DAYS)
+  val oneDayDuration = 1.day
 
   "Given an in-progress-files repository, when the logging function is called" should {
     "log the number of in-progress files added over a time period as warning if it exceeds the maximum" in {
@@ -64,7 +67,7 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with MockitoSugar w
       repository.insert(todayFile1)
       repository.insert(todayFile2)
       eventually {
-        Await.result(repository.all().size, 500.millis) shouldBe 2
+        repository.all().futureValue.size shouldBe 2
       }
 
       statsLogger.logAddedOverTimePeriod(oneDayDuration, Some(0))
@@ -83,7 +86,7 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with MockitoSugar w
       repository.insert(todayFile1)
       repository.insert(todayFile2)
       eventually {
-        Await.result(repository.all().size, 500.millis) shouldBe 2
+        repository.all().futureValue.size shouldBe 2
       }
 
       statsLogger.logAddedOverTimePeriod(oneDayDuration, Some(10))
@@ -102,7 +105,7 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with MockitoSugar w
       repository.insert(previousFile1)
       repository.insert(previousFile2)
       eventually {
-        Await.result(repository.all().size, 500.millis) shouldBe 2
+        repository.all().futureValue.size shouldBe 2
       }
 
       statsLogger.logAddedOverTimePeriod(oneDayDuration, Some(0))
@@ -123,7 +126,7 @@ class StatsLoggerSpec extends MongoSpecSupport with UnitSpec with MockitoSugar w
       repository.insert(todayFile1)
       repository.insert(todayFile2)
       eventually {
-        Await.result(repository.all().size, 500.millis) shouldBe 4
+        repository.all().futureValue.size shouldBe 4
       }
 
       statsLogger.logAddedOverTimePeriod(oneDayDuration, Some(0))

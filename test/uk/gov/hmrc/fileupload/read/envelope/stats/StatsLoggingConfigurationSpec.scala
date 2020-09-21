@@ -16,13 +16,13 @@
 
 package uk.gov.hmrc.fileupload.read.envelope.stats
 
+import org.scalatest.{Matchers, WordSpecLike}
 import play.api.Configuration
 import uk.gov.hmrc.fileupload.read.stats.StatsLoggingConfiguration
-import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.DurationInt
 
-class StatsLoggingConfigurationSpec extends UnitSpec {
+class StatsLoggingConfigurationSpec extends WordSpecLike with Matchers {
 
   "Given a valid set of configuration values, creating logging configuration" should {
     "return the expected logging configuration" in {
@@ -33,7 +33,7 @@ class StatsLoggingConfigurationSpec extends UnitSpec {
       ))
       val loggingConfiguration = StatsLoggingConfiguration(runModeConfiguration)
       loggingConfiguration shouldBe
-        StatsLoggingConfiguration(Duration(500, MILLISECONDS), Duration(1000, MILLISECONDS), Duration(1, DAYS), None)
+        StatsLoggingConfiguration(500.millis, 1000.millis, 1.day, None)
     }
   }
 
@@ -47,7 +47,7 @@ class StatsLoggingConfigurationSpec extends UnitSpec {
       ))
       val loggingConfiguration = StatsLoggingConfiguration(runModeConfiguration)
       loggingConfiguration shouldBe
-        StatsLoggingConfiguration(Duration(500, MILLISECONDS), Duration(1000, MILLISECONDS), Duration(1, DAYS), Some(25))
+        StatsLoggingConfiguration(500.millis, 1000.millis, 1.day, Some(25))
     }
   }
 

@@ -16,37 +16,38 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import play.api.http.Status._
+import org.scalatest.{Matchers, WordSpecLike}
 import play.api.libs.json.Json.parse
+import play.api.test.Helpers._
 import uk.gov.hmrc.fileupload.read.envelope.ValidationException
-import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.http.BadRequestException
 
-class ExceptionHandlerSpec extends UnitSpec {
+import scala.concurrent.Future
 
+class ExceptionHandlerSpec extends WordSpecLike with Matchers {
   import uk.gov.hmrc.fileupload.Support.StreamImplicits.materializer
 
   "exception handler" should {
     "handle an unknown exception as an internal server error" in {
 			object SomeException extends RuntimeException
 
-      val result = ExceptionHandler(SomeException)
+      val result = Future.successful(ExceptionHandler(SomeException))
       status(result) shouldBe INTERNAL_SERVER_ERROR
-      jsonBodyOf(result) shouldBe parse("""{"error":{"msg":"Internal Server Error"}}""")
+      contentAsJson(result) shouldBe parse("""{"error":{"msg":"Internal Server Error"}}""")
     }
 
     "handle a validation exception" in {
-      val result = ExceptionHandler(ValidationException("someValidationException"))
+      val result = Future.successful(ExceptionHandler(ValidationException("someValidationException")))
 
       status(result) shouldBe BAD_REQUEST
-      jsonBodyOf(result) shouldBe parse("""{"error":{"msg":"someValidationException"}}""")
+      contentAsJson(result) shouldBe parse("""{"error":{"msg":"someValidationException"}}""")
     }
 
     "handle a bad request exception" in {
-      val result = ExceptionHandler(new BadRequestException("someBadRequest"))
+      val result = Future.successful(ExceptionHandler(new BadRequestException("someBadRequest")))
 
       status(result) shouldBe BAD_REQUEST
-      jsonBodyOf(result) shouldBe parse("""{"error":{"msg":"someBadRequest"}}""")
+      contentAsJson(result) shouldBe parse("""{"error":{"msg":"someBadRequest"}}""")
     }
   }
 }

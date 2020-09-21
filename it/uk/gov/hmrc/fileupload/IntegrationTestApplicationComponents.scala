@@ -25,8 +25,6 @@ import uk.gov.hmrc.mongo.MongoSpecSupport
 trait IntegrationTestApplicationComponents extends GuiceOneServerPerSuite with MongoSpecSupport {
   this: TestSuite =>
 
-  override lazy val port: Int = 9000
-
   lazy val pushUrl: Option[String] = None
   lazy val pushDestinations: Option[List[String]] = None
 
@@ -40,8 +38,8 @@ trait IntegrationTestApplicationComponents extends GuiceOneServerPerSuite with M
       "routing.initialDelay" -> "1.second",
       "routing.interval" -> "1.second",
       "routing.clientId" -> "123",
-      "Test.microservice.services.file-upload-frontend.host" -> "localhost",
-      "Test.microservice.services.file-upload-frontend.port" -> "8017"
+      "microservice.services.file-upload-frontend.host" -> "localhost",
+      "microservice.services.file-upload-frontend.port" -> "8017"
     ) ++
     pushUrl.fold(Map.empty[String, String])(url => Map("routing.pushUrl" -> url)) ++
     pushDestinations.fold(Map.empty[String, String])(_.zipWithIndex.map { case (destination, i) => s"routing.destinations.$i" -> destination }.toMap)

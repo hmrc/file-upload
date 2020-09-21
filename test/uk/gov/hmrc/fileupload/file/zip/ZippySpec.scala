@@ -23,19 +23,18 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatest.{Matchers, WordSpecLike}
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import play.api.libs.iteratee.Iteratee
 import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
 import uk.gov.hmrc.fileupload.file.zip.Zippy._
 import uk.gov.hmrc.fileupload.read.envelope.Service._
 import uk.gov.hmrc.fileupload.read.envelope.{EnvelopeStatusClosed, EnvelopeStatusOpen}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, Support}
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class ZippySpec extends UnitSpec with ScalaFutures {
+class ZippySpec extends WordSpecLike with Matchers with ScalaFutures with IntegrationPatience {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -44,7 +43,6 @@ class ZippySpec extends UnitSpec with ScalaFutures {
 
   implicit val actorSystem = ActorSystem()
   implicit val materializer = ActorMaterializer()
-  implicit override val patienceConfig = PatienceConfig(timeout = Span(20, Seconds), interval = Span(20, Millis))
 
   "Zippy" should {
     "provide a zip file containing an envelope including its files in S3" in {

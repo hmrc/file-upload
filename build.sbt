@@ -30,7 +30,6 @@ lazy val microservice = Project(appName, file("."))
   .settings(
     scalaVersion := "2.12.12",
     libraryDependencies ++= AppDependencies.libraryDependencies,
-    dependencyOverrides := AppDependencies.dependencyOverrides,
     parallelExecution in Test := false,
     retrieveManaged := true,
     evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
@@ -38,11 +37,6 @@ lazy val microservice = Project(appName, file("."))
   )
   .configs(IntegrationTest)
   .settings(DefaultBuildSettings.integrationTestSettings)
-  /*.settings(
-    testGrouping in IntegrationTest := (definedTests in IntegrationTest).value.map { test =>
-      Group(test.name, Seq(test), SubProcess(ForkOptions(runJVMOptions = Seq("-Dtest.name=" + test.name))))
-    }
-  )*/
   .settings(
     resolvers += Resolver.jcenterRepo // for metrics-play
   )
