@@ -35,16 +35,16 @@ class UserAgentMetricsFilterIntegrationSpec
   }
 
   val dfsFrontend = "dfs-frontend"
-  val whitelist =
+  val allowlist =
     Set(dfsFrontend, "voa-property-linking-frontend").map(UserAgent.apply)
 
   val nginxChecks = "nginx-health"
-  val blacklist =
+  val denylist =
     Set(nginxChecks).map(UserAgent.apply)
 
   def withFilter[T](block: (UserAgentRequestFilter, MetricRegistry) => T): T = {
     val metrics = new MetricRegistry
-    val filter = new UserAgentRequestFilter(metrics, whitelist, blacklist)
+    val filter = new UserAgentRequestFilter(metrics, allowlist, denylist)
     block(filter, metrics)
   }
 
@@ -55,7 +55,7 @@ class UserAgentMetricsFilterIntegrationSpec
       name -> timer.getCount
     }.toMap
 
-  test("Timer created for User-Agent when header is white listed") {
+  test("Timer created for User-Agent when header is allow listed") {
     withFilter { (filter, metrics) =>
       val rh = FakeRequest().withHeaders(HeaderNames.USER_AGENT -> dfsFrontend)
       filter(endAction)(rh).run()
@@ -83,7 +83,7 @@ class UserAgentMetricsFilterIntegrationSpec
     }
   }
 
-  test("Timer for UnknownUserAgent is incremented when User-Agent header not in whitelist") {
+  test("Timer for UnknownUserAgent is incremented when User-Agent header not in allowlist") {
     withFilter { (filter, metrics) =>
       val rh = FakeRequest().withHeaders(HeaderNames.USER_AGENT -> UUID.randomUUID().toString)
       filter(endAction)(rh).run()

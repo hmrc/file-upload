@@ -39,7 +39,7 @@ class Filters @Inject()(
 
     val userAgentRequestFilter = new UserAgentRequestFilter(
       metricRegistry,
-      userAgentWhitelist = UserAgent.allKnown,
+      userAgentAllowlist = UserAgent.allKnown,
       userAgentIgnoreList = UserAgent.defaultIgnoreList
     )
 

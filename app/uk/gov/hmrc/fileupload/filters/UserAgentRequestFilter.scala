@@ -41,7 +41,7 @@ object UserAgent {
 
 class UserAgentRequestFilter(
   metricRegistry: MetricRegistry,
-  userAgentWhitelist: Set[UserAgent] = UserAgent.allKnown,
+  userAgentAllowlist: Set[UserAgent] = UserAgent.allKnown,
   userAgentIgnoreList: Set[UserAgent] = UserAgent.defaultIgnoreList
 )(implicit val mat: Materializer, ec: ExecutionContext) extends Filter {
 
@@ -61,11 +61,11 @@ class UserAgentRequestFilter(
       case Some(ua) if userAgentIgnoreList.contains(ua) =>
         nextFilter(rh)
 
-      case Some(ua) if userAgentWhitelist.contains(ua) =>
+      case Some(ua) if userAgentAllowlist.contains(ua) =>
         timeWith(ua)
 
       case Some(unknownUserAgent) =>
-        logger.info(s"Agent $unknownUserAgent is not in UserAgentRequestFilter whitelist for ${rh.path}")
+        logger.info(s"Agent $unknownUserAgent is not in UserAgentRequestFilter allowlist for ${rh.path}")
         timeWith(UserAgent.unknownUserAgent)
 
       case None => timeWith(UserAgent.noUserAgent)

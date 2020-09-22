@@ -86,7 +86,7 @@ class RoutingActor(
   }
 
   def routeEnvelope(envelope: Envelope): Future[Unit] = {
-    // we may want to restrict pushing to a sender whitelist too
+    // we may want to restrict pushing to a sender allowlist too
     logger.info(s"Routing envelope [${envelope._id}] from: ${envelope.sender} to: ${envelope.destination}")
 
     // we will push any envelope which has a destination in configuration list
