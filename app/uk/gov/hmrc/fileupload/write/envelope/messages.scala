@@ -108,9 +108,8 @@ object Formatters {
   implicit val sizeWrites: Writes[Size] = SizeWrites
   implicit val constraintsFormats: OFormat[EnvelopeFilesConstraints] = Json.format[EnvelopeFilesConstraints]
   implicit val envelopeCreatedFormat: Format[EnvelopeCreated] = {
-    // TODO
-    // previously we wrote dates as number (epoch seconds), jodaDateReads tries number first so is backward compatible
-    // which means we could use JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'"), to migrate format.
+    // We are actually writing the date in mongo as a number. jodaDateReads supports both number and the specified string format.
+    // (We could in theory start writing dates with JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'"), to migrate format).
     implicit val dateReads: Reads[DateTime] = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
     implicit val dateWrites: Writes[DateTime] = JodaWrites.JodaDateTimeNumberWrites
     Json.format[EnvelopeCreated]

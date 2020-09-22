@@ -73,13 +73,13 @@ class ApplicationModule @Inject()(
   val publish: (AnyRef) => Unit = actorSystem.eventStream.publish
   val withBasicAuth: BasicAuth = BasicAuth(basicAuthConfiguration(configuration))
 
-  val eventStore = if (environment.mode == Mode.Prod && configuration.getOptional[Boolean]("Prod.mongodb.replicaSetInUse").getOrElse(true)) {
+  val eventStore = if (configuration.get[Boolean]("mongodb.replicaSetInUse")) {
     new MongoEventStore(db, metrics.defaultRegistry, writeConcern = WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = true))
   } else {
     new MongoEventStore(db, metrics.defaultRegistry)
   }
 
-  val updateEnvelope = if (environment.mode == Mode.Prod && configuration.getOptional[Boolean]("Prod.mongodb.replicaSetInUse").getOrElse(true)) {
+  val updateEnvelope = if (configuration.get[Boolean]("mongodb.replicaSetInUse")) {
     envelopeRepository.update(writeConcern = WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = true)) _
   } else {
     envelopeRepository.update() _
