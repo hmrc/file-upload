@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.write.envelope
 
 import org.joda.time.DateTime
 import play.api.Logger
-import play.api.libs.json._ 
+import play.api.libs.json._
 import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
 import uk.gov.hmrc.fileupload.read.envelope.{SizeReads, SizeWrites}
 import uk.gov.hmrc.fileupload.write.infrastructure._
@@ -177,9 +177,10 @@ object EventSerializer {
       logger.info(s"Unable to create eventData of type [${eventType.value}] from json [${Json.stringify(value)}] due to errors [$errors]")
     }
 
-    // will throw NoSuchElementException("JsError.get") when jsResult is a JsError
-    // TODO would be better to explicitly throw a suitable exception on JsError so that details are not lost
-    jsResult.get
+    jsResult.fold(
+      invalid => throw new RuntimeException(s"Invalid json: $invalid"),
+      valid => valid
+    )
   }
 
   def fromEventData(eventData: EventData): JsValue =

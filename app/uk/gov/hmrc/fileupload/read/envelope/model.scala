@@ -71,7 +71,10 @@ object Envelope {
 
   def fromJson(json: JsValue, _id: EnvelopeId): Envelope = {
     val rawData = json.asInstanceOf[JsObject] ++ Json.obj("_id" -> _id)
-    Json.fromJson[Envelope](rawData).get
+    Json.fromJson[Envelope](rawData).fold(
+      invalid => throw new RuntimeException(s"Invalid json: $invalid"),
+      valid => valid
+    )
   }
 }
 
