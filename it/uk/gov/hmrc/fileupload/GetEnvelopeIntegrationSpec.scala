@@ -2,7 +2,7 @@ package uk.gov.hmrc.fileupload
 
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatest.concurrent.IntegrationPatience
 import play.api.libs.json.{JsValue, _}
 import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport.requestBodyWithConstraints
@@ -14,16 +14,18 @@ import uk.gov.hmrc.fileupload.write.envelope.QuarantineFile
   * Create Envelope and Get Envelope
   *
   */
-class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions with EventsActions {
+class GetEnvelopeIntegrationSpec
+  extends IntegrationSpec
+     with EnvelopeActions
+     with EventsActions
+     with IntegrationPatience {
 
   val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
   val today = new DateTime().plusMinutes(10)
 
-  implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(50, Millis))
+  Feature("Retrieve Envelope") {
 
-  feature("Retrieve Envelope") {
-
-    scenario("GET Envelope responds with an ID") {
+    Scenario("GET Envelope responds with an ID") {
       Given("I have a valid envelope id")
       val createResponse = createEnvelope("{}")
       createResponse.status should equal(CREATED)
@@ -59,7 +61,7 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       }
     }
 
-    scenario("GET Envelope responds with a list of files when envelope not empty") {
+    Scenario("GET Envelope responds with a list of files when envelope not empty") {
       Given("I have an envelope with files")
       val createResponse = createEnvelope("{}")
       createResponse.status should equal(CREATED)
@@ -99,7 +101,7 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
 
     }
 
-    scenario("GET envelope using invalid ID") {
+    Scenario("GET envelope using invalid ID") {
       Given("I have an invalid envelope id")
       val envelopeId = EnvelopeId()
 
@@ -110,8 +112,7 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       envelopeResponse.status shouldBe NOT_FOUND
     }
 
-    scenario("GET Envelope responds with constraints on maxItems, maxSize, maxSizePerItem and contentTypes") {
-
+    Scenario("GET Envelope responds with constraints on maxItems, maxSize, maxSizePerItem and contentTypes") {
       val formattedExpiryDate: String = formatter.print(today)
 
       Given("I have an envelope with constraints on maxSize and maxSizePerItem but NOT maxItems")
@@ -148,10 +149,9 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
     }
   }
 
-  feature("Create Envelope without constraints") {
+  Feature("Create Envelope without constraints") {
 
-    scenario("Create a new Envelope without constraints") {
-
+    Scenario("Create a new Envelope without constraints") {
       Given("a create envelope request without any constraint")
       val json = "{}"
 
@@ -184,7 +184,6 @@ class GetEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions wi
       And("the default maxItems of 100 should be applied")
       val actualMaxItems = ((parsedBody \ "constraints") \ "maxItems").as[Int]
       actualMaxItems shouldBe 100
-
     }
   }
 }

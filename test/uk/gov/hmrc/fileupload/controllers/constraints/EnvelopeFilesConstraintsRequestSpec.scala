@@ -69,9 +69,9 @@ class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeComm
       Some("10MB"), allowZeroLengthFiles = Some(true)), envelopeConstraintsConfigure).right.get)
   }
 
-  feature("CreateEnvelope with constraints") {
+  Feature("CreateEnvelope with constraints") {
 
-    scenario("Create new envelope with out set max. no. of files constraint") {
+    Scenario("Create new envelope with out set max. no. of files constraint") {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
@@ -80,7 +80,7 @@ class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeComm
       )
     }
 
-    scenario("Create new envelope with out the constraint for Max size per envelope") {
+    Scenario("Create new envelope with out the constraint for Max size per envelope") {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
@@ -89,7 +89,7 @@ class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeComm
       )
     }
 
-    scenario("Create new envelope with out the constraint for Max size per item") {
+    Scenario("Create new envelope with out the constraint for Max size per item") {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
@@ -98,7 +98,7 @@ class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeComm
       )
     }
 
-    scenario("Create new envelope with out the constraint for content type") {
+    Scenario("Create new envelope with out the constraint for content type") {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
@@ -107,7 +107,7 @@ class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeComm
       )
     }
 
-    scenario("Create new envelope with number of items exceeding limit") {
+    Scenario("Create new envelope with number of items exceeding limit") {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
@@ -116,7 +116,7 @@ class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeComm
       )
     }
 
-    scenario("Create new envelope with number of items < 1") {
+    Scenario("Create new envelope with number of items < 1") {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
@@ -125,7 +125,7 @@ class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeComm
       )
     }
 
-    scenario("Create new envelope not over bounds max size per item constraint") {
+    Scenario("Create new envelope not over bounds max size per item constraint") {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
@@ -134,7 +134,7 @@ class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeComm
       )
     }
 
-    scenario("Create new envelope not over bounds max size constraint") {
+    Scenario("Create new envelope not over bounds max size constraint") {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
@@ -143,7 +143,7 @@ class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeComm
       )
     }
 
-    scenario("Create new envelope with out valid content type") {
+    Scenario("Create new envelope with out valid content type") {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some(fakeUrl), Some(fakeDateTime), Some(fakeData),
@@ -151,7 +151,5 @@ class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeComm
         envelopeCreatedByDefaultStatus
       )
     }
-
   }
-
 }

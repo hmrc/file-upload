@@ -4,7 +4,7 @@ import java.io.RandomAccessFile
 
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
-import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatest.concurrent.IntegrationPatience
 import play.api.libs.json.Json
 import play.api.libs.ws._
 import uk.gov.hmrc.fileupload.support._
@@ -16,15 +16,19 @@ import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, QuarantineFile, S
   * Download File
   *
   */
-class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions with FakeFrontendService {
-
-  implicit override val patienceConfig = PatienceConfig(timeout = Span(45, Seconds), interval = Span(500, Millis))
+class DownloadFileIntegrationSpec
+  extends IntegrationSpec
+     with EnvelopeActions
+     with FileActions
+     with EventsActions
+     with FakeFrontendService
+     with IntegrationPatience {
 
   val data = "{'name':'pete'}"
-  feature("Download File") {
 
-    scenario("Check that a file can be downloaded") {
+  Feature("Download File") {
 
+    Scenario("Check that a file can be downloaded") {
       Given("I have a valid envelope id")
       val envelopeId = createEnvelope()
 
@@ -62,8 +66,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
       response.header("Content-Disposition") shouldBe Some("attachment; filename=\"test.pdf\"")
     }
 
-    scenario("File can not be found") {
-
+    Scenario("File can not be found") {
       Given("I have a valid envelope id")
       val envelopeId = createEnvelope()
 
@@ -77,8 +80,7 @@ class DownloadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions w
       response.status shouldBe NOT_FOUND
     }
 
-    scenario("Valid file can be downloaded") {
-
+    Scenario("Valid file can be downloaded") {
       Given("I have a valid envelope ID")
       val envelopeId = createEnvelope()
 

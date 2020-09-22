@@ -2,23 +2,26 @@ package uk.gov.hmrc.fileupload
 
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
-import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatest.concurrent.IntegrationPatience
 import play.api.libs.json.Json
 import play.api.libs.ws._
 import uk.gov.hmrc.fileupload.support._
 import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, QuarantineFile, StoreFile}
 
 
-class DownloadEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions with FakeFrontendService {
-
-  implicit override val patienceConfig = PatienceConfig(timeout = Span(10, Seconds), interval = Span(500, Millis))
+class DownloadEnvelopeIntegrationSpec
+  extends IntegrationSpec
+     with EnvelopeActions
+     with FileActions
+     with EventsActions
+     with FakeFrontendService
+     with IntegrationPatience {
 
   val uid = "GDaUeyIiOYoFALm.fMwt4NBMEAAn3diu"
 
-  feature("Download Envelope with files") {
+  Feature("Download Envelope with files") {
 
-    scenario("A client can download an envelope including its file ~containing random UTF-8 string") {
-
+    Scenario("A client can download an envelope including its file ~containing random UTF-8 string") {
       val uidRegexPattern = "[a-z0-9-]*"
       mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/internal-file-upload/download/envelopes/$uidRegexPattern/files/$uidRegexPattern"))
         .willReturn(WireMock.aResponse().withStatus(200).withBody("sampleFileContent".getBytes)))

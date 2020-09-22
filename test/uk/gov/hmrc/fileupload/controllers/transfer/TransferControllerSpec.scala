@@ -16,11 +16,10 @@
 
 package uk.gov.hmrc.fileupload.controllers.transfer
 
-import org.mockito.Mockito.when
-import org.scalatest.{Matchers, WordSpecLike}
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.MockitoSugar
+import org.scalatest.concurrent.{ScalaFutures, IntegrationPatience}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.http.Status
 import play.api.mvc.ControllerComponents
 import play.api.test.FakeRequest
@@ -33,14 +32,12 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandErro
 import scala.concurrent.{ExecutionContext, Future}
 
 class TransferControllerSpec
-  extends WordSpecLike
+  extends AnyWordSpecLike
      with Matchers
      with TestApplicationComponents
      with MockitoSugar
-     with ScalaFutures {
-
-  implicit val defaultPatience =
-    PatienceConfig(timeout = Span(5, Seconds), interval = Span(500, Millis))
+     with ScalaFutures
+     with IntegrationPatience {
 
   implicit val ec = ExecutionContext.global
 

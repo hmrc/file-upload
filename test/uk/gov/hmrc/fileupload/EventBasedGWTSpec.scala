@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.fileupload
 
-import org.scalatest.{FeatureSpec, Matchers}
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 import uk.gov.hmrc.fileupload.write.infrastructure.{Command, CommandNotAccepted, EventData, Handler}
 
-trait EventBasedGWTSpec[C <: Command, S] extends FeatureSpec with Matchers {
+trait EventBasedGWTSpec[C <: Command, S] extends AnyFeatureSpec with Matchers {
 
   def handler: Handler[C, S]
 

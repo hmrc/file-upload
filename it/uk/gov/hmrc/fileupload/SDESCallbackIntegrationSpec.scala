@@ -8,8 +8,8 @@ import uk.gov.hmrc.fileupload.support.{ActionsSupport, IntegrationSpec}
 
 class SDESCallbackIntegrationSpec extends IntegrationSpec with ActionsSupport {
 
-  feature("SDES Callbacks") {
-    scenario("handle SDES callbacks and return OK") {
+  Feature("SDES Callbacks") {
+    Scenario("handle SDES callbacks and return OK") {
       val item = notificationItem(FileReceived)
       val response =
         client
@@ -20,7 +20,7 @@ class SDESCallbackIntegrationSpec extends IntegrationSpec with ActionsSupport {
       response.status shouldBe OK
     }
 
-    scenario("return 400 Bad Request if JSON cannot be parsed") {
+    Scenario("return 400 Bad Request if JSON cannot be parsed") {
       val response =
         client
           .url(s"$fileRoutingUrl/sdes-callback")

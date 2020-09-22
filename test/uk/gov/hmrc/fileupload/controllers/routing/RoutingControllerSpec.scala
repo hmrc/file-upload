@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.fileupload.controllers.routing
 
-import org.mockito.Mockito.when
-import org.scalatest.{Matchers, OptionValues, WordSpecLike}
+import org.mockito.MockitoSugar
+import org.scalatest.OptionValues
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatestplus.mockito.MockitoSugar
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.libs.json.Json
 import play.api.mvc.ControllerComponents
 import play.api.test.FakeRequest
@@ -32,7 +33,7 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, TestApplicationComponents}
 import scala.concurrent.{ExecutionContext, Future}
 
 class RoutingControllerSpec
-  extends WordSpecLike
+  extends AnyWordSpecLike
      with Matchers
      with MockitoSugar
      with TestApplicationComponents

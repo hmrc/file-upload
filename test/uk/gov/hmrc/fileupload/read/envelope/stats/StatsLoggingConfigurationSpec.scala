@@ -16,13 +16,14 @@
 
 package uk.gov.hmrc.fileupload.read.envelope.stats
 
-import org.scalatest.{Matchers, WordSpecLike}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.Configuration
 import uk.gov.hmrc.fileupload.read.stats.StatsLoggingConfiguration
 
 import scala.concurrent.duration.DurationInt
 
-class StatsLoggingConfigurationSpec extends WordSpecLike with Matchers {
+class StatsLoggingConfigurationSpec extends AnyWordSpecLike with Matchers {
 
   "Given a valid set of configuration values, creating logging configuration" should {
     "return the expected logging configuration" in {

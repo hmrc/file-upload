@@ -2,8 +2,10 @@ package uk.gov.hmrc.fileupload.support
 
 import java.util.UUID
 
-import org.scalatest.{BeforeAndAfterEach, FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.{BeforeAndAfterEach, GivenWhenThen}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 import play.api.http.Status
 import uk.gov.hmrc.fileupload.read.envelope.Repository
 import uk.gov.hmrc.mongo.MongoSpecSupport
@@ -12,7 +14,7 @@ import scala.concurrent.ExecutionContext.Implicits._
 import scala.util.Random
 
 trait IntegrationSpec
-  extends FeatureSpec
+  extends AnyFeatureSpec
      with GivenWhenThen
      with ScalaFutures
      with Matchers

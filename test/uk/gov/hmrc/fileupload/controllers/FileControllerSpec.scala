@@ -22,10 +22,11 @@ import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
-import org.mockito.Mockito.when
-import org.scalatest.{Matchers, OptionValues, WordSpecLike}
+import org.mockito.MockitoSugar
+import org.scalatest.OptionValues
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import org.scalatestplus.mockito.MockitoSugar
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.http.{HeaderNames, Status}
 import play.api.mvc._
 import play.api.test.FakeRequest
@@ -39,7 +40,7 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotA
 import scala.concurrent.{ExecutionContext, Future}
 
 class FileControllerSpec
-  extends WordSpecLike
+  extends AnyWordSpecLike
      with Matchers
      with TestApplicationComponents
      with MockitoSugar

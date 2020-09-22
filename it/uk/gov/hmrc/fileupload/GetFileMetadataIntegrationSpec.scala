@@ -13,9 +13,9 @@ import uk.gov.hmrc.fileupload.write.envelope.QuarantineFile
   */
 class GetFileMetadataIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
 
-  feature("Retrieve Metadata") {
+  Feature("Retrieve Metadata") {
 
-    scenario("GET metadata with valid envelope id") {
+    Scenario("GET metadata with valid envelope id") {
       Given("I have a valid envelope ID")
       val envelopeId = createEnvelope()
       val fileId = FileId(s"fileId-${nextId()}") // fixme, should be nextUtf8String, manual test passed
@@ -40,8 +40,7 @@ class GetFileMetadataIntegrationSpec extends IntegrationSpec with EnvelopeAction
       prettify(response.body) shouldBe responseBody(envelopeId, fileId)
     }
 
-    scenario("GET metadata with invalid envelope id") {
-
+    Scenario("GET metadata with invalid envelope id") {
       Given("I have an invalid envelope ID")
       val envelopeId = EnvelopeId("invalidEnvelopeId")
       val fileId = FileId("invalidFileID")

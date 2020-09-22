@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.fileupload
 
-import org.scalatest.{Matchers, WordSpecLike}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.fileupload.controllers.GetFileMetadataReport
 
 
-class HrefSpec extends WordSpecLike with Matchers {
+class HrefSpec extends AnyWordSpecLike with Matchers {
 
   "Href generation" should {
     "handle percentage" in {

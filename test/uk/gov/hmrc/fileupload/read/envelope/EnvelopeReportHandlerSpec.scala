@@ -17,7 +17,8 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 import org.joda.time.{DateTime, DateTimeZone}
-import org.scalatest.{Matchers, WordSpecLike}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.Support.fileRefId
 import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
@@ -27,10 +28,9 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 import scala.concurrent.Future
 
-class EnvelopeReportHandlerSpec extends WordSpecLike with Matchers {
+class EnvelopeReportHandlerSpec extends AnyWordSpecLike with Matchers {
 
   import scala.concurrent.ExecutionContext.Implicits.global
-
 
   val envelopeConstraints = Some(EnvelopeFilesConstraints(maxItems = 10,
     maxSize = Size("100MB").right.get,

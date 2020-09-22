@@ -1,6 +1,6 @@
 package uk.gov.hmrc.fileupload
 
-import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatest.concurrent.IntegrationPatience
 import play.api.libs.json.Json
 import play.api.libs.ws._
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActions, IntegrationSpec}
@@ -11,13 +11,16 @@ import uk.gov.hmrc.fileupload.write.envelope.{QuarantineFile, StoreFile}
   * Delete File
   *
   */
-class DeleteFileIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
+class DeleteFileIntegrationSpec
+  extends IntegrationSpec
+     with EnvelopeActions
+     with FileActions
+     with EventsActions
+     with IntegrationPatience {
 
-  implicit override val patienceConfig = PatienceConfig(timeout = Span(20, Seconds), interval = Span(5, Millis))
+  Feature("Delete file") {
 
-  feature("Delete file") {
-
-    scenario("Delete an existing file") {
+    Scenario("Delete an existing file") {
       Given("I have a valid envelope-id")
       val envelopeId = createEnvelope()
 

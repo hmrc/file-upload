@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import org.scalatest.{Matchers, WordSpecLike}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.libs.json.Json.parse
 import play.api.test.Helpers._
 import uk.gov.hmrc.fileupload.read.envelope.ValidationException
@@ -24,7 +25,7 @@ import uk.gov.hmrc.http.BadRequestException
 
 import scala.concurrent.Future
 
-class ExceptionHandlerSpec extends WordSpecLike with Matchers {
+class ExceptionHandlerSpec extends AnyWordSpecLike with Matchers {
   import uk.gov.hmrc.fileupload.Support.StreamImplicits.materializer
 
   "exception handler" should {

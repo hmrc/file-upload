@@ -18,10 +18,11 @@ package uk.gov.hmrc.fileupload.read.envelope.stats
 
 import java.time.{LocalDateTime, ZoneId}
 
-import org.mockito.Mockito.verify
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
+import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.{Eventually, IntegrationPatience, ScalaFutures}
-import org.scalatestplus.mockito.MockitoSugar
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.fileupload.read.stats._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 import uk.gov.hmrc.mongo.MongoSpecSupport
@@ -31,7 +32,7 @@ import scala.concurrent.duration.DurationInt
 
 class StatsLoggerSpec
   extends MongoSpecSupport
-     with WordSpecLike
+     with AnyWordSpecLike
      with Matchers
      with MockitoSugar
      with Eventually

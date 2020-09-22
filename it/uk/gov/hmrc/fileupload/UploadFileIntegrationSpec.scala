@@ -1,6 +1,6 @@
 package uk.gov.hmrc.fileupload
 
-import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatest.concurrent.IntegrationPatience
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws._
 import uk.gov.hmrc.fileupload.support._
@@ -11,16 +11,19 @@ import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, QuarantineFile, S
   * Upload File
   *
   */
-class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
+class UploadFileIntegrationSpec
+  extends IntegrationSpec
+     with EnvelopeActions
+     with FileActions
+     with EventsActions
+     with IntegrationPatience {
 
-  implicit override val patienceConfig = PatienceConfig(timeout = Span(20, Seconds), interval = Span(5, Millis))
-
-  feature("Upload File") {
+  Feature("Upload File") {
 
     info("I want to upload a file")
     info("So that I can persist it in the the database")
 
-    scenario("Add file to envelope (valid)") {
+    Scenario("Add file to envelope (valid)") {
 
       Given("I have a valid envelope-id")
       stubCallback()
@@ -50,7 +53,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       response.status shouldBe OK
     }
 
-    scenario("Add valid 3MB file to envelope") {
+    Scenario("Add valid 3MB file to envelope") {
       val fileSize = (1024 * 1024 * 3).toLong
       Given("I have a valid envelope-id")
       val envelopeId = createEnvelope()
@@ -76,7 +79,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       response.status shouldBe OK
     }
 
-    scenario("Add multiple files to envelope") {
+    Scenario("Add multiple files to envelope") {
       Given("I have an envelope-id with an existing file attached")
       val envelopeId = createEnvelope()
       val firstFileId = FileId(s"fileId-${nextUtf8String()}")
@@ -109,7 +112,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       (envelope.json \ "files").as[List[JsObject]].size shouldBe 2
     }
 
-    scenario("Add file with invalid envelope-id") {
+    Scenario("Add file with invalid envelope-id") {
       Given("I have a invalid envelope-id")
       val envelopeId = EnvelopeId("invalidId")
 
@@ -129,7 +132,7 @@ class UploadFileIntegrationSpec extends IntegrationSpec with EnvelopeActions wit
       response.status shouldBe NOT_FOUND
     }
 
-    scenario("Add file with no file attached") {
+    Scenario("Add file with no file attached") {
       Given("I have a valid envelope-id")
       val envelopeId = createEnvelope()
 

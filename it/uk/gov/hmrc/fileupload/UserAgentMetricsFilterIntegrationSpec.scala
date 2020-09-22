@@ -5,20 +5,26 @@ import java.util.UUID
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.codahale.metrics.MetricRegistry
-import org.scalatest.concurrent.Eventually
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.concurrent.{Eventually, IntegrationPatience}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.funsuite.AnyFunSuite
 import play.api.http.HeaderNames
 import play.api.mvc.Action
 import play.api.mvc.Results.Ok
 import play.api.test.FakeRequest
 import uk.gov.hmrc.fileupload.filters.{UserAgent, UserAgentRequestFilter}
 
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.collection.JavaConverters._
 
-class UserAgentMetricsFilterIntegrationSpec extends FunSuite with BeforeAndAfterAll with Matchers with Eventually {
+class UserAgentMetricsFilterIntegrationSpec
+  extends AnyFunSuite
+     with BeforeAndAfterAll
+     with Matchers
+     with Eventually
+     with IntegrationPatience {
 
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
@@ -35,8 +41,6 @@ class UserAgentMetricsFilterIntegrationSpec extends FunSuite with BeforeAndAfter
   val nginxChecks = "nginx-health"
   val blacklist =
     Set(nginxChecks).map(UserAgent.apply)
-
-  implicit val patience: PatienceConfig = PatienceConfig(5.seconds, 1.second)
 
   def withFilter[T](block: (UserAgentRequestFilter, MetricRegistry) => T): T = {
     val metrics = new MetricRegistry

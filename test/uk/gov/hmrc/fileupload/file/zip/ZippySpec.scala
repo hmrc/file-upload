@@ -23,8 +23,9 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
-import org.scalatest.{Matchers, WordSpecLike}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.libs.iteratee.Iteratee
 import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
 import uk.gov.hmrc.fileupload.file.zip.Zippy._
@@ -34,7 +35,7 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, Support}
 
 import scala.concurrent.Future
 
-class ZippySpec extends WordSpecLike with Matchers with ScalaFutures with IntegrationPatience {
+class ZippySpec extends AnyWordSpecLike with Matchers with ScalaFutures with IntegrationPatience {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 

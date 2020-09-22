@@ -20,10 +20,11 @@ import akka.stream.scaladsl.Source
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
 import org.joda.time.DateTime
-import org.mockito.Mockito.when
-import org.scalatest.{Inside, Matchers, WordSpecLike}
+import org.mockito.MockitoSugar
+import org.scalatest.Inside
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import org.scalatestplus.mockito.MockitoSugar
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.http.{HeaderNames, Status}
 import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, Result}
@@ -39,7 +40,7 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotA
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
 class EnvelopeControllerSpec
-  extends WordSpecLike
+  extends AnyWordSpecLike
      with Matchers
      with MockitoSugar
      with TestApplicationComponents
