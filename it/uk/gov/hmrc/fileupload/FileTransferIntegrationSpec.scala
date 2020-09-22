@@ -2,6 +2,7 @@ package uk.gov.hmrc.fileupload
 
 import java.net.URL
 
+import org.scalatest.concurrent.IntegrationPatience
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.fileupload.read.routing.{Algorithm, Audit, Checksum, FileTransferFile, FileTransferNotification, Property, RoutingRepository, ZipData}
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FakePushService, FakeFrontendService, IntegrationSpec}
@@ -10,10 +11,14 @@ class FileTransferIntegrationSpec
   extends IntegrationSpec
      with EnvelopeActions
      with FakePushService
-     with FakeFrontendService {
+     with FakeFrontendService
+     with IntegrationPatience {
 
   override lazy val pushUrl = Some(pushServiceUrl)
   override lazy val pushDestinations = Some(List("DMS"))
+
+  def countSubstring(str: String, substr: String) =
+    substr.r.findAllMatchIn(str).length
 
   Feature("File Transfer list") {
     Scenario("List Envelopes for a given destination") {
@@ -59,6 +64,7 @@ class FileTransferIntegrationSpec
         val response = getEnvelopesForStatus(status = List("CLOSED"), inclusive = true)
         response.status shouldBe OK
         response.body.isEmpty shouldBe false
+        countSubstring(response.body, "CLOSED") shouldBe 2
       }
 
       When(s"I invoke GET /file-transfer/envelopes (without passing destination")
