@@ -28,7 +28,7 @@ import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, OutputForTransfer}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -53,7 +53,7 @@ class TransferController @Inject()(
     }
   }
 
-  def download(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId) = Action.async { implicit request =>
+  def download(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId) = Action.async {
     zipEnvelope(envelopeId) map {
       case Right(stream) =>
         val keepOnlyNonEmptyArrays = Enumeratee.filter[Array[Byte]] { _.length > 0 }
@@ -68,7 +68,7 @@ class TransferController @Inject()(
     }
   }
 
-  def delete(envelopeId: EnvelopeId) = Action.async { implicit request =>
+  def delete(envelopeId: EnvelopeId) = Action.async {
     handleCommand(ArchiveEnvelope(envelopeId)).map {
       case Right(_) => Ok
       case Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)

@@ -24,7 +24,7 @@ import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.utils.NumberFormatting.formatAsKiloOrMegabytes
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -34,6 +34,8 @@ class RoutingController @Inject()(
   cc: ControllerComponents
 )(implicit executionContext: ExecutionContext
 ) extends BackendController(cc) {
+
+  private val logger = Logger(getClass)
 
   val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
   val newId: () => String = appModule.newId
@@ -58,7 +60,7 @@ class RoutingController @Inject()(
         case Left(EnvelopeNotFoundError) =>
           ExceptionHandler(BAD_REQUEST, s"Envelope with id: $envelopeId not found")
         case Left(otherError) =>
-          Logger.warn(otherError.toString)
+          logger.warn(otherError.toString)
           ExceptionHandler(BAD_REQUEST, otherError.toString)
       }.recover { case e => ExceptionHandler(e) }
     }

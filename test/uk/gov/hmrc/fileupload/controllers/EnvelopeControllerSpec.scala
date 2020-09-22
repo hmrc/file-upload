@@ -308,7 +308,7 @@ class EnvelopeControllerSpec
   "Get Metadata" should {
     "return an  envelope resource when request id is valid" in {
       val envelopeId = EnvelopeId()
-      val file = File(FileId(), FileRefId(), FileStatusQuarantined)
+      val file = File(FileId(), fileRefId(), FileStatusQuarantined)
       val request = FakeRequest()
 
       val controller = newController(findMetadata = (_, _) => Future.successful(Right(file)))

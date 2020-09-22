@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.fileupload
 
+import java.util.UUID
+
 import akka.actor.{Actor, ActorRef, ActorSystem}
 import akka.stream.{ActorMaterializer, Materializer}
 import akka.testkit.TestActorRef
@@ -76,6 +78,9 @@ object Support {
   val envelopeNotFound: WithValidEnvelope = new WithValidEnvelope(
     _ => Future.successful(None)
   )
+
+  def fileRefId(): FileRefId =
+    FileRefId(UUID.randomUUID().toString)
 
   object Implicits {
     implicit def underLyingActor[T <: Actor](actorRef: ActorRef): T = actorRef.asInstanceOf[TestActorRef[T]].underlyingActor

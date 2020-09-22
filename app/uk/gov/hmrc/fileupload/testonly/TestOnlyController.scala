@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.testonly
 import javax.inject.{Inject, Singleton}
 import play.api.mvc.ControllerComponents
 import uk.gov.hmrc.fileupload.ApplicationModule
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 @Singleton
 class TestOnlyController @Inject()(

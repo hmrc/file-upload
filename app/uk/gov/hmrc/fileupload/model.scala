@@ -65,10 +65,6 @@ case class FileRefId(value: String) extends AnyVal {
 }
 
 object FileRefId {
-  // UUID was valid only for mongo refs, S3 has different meaning here
-  @deprecated("only for test compatibility", "migration issue workaround")
-  def apply(): FileRefId = FileRefId(UUID.randomUUID().toString)
-
   implicit val writes = new Writes[FileRefId] {
     def writes(id: FileRefId): JsValue = JsString(id.value)
   }

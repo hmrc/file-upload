@@ -54,6 +54,8 @@ class ApplicationModule @Inject()(
   val materializer: akka.stream.Materializer
 ) extends AhcWSComponents {
 
+  private val logger = Logger(getClass)
+
   lazy val db = reactiveMongoComponent.mongoConnector.db
 
   implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
@@ -104,7 +106,7 @@ class ApplicationModule @Inject()(
   }
 
   lazy val auditedHttpExecute = PlayHttp.execute(auditConnector,
-    "file-upload", Some(t => Logger.warn(t.getMessage, t))) _
+    "file-upload", Some(t => logger.warn(t.getMessage, t))) _
 
   // notifier
   lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute, wsClient) _

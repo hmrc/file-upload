@@ -27,7 +27,7 @@ import uk.gov.hmrc.fileupload.{ApplicationModule, EnvelopeId}
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.write.envelope.{ArchiveEnvelope, EnvelopeArchivedError, EnvelopeCommand, EnvelopeNotFoundError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
@@ -39,11 +39,13 @@ class SDESCallbackController @Inject()(
 )(implicit executionContext: ExecutionContext
 ) extends BackendController(cc) {
 
+  private val logger = Logger(getClass)
+
   val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
 
   def callback() = Action.async(parse.json) { implicit request =>
     withJsonBody[NotificationItem] { item =>
-      Logger.info(s"Received SDES callback: $item")
+      logger.info(s"Received SDES callback: $item")
 
       // we only action items that are 'FileProcessed'; we delete the corresponding envelopes.
       // we have no retry mechanisms built that will retry if we're notified of an error here.
@@ -59,7 +61,7 @@ class SDESCallbackController @Inject()(
     handleCommand(ArchiveEnvelope(envelopeId)).map {
       case Right(_) => Ok
       case Left(EnvelopeArchivedError) =>
-        Logger.info(s"Received another request to delete envelope [$envelopeId]. It was previously deleted")
+        logger.info(s"Received another request to delete envelope [$envelopeId]. It was previously deleted")
         Ok
       case Left(EnvelopeNotFoundError) => ExceptionHandler(BAD_REQUEST, s"CorrelationId $envelopeId not found")
       case Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
@@ -75,10 +77,10 @@ class SDESCallbackController @Inject()(
     Try(request.body.validate[T]) match {
       case Success(JsSuccess(payload, _)) => f(payload)
       case Success(JsError(errs)) =>
-        Logger.warn(s"Failed to parse ${m.runtimeClass.getSimpleName} payload. Errors: [$errs] Payload: [${request.body}]")
+        logger.warn(s"Failed to parse ${m.runtimeClass.getSimpleName} payload. Errors: [$errs] Payload: [${request.body}]")
         Future.successful(BadRequest(s"Invalid ${m.runtimeClass.getSimpleName} payload: $errs"))
       case Failure(e) =>
-        Logger.warn(s"Completely failed to parse body due to ${e.getMessage}. Payload [${request.body}]")
+        logger.warn(s"Completely failed to parse body due to ${e.getMessage}. Payload [${request.body}]")
         Future.successful(BadRequest(s"could not parse body due to ${e.getMessage}"))
     }
 }

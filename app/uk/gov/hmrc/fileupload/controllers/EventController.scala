@@ -23,7 +23,7 @@ import uk.gov.hmrc.fileupload.ApplicationModule
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.GetResult
 import uk.gov.hmrc.fileupload.write.infrastructure.{StreamId, Event => DomainEvent, EventSerializer => _}
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -39,7 +39,7 @@ class EventController @Inject()(
 
   implicit val eventWrites = EventSerializer.eventWrite
 
-  def get(streamId: StreamId) = Action.async { implicit request =>
+  def get(streamId: StreamId) = Action.async {
     unitOfWorks(streamId) map {
       case Right(r) =>
         Ok(Json.toJson(r.flatMap(_.events)))
@@ -48,7 +48,7 @@ class EventController @Inject()(
     }
   }
 
-  def replay(streamId: StreamId) = Action.async { implicit request =>
+  def replay(streamId: StreamId) = Action.async {
     unitOfWorks(streamId).map {
       case Right(sequence) =>
         publishAllEvents(sequence.flatMap(_.events))

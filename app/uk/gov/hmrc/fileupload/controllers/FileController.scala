@@ -25,18 +25,21 @@ import play.api.libs.ws.WSClient
 import play.api.mvc._
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, FileStatusAvailable, WithValidEnvelope}
+import uk.gov.hmrc.fileupload.read.envelope.{FileStatusAvailable, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeCommand
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class RetrieveFile(wsClient: WSClient, baseUrl: String) {
+
+  private val logger = Logger(getClass)
+
   def download(envelopeId: EnvelopeId, fileId: FileId)(implicit ec: ExecutionContext): Future[Source[ByteString, _]] = {
     val encodedFileId = implicitly[PathBindable[uk.gov.hmrc.fileupload.FileId]].unbind("fileId", fileId)
     val downloadUrl = s"$baseUrl/internal-file-upload/download/envelopes/$envelopeId/files/$encodedFileId"
-    Logger.debug(s"Downloading $downloadUrl")
+    logger.debug(s"Downloading $downloadUrl")
     val t1 = System.nanoTime()
     val data = wsClient.url(downloadUrl)
       .withHttpHeaders("User-Agent" -> "FU-backend")
@@ -44,7 +47,7 @@ class RetrieveFile(wsClient: WSClient, baseUrl: String) {
       .map(_.bodyAsSource)
     data.foreach { _ =>
       val lapse = (System.nanoTime() - t1) / (1000 * 1000)
-      Logger.info(s"Downloading file: url=$downloadUrl time=$lapse ms")
+      logger.info(s"Downloading file: url=$downloadUrl time=$lapse ms")
     }
     data
   }
@@ -57,20 +60,22 @@ class FileController @Inject()(
 )(implicit executionContext: ExecutionContext
 ) extends BackendController(cc) {
 
+  private val logger = Logger(getClass)
+
   val withBasicAuth: BasicAuth = appModule.withBasicAuth
   val retrieveFileS3: (EnvelopeId, FileId) => Future[Source[ByteString, _]] = appModule.getFileFromS3
   val withValidEnvelope: WithValidEnvelope = appModule.withValidEnvelope
   val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
 
   def downloadFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { implicit request =>
-    Logger.info(s"downloadFile: envelopeId=$envelopeId fileId=$fileId")
+    logger.info(s"downloadFile: envelopeId=$envelopeId fileId=$fileId")
 
     withBasicAuth {
       withValidEnvelope(envelopeId) { envelope =>
         val foundFile = envelope.getFileById(fileId)
         if (foundFile.map(_.status).exists(_ != FileStatusAvailable))
           Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId in envelope: $envelopeId is not ready for download."))
-        else {
+        else
           foundFile.map { f =>
             val (filename, fileRefId, lengthO) = (f.name, f.fileRefId, f.length)
               retrieveFileS3(envelopeId, fileId).map { source =>
@@ -82,14 +87,13 @@ class FileController @Inject()(
                   case Some(length) =>
                     caseBase.withHeaders(CONTENT_LENGTH -> s"$length")
                   case None =>
-                    Logger.error(s"No file length detected for: envelopeId=$envelopeId fileId=$fileId. Trying to download it without length set.")
+                    logger.error(s"No file length detected for: envelopeId=$envelopeId fileId=$fileId. Trying to download it without length set.")
                     caseBase
                 }
               }
           }.getOrElse {
             Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId"))
           }
-        }
       }
     }
   }

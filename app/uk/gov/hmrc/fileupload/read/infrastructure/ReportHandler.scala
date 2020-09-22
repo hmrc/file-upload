@@ -25,6 +25,8 @@ import scala.util.{Failure, Success}
 
 trait ReportHandler[T, Id] {
 
+  private val logger = Logger(getClass)
+
   def toId: StreamId => Id
   def update: (T, Boolean) => Future[UpdateResult]
   def delete: Id => Future[DeleteResult]
@@ -56,14 +58,14 @@ trait ReportHandler[T, Id] {
             case Success(result) =>
               result match {
                 case Right(_) =>
-                  Logger.info(s"Report successfully updated $updatedVersion")
+                  logger.info(s"Report successfully updated $updatedVersion")
                 case Left(NewerVersionAvailable) =>
-                  Logger.info(s"Report not stored: NewerVersionAvailable for $updatedVersion")
+                  logger.info(s"Report not stored: NewerVersionAvailable for $updatedVersion")
                 case Left(NotUpdatedError(m)) =>
-                  Logger.info(s"Report not stored: NoUpdatedError $m for $updatedVersion")
+                  logger.info(s"Report not stored: NoUpdatedError $m for $updatedVersion")
               }
             case Failure(f) =>
-              Logger.info(s"Report not stored: ${f.getMessage} for $updatedVersion")
+              logger.info(s"Report not stored: ${f.getMessage} for $updatedVersion")
           }
         case None =>
           remove(id)
@@ -76,12 +78,12 @@ trait ReportHandler[T, Id] {
       case Success(result) =>
         result match {
           case Right(_) =>
-            Logger.info(s"Report successfully deleted $id")
+            logger.info(s"Report successfully deleted $id")
           case Left(DeleteError(m)) =>
-            Logger.info(s"Report not deleted: $m for $id")
+            logger.info(s"Report not deleted: $m for $id")
         }
       case Failure(f) =>
-        Logger.info(s"Report not deleted: ${f.getMessage} for $id")
+        logger.info(s"Report not deleted: ${f.getMessage} for $id")
     }
 
   def apply: PartialFunction[(T, EventData), Option[T]]

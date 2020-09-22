@@ -18,7 +18,8 @@ package uk.gov.hmrc.fileupload.read.envelope
 
 import org.scalatest.{Matchers, WordSpecLike}
 import org.scalatest.concurrent.ScalaFutures
-import uk.gov.hmrc.fileupload.{FileId, FileRefId}
+import uk.gov.hmrc.fileupload.FileId
+import uk.gov.hmrc.fileupload.Support.fileRefId
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindEnvelopeNotFoundError, FindServiceError}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -58,7 +59,7 @@ class ServiceSpec extends WordSpecLike with Matchers with ScalaFutures {
 
   "findMetadata" should {
     "be successful" in {
-      val file = File(FileId(), FileRefId(), FileStatusQuarantined)
+      val file = File(FileId(), fileRefId(), FileStatusQuarantined)
       val envelope = Envelope(files = Some(List(file)))
       val findMetadata = Service.findMetadata(_ => Future.successful(Right(envelope))) _
 

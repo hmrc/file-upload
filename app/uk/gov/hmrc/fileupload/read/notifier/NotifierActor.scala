@@ -31,24 +31,26 @@ class NotifierActor(subscribe: (ActorRef, Class[_]) => Boolean,
                     notify: (Notification, String) => Future[NotifyResult])
                    (implicit executionContext: ExecutionContext) extends Actor {
 
+  private val logger = Logger(getClass)
+
   override def preStart = subscribe(self, classOf[Event])
 
   def receive = {
     case event: Event => event.eventData match {
       case e: FileQuarantined =>
-        Logger.info(s"Quarantined event received for ${e.id} and ${e.fileId}")
+        logger.info(s"Quarantined event received for ${e.id} and ${e.fileId}")
         notifyEnvelopeCallback(Notification(e.id, e.fileId, "QUARANTINED", None))
       case e: NoVirusDetected =>
-        Logger.info(s"NoVirusDetected event received for ${e.id} and ${e.fileId}")
+        logger.info(s"NoVirusDetected event received for ${e.id} and ${e.fileId}")
         notifyEnvelopeCallback(Notification(e.id, e.fileId, "CLEANED", None))
       case e: VirusDetected =>
-        Logger.info(s"VirusDetected event received for ${e.id} and ${e.fileId} ")
+        logger.info(s"VirusDetected event received for ${e.id} and ${e.fileId} ")
         notifyEnvelopeCallback(Notification(e.id, e.fileId, "ERROR", Some("VirusDetected")))
       case e: FileStored =>
-        Logger.info(s"FileStored event received for ${e.id} and ${e.fileId}")
+        logger.info(s"FileStored event received for ${e.id} and ${e.fileId}")
         notifyEnvelopeCallback(Notification(e.id, e.fileId, "AVAILABLE", None))
       case e: EventData =>
-        Logger.debug(s"Not notifying for ${e.getClass.getName}")
+        logger.debug(s"Not notifying for ${e.getClass.getName}")
     }
   }
 
@@ -58,14 +60,14 @@ class NotifierActor(subscribe: (ActorRef, Class[_]) => Boolean,
         envelope.callbackUrl.map {
           callbackUrl =>
             notify(notification, callbackUrl).map {
-              case Right(envelopeId) => Logger.info(s"Successfully sent notification [${notification.status}] for envelope [$envelopeId]")
-              case Left(error) => Logger.warn(
+              case Right(envelopeId) => logger.info(s"Successfully sent notification [${notification.status}] for envelope [$envelopeId]")
+              case Left(error) => logger.warn(
                 s"Failed to send notification [${notification.status}] for envelope [${error.envelopeId}]. Reason [${error.reason}]"
               )
             }
         }.getOrElse(Future.successful(()))
       case Left(e) =>
-        Logger.warn(e.toString)
+        logger.warn(e.toString)
         Future.successful(())
     }
   }

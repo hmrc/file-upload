@@ -22,6 +22,7 @@ import play.api.http.HeaderNames
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import uk.gov.hmrc.fileupload._
+import uk.gov.hmrc.fileupload.Support.fileRefId
 import uk.gov.hmrc.fileupload.read.envelope._
 
 class OutputForTransferSpec extends WordSpecLike with Matchers with TestApplicationComponents {
@@ -32,7 +33,7 @@ class OutputForTransferSpec extends WordSpecLike with Matchers with TestApplicat
       val dateAsText = "2016-03-31T12:33:45Z"
       val f = File(
         fileId = FileId(),
-        fileRefId = FileRefId(),
+        fileRefId = fileRefId(),
         status = FileStatusAvailable,
         name = Some("original-file-name-on-disk.docx"),
         contentType = Some("application/vnd.oasis.opendocument.spreadsheet"),
@@ -69,7 +70,7 @@ class OutputForTransferSpec extends WordSpecLike with Matchers with TestApplicat
     "keep keys for [name, contentType, length, created] even if values are not available" in {
       val f = File(
         fileId = FileId(),
-        fileRefId = FileRefId(),
+        fileRefId = fileRefId(),
         status = FileStatusAvailable,
         name = None,
         contentType = None,
@@ -111,7 +112,7 @@ class OutputForTransferSpec extends WordSpecLike with Matchers with TestApplicat
       val dateAsText = "2016-03-31T12:33:45Z"
       val file = File(
         fileId = FileId(),
-        fileRefId = FileRefId(),
+        fileRefId = fileRefId(),
         status = FileStatusAvailable,
         name = Some("original-file-name-on-disk.docx"),
         contentType = Some("application/vnd.oasis.opendocument.spreadsheet"),

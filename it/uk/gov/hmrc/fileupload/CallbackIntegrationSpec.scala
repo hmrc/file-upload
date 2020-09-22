@@ -1,5 +1,7 @@
 package uk.gov.hmrc.fileupload
 
+import java.util.UUID
+
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -78,7 +80,7 @@ class CallbackIntegrationSpec extends IntegrationSpec with EnvelopeActions with 
       val locationHeader = createEnvelopeResponse.header("Location").get
       val envelopeId = EnvelopeId(locationHeader.substring(locationHeader.lastIndexOf('/') + 1))
       val fileId = FileId("1")
-      val fileRefId = FileRefId()
+      val fileRefId = FileRefId(UUID.randomUUID().toString)
 
       sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
       sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))

@@ -30,7 +30,10 @@ class Aggregate[C <: Command, S](handler: Handler[C, S],
                                  nextEventId: () => EventId = () => EventId(UUID.randomUUID().toString),
                                  toCreated: () => Created = () => Created(System.currentTimeMillis()))
                                 (implicit eventStore: EventStore, executionContext: ExecutionContext) {
+
   type CommandResult = Either[CommandNotAccepted, CommandAccepted.type]
+
+  private val logger = Logger(getClass)
 
   val commandAcceptedResult = Right(CommandAccepted)
 
@@ -54,7 +57,7 @@ class Aggregate[C <: Command, S](handler: Handler[C, S],
     handler.on.applyOrElse((state, event), (input: (S, EventData)) => state)
 
   def applyCommand(command: C): Future[CommandResult] = {
-    Logger.info(s"Handle Command $command")
+    logger.info(s"Handle Command $command")
     eventStore.unitsOfWorkForAggregate(command.streamId).flatMap {
       case Right(historicalUnitsOfWork) =>
         val historicalEvents = historicalUnitsOfWork.flatMap(_.events)
@@ -76,13 +79,13 @@ class Aggregate[C <: Command, S](handler: Handler[C, S],
                 case Right(newEvents) =>
                   publishAllEvents(historicalEvents ++ unitOfWork.events)
                   unitOfWork.events.foreach { event =>
-                    Logger.info(s"Event created $event")
+                    logger.info(s"Event created $event")
                     publish(event)
                   }
                   commandAcceptedResult
 
                 case Left(VersionConflictError) =>
-                  Logger.info(s"VersionConflict for version $nextVersion and $command")
+                  logger.info(s"VersionConflict for version $nextVersion and $command")
                   Left(VersionConflict(nextVersion, command))
 
                 case Left(NotSavedError(m)) =>
@@ -111,14 +114,14 @@ class Aggregate[C <: Command, S](handler: Handler[C, S],
         case result @ Right(_) => Future.successful(result)
         case error @ Left(VersionConflict(_, _)) =>
           if (retries > 0) {
-            Logger.info(s"Retry $retries for $command")
+            logger.info(s"Retry $retries for $command")
             run(retries - 1, command)
           } else {
-            Logger.warn(s"Return with version conflict $command")
+            logger.warn(s"Return with version conflict $command")
             Future.successful(error)
           }
         case error =>
-          Logger.warn(s"Return with error $error for $command")
+          logger.warn(s"Return with error $error for $command")
           Future.successful(error)
       }
     }

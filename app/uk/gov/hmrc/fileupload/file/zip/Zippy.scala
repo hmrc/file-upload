@@ -36,6 +36,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object Zippy {
 
+  private val logger = Logger(getClass)
 
   type ZipResult = Either[ZipEnvelopeError, Enumerator[Bytes]]
   sealed trait ZipEnvelopeError
@@ -60,7 +61,7 @@ object Zippy {
         val zipFiles = files.collect {
           case f =>
             val fileName = f.name.getOrElse(UUID.randomUUID().toString)
-            Logger.info(s"""zipEnvelope: envelopeId=${envelopeWithFiles._id} fileId=${f.fileId} fileRefId=${f.fileRefId} length=${f.length.getOrElse(-1)} uploadDate=${f.uploadDate.getOrElse("-")}""")
+            logger.info(s"""zipEnvelope: envelopeId=${envelopeWithFiles._id} fileId=${f.fileId} fileRefId=${f.fileRefId} length=${f.length.getOrElse(-1)} uploadDate=${f.uploadDate.getOrElse("-")}""")
             ZipFileInfo(
               fileName, isDir = false, new java.util.Date(),
               Some(() => retrieveS3File(envelopeWithFiles._id, f.fileId).map { sourceToEnumerator })
@@ -69,19 +70,19 @@ object Zippy {
         Right(ZipStreamEnumerator(zipFiles))
 
       case Right(envelopeWithoutFiles @ Envelope(_, _, EnvelopeStatusRouteRequested | EnvelopeStatusClosed, _, _, _, _, None, _, _, _)) =>
-        Logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope was empty - returning empty ZIP file.")
+        logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope was empty - returning empty ZIP file.")
         Right(emptyZip())
 
       case Right(envelopeWithWrongStatus: Envelope) =>
-        Logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope has wrong status [${envelopeWithWrongStatus.status}], returned error")
+        logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope has wrong status [${envelopeWithWrongStatus.status}], returned error")
         Left(EnvelopeNotRoutedYet)
 
       case Left(FindEnvelopeNotFoundError) =>
-        Logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope not found, returned error")
+        logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope not found, returned error")
         Left(ZipEnvelopeNotFoundError)
 
       case Left(FindServiceError(message)) =>
-        Logger.warn(s"Retrieving zipped envelope [$envelopeId]. Other error [$message]")
+        logger.warn(s"Retrieving zipped envelope [$envelopeId]. Other error [$message]")
         Left(ZipProcessingError(message))
     }
   }

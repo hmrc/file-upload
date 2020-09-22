@@ -32,7 +32,7 @@ import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{ApplicationModule, EnvelopeId, FileId, FileRefId, read}
 import uk.gov.hmrc.http.BadRequestException
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -43,6 +43,8 @@ class EnvelopeController @Inject()(
   cc: ControllerComponents
 )(implicit executionContext: ExecutionContext
 ) extends BackendController(cc) {
+
+  private val logger = Logger(getClass)
 
   val withBasicAuth: BasicAuth = appModule.withBasicAuth
   val nextId: () => EnvelopeId = appModule.nextId
@@ -68,7 +70,7 @@ class EnvelopeController @Inject()(
     } yield {
       val command = CreateEnvelope(nextId(), request.body.callbackUrl, userExpiryDate, request.body.metadata, Some(envelopeConstraints))
       val userAgent = request.headers.get("User-Agent").getOrElse("none")
-      Logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
+      logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
       handleCreate(envelopeLocation, command)
     }
 
@@ -76,7 +78,7 @@ class EnvelopeController @Inject()(
       case Right(successfulResult) =>
         successfulResult
       case Left(error) =>
-        Logger.warn(s"Validation error. user time: ${error}, user-agent: ${request.headers.get("User-Agent")}")
+        logger.warn(s"Validation error. user time: ${error}, user-agent: ${request.headers.get("User-Agent")}")
         Future.successful(BadRequestHandler(new BadRequestException(s"${error.message}")))
     }
   }
@@ -109,7 +111,7 @@ class EnvelopeController @Inject()(
       case Right(envelopeConstraints: EnvelopeFilesConstraints) ⇒
         val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata, Some(envelopeConstraints))
         val userAgent = request.headers.get("User-Agent").getOrElse("none")
-        Logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
+        logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
         handleCreate(envelopeLocation, command)
       case Left(failureReason: ConstraintsValidationFailure) ⇒
         Future.successful(BadRequestHandler(new BadRequestException(s"${failureReason.message}")))
@@ -127,7 +129,7 @@ class EnvelopeController @Inject()(
   }
 
   def delete(id: EnvelopeId) = Action.async { implicit request =>
-    Logger.debug(s"delete: EnvelopeId=$id")
+    logger.debug(s"delete: EnvelopeId=$id")
 
     withBasicAuth {
       handleCommand(DeleteEnvelope(id)).map {
@@ -140,7 +142,7 @@ class EnvelopeController @Inject()(
   }
 
   def deleteFile(id: EnvelopeId, fileId: FileId) = Action.async { request =>
-    Logger.debug(s"deleteFile: EnvelopeId=$id fileId=$fileId")
+    logger.debug(s"deleteFile: EnvelopeId=$id fileId=$fileId")
 
     handleCommand(DeleteFile(id, fileId)).map {
       case Right(_) => Ok
@@ -154,7 +156,7 @@ class EnvelopeController @Inject()(
 
   def show(id: EnvelopeId) = Action.async {
     import EnvelopeReport._
-    Logger.debug(s"show: EnvelopeId=$id")
+    logger.debug(s"show: EnvelopeId=$id")
 
     findEnvelope(id).map {
       case Right(e) => Ok(Json.toJson(fromEnvelope(e)))
@@ -163,8 +165,8 @@ class EnvelopeController @Inject()(
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  def list(getEnvelopesByStatusQuery: GetEnvelopesByStatus) = Action { implicit request =>
-    Logger.debug(s"list by status")
+  def list(getEnvelopesByStatusQuery: GetEnvelopesByStatus) = Action {
+    logger.debug(s"list by status")
     import EnvelopeReport._
     Ok.chunked(
       getEnvelopesByStatus(getEnvelopesByStatusQuery.status, getEnvelopesByStatusQuery.inclusive)
@@ -173,7 +175,7 @@ class EnvelopeController @Inject()(
   }
 
   def retrieveMetadata(id: EnvelopeId, fileId: FileId) = Action.async { request =>
-    Logger.debug(s"retrieveMetadata: envelopeId=$id fileId=$fileId")
+    logger.debug(s"retrieveMetadata: envelopeId=$id fileId=$fileId")
     import GetFileMetadataReport._
 
     findMetadata(id, fileId).map {
@@ -198,11 +200,8 @@ class EnvelopeController @Inject()(
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  private def validatedEnvelopeFilesConstraints(request: Request[CreateEnvelopeRequest]): Either[ConstraintsValidationFailure, EnvelopeFilesConstraints] = {
-    for {
-      envelopeConstraints ← EnvelopeConstraintsConfiguration
-        .validateEnvelopeFilesConstraints(request.body.constraints.getOrElse(EnvelopeConstraintsUserSetting()),
-          envelopeConstraintsConfigure).right
-    } yield envelopeConstraints
-  }
+  private def validatedEnvelopeFilesConstraints(request: Request[CreateEnvelopeRequest]): Either[ConstraintsValidationFailure, EnvelopeFilesConstraints] =
+    EnvelopeConstraintsConfiguration
+      .validateEnvelopeFilesConstraints(request.body.constraints.getOrElse(EnvelopeConstraintsUserSetting()),
+        envelopeConstraintsConfigure)
 }

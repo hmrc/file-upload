@@ -19,10 +19,11 @@ package uk.gov.hmrc.fileupload.read.envelope
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.{Matchers, WordSpecLike}
 import play.api.libs.json.Json
+import uk.gov.hmrc.fileupload.Support.fileRefId
 import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 import scala.concurrent.Future
 
@@ -52,7 +53,7 @@ class EnvelopeReportHandlerSpec extends WordSpecLike with Matchers {
         constraints = envelopeConstraints)
     }
     "mark file as quarantined" in new UpdateEnvelopeFixture {
-      val event = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", "contentType", Some(123L), Json.obj("abc" -> "xyz"))
+      val event = FileQuarantined(envelopeId, FileId(), fileRefId(), 1, "name", "contentType", Some(123L), Json.obj("abc" -> "xyz"))
 
       sendEvent(event)
 
@@ -68,7 +69,7 @@ class EnvelopeReportHandlerSpec extends WordSpecLike with Matchers {
       val expiryDate = Some(new DateTime())
       val metadata = Some(Json.obj("key" -> "value"))
       val envelopeCreated = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, envelopeConstraints)
-      val fileQuarantined = FileQuarantined(envelopeId, FileId(), FileRefId(), 1, "name", "contentType", Some(123L), Json.obj("abc" -> "xyz"))
+      val fileQuarantined = FileQuarantined(envelopeId, FileId(), fileRefId(), 1, "name", "contentType", Some(123L), Json.obj("abc" -> "xyz"))
 
       val events = List(envelopeCreated, fileQuarantined)
 
@@ -87,7 +88,7 @@ class EnvelopeReportHandlerSpec extends WordSpecLike with Matchers {
     }
     "update file status if virus was detected" in new UpdateEnvelopeFixture {
       override val initialState = Envelope(files = Some(List(file)))
-      val event = VirusDetected(envelopeId, file.fileId, fileRefId = FileRefId())
+      val event = VirusDetected(envelopeId, file.fileId, fileRefId = fileRefId())
 
       sendEvent(event)
 
@@ -96,7 +97,7 @@ class EnvelopeReportHandlerSpec extends WordSpecLike with Matchers {
     }
     "update file status if file was clean" in new UpdateEnvelopeFixture {
       override val initialState = Envelope(files = Some(List(file)))
-      val event = NoVirusDetected(envelopeId, file.fileId, fileRefId = FileRefId())
+      val event = NoVirusDetected(envelopeId, file.fileId, fileRefId = fileRefId())
 
       sendEvent(event)
 
@@ -105,7 +106,7 @@ class EnvelopeReportHandlerSpec extends WordSpecLike with Matchers {
     }
     "update file status if file was copied from quarantine to transient" in new UpdateEnvelopeFixture {
       override val initialState = Envelope(files = Some(List(file)))
-      val event = FileStored(envelopeId, file.fileId, fileRefId = FileRefId(), length = 1)
+      val event = FileStored(envelopeId, file.fileId, fileRefId = fileRefId(), length = 1)
 
       sendEvent(event)
 
@@ -186,7 +187,7 @@ class EnvelopeReportHandlerSpec extends WordSpecLike with Matchers {
       Future.successful(Repository.deleteSuccess)
     }
 
-    val file = File(FileId(), fileRefId = FileRefId(),
+    val file = File(FileId(), fileRefId = fileRefId(),
       status = FileStatusQuarantined, name = Some("name"), contentType = Some("contentType"),
       length = None, uploadDate = Some(new DateTime(DateTimeZone.UTC)), revision = None, metadata = None)
 
@@ -208,5 +209,4 @@ class EnvelopeReportHandlerSpec extends WordSpecLike with Matchers {
 
     def sendEvents(events: Seq[EnvelopeEvent]): Unit = handler.handle(replay = false)(wrappedEvents(events))
   }
-
 }

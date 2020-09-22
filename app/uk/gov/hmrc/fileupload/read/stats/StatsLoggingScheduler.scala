@@ -71,11 +71,13 @@ class StatsLogger(statsRepository: Repository,
 }
 
 class StatsLogWriter {
+  private val logger = Logger(getClass)
+
   def logRepoSize(count: Int, timePeriod: Duration): Unit =
-    Logger.info(addedOverTimePeriod(count, timePeriod))
+    logger.info(addedOverTimePeriod(count, timePeriod))
 
   def logRepoWarning(count: Int, maximum: Int, timePeriod: Duration): Unit =
-    Logger.warn(s"Number of in progress files exceeds maximum $maximum. " + addedOverTimePeriod(count, timePeriod))
+    logger.warn(s"Number of in progress files exceeds maximum $maximum. " + addedOverTimePeriod(count, timePeriod))
 
   private def addedOverTimePeriod(count: Int, timePeriod: Duration): String =
     s"Number of in progress files added is: $count over ${timePeriod.toMinutes} minutes"

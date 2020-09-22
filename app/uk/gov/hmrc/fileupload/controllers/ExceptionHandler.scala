@@ -29,6 +29,7 @@ import uk.gov.hmrc.fileupload.read.envelope.ValidationException
 import uk.gov.hmrc.http.BadRequestException
 
 object ExceptionHandler {
+  private val logger = Logger(getClass)
 
   def apply[T <: Throwable](exception: T): Result = exception match {
     case e: ValidationException => IllegalArgumentHandler(e)
@@ -41,7 +42,7 @@ object ExceptionHandler {
   }
 
   def apply(statusCode: Int, responseMessage: String): Result = {
-    Logger.warn(s"ExceptionHandler creating result with status [$statusCode] and message [$responseMessage]")
+    logger.warn(s"ExceptionHandler creating result with status [$statusCode] and message [$responseMessage]")
     val response: JsObject = JsObject(Seq("error" -> Json.obj("msg" -> responseMessage)))
     val source = Source.single(ByteString.fromArray(Json.stringify(response).getBytes))
     Result(ResponseHeader(statusCode), HttpEntity.Streamed(source, None, None))
@@ -53,29 +54,31 @@ sealed trait ExceptionHandler[T <: Throwable] {
 }
 
 object IllegalArgumentHandler extends ExceptionHandler[IllegalArgumentException] {
-  def apply(exception: IllegalArgumentException): Result = {
+  def apply(exception: IllegalArgumentException): Result =
     ExceptionHandler(BAD_REQUEST, exception.getMessage)
-  }
 }
 
 object NoSuchElementHandler extends ExceptionHandler[NoSuchElementException] {
+  private val logger = Logger(getClass)
+
   def apply(exception: NoSuchElementException): Result = {
     val message = "Invalid json format"
-    Logger.warn(message, exception)
+    logger.warn(message, exception)
     ExceptionHandler(BAD_REQUEST, message)
   }
 }
 
 object BadRequestHandler extends ExceptionHandler[BadRequestException] {
-  override def apply(exception: BadRequestException): Result = {
+  override def apply(exception: BadRequestException): Result =
     ExceptionHandler(BAD_REQUEST, exception.getMessage)
-  }
 }
 
 object DefaultExceptionHandler extends ExceptionHandler[Throwable] {
+  private val logger = Logger(getClass)
+
   override def apply(exception: Throwable): Result = {
     val message = "Internal Server Error"
-    Logger.warn(message, exception)
+    logger.warn(message, exception)
     ExceptionHandler(INTERNAL_SERVER_ERROR, message)
   }
 }

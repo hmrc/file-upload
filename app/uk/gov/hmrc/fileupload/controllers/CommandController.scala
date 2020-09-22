@@ -24,7 +24,7 @@ import uk.gov.hmrc.fileupload.ApplicationModule
 import uk.gov.hmrc.fileupload.write.envelope.Formatters._
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -34,6 +34,8 @@ class CommandController @Inject()(
   cc: ControllerComponents
 )(implicit executionContext: ExecutionContext
 ) extends BackendController(cc) {
+
+  private val logger = Logger(getClass)
 
   val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
 
@@ -49,7 +51,7 @@ class CommandController @Inject()(
 
   def process[T <: EnvelopeCommand : Reads : Manifest] = Action.async(parse.json) { implicit req =>
     bindCommandFromRequest[T] { command =>
-      Logger.info(s"Requested command: $command to be processed")
+      logger.info(s"Requested command: $command to be processed")
       handleCommand(command).map {
         case Right(_) => Ok
         case Left(EnvelopeNotFoundError) =>
@@ -64,12 +66,8 @@ class CommandController @Inject()(
   }
 
   def bindCommandFromRequest[T <: EnvelopeCommand](f: EnvelopeCommand => Future[Result])
-                                                  (implicit r: Reads[T], m: Manifest[T], req: Request[JsValue]) = {
-    Json.fromJson[T](req.body).asOpt.map { command =>
-      f(command)
-    }.getOrElse {
+                                                  (implicit r: Reads[T], m: Manifest[T], req: Request[JsValue]) =
+    Json.fromJson[T](req.body).asOpt.map(f).getOrElse {
       Future.successful(ExceptionHandler(BAD_REQUEST, s"Unable to parse request as ${m.runtimeClass.getSimpleName}"))
     }
-  }
-
 }

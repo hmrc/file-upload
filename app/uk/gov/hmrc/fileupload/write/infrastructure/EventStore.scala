@@ -59,6 +59,8 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
                       reader: BSONDocumentReader[UnitOfWork],
                       writer: BSONDocumentWriter[UnitOfWork]) extends EventStore {
 
+  private val logger = Logger(getClass)
+
   val collection: BSONCollection = mongo().collection[BSONCollection]("events")
 
   ensureIndex()
@@ -103,10 +105,10 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
 
         largeEnvelopeMarker.mark()
         if (size % envelopeEventsThreshold <= 20) {
-          Logger.warn(s"large envelope: envelopeId=$streamId size=$size time=${elapsed.toMillis} ms")
+          logger.warn(s"large envelope: envelopeId=$streamId size=$size time=${elapsed.toMillis} ms")
         }
         if (size % 100 == 0) {
-          Logger.error(s"large envelope: envelopeId=$streamId size=$size")
+          logger.error(s"large envelope: envelopeId=$streamId size=$size")
         }
       }
       Right(sortByVersion)
@@ -115,7 +117,7 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
     }.map { e =>
       val elapsed = context.stop().nanoseconds
       if (elapsed > 10.seconds) {
-        Logger.warn(s"unitsOfWorkForAggregate: events.find by streamId=$streamId took ${elapsed.toMillis} ms")
+        logger.warn(s"unitsOfWorkForAggregate: events.find by streamId=$streamId took ${elapsed.toMillis} ms")
       }
 
       e

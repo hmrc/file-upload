@@ -117,10 +117,9 @@ case class ZipRequest(
 )
 
 object ZipRequest {
-  import play.api.libs.functional.syntax._
   val writes: Writes[ZipRequest] =
     Writes.at[JsObject](__ \ "files")
-    .contramap[ZipRequest](zr => JsObject(zr.files.map { case (fi, optS) => fi.value -> Json.toJson(optS) }.toSeq))
+      .contramap[ZipRequest](zr => JsObject(zr.files.map { case (fi, optS) => fi.value -> Json.toJson(optS) }.toSeq))
 }
 
 

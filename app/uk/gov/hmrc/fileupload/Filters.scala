@@ -22,7 +22,7 @@ import akka.stream.Materializer
 import com.codahale.metrics.MetricRegistry
 import play.api.http.HttpFilters
 import play.api.mvc.EssentialFilter
-import uk.gov.hmrc.play.bootstrap.filters.MicroserviceFilters
+import uk.gov.hmrc.play.bootstrap.backend.filters.BackendFilters
 import uk.gov.hmrc.fileupload.filters.{UserAgent, UserAgentRequestFilter}
 
 import scala.concurrent.ExecutionContext
@@ -30,7 +30,7 @@ import scala.concurrent.ExecutionContext
 
 @Singleton
 class Filters @Inject()(
-  microserviceFilters: MicroserviceFilters,
+  backendFilters: BackendFilters,
   metricRegistry: MetricRegistry
 )(implicit
   mat: Materializer,
@@ -44,5 +44,5 @@ class Filters @Inject()(
     )
 
     def filters: Seq[EssentialFilter] =
-      userAgentRequestFilter +: microserviceFilters.filters
+      userAgentRequestFilter +: backendFilters.filters
 }
