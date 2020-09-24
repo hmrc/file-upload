@@ -4,21 +4,27 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import com.codahale.metrics.{MetricRegistry, Timer}
-import org.scalatest.concurrent.Eventually
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import com.codahale.metrics.MetricRegistry
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.concurrent.{Eventually, IntegrationPatience}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.funsuite.AnyFunSuite
 import play.api.http.HeaderNames
 import play.api.mvc.Action
 import play.api.mvc.Results.Ok
 import play.api.test.FakeRequest
 import uk.gov.hmrc.fileupload.filters.{UserAgent, UserAgentRequestFilter}
 
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.collection.JavaConverters._
 
-class UserAgentMetricsFilterIntegrationSpec extends FunSuite with BeforeAndAfterAll with Matchers with Eventually {
+class UserAgentMetricsFilterIntegrationSpec
+  extends AnyFunSuite
+     with BeforeAndAfterAll
+     with Matchers
+     with Eventually
+     with IntegrationPatience {
 
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
@@ -29,18 +35,16 @@ class UserAgentMetricsFilterIntegrationSpec extends FunSuite with BeforeAndAfter
   }
 
   val dfsFrontend = "dfs-frontend"
-  val whitelist =
+  val allowlist =
     Set(dfsFrontend, "voa-property-linking-frontend").map(UserAgent.apply)
 
   val nginxChecks = "nginx-health"
-  val blacklist =
+  val denylist =
     Set(nginxChecks).map(UserAgent.apply)
-
-  implicit val patience: PatienceConfig = PatienceConfig(5.seconds, 1.second)
 
   def withFilter[T](block: (UserAgentRequestFilter, MetricRegistry) => T): T = {
     val metrics = new MetricRegistry
-    val filter = new UserAgentRequestFilter(metrics, whitelist, blacklist)
+    val filter = new UserAgentRequestFilter(metrics, allowlist, denylist)
     block(filter, metrics)
   }
 
@@ -51,7 +55,7 @@ class UserAgentMetricsFilterIntegrationSpec extends FunSuite with BeforeAndAfter
       name -> timer.getCount
     }.toMap
 
-  test("Timer created for User-Agent when header is white listed") {
+  test("Timer created for User-Agent when header is allow listed") {
     withFilter { (filter, metrics) =>
       val rh = FakeRequest().withHeaders(HeaderNames.USER_AGENT -> dfsFrontend)
       filter(endAction)(rh).run()
@@ -79,7 +83,7 @@ class UserAgentMetricsFilterIntegrationSpec extends FunSuite with BeforeAndAfter
     }
   }
 
-  test("Timer for UnknownUserAgent is incremented when User-Agent header not in whitelist") {
+  test("Timer for UnknownUserAgent is incremented when User-Agent header not in allowlist") {
     withFilter { (filter, metrics) =>
       val rh = FakeRequest().withHeaders(HeaderNames.USER_AGENT -> UUID.randomUUID().toString)
       filter(endAction)(rh).run()
@@ -97,5 +101,4 @@ class UserAgentMetricsFilterIntegrationSpec extends FunSuite with BeforeAndAfter
       metrics.getTimers.size() shouldBe 0
     }
   }
-
 }

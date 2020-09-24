@@ -71,36 +71,30 @@ class StatsLogger(statsRepository: Repository,
 }
 
 class StatsLogWriter {
+  private val logger = Logger(getClass)
+
   def logRepoSize(count: Int, timePeriod: Duration): Unit =
-    Logger.info(addedOverTimePeriod(count, timePeriod))
+    logger.info(addedOverTimePeriod(count, timePeriod))
 
   def logRepoWarning(count: Int, maximum: Int, timePeriod: Duration): Unit =
-    Logger.warn(s"Number of in progress files exceeds maximum $maximum. " + addedOverTimePeriod(count, timePeriod))
+    logger.warn(s"Number of in progress files exceeds maximum $maximum. " + addedOverTimePeriod(count, timePeriod))
 
   private def addedOverTimePeriod(count: Int, timePeriod: Duration): String =
     s"Number of in progress files added is: $count over ${timePeriod.toMinutes} minutes"
 }
 
 object StatsLoggingConfiguration {
-
-  def apply(runModeConfiguration: Configuration): StatsLoggingConfiguration = {
-    val initialDelayKey = "stats.inprogressfiles.initialdelay"
-    val intervalKey = "stats.inprogressfiles.interval"
-    val timePeriodKey = "stats.inprogressfiles.timeperiod"
-    val maximumInProgressFiles = "stats.inprogressfiles.maximum"
-
-    StatsLoggingConfiguration(
-      initialDelay = durationFromConfig(initialDelayKey, runModeConfiguration),
-      interval = durationFromConfig(intervalKey, runModeConfiguration),
-      timePeriod = durationFromConfig(timePeriodKey, runModeConfiguration),
-      maximumInProgressFiles = runModeConfiguration.getInt(maximumInProgressFiles))
-  }
-
-  private def durationFromConfig(key: String, configuration: Configuration): FiniteDuration = {
-    configuration.getMilliseconds(key)
-      .map(Duration(_, MILLISECONDS))
+  private def getDuration(configuration: Configuration, key: String): FiniteDuration =
+    configuration.getOptional[FiniteDuration](key)
       .getOrElse(throw new RuntimeException(s"Missing configuration value for StatsLoggingConfiguration: $key"))
-  }
+
+  def apply(runModeConfiguration: Configuration): StatsLoggingConfiguration =
+    StatsLoggingConfiguration(
+      initialDelay           = getDuration(runModeConfiguration, "stats.inprogressfiles.initialdelay"),
+      interval               = getDuration(runModeConfiguration, "stats.inprogressfiles.interval"),
+      timePeriod             = getDuration(runModeConfiguration, "stats.inprogressfiles.timeperiod"),
+      maximumInProgressFiles = runModeConfiguration.getOptional[Int]("stats.inprogressfiles.maximum")
+    )
 }
 
 case class StatsLoggingConfiguration(initialDelay: FiniteDuration,

@@ -16,15 +16,20 @@
 
 package uk.gov.hmrc.fileupload.testonly
 
-import play.api.mvc.Action
-import play.api.mvc.Results._
+import javax.inject.{Inject, Singleton}
+import play.api.mvc.ControllerComponents
+import uk.gov.hmrc.fileupload.ApplicationModule
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.ExecutionContext
+@Singleton
+class TestOnlyController @Inject()(
+  appModule: ApplicationModule,
+  cc: ControllerComponents
+) extends BackendController(cc) {
 
-class TestOnlyController(recreateCollections: List[() => Unit])
-                        (implicit executionContext: ExecutionContext) {
+  val recreateCollections: List[() => Unit] = appModule.recreateCollections
 
-  def recreate() = Action { implicit request =>
+  def recreate() = Action {
     recreateCollections.foreach(_())
     Ok
   }

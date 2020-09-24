@@ -17,9 +17,8 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 import akka.stream.scaladsl.Source
-import cats.data.Xor
 import play.api.libs.json.Json
-import play.api.libs.streams.Streams
+import play.api.libs.iteratee.streams.IterateeStreams
 import play.api.mvc.{Result, Results}
 import reactivemongo.api.commands.{WriteConcern, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
@@ -35,19 +34,19 @@ import scala.language.postfixOps
 
 object Repository {
 
-  type UpdateResult = Xor[UpdateError, UpdateSuccess.type]
+  type UpdateResult = Either[UpdateError, UpdateSuccess.type]
   case object UpdateSuccess
   sealed trait UpdateError
   case object NewerVersionAvailable extends UpdateError
   case class NotUpdatedError(message: String) extends UpdateError
 
-  val updateSuccess = Xor.right(UpdateSuccess)
+  val updateSuccess = Right(UpdateSuccess)
 
-  type DeleteResult = Xor[DeleteError, DeleteSuccess.type]
+  type DeleteResult = Either[DeleteError, DeleteSuccess.type]
   case object DeleteSuccess
   case class DeleteError(message: String)
 
-  val deleteSuccess = Xor.right(DeleteSuccess)
+  val deleteSuccess = Right(DeleteSuccess)
 
   def apply(mongo: () => DB with DBMetaCommands): Repository = new Repository(mongo)
 }
@@ -76,18 +75,21 @@ class Repository(mongo: () => DB with DBMetaCommands)
         _Id -> envelope._id.value)
     }
 
-    collection.update(selector = selector, update = envelope, writeConcern = writeConcern, upsert = true, multi = false).map { r =>
-      if (r.ok) {
-        updateSuccess
-      } else {
-        Xor.left(NotUpdatedError("No report updated"))
+    collection
+      .update(ordered = false, writeConcern = writeConcern)
+      .one(q = selector, u = envelope, upsert = true, multi = false)
+      .map { r =>
+        if (r.ok) {
+          updateSuccess
+        } else {
+          Left(NotUpdatedError("No report updated"))
+        }
+      }.recover {
+        case f: DatabaseException =>
+          Left(NewerVersionAvailable)
+        case f: Throwable =>
+          Left(NotUpdatedError(f.getMessage))
       }
-    }.recover {
-      case f: DatabaseException =>
-        Xor.left(NewerVersionAvailable)
-      case f: Throwable =>
-        Xor.left(NotUpdatedError(f.getMessage))
-    }
   }
 
   def get(id: EnvelopeId)(implicit ec: ExecutionContext): Future[Option[Envelope]] =
@@ -98,11 +100,11 @@ class Repository(mongo: () => DB with DBMetaCommands)
       if (toBoolean(r)) {
         deleteSuccess
       } else {
-        Xor.left(DeleteError("No report deleted"))
+        Left(DeleteError("No report deleted"))
       }
     }.recover {
       case f: Throwable =>
-        Xor.left(DeleteError(f.getMessage))
+        Left(DeleteError(f.getMessage))
     }
 
   def getByDestination(maybeDestination: Option[String])(implicit ec: ExecutionContext): Future[List[Envelope]] = {
@@ -125,7 +127,7 @@ class Repository(mongo: () => DB with DBMetaCommands)
       .cursor[Envelope](ReadPreference.secondaryPreferred)
       .enumerator()
 
-    Source.fromPublisher(Streams.enumeratorToPublisher(enumerator))
+    Source.fromPublisher(IterateeStreams.enumeratorToPublisher(enumerator))
   }
 
   def all()(implicit ec: ExecutionContext): Future[List[Envelope]] =

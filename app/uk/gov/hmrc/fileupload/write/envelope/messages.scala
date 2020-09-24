@@ -107,7 +107,13 @@ object Formatters {
   implicit val sizeReads: Reads[Size] = SizeReads
   implicit val sizeWrites: Writes[Size] = SizeWrites
   implicit val constraintsFormats: OFormat[EnvelopeFilesConstraints] = Json.format[EnvelopeFilesConstraints]
-  implicit val envelopeCreatedFormat: Format[EnvelopeCreated] = Json.format[EnvelopeCreated]
+  implicit val envelopeCreatedFormat: Format[EnvelopeCreated] = {
+    // We are actually writing the date in mongo as a number. jodaDateReads supports both number and the specified string format.
+    // (We could in theory start writing dates with JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'"), to migrate format).
+    implicit val dateReads: Reads[DateTime] = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    implicit val dateWrites: Writes[DateTime] = JodaWrites.JodaDateTimeNumberWrites
+    Json.format[EnvelopeCreated]
+  }
   implicit val fileQuarantinedFormat: Format[FileQuarantined] = Json.format[FileQuarantined]
   implicit val fileNoVirusDetectedFormat: Format[NoVirusDetected] = Json.format[NoVirusDetected]
   implicit val fileVirusDetectedFormat: Format[VirusDetected] = Json.format[VirusDetected]
@@ -170,9 +176,10 @@ object EventSerializer {
       logger.info(s"Unable to create eventData of type [${eventType.value}] from json [${Json.stringify(value)}] due to errors [$errors]")
     }
 
-    // will throw NoSuchElementException("JsError.get") when jsResult is a JsError
-    // TODO would be better to explicitly throw a suitable exception on JsError so that details are not lost
-    jsResult.get
+    jsResult.fold(
+      invalid => throw new RuntimeException(s"Invalid json: $invalid"),
+      valid => valid
+    )
   }
 
   def fromEventData(eventData: EventData): JsValue =

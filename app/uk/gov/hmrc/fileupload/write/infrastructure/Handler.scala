@@ -16,11 +16,9 @@
 
 package uk.gov.hmrc.fileupload.write.infrastructure
 
-import cats.data.Xor
-
 trait Handler[C <: Command, S] {
 
-  def handle: PartialFunction[(C, S), Xor[CommandNotAccepted, List[EventData]]]
+  def handle: PartialFunction[(C, S), Either[CommandNotAccepted, List[EventData]]]
 
   def on: PartialFunction[(S, EventData), S]
 

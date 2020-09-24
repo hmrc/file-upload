@@ -16,37 +16,44 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import cats.data.Xor
+import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json
 import play.api.mvc._
+import uk.gov.hmrc.fileupload.ApplicationModule
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.GetResult
 import uk.gov.hmrc.fileupload.write.infrastructure.{StreamId, Event => DomainEvent, EventSerializer => _}
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.postfixOps
 
-class EventController(unitOfWorks: StreamId => Future[GetResult],
-                      publishAllEvents: Seq[DomainEvent] => Unit)
-                     (implicit executionContext: ExecutionContext) extends Controller {
+@Singleton
+class EventController @Inject()(
+  appModule: ApplicationModule,
+  cc: ControllerComponents
+)(implicit executionContext: ExecutionContext
+) extends BackendController(cc) {
+
+  val unitOfWorks: StreamId => Future[GetResult] = appModule.unitOfWorks
+  val publishAllEvents: Seq[DomainEvent] => Unit = appModule.publishAllEvents
 
   implicit val eventWrites = EventSerializer.eventWrite
 
-  def get(streamId: StreamId) = Action.async { implicit request =>
+  def get(streamId: StreamId) = Action.async {
     unitOfWorks(streamId) map {
-      case Xor.Right(r) =>
+      case Right(r) =>
         Ok(Json.toJson(r.flatMap(_.events)))
-      case Xor.Left(e) =>
+      case Left(e) =>
         ExceptionHandler(INTERNAL_SERVER_ERROR, e.message)
     }
   }
 
-  def replay(streamId: StreamId) = Action.async { implicit request =>
+  def replay(streamId: StreamId) = Action.async {
     unitOfWorks(streamId).map {
-      case Xor.Right(sequence) =>
+      case Right(sequence) =>
         publishAllEvents(sequence.flatMap(_.events))
         Ok
-      case Xor.Left(error) => InternalServerError(s"Unexpected result: ${error.message}")
+      case Left(error) => InternalServerError(s"Unexpected result: ${error.message}")
     }
   }
 }

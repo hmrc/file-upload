@@ -8,10 +8,9 @@ import uk.gov.hmrc.fileupload.write.envelope._
 class RoutingEnvelopeSpec extends IntegrationSpec with EnvelopeActions with FileActions with EventsActions {
 
 
-  feature("Routing Envelope Spec") {
+  Feature("Routing Envelope Spec") {
 
-    scenario("Route envelope which exceeds maxItems allowed") {
-
+    Scenario("Route envelope which exceeds maxItems allowed") {
       Given("I have a valid envelope with maxItems allowed = 1")
       stubCallback()
 
@@ -60,8 +59,7 @@ class RoutingEnvelopeSpec extends IntegrationSpec with EnvelopeActions with File
       routingEnvelopeResponse.body shouldBe """{"error":{"msg":"Envelope item count exceeds maximum of 1, actual: 2"}}"""
     }
 
-    scenario("Add two big files to envelope (valid)") {
-
+    Scenario("Add two big files to envelope (valid)") {
       Given("Route envelope which exceeds maxSize allowed")
       stubCallback()
 

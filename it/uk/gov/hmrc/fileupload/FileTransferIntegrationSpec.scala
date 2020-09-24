@@ -2,6 +2,7 @@ package uk.gov.hmrc.fileupload
 
 import java.net.URL
 
+import org.scalatest.concurrent.IntegrationPatience
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.fileupload.read.routing.{Algorithm, Audit, Checksum, FileTransferFile, FileTransferNotification, Property, RoutingRepository, ZipData}
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FakePushService, FakeFrontendService, IntegrationSpec}
@@ -10,14 +11,17 @@ class FileTransferIntegrationSpec
   extends IntegrationSpec
      with EnvelopeActions
      with FakePushService
-     with FakeFrontendService {
+     with FakeFrontendService
+     with IntegrationPatience {
 
   override lazy val pushUrl = Some(pushServiceUrl)
   override lazy val pushDestinations = Some(List("DMS"))
 
+  def countSubstring(str: String, substr: String) =
+    substr.r.findAllMatchIn(str).length
 
-  feature("File Transfer list") {
-    scenario("List Envelopes for a given destination") {
+  Feature("File Transfer list") {
+    Scenario("List Envelopes for a given destination") {
       Given("I use a destination not configured for push")
       val destination = "NO-PUSH"
 
@@ -44,7 +48,7 @@ class FileTransferIntegrationSpec
       (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe 1
     }
 
-    scenario("List Envelopes without specifying destination") {
+    Scenario("List Envelopes without specifying destination") {
       Given("There exist CLOSED envelopes in the DB")
       val destination = "NO-PUSH"
 
@@ -60,6 +64,7 @@ class FileTransferIntegrationSpec
         val response = getEnvelopesForStatus(status = List("CLOSED"), inclusive = true)
         response.status shouldBe OK
         response.body.isEmpty shouldBe false
+        countSubstring(response.body, "CLOSED") shouldBe 2
       }
 
       When(s"I invoke GET /file-transfer/envelopes (without passing destination")
@@ -74,9 +79,9 @@ class FileTransferIntegrationSpec
     }
   }
 
-  feature("File Transfer delete") {
+  Feature("File Transfer delete") {
 
-    scenario("Archive Envelope") {
+    Scenario("Archive Envelope") {
       Given("I know a destination for envelopes")
       val destination = "NO-PUSH"
 
@@ -113,8 +118,8 @@ class FileTransferIntegrationSpec
     }
   }
 
-  feature("File Transfer push") {
-    scenario("Request routing for envelopes") {
+  Feature("File Transfer push") {
+    Scenario("Request routing for envelopes") {
       Given("I use a destination configured for push")
       val destination = "DMS"
 
@@ -129,7 +134,7 @@ class FileTransferIntegrationSpec
       response.body.isEmpty shouldBe false
     }
 
-    scenario("List Envelopes for a given destination") {
+    Scenario("List Envelopes for a given destination") {
       Given("I use a destination configured for push")
       val destination = "DMS"
 

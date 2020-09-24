@@ -16,13 +16,15 @@
 
 package uk.gov.hmrc.fileupload
 
+import javax.inject.{Inject, Singleton}
 import play.api.http.HttpErrorHandler
 import play.api.mvc.{RequestHeader, Result}
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class GlobalErrorHandler extends HttpErrorHandler {
+@Singleton
+class GlobalErrorHandler @Inject() extends HttpErrorHandler {
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] =
     Future(ExceptionHandler(statusCode, message))(ExecutionContext.global)
 

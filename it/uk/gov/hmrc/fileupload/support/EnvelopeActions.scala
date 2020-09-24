@@ -7,11 +7,9 @@ import play.api.http.HeaderNames
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.controllers.FileScanned
 
 trait EnvelopeActions extends ActionsSupport {
   this: TestSuite =>
-
 
   def basic64(s: String): String = {
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
@@ -22,7 +20,7 @@ trait EnvelopeActions extends ActionsSupport {
   def createEnvelope(data: Array[Byte]): WSResponse =
     client
       .url(s"$url/envelopes")
-      .withHeaders("Content-Type" -> "application/json")
+      .withHttpHeaders("Content-Type" -> "application/json")
       .post(data)
       .futureValue
 
@@ -31,13 +29,14 @@ trait EnvelopeActions extends ActionsSupport {
   def createEnvelopeWithId(id: String, data: Array[Byte]): WSResponse =
     client
       .url(s"$url/envelopes/$id")
-      .withHeaders("Content-Type" -> "application/json")
+      .withHttpHeaders("Content-Type" -> "application/json")
       .put(data)
       .futureValue
 
   def getEnvelopeFor(id: EnvelopeId): WSResponse =
     client
-      .url(s"$url/envelopes/$id").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
+      .url(s"$url/envelopes/$id")
+      .withHttpHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
       .get()
       .futureValue
 
@@ -54,30 +53,34 @@ trait EnvelopeActions extends ActionsSupport {
 
   def deleteEnvelopFor(id: EnvelopeId): WSResponse =
     client
-      .url(s"$url/envelopes/$id").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
+      .url(s"$url/envelopes/$id")
+      .withHttpHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
       .delete()
       .futureValue
 
   def deleteEnvelopWithWrongAuth(id: EnvelopeId): WSResponse =
     client
-      .url(s"$url/envelopes/$id").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yua:yaunspassword")))
+      .url(s"$url/envelopes/$id")
+      .withHttpHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yua:yaunspassword")))
       .delete()
       .futureValue
 
-  def submitRoutingRequest(envelopeId: EnvelopeId, destination: String, application: String = "testApplication"): WSResponse = {
-    val payload = Json.obj(
-      "envelopeId" -> envelopeId,
-      "destination" -> destination,
-      "application" -> application
-    )
-    client.url(s"$fileRoutingUrl/requests")
-      .post(payload)
+  def submitRoutingRequest(envelopeId: EnvelopeId, destination: String, application: String = "testApplication"): WSResponse =
+    client
+      .url(s"$fileRoutingUrl/requests")
+      .post(
+         Json.obj(
+           "envelopeId"  -> envelopeId,
+           "destination" -> destination,
+           "application" -> application
+        )
+      )
       .futureValue
-  }
 
   def getEnvelopesForDestination(destination: Option[String]): WSResponse = {
     client
-      .url(s"$fileTransferUrl/envelopes${destination.map(d => s"?destination=$d").getOrElse("")}").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
+      .url(s"$fileTransferUrl/envelopes${destination.map(d => s"?destination=$d").getOrElse("")}")
+      .withHttpHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
       .get()
       .futureValue
   }
@@ -85,8 +88,9 @@ trait EnvelopeActions extends ActionsSupport {
   def getEnvelopesForStatus(status: List[String], inclusive: Boolean) = {
     val statuses = status.map(n => s"status=$n").mkString("&")
     client
-      .url(s"$url/envelopes?$statuses&inclusive=$inclusive").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
-        .get()
+      .url(s"$url/envelopes?$statuses&inclusive=$inclusive")
+      .withHttpHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
+      .get()
       .futureValue
   }
 

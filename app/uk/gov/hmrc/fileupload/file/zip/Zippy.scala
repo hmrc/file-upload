@@ -23,10 +23,9 @@ import java.util.zip.ZipOutputStream
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.util.ByteString
-import cats.data.Xor
 import play.api.Logger
 import play.api.libs.iteratee.Enumerator
-import play.api.libs.streams.Streams
+import play.api.libs.iteratee.streams.IterateeStreams
 import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
 import uk.gov.hmrc.fileupload.file.zip.ZipStream.{ZipFileInfo, ZipStreamEnumerator}
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindEnvelopeNotFoundError, FindResult, FindServiceError}
@@ -37,8 +36,9 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object Zippy {
 
+  private val logger = Logger(getClass)
 
-  type ZipResult = Xor[ZipEnvelopeError, Enumerator[Bytes]]
+  type ZipResult = Either[ZipEnvelopeError, Enumerator[Bytes]]
   sealed trait ZipEnvelopeError
   case object ZipEnvelopeNotFoundError extends ZipEnvelopeError
   case object EnvelopeNotRoutedYet extends ZipEnvelopeError
@@ -51,40 +51,39 @@ object Zippy {
 
     def sourceToEnumerator(source: Source[ByteString, _]) = {
       val byteStringToArrayOfBytes = Flow[ByteString].map(_.toArray)
-      Streams.publisherToEnumerator(
+      IterateeStreams.publisherToEnumerator(
         source.via(byteStringToArrayOfBytes).runWith(Sink.asPublisher(fanout = false))
       )
     }
 
     getEnvelope(envelopeId) map {
-      case Xor.Right(envelopeWithFiles @ Envelope(_, _, EnvelopeStatusRouteRequested | EnvelopeStatusClosed, _, _, _, _, Some(files), _, _, _)) =>
+      case Right(envelopeWithFiles @ Envelope(_, _, EnvelopeStatusRouteRequested | EnvelopeStatusClosed, _, _, _, _, Some(files), _, _, _)) =>
         val zipFiles = files.collect {
           case f =>
             val fileName = f.name.getOrElse(UUID.randomUUID().toString)
-            Logger.info(s"""zipEnvelope: envelopeId=${envelopeWithFiles._id} fileId=${f.fileId} fileRefId=${f.fileRefId} length=${f.length.getOrElse(-1)} uploadDate=${f.uploadDate.getOrElse("-")}""")
+            logger.info(s"""zipEnvelope: envelopeId=${envelopeWithFiles._id} fileId=${f.fileId} fileRefId=${f.fileRefId} length=${f.length.getOrElse(-1)} uploadDate=${f.uploadDate.getOrElse("-")}""")
             ZipFileInfo(
               fileName, isDir = false, new java.util.Date(),
               Some(() => retrieveS3File(envelopeWithFiles._id, f.fileId).map { sourceToEnumerator })
             )
         }
-        Xor.right(ZipStreamEnumerator(zipFiles))
+        Right(ZipStreamEnumerator(zipFiles))
 
-      case Xor.Right(envelopeWithoutFiles @ Envelope(_, _, EnvelopeStatusRouteRequested | EnvelopeStatusClosed, _, _, _, _, None, _, _, _)) =>
-        Logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope was empty - returning empty ZIP file.")
-        Xor.Right(emptyZip())
+      case Right(envelopeWithoutFiles @ Envelope(_, _, EnvelopeStatusRouteRequested | EnvelopeStatusClosed, _, _, _, _, None, _, _, _)) =>
+        logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope was empty - returning empty ZIP file.")
+        Right(emptyZip())
 
-      case Xor.Right(envelopeWithWrongStatus: Envelope) =>
-        Logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope has wrong status [${envelopeWithWrongStatus.status}], returned error")
-        Xor.left(EnvelopeNotRoutedYet)
+      case Right(envelopeWithWrongStatus: Envelope) =>
+        logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope has wrong status [${envelopeWithWrongStatus.status}], returned error")
+        Left(EnvelopeNotRoutedYet)
 
-      case Xor.Left(FindEnvelopeNotFoundError) =>
-        Logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope not found, returned error")
-        Xor.left(ZipEnvelopeNotFoundError)
+      case Left(FindEnvelopeNotFoundError) =>
+        logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope not found, returned error")
+        Left(ZipEnvelopeNotFoundError)
 
-      case Xor.Left(FindServiceError(message)) =>
-        Logger.warn(s"Retrieving zipped envelope [$envelopeId]. Other error [$message]")
-        Xor.left(ZipProcessingError(message))
-
+      case Left(FindServiceError(message)) =>
+        logger.warn(s"Retrieving zipped envelope [$envelopeId]. Other error [$message]")
+        Left(ZipProcessingError(message))
     }
   }
 
@@ -94,5 +93,4 @@ object Zippy {
     out.close()
     Enumerator(baos.toByteArray)
   }
-
 }

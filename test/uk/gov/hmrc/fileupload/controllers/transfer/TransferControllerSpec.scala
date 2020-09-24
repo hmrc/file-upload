@@ -16,24 +16,28 @@
 
 package uk.gov.hmrc.fileupload.controllers.transfer
 
-import cats.data.Xor
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.time.{Millis, Seconds, Span}
+import org.mockito.MockitoSugar
+import org.scalatest.concurrent.{ScalaFutures, IntegrationPatience}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.http.Status
+import play.api.mvc.ControllerComponents
 import play.api.test.FakeRequest
-import uk.gov.hmrc.fileupload.Support
+import uk.gov.hmrc.fileupload.{ApplicationModule, Support, TestApplicationComponents}
 import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
 import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class TransferControllerSpec extends UnitSpec with ScalaFutures {
-
-  implicit val defaultPatience =
-    PatienceConfig(timeout = Span(5, Seconds), interval = Span(500, Millis))
+class TransferControllerSpec
+  extends AnyWordSpecLike
+     with Matchers
+     with TestApplicationComponents
+     with MockitoSugar
+     with ScalaFutures
+     with IntegrationPatience {
 
   implicit val ec = ExecutionContext.global
 
@@ -41,8 +45,14 @@ class TransferControllerSpec extends UnitSpec with ScalaFutures {
 
   def newController(withBasicAuth: BasicAuth = AlwaysAuthorisedBasicAuth,
                     getEnvelopesByDestination: Option[String] => Future[List[Envelope]] = _ => failed,
-                    handleCommand: EnvelopeCommand => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed) =
-    new TransferController(withBasicAuth, getEnvelopesByDestination, handleCommand, null)
+                    handleCommand: EnvelopeCommand => Future[Either[CommandNotAccepted, CommandAccepted.type]] = _ => failed
+  ) = {
+    val appModule = mock[ApplicationModule]
+    when(appModule.withBasicAuth).thenReturn(withBasicAuth)
+    when(appModule.getEnvelopesByDestination).thenReturn(getEnvelopesByDestination)
+    when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
+    new TransferController(appModule, app.injector.instanceOf[ControllerComponents])
+  }
 
 
   "Delete envelope" should {
@@ -50,7 +60,7 @@ class TransferControllerSpec extends UnitSpec with ScalaFutures {
       val envelope = Support.envelope
       val request = FakeRequest()
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.Right(CommandAccepted)))
+      val controller = newController(handleCommand = _ => Future.successful(Right(CommandAccepted)))
       val result = controller.delete(envelope._id)(request).futureValue
 
       result.header.status shouldBe Status.OK
@@ -60,7 +70,7 @@ class TransferControllerSpec extends UnitSpec with ScalaFutures {
       val envelope = Support.envelope
       val request = FakeRequest()
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(CommandError("not good"))))
+      val controller = newController(handleCommand = _ => Future.successful(Left(CommandError("not good"))))
       val result = controller.delete(envelope._id)(request).futureValue
 
       result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
@@ -70,7 +80,7 @@ class TransferControllerSpec extends UnitSpec with ScalaFutures {
       val envelope = Support.envelope
       val request = FakeRequest()
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(EnvelopeNotFoundError)))
+      val controller = newController(handleCommand = _ => Future.successful(Left(EnvelopeNotFoundError)))
       val result = controller.delete(envelope._id)(request).futureValue
 
       result.header.status shouldBe Status.NOT_FOUND
@@ -80,7 +90,7 @@ class TransferControllerSpec extends UnitSpec with ScalaFutures {
       val envelope = Support.envelope
       val request = FakeRequest()
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(EnvelopeArchivedError)))
+      val controller = newController(handleCommand = _ => Future.successful(Left(EnvelopeArchivedError)))
       val result = controller.delete(envelope._id)(request).futureValue
 
       result.header.status shouldBe Status.GONE
@@ -90,7 +100,7 @@ class TransferControllerSpec extends UnitSpec with ScalaFutures {
       val envelope = Support.envelope
       val request = FakeRequest()
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(EnvelopeSealedError)))
+      val controller = newController(handleCommand = _ => Future.successful(Left(EnvelopeSealedError)))
       val result = controller.delete(envelope._id)(request).futureValue
 
       result.header.status shouldBe Status.LOCKED

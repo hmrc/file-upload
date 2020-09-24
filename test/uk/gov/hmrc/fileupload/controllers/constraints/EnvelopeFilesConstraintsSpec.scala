@@ -16,14 +16,15 @@
 
 package uk.gov.hmrc.fileupload.controllers.constraints
 
-import uk.gov.hmrc.fileupload.ApplicationComponents
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
+import uk.gov.hmrc.fileupload.TestApplicationComponents
 import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, EnvelopeConstraintsUserSetting, Size}
 import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraintsConfiguration
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.util.Try
 
-class EnvelopeFilesConstraintsSpec extends UnitSpec with ApplicationComponents {
+class EnvelopeFilesConstraintsSpec extends AnyWordSpecLike with Matchers with TestApplicationComponents {
 
   "constraint format validation" should {
     "be successful for up to 4 digits followed by either KB or MB (upper case)" in {

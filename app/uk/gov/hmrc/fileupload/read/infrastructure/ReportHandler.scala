@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.fileupload.read.infrastructure
 
-import cats.data.Xor
 import play.api.Logger
 import uk.gov.hmrc.fileupload.read.envelope.Repository._
 import uk.gov.hmrc.fileupload.write.infrastructure._
@@ -25,6 +24,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 trait ReportHandler[T, Id] {
+
+  private val logger = Logger(getClass)
 
   def toId: StreamId => Id
   def update: (T, Boolean) => Future[UpdateResult]
@@ -56,15 +57,15 @@ trait ReportHandler[T, Id] {
           update(updatedVersion, !replay).onComplete {
             case Success(result) =>
               result match {
-                case Xor.Right(_) =>
-                  Logger.info(s"Report successfully updated $updatedVersion")
-                case Xor.Left(NewerVersionAvailable) =>
-                  Logger.info(s"Report not stored: NewerVersionAvailable for $updatedVersion")
-                case Xor.Left(NotUpdatedError(m)) =>
-                  Logger.info(s"Report not stored: NoUpdatedError $m for $updatedVersion")
+                case Right(_) =>
+                  logger.info(s"Report successfully updated $updatedVersion")
+                case Left(NewerVersionAvailable) =>
+                  logger.info(s"Report not stored: NewerVersionAvailable for $updatedVersion")
+                case Left(NotUpdatedError(m)) =>
+                  logger.info(s"Report not stored: NoUpdatedError $m for $updatedVersion")
               }
             case Failure(f) =>
-              Logger.info(s"Report not stored: ${f.getMessage} for $updatedVersion")
+              logger.info(s"Report not stored: ${f.getMessage} for $updatedVersion")
           }
         case None =>
           remove(id)
@@ -76,13 +77,13 @@ trait ReportHandler[T, Id] {
     delete(id).onComplete {
       case Success(result) =>
         result match {
-          case Xor.Right(_) =>
-            Logger.info(s"Report successfully deleted $id")
-          case Xor.Left(DeleteError(m)) =>
-            Logger.info(s"Report not deleted: $m for $id")
+          case Right(_) =>
+            logger.info(s"Report successfully deleted $id")
+          case Left(DeleteError(m)) =>
+            logger.info(s"Report not deleted: $m for $id")
         }
       case Failure(f) =>
-        Logger.info(s"Report not deleted: ${f.getMessage} for $id")
+        logger.info(s"Report not deleted: ${f.getMessage} for $id")
     }
 
   def apply: PartialFunction[(T, EventData), Option[T]]

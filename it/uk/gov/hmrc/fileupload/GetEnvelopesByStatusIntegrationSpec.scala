@@ -6,9 +6,9 @@ class GetEnvelopesByStatusIntegrationSpec extends IntegrationSpec with EnvelopeA
 
   def countSubstring(str: String, substr: String) = substr.r.findAllMatchIn(str).length
 
-  feature("GetEnvelopesByStatus") {
+  Feature("GetEnvelopesByStatus") {
 
-    scenario("List Envelopes for a given status with inclusive true") {
+    Scenario("List Envelopes for a given status with inclusive true") {
       Given("A list of status")
       val status = List("OPEN", "CLOSED")
 
@@ -37,7 +37,7 @@ class GetEnvelopesByStatusIntegrationSpec extends IntegrationSpec with EnvelopeA
       countSubstring(result, "CLOSED") shouldBe 1
     }
 
-    scenario("List Envelopes for a given status with inclusive false") {
+    Scenario("List Envelopes for a given status with inclusive false") {
       Given("A list of status")
       val status = List("OPEN")
 
@@ -64,7 +64,5 @@ class GetEnvelopesByStatusIntegrationSpec extends IntegrationSpec with EnvelopeA
       countSubstring(result, "OPEN") shouldBe 0
       countSubstring(result, "CLOSED") shouldBe 1
     }
-
   }
-
 }

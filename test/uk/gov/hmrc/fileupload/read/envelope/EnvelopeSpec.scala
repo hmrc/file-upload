@@ -20,14 +20,15 @@ import java.lang.Math._
 
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import play.api.libs.json.{JsString, Json}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
+import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.write.infrastructure.Version
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.util.Random
 
-class EnvelopeSpec extends UnitSpec {
+class EnvelopeSpec extends AnyWordSpecLike with Matchers {
 
   val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
   val today = new DateTime().plusMinutes(10)

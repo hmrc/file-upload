@@ -21,7 +21,7 @@ trait FileActions extends ActionsSupport {
   def upload(data: Array[Byte], envelopeId: EnvelopeId, fileId: FileId, fileRefId: FileRefId): WSResponse =
     client
       .url(s"$url/envelopes/$envelopeId/files/$fileId/$fileRefId")
-      .withHeaders("Content-Type" -> "application/octet-stream")
+      .withHttpHeaders("Content-Type" -> "application/octet-stream")
       .put(data)
       .futureValue
 
@@ -33,7 +33,8 @@ trait FileActions extends ActionsSupport {
 
   def download(envelopeId: EnvelopeId, fileId: FileId): WSResponse =
     client
-      .url(s"$url/envelopes/$envelopeId/files/${urlEncode(fileId)}/content").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic644("yuan:yaunspassword")))
+      .url(s"$url/envelopes/$envelopeId/files/${urlEncode(fileId)}/content")
+      .withHttpHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic644("yuan:yaunspassword")))
       .get()
       .futureValue
 

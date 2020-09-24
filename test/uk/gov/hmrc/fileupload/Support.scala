@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.fileupload
 
+import java.util.UUID
+
 import akka.actor.{Actor, ActorRef, ActorSystem}
 import akka.stream.{ActorMaterializer, Materializer}
 import akka.testkit.TestActorRef
@@ -47,7 +49,7 @@ object Support {
 
   val blockingExeContext: ExecutionContext = new BlockingExecutionContext()
 
-  def consume(data: HttpEntity)(implicit ec: ExecutionContext) = {
+  def consume(data: HttpEntity) = {
     import StreamImplicits.materializer
     Await.result(data.consumeData, 500.millis).toArray
   }
@@ -73,13 +75,12 @@ object Support {
 
   def farInTheFutureEnvelope = envelope.copy(expiryDate = Some(DateTime.now().plusDays(3)))
 
-  def envelopeAvailable(e: Envelope = envelope): WithValidEnvelope = new WithValidEnvelope(
-    _ => Future.successful(Some(e))
-  )
-
   val envelopeNotFound: WithValidEnvelope = new WithValidEnvelope(
     _ => Future.successful(None)
   )
+
+  def fileRefId(): FileRefId =
+    FileRefId(UUID.randomUUID().toString)
 
   object Implicits {
     implicit def underLyingActor[T <: Actor](actorRef: ActorRef): T = actorRef.asInstanceOf[TestActorRef[T]].underlyingActor

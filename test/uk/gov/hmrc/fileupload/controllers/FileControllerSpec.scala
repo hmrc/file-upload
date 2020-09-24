@@ -20,11 +20,13 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
-import cats.data.Xor
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.time.{Millis, Seconds, Span}
+import org.mockito.MockitoSugar
+import org.scalatest.OptionValues
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.http.{HeaderNames, Status}
 import play.api.mvc._
 import play.api.test.FakeRequest
@@ -34,13 +36,17 @@ import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAu
 import uk.gov.hmrc.fileupload.read.envelope.{File, FileStatusAvailable, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeCommand
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class FileControllerSpec extends UnitSpec with ScalaFutures {
-
-  implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
+class FileControllerSpec
+  extends AnyWordSpecLike
+     with Matchers
+     with TestApplicationComponents
+     with MockitoSugar
+     with ScalaFutures
+     with OptionValues
+     with IntegrationPatience {
 
   implicit val ec = ExecutionContext.global
 
@@ -52,9 +58,16 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
 
   def newController(withBasicAuth:BasicAuth = AlwaysAuthorisedBasicAuth,
                     retrieveFile: (EnvelopeId, FileId) => Future[Source[ByteString, _]] = (_, _) => failed,
-                    withValidEnvelope: WithValidEnvelope = Support.envelopeAvailable(),
-                    handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed) =
-    new FileController(withBasicAuth, retrieveFile, withValidEnvelope, handleCommand)
+                    withValidEnvelope: WithValidEnvelope = new WithValidEnvelope(_ => Future.successful(Some(Support.envelope))),
+                    handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = _ => failed
+  ) = {
+    val appModule = mock[ApplicationModule]
+    when(appModule.withBasicAuth).thenReturn(withBasicAuth)
+    when(appModule.getFileFromS3).thenReturn(retrieveFile)
+    when(appModule.withValidEnvelope).thenReturn(withValidEnvelope)
+    when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
+    new FileController(appModule, app.injector.instanceOf[ControllerComponents])
+  }
 
 
   val envelopeId = EnvelopeId()
@@ -74,13 +87,12 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
             _ => Future.successful(Some(envelope))
           ))
 
-      val result = controller.downloadFile(envelopeId, fileId)(FakeRequest().withHeaders(authHeaders)).futureValue
+      val result = controller.downloadFile(envelopeId, fileId)(FakeRequest().withHeaders(authHeaders))
 
-      result.header.status shouldBe Status.OK
-      val headers = result.header.headers
-      headers("Content-Length") shouldBe "100"
-      headers("Content-Type") shouldBe "application/octet-stream"
-      headers("Content-Disposition") shouldBe "attachment; filename=\"myfile.txt\""
+      status(result) shouldBe Status.OK
+      header("Content-Length", result).value shouldBe "100"
+      header("Content-Type", result).value shouldBe "application/octet-stream"
+      header("Content-Disposition", result).value shouldBe "attachment; filename=\"myfile.txt\""
     }
     "return filename = `data` in headers if absent in client metadata for a given file" in {
       val controller =
@@ -93,17 +105,16 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
               Future.successful(Some(envelopeWithoutFileName))
             }))
 
-      val result = controller.downloadFile(envelopeId, fileId)(FakeRequest().withHeaders(authHeaders)).futureValue
+      val result = controller.downloadFile(envelopeId, fileId)(FakeRequest().withHeaders(authHeaders))
 
-      val headers = result.header.headers
-      headers("Content-Disposition") shouldBe "attachment; filename=\"data\""
+      header("Content-Disposition", result).value shouldBe "attachment; filename=\"data\""
     }
 
     "respond with 404 when a file is not found" in {
       val randomFileId = FileId("myFileId")
       val controller = newController(retrieveFile = (_,_) => Future.successful(source))
 
-      val result: Result = controller.downloadFile(envelopeId, randomFileId)(FakeRequest().withHeaders(authHeaders))
+      val result = controller.downloadFile(envelopeId, randomFileId)(FakeRequest().withHeaders(authHeaders))
       implicit val actorSystem = ActorSystem()
       implicit val materializer = ActorMaterializer()
 
@@ -118,9 +129,8 @@ class FileControllerSpec extends UnitSpec with ScalaFutures {
         withValidEnvelope = Support.envelopeNotFound
       )
 
-      val result: Result = controller.downloadFile(envelopeId, fileId)(FakeRequest().withHeaders(authHeaders)).futureValue
+      val result = controller.downloadFile(envelopeId, fileId)(FakeRequest().withHeaders(authHeaders))
 
-      result.header.status shouldBe Status.NOT_FOUND
       implicit val actorSystem = ActorSystem()
       implicit val materializer = ActorMaterializer()
 

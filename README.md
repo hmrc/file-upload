@@ -4,7 +4,7 @@
 
 [![Build Status](https://travis-ci.org/hmrc/file-upload.svg?branch=master)](https://travis-ci.org/hmrc/file-upload) [ ![Download](https://api.bintray.com/packages/hmrc/releases/file-upload/images/download.svg) ](https://bintray.com/hmrc/releases/file-upload/_latestVersion)
 
-This API provides a mechanism whereby a client microservice can define and manage an envelope which can later be filled with files and then optionally routed to another system. The envelope resources are exposed on the /file-upload/envelopes endpoint. Please <i>**DO NOT USE**</i> Test-Only endpoints because they are not available in production and the Internal endpoints specified <i>**WITHOUT PERMISSION.**</i> 
+This API provides a mechanism whereby a client microservice can define and manage an envelope which can later be filled with files and then optionally routed to another system. The envelope resources are exposed on the /file-upload/envelopes endpoint. Please <i>**DO NOT USE**</i> Test-Only endpoints because they are not available in production and the Internal endpoints specified <i>**WITHOUT PERMISSION.**</i>
 
 ## Software Requirements
 *   MongoDB 3.2 (3.4 will not work currently)
@@ -41,7 +41,7 @@ POST   	/file-upload/envelopes
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 201   | Successfully created envelope. |
-| Bad Request | 400   |  Envelope not created, with some reason message |  
+| Bad Request | 400   |  Envelope not created, with some reason message |
 
 #### Example
 Request (POST): localhost:8898/file-upload/envelopes
@@ -57,21 +57,21 @@ Body:
           "maxSizePerItem": "10KB",
           "contentTypes": ["application/pdf","image/jpeg","application/xml"],
           "allowZeroLengthFiles": false
-        }   
+        }
 }
 ```
 
-Note: All parameters are optional. 
+Note: All parameters are optional.
 A [callbackUrl](#callback) is optional but should be provided in order for the service to provide feedback of the envelope's progress.
 All constraints are optional for users, default constraints apply if the value is not specified in the create envelope call.
 
 | Attribute    | Options    | Accepted Values | Default    | Description |
 | --------|---------|-------|-------|-------|
-| constraints.contentTypes  | optional   | application/pdf<br/>image/jpeg<br/>application/xml<br/>text/xml<br/>application/vnd.ms-excel<br/>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet  | application/pdf<br/>image/jpeg<br/>application/xml<br/>text/xml  | MIME types accepted by this envelope  | 
-| constraints.maxItems | optional   |  1-100 |  100  | Number of items allowed in this envelope  | 
-| constraints.maxSize | optional   | [1-9][0-9]{0,3}(KB&#124;MB) e.g. 1024KB |  25MB  | Maximum Size (sum of files' sizes) for the envelope (Maximum size 250MB)  | 
-| constraints.maxSizePerItem | optional   |  [1-9][0-9]{0,3}(KB&#124;MB) e.g. 1024KB |  10MB  | Maximum Size for each file (Maximum size 100MB)  | 
-| constraints.allowZeroLengthFiles | optional | true or false | When false files with no contents will not be able to be uploaded to this envelope |
+| constraints.contentTypes  | optional   | application/pdf<br/>image/jpeg<br/>application/xml<br/>text/xml<br/>application/vnd.ms-excel<br/>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet  | application/pdf<br/>image/jpeg<br/>application/xml<br/>text/xml  | MIME types accepted by this envelope  |
+| constraints.maxItems | optional   |  1-100 |  100  | Number of items allowed in this envelope  |
+| constraints.maxSize | optional   | [1-9][0-9]{0,3}(KB&#124;MB) e.g. 1024KB |  25MB  | Maximum Size (sum of files' sizes) for the envelope (Maximum size 250MB)  |
+| constraints.maxSizePerItem | optional   |  [1-9][0-9]{0,3}(KB&#124;MB) e.g. 1024KB |  10MB  | Maximum Size for each file (Maximum size 100MB)  |
+| constraints.allowZeroLengthFiles | optional | true or false | true | When false files with no contents will not be able to be uploaded to this envelope |
 
 1. constraints.contentTypes and constraints.maxSizePerItem are applied when the file is uploaded. If validation fails, the user will receive an error.
 2. constraints.maxItems and constraints.maxSize are applied when the file is routed. Your application may be able to exceed these limits during upload but will not be able to route the envelope.
@@ -88,7 +88,7 @@ GET     /file-upload/envelopes/{envelope-id}
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 200   | Successfully shows envelope details.  |
-| Not Found | 404   |  Envelope with id not found. |  
+| Not Found | 404   |  Envelope with id not found. |
 
 
 #### Example
@@ -110,7 +110,7 @@ Response (in Body):
 
 The following are the possible Envelope Statuses that occur for an Envelope.
 
-| Status  | Description  | 
+| Status  | Description  |
 | --------|---------|
 | OPEN  |  Envelope is created and open to upload files. |
 | SEALED | A routing request has been made. However, files are not "AVAILABLE" yet. |
@@ -128,7 +128,7 @@ DELETE  /file-upload/envelopes/{envelope-id}
 | Bad Request  | 400   | Envelope not deleted. |
 | Not Found | 404   |  Envelope not found. |
 
-#### Example 
+#### Example
 Request (DELETE): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
 
 Response: 200
@@ -143,7 +143,7 @@ DELETE  /file-upload/envelopes/{envelope-id}/files/{file-Id}
 | --------|---------|-------|
 | Ok  | 200   | File is deleted successfully  |
 | Bad Request  | 400   | File not deleted. |
-| Not Found | 404   |  File not found in envelope. | 
+| Not Found | 404   |  File not found in envelope. |
 
 #### Example
 Request (DELETE): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1
@@ -164,7 +164,7 @@ GET     /file-upload/envelopes/{envelope-id}/files/{files-Id}/metadata
 #### Example
 Request (GET): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1/metadata
 
-Response (in Body): 
+Response (in Body):
 ``` json
 {
   "id": "file-id-1",
@@ -205,7 +205,7 @@ POST    /file-routing/requests
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Created  | 201   | Successfully created routing request.  |
-| Bad Request  | 400   | Failed to create route request. | 
+| Bad Request  | 400   | Failed to create route request. |
 
 #### Example
 Request (POST): localhost:8898/file-routing/requests
@@ -225,7 +225,7 @@ Response(in Headers): Location -> /file-routing/requests/39e0e07d-7969-44ac-9f9c
 ### Transfer
 
 #### Download List of Envelopes
-Returns either a list of all available or selected envelopes (via query string) for routing that have the status CLOSED and information from the routing request provided (above). 
+Returns either a list of all available or selected envelopes (via query string) for routing that have the status CLOSED and information from the routing request provided (above).
 ```
 GET     /file-transfer/envelopes
 ```
@@ -323,7 +323,7 @@ Request (GET): localhost:8898/file-transfer/envelopes/0b215e97-11d4-4006-91db-c0
 
 Response: Binary file contains the zipped files.
 
-#### Soft Delete an Envelope 
+#### Soft Delete an Envelope
 Changes status of an envelope to DELETED which prevents any service or user from using this envelope.
 ```
 DELETE    /file-transfer/envelopes/{envelope-id}
@@ -352,8 +352,8 @@ GET        /file-upload/envelopes/{envelope-Id}/files/{file-Id}/metadata
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 200   | Successfully returnsd file metadata  |
-| Not Found | 404   |  Envelope with id {envelopeId} not found. |  
-| Not Found | 404   |  File with id: {fileId} not found in envelope: {envelopeId} |   
+| Not Found | 404   |  Envelope with id {envelopeId} not found. |
+| Not Found | 404   |  File with id: {fileId} not found in envelope: {envelopeId} |
 
 
 #### Example

@@ -26,7 +26,7 @@ import uk.gov.hmrc.fileupload.write.infrastructure.EventData
 
 import scala.collection.mutable.ListBuffer
 
-class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with ApplicationComponents {
+class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with TestApplicationComponents {
 
   override val handler = new EnvelopeHandler(envelopeConstraintsConfigure)
 
@@ -63,10 +63,9 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
 
   def defaultFileRefId = FileRefId(UUID.randomUUID().toString)
 
-  feature("CreateEnvelope") {
+  Feature("CreateEnvelope") {
 
-    scenario("Create new envelope") {
-
+    Scenario("Create new envelope") {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
@@ -75,8 +74,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Create new envelope for an existing envelope") {
-
+    Scenario("Create new envelope for an existing envelope") {
       givenWhenThen(
         envelopeCreated,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
@@ -85,8 +83,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Create new envelope with number of items < 1") {
-
+    Scenario("Create new envelope with number of items < 1") {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
@@ -95,8 +92,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Create new envelope with out of bounds max size per item constraint") {
-
+    Scenario("Create new envelope with out of bounds max size per item constraint") {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
@@ -105,8 +101,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Create new envelope with out of bounds max size constraint") {
-
+    Scenario("Create new envelope with out of bounds max size constraint") {
       givenWhenThen(
         --,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
@@ -115,7 +110,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Create new envelope for a deleted envelope") {
+    Scenario("Create new envelope for a deleted envelope") {
       givenWhenThen(
         envelopeCreated And envelopeDeleted,
         CreateEnvelope(envelopeId, Some("http://www.callback-url.com"), Some(new DateTime(0)),
@@ -125,10 +120,9 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
     }
   }
 
-  feature("QuarantineFile") {
+  Feature("QuarantineFile") {
 
-    scenario("Quarantine a new file for an open envelope") {
-
+    Scenario("Quarantine a new file for an open envelope") {
       givenWhenThen(
         envelopeCreated,
         QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
@@ -136,8 +130,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Quarantine an additional file") {
-
+    Scenario("Quarantine an additional file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = defaultFileRefId, name = "abc.pdf"),
         QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
@@ -145,8 +138,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Quarantine a new file for an existing file id with different fileRefId") {
-
+    Scenario("Quarantine a new file for an existing file id with different fileRefId") {
       givenWhenThen(
         envelopeCreated And fileQuarantined.copy(fileRefId = defaultFileRefId),
         QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
@@ -154,8 +146,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Quarantine a new file for a different file id with different fileRefId") {
-
+    Scenario("Quarantine a new file for a different file id with different fileRefId") {
       givenWhenThen(
         envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = defaultFileRefId),
         QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
@@ -163,8 +154,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Quarantine same file") {
-
+    Scenario("Quarantine same file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined,
         QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
@@ -172,8 +162,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Quarantine a new file for a non existing envelope") {
-
+    Scenario("Quarantine a new file for a non existing envelope") {
       givenWhenThen(
         --,
         QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
@@ -181,8 +170,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Quarantine a new file for a deleted envelope") {
-
+    Scenario("Quarantine a new file for a deleted envelope") {
       givenWhenThen(
         envelopeCreated And envelopeDeleted,
         QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
@@ -190,8 +178,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Quarantine a new file for a sealed envelope") {
-
+    Scenario("Quarantine a new file for a sealed envelope") {
       givenWhenThen(
         envelopeCreated And envelopeSealed,
         QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
@@ -199,7 +186,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Quarantine a new file for a route requested envelope") {
+    Scenario("Quarantine a new file for a route requested envelope") {
       givenWhenThen(
         envelopeCreated And envelopeRouteRequested,
         QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
@@ -207,7 +194,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Quarantine a new file for a routed envelope") {
+    Scenario("Quarantine a new file for a routed envelope") {
       givenWhenThen(
         envelopeCreated And envelopeRouted,
         QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
@@ -215,8 +202,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Quarantine a new file for a archived envelope") {
-
+    Scenario("Quarantine a new file for a archived envelope") {
       givenWhenThen(
         envelopeCreated And envelopeArchived,
         QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()),
@@ -225,10 +211,9 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
     }
   }
 
-  feature("MarkFileAsClean") {
+  Feature("MarkFileAsClean") {
 
-    scenario("Mark file as clean for an existing file") {
-
+    Scenario("Mark file as clean for an existing file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined,
         MarkFileAsClean(envelopeId, fileId, fileRefId),
@@ -236,8 +221,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Mark file as clean for an existing file which has other files") {
-
+    Scenario("Mark file as clean for an existing file which has other files") {
       givenWhenThen(
         envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = defaultFileRefId) And fileQuarantined,
         MarkFileAsClean(envelopeId, fileId, fileRefId),
@@ -245,8 +229,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Mark file as clean for an already marked file") {
-
+    Scenario("Mark file as clean for an already marked file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined And noVirusDetected,
         MarkFileAsClean(envelopeId, fileId, fileRefId),
@@ -254,8 +237,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Mark file as clean for an already stored file") {
-
+    Scenario("Mark file as clean for an already stored file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined And fileStored,
         MarkFileAsClean(envelopeId, fileId, fileRefId),
@@ -263,8 +245,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Mark file as clean for an existing fileId with different fileRefId") {
-
+    Scenario("Mark file as clean for an existing fileId with different fileRefId") {
       givenWhenThen(
         envelopeCreated And fileQuarantined.copy(fileRefId = defaultFileRefId),
         MarkFileAsClean(envelopeId, fileId, fileRefId),
@@ -272,8 +253,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Mark file as clean for a non existing file") {
-
+    Scenario("Mark file as clean for a non existing file") {
       givenWhenThen(
         envelopeCreated,
         MarkFileAsClean(envelopeId, fileId, fileRefId),
@@ -281,8 +261,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Mark file as clean for a sealed file") {
-
+    Scenario("Mark file as clean for a sealed file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined And envelopeSealed,
         MarkFileAsClean(envelopeId, fileId, fileRefId),
@@ -290,8 +269,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Mark file as clean for an archived envelope") {
-
+    Scenario("Mark file as clean for an archived envelope") {
       givenWhenThen(
         envelopeCreated And fileQuarantined And noVirusDetected And fileStored And envelopeSealed And envelopeRouted And envelopeArchived,
         MarkFileAsClean(envelopeId, fileId, fileRefId),
@@ -300,10 +278,9 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
     }
   }
 
-  feature("MarkFileAsInfected") {
+  Feature("MarkFileAsInfected") {
 
-    scenario("Mark file as infected for an existing file") {
-
+    Scenario("Mark file as infected for an existing file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined,
         MarkFileAsInfected(envelopeId, fileId, fileRefId),
@@ -311,8 +288,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Mark file as clean for an existing file which has other files") {
-
+    Scenario("Mark file as clean for an existing file which has other files") {
       givenWhenThen(
         envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = defaultFileRefId) And fileQuarantined,
         MarkFileAsInfected(envelopeId, fileId, fileRefId),
@@ -320,8 +296,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Mark file as infected for an already infected file") {
-
+    Scenario("Mark file as infected for an already infected file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined And virusDetected,
         MarkFileAsInfected(envelopeId, fileId, fileRefId),
@@ -329,8 +304,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Mark file as clean for an already stored file") {
-
+    Scenario("Mark file as clean for an already stored file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined And fileStored,
         MarkFileAsInfected(envelopeId, fileId, fileRefId),
@@ -338,8 +312,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Mark file as infected for an existing fileId with different fileRefId") {
-
+    Scenario("Mark file as infected for an existing fileId with different fileRefId") {
       givenWhenThen(
         envelopeCreated And fileQuarantined.copy(fileRefId = defaultFileRefId),
         MarkFileAsInfected(envelopeId, fileId, fileRefId),
@@ -347,8 +320,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Mark file as infected for a non existing file") {
-
+    Scenario("Mark file as infected for a non existing file") {
       givenWhenThen(
         envelopeCreated,
         MarkFileAsInfected(envelopeId, fileId, fileRefId),
@@ -356,8 +328,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Mark file as infected for a sealed file") {
-
+    Scenario("Mark file as infected for a sealed file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined And envelopeSealed,
         MarkFileAsInfected(envelopeId, fileId, fileRefId),
@@ -365,8 +336,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Mark file as infected for an archived envelope") {
-
+    Scenario("Mark file as infected for an archived envelope") {
       givenWhenThen(
         envelopeCreated And fileQuarantined And noVirusDetected And fileStored And envelopeSealed And envelopeRouted And envelopeArchived,
         MarkFileAsInfected(envelopeId, fileId, fileRefId),
@@ -375,10 +345,9 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
     }
   }
 
-  feature("StoreFile") {
+  Feature("StoreFile") {
 
-    scenario("Store file for an existing file") {
-
+    Scenario("Store file for an existing file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined And noVirusDetected,
         StoreFile(envelopeId, fileId, fileRefId, 100),
@@ -386,8 +355,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Store file for an existing file which is not scanned yet") {
-
+    Scenario("Store file for an existing file which is not scanned yet") {
       givenWhenThen(
         envelopeCreated And fileQuarantined,
         StoreFile(envelopeId, fileId, fileRefId, 100),
@@ -395,8 +363,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Store file for an already stored file") {
-
+    Scenario("Store file for an already stored file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined And noVirusDetected And fileStored,
         StoreFile(envelopeId, fileId, fileRefId, 100),
@@ -404,8 +371,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Store file for an existing file with virus should fail") {
-
+    Scenario("Store file for an existing file with virus should fail") {
       givenWhenThen(
         envelopeCreated And fileQuarantined And virusDetected,
         StoreFile(envelopeId, fileId, fileRefId, 100),
@@ -413,8 +379,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Store file for an existing file and a sealed envelope") {
-
+    Scenario("Store file for an existing file and a sealed envelope") {
       givenWhenThen(
         envelopeCreated And fileQuarantined And noVirusDetected And envelopeSealed,
         StoreFile(envelopeId, fileId, fileRefId, 100),
@@ -422,8 +387,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Store file for an existing file and another quarantined file and a sealed envelope") {
-
+    Scenario("Store file for an existing file and another quarantined file and a sealed envelope") {
       givenWhenThen(
         envelopeCreated And fileQuarantined.copy(fileId = FileId(), fileRefId = defaultFileRefId) And fileQuarantined And noVirusDetected And envelopeSealed,
         StoreFile(envelopeId, fileId, fileRefId, 100),
@@ -431,8 +395,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Store file for an existing fileId with different fileRefId") {
-
+    Scenario("Store file for an existing fileId with different fileRefId") {
       givenWhenThen(
         envelopeCreated And fileQuarantined.copy(fileRefId = defaultFileRefId),
         StoreFile(envelopeId, fileId, fileRefId, 100),
@@ -440,8 +403,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Store file for a non existing file") {
-
+    Scenario("Store file for a non existing file") {
       givenWhenThen(
         envelopeCreated,
         StoreFile(envelopeId, fileId, fileRefId, 100),
@@ -449,8 +411,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Store file for a non existing file ref") {
-
+    Scenario("Store file for a non existing file ref") {
       givenWhenThen(
         envelopeCreated And fileQuarantined,
         StoreFile(envelopeId, fileId, fileRefId.copy(fileRefId.value + "_"), 100),
@@ -458,8 +419,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Store file for an archived envelope") {
-
+    Scenario("Store file for an archived envelope") {
       givenWhenThen(
         envelopeCreated And fileQuarantined And noVirusDetected And fileStored And envelopeSealed And envelopeRouted And envelopeArchived,
         StoreFile(envelopeId, fileId, fileRefId, 100),
@@ -468,10 +428,9 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
     }
   }
 
-  feature("DeleteFile") {
+  Feature("DeleteFile") {
 
-    scenario("Delete file for an existing file") {
-
+    Scenario("Delete file for an existing file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined,
         DeleteFile(envelopeId, fileId),
@@ -479,8 +438,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Delete file for a non existing file") {
-
+    Scenario("Delete file for a non existing file") {
       givenWhenThen(
         envelopeCreated,
         DeleteFile(envelopeId, fileId),
@@ -488,8 +446,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Delete file for a sealed envelope") {
-
+    Scenario("Delete file for a sealed envelope") {
       givenWhenThen(
         envelopeCreated And envelopeSealed,
         DeleteFile(envelopeId, fileId),
@@ -498,10 +455,9 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
     }
   }
 
-  feature("DeleteEnvelope") {
+  Feature("DeleteEnvelope") {
 
-    scenario("Delete envelope") {
-
+    Scenario("Delete envelope") {
       givenWhenThen(
         envelopeCreated,
         DeleteEnvelope(envelopeId),
@@ -509,8 +465,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Delete non existing envelope") {
-
+    Scenario("Delete non existing envelope") {
       givenWhenThen(
         --,
         DeleteEnvelope(envelopeId),
@@ -518,8 +473,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Delete sealed envelope") {
-
+    Scenario("Delete sealed envelope") {
       givenWhenThen(
         envelopeCreated And envelopeSealed,
         DeleteEnvelope(envelopeId),
@@ -527,7 +481,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Delete a route requested envelope") {
+    Scenario("Delete a route requested envelope") {
       givenWhenThen(
         envelopeCreated And envelopeRouteRequested,
         DeleteEnvelope(envelopeId),
@@ -535,7 +489,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Delete routed envelope") {
+    Scenario("Delete routed envelope") {
       givenWhenThen(
         envelopeCreated And envelopeRouted,
         DeleteEnvelope(envelopeId),
@@ -543,8 +497,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Delete archived envelope") {
-
+    Scenario("Delete archived envelope") {
       givenWhenThen(
         envelopeCreated And envelopeArchived,
         DeleteEnvelope(envelopeId),
@@ -553,10 +506,9 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
     }
   }
 
-  feature("SealEnvelope") {
+  Feature("SealEnvelope") {
 
-    scenario("Seal envelope") {
-
+    Scenario("Seal envelope") {
       givenWhenThen(
         envelopeCreated,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
@@ -564,8 +516,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Seal envelope with quarantined file") {
-
+    Scenario("Seal envelope with quarantined file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
@@ -573,8 +524,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Seal envelope with exceeding max item count") {
-
+    Scenario("Seal envelope with exceeding max item count") {
       val eventsBuffer = ListBuffer[EventData]()
       eventsBuffer+=envelopeCreatedWithLimitedMaxItemConstraint(envelopeFilesConstraints.copy(maxItems = 2))
       for(x <- 1 to 5){
@@ -587,8 +537,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Seal envelope with no virus detected file") {
-
+    Scenario("Seal envelope with no virus detected file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined And noVirusDetected,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
@@ -596,8 +545,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Seal envelope with virus detected file") {
-
+    Scenario("Seal envelope with virus detected file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined And virusDetected,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
@@ -605,8 +553,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Seal envelope with stored file") {
-
+    Scenario("Seal envelope with stored file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined And fileStored,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
@@ -614,8 +561,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Seal envelope with no files") {
-
+    Scenario("Seal envelope with no files") {
       givenWhenThen(
         envelopeCreated,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
@@ -623,8 +569,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Seal envelope with a different destination") {
-
+    Scenario("Seal envelope with a different destination") {
       givenWhenThen(
         envelopeCreated,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DESTINATION_X", "testApplication"),
@@ -632,8 +577,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Seal non existing envelope") {
-
+    Scenario("Seal non existing envelope") {
       givenWhenThen(
         --,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
@@ -641,8 +585,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Seal deleted envelope") {
-
+    Scenario("Seal deleted envelope") {
       givenWhenThen(
         envelopeCreated And envelopeDeleted,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
@@ -650,8 +593,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Seal sealed envelope") {
-
+    Scenario("Seal sealed envelope") {
       givenWhenThen(
         envelopeCreated And envelopeSealed,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
@@ -659,8 +601,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-
-    scenario("Seal for a route requested envelope") {
+    Scenario("Seal for a route requested envelope") {
       givenWhenThen(
         envelopeCreated And envelopeRouteRequested,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
@@ -668,7 +609,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Seal routed envelope") {
+    Scenario("Seal routed envelope") {
       givenWhenThen(
         envelopeCreated And envelopeRouted,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
@@ -676,8 +617,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Seal archived envelope") {
-
+    Scenario("Seal archived envelope") {
       givenWhenThen(
         envelopeCreated And envelopeArchived,
         SealEnvelope(envelopeId, "testRoutingRequestId", "DMS", "testApplication"),
@@ -686,10 +626,9 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
     }
   }
 
-  feature("UnsealEnvelope") {
+  Feature("UnsealEnvelope") {
 
-    scenario("Unseal sealed envelope") {
-
+    Scenario("Unseal sealed envelope") {
       givenWhenThen(
         envelopeCreated And envelopeSealed,
         UnsealEnvelope(envelopeId),
@@ -697,8 +636,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Unseal envelope with quarantined file") {
-
+    Scenario("Unseal envelope with quarantined file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined And envelopeSealed,
         UnsealEnvelope(envelopeId),
@@ -706,8 +644,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Unseal envelope with no virus detected file") {
-
+    Scenario("Unseal envelope with no virus detected file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined And noVirusDetected And envelopeSealed,
         UnsealEnvelope(envelopeId),
@@ -715,8 +652,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Unseal envelope with stored file") {
-
+    Scenario("Unseal envelope with stored file") {
       givenWhenThen(
         envelopeCreated And fileQuarantined And fileStored And envelopeSealed,
         UnsealEnvelope(envelopeId),
@@ -724,8 +660,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Unseal non existing envelope") {
-
+    Scenario("Unseal non existing envelope") {
       givenWhenThen(
         --,
         UnsealEnvelope(envelopeId),
@@ -733,8 +668,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Unseal deleted envelope") {
-
+    Scenario("Unseal deleted envelope") {
       givenWhenThen(
         envelopeCreated And envelopeDeleted,
         UnsealEnvelope(envelopeId),
@@ -742,7 +676,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Unseal for a route requested envelope") {
+    Scenario("Unseal for a route requested envelope") {
       givenWhenThen(
         envelopeCreated And envelopeRouteRequested,
         UnsealEnvelope(envelopeId),
@@ -750,7 +684,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Unseal routed envelope") {
+    Scenario("Unseal routed envelope") {
       givenWhenThen(
         envelopeCreated And envelopeRouted,
         UnsealEnvelope(envelopeId),
@@ -758,8 +692,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Unseal archived envelope") {
-
+    Scenario("Unseal archived envelope") {
       givenWhenThen(
         envelopeCreated And envelopeArchived,
         UnsealEnvelope(envelopeId),
@@ -768,10 +701,9 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
     }
   }
 
-  feature("ArchiveEnvelope") {
+  Feature("ArchiveEnvelope") {
 
-    scenario("Archive routed envelope") {
-
+    Scenario("Archive routed envelope") {
       givenWhenThen(
         envelopeCreated And envelopeRouted,
         ArchiveEnvelope(envelopeId),
@@ -779,8 +711,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Archive open envelope") {
-
+    Scenario("Archive open envelope") {
       givenWhenThen(
         envelopeCreated,
         ArchiveEnvelope(envelopeId),
@@ -788,8 +719,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Archive non existing envelope") {
-
+    Scenario("Archive non existing envelope") {
       givenWhenThen(
         --,
         ArchiveEnvelope(envelopeId),
@@ -797,8 +727,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Archive sealed envelope") {
-
+    Scenario("Archive sealed envelope") {
       givenWhenThen(
         envelopeCreated And envelopeSealed,
         ArchiveEnvelope(envelopeId),
@@ -806,8 +735,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with App
       )
     }
 
-    scenario("Archive archived envelope") {
-
+    Scenario("Archive archived envelope") {
       givenWhenThen(
         envelopeCreated And envelopeArchived,
         ArchiveEnvelope(envelopeId),

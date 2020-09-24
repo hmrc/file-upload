@@ -19,10 +19,9 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
     * Create Envelope and Get Envelope
     */
 
-  feature("Create Envelope") {
+  Feature("Create Envelope") {
 
-    scenario("Create a new Envelope with empty body") {
-
+    Scenario("Create a new Envelope with empty body") {
       Given("I have an empty JSON request")
       val json = "{}"
 
@@ -39,7 +38,7 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       locationHeader should fullyMatch regex ".*/file-upload/envelopes/[A-z0-9-]+$"
     }
 
-    scenario("Create a new Envelope using basic sample") {
+    Scenario("Create a new Envelope using basic sample") {
       val formattedExpiryDate: String = formatter.print(today)
 
       Given("I have a default Create Envelope request")
@@ -59,9 +58,9 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
     }
   }
 
-  feature("Create Envelope with id") {
+  Feature("Create Envelope with id") {
 
-    scenario("Create a new Envelope with empty body") {
+    Scenario("Create a new Envelope with empty body") {
       Given("I have an empty JSON request")
       val json = "{}"
 
@@ -78,7 +77,7 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       locationHeader should fullyMatch regex ".*/file-upload/envelopes/aaa"
     }
 
-    scenario("Recreate an envelope") {
+    Scenario("Recreate an envelope") {
       Given("I have an empty JSON request")
       val json = "{}"
 
@@ -91,18 +90,14 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       Then("I will receive a 400 Bad Request response")
       response.status shouldBe BAD_REQUEST
     }
-
   }
 
-
-  feature("Create Envelope with Content Type constraints") {
-
+  Feature("Create Envelope with Content Type constraints") {
     /**
       * FILE-346 - Envelope Constraints - Content Type
       */
 
-    scenario("Create a new envelope") {
-
+    Scenario("Create a new envelope") {
       Given("a create envelope request constraining xml file types")
       val json = requestBodyWithConstraints(Map("formattedExpiryDate" -> formattedExpiryDate))
 
@@ -114,11 +109,9 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
     }
   }
 
+  Feature("Create Envelope with maxItems constraints") {
 
-  feature("Create Envelope with maxItems constraints") {
-
-    scenario("Create a new Envelope with valid maxItems") {
-
+    Scenario("Create a new Envelope with valid maxItems") {
       Given("a create envelope request with a valid maxItems constraint of 100")
       val json = Json.obj("constraints" -> Json.obj("maxItems" -> 100)).toString()
 
@@ -129,8 +122,7 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       response.status shouldBe CREATED
     }
 
-    scenario("Create a new Envelope with invalid maxItems") {
-
+    Scenario("Create a new Envelope with invalid maxItems") {
       Given("a create envelope request with invalid maxItems constraint of 101")
       val json = Json.obj("constraints" -> Json.obj("maxItems" -> 101)).toString()
 
@@ -142,11 +134,9 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
     }
   }
 
+  Feature("Create Envelope with maxSize constraints") {
 
-  feature("Create Envelope with maxSize constraints") {
-
-    scenario("Create a new Envelope with valid maxSize") {
-
+    Scenario("Create a new Envelope with valid maxSize") {
       Given("a create envelope request with valid maxSize constraint of 250MB")
       val maxSize: String = "250MB"
       val json = requestBodyWithConstraints(Map("formattedExpiryDate" -> formattedExpiryDate, "maxSize" -> maxSize))
@@ -158,8 +148,7 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       response.status shouldBe CREATED
     }
 
-    scenario("Create a new Envelope with invalid maxSize") {
-
+    Scenario("Create a new Envelope with invalid maxSize") {
       Given("a create envelope request with invalid maxSize constraint of 251MB")
       val maxSize: String = "251MB"
       val json = requestBodyWithConstraints(Map("formattedExpiryDate" -> formattedExpiryDate, "maxSize" -> maxSize))
@@ -172,11 +161,9 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
     }
   }
 
+  Feature("Create Envelope with maxSizePerItem constraints") {
 
-  feature("Create Envelope with maxSizePerItem constraints") {
-
-    scenario("Create a new Envelope with valid maxSizePerItem") {
-
+    Scenario("Create a new Envelope with valid maxSizePerItem") {
       Given("a create envelope request with valid maxSizePerItem constraint of 10MB")
       val maxSizePerItem: String = "10MB"
       val json = requestBodyWithConstraints(Map("formattedExpiryDate" -> formattedExpiryDate, "maxSizePerItem" -> maxSizePerItem))
@@ -188,8 +175,7 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       response.status shouldBe CREATED
     }
 
-    scenario("Create a new Envelope when maxSizePerItem greater than maxSize of envelope") {
-
+    Scenario("Create a new Envelope when maxSizePerItem greater than maxSize of envelope") {
       Given("a create envelope request with valid maxSizePerItem constraint of 10MB and maxSize of 9MB")
       val maxSize: String = "9MB"
       val maxSizePerItem: String = "10MB"
@@ -202,8 +188,7 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       response.status shouldBe BAD_REQUEST
     }
 
-    scenario("Create a new Envelope with invalid maxSizePerItem") {
-
+    Scenario("Create a new Envelope with invalid maxSizePerItem") {
       Given("a create envelope request with invalid maxSizePerItem constraint of 101MB")
       val maxSizePerItem: String = "101MB"
       val json = requestBodyWithConstraints(Map("formattedExpiryDate" -> formattedExpiryDate, "maxSizePerItem" -> maxSizePerItem))
@@ -216,8 +201,7 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
     }
   }
 
-  scenario("Create a new envelope with multiple invalid constraint values") {
-
+  Scenario("Create a new envelope with multiple invalid constraint values") {
     /**
       * FILE-423: Bug raised as this was incorrectly resulting in a HTTP 500 Server error
       */
@@ -234,5 +218,4 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
     Then("I will receive a 400 Bad Request response")
     response.status shouldBe BAD_REQUEST
   }
-
 }

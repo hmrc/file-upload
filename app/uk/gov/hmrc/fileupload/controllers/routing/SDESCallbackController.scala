@@ -18,25 +18,34 @@ package uk.gov.hmrc.fileupload.controllers.routing
 
 import java.time.Instant
 
-import cats.data.Xor
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import play.api.mvc.{Action, Controller, Request, Result}
-import uk.gov.hmrc.fileupload.EnvelopeId
+import play.api.mvc.{ControllerComponents, Request, Result}
+import uk.gov.hmrc.fileupload.{ApplicationModule, EnvelopeId}
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.write.envelope.{ArchiveEnvelope, EnvelopeArchivedError, EnvelopeCommand, EnvelopeNotFoundError}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
-class SDESCallbackController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
-                            (implicit executionContext: ExecutionContext) extends Controller {
+@Singleton
+class SDESCallbackController @Inject()(
+  appModule: ApplicationModule,
+  cc: ControllerComponents
+)(implicit executionContext: ExecutionContext
+) extends BackendController(cc) {
+
+  private val logger = Logger(getClass)
+
+  val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
 
   def callback() = Action.async(parse.json) { implicit request =>
     withJsonBody[NotificationItem] { item =>
-      Logger.info(s"Received SDES callback: $item")
+      logger.info(s"Received SDES callback: $item")
 
       // we only action items that are 'FileProcessed'; we delete the corresponding envelopes.
       // we have no retry mechanisms built that will retry if we're notified of an error here.
@@ -50,29 +59,28 @@ class SDESCallbackController(handleCommand: (EnvelopeCommand) => Future[Xor[Comm
 
   private def tryDelete(envelopeId: EnvelopeId) =
     handleCommand(ArchiveEnvelope(envelopeId)).map {
-      case Xor.Right(_) => Ok
-      case Xor.Left(EnvelopeArchivedError) =>
-        Logger.info(s"Received another request to delete envelope [$envelopeId]. It was previously deleted")
+      case Right(_) => Ok
+      case Left(EnvelopeArchivedError) =>
+        logger.info(s"Received another request to delete envelope [$envelopeId]. It was previously deleted")
         Ok
-      case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(BAD_REQUEST, s"CorrelationId $envelopeId not found")
-      case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Left(_) => ExceptionHandler(INTERNAL_SERVER_ERROR, s"Envelope with id: $envelopeId locked")
+      case Left(EnvelopeNotFoundError) => ExceptionHandler(BAD_REQUEST, s"CorrelationId $envelopeId not found")
+      case Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Left(_) => ExceptionHandler(INTERNAL_SERVER_ERROR, s"Envelope with id: $envelopeId locked")
     }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
 
   /**
-   * This method is copy-pasted from elsewhere in the project, but has additional logging, as it'll make life easier
+   * This method has been overridden to provide additional logging, as it'll make life easier
    * if the interface with SDES isn't accurately described or implemented.
-   * When we're happy with the API being stable, we can delete this method and replace its usage with
-   * ```Action.async(jsonBodyParser[NotificationItem])```
+   * When we're happy with the API being stable, we can delete this override.
    */
-  private def withJsonBody[T](f: (T) => Future[Result])(implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]) =
+  override protected def withJsonBody[T](f: T => Future[Result])(implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]): Future[Result] =
     Try(request.body.validate[T]) match {
       case Success(JsSuccess(payload, _)) => f(payload)
       case Success(JsError(errs)) =>
-        Logger.warn(s"Failed to parse ${m.runtimeClass.getSimpleName} payload. Errors: [$errs] Payload: [${request.body}]")
+        logger.warn(s"Failed to parse ${m.runtimeClass.getSimpleName} payload. Errors: [$errs] Payload: [${request.body}]")
         Future.successful(BadRequest(s"Invalid ${m.runtimeClass.getSimpleName} payload: $errs"))
       case Failure(e) =>
-        Logger.warn(s"Completely failed to parse body due to ${e.getMessage}. Payload [${request.body}]")
+        logger.warn(s"Completely failed to parse body due to ${e.getMessage}. Payload [${request.body}]")
         Future.successful(BadRequest(s"could not parse body due to ${e.getMessage}"))
     }
 }

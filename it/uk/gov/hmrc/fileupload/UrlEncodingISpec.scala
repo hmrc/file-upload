@@ -1,10 +1,6 @@
 package uk.gov.hmrc.fileupload
 
-import com.github.tomakehurst.wiremock.client.WireMock
-import com.github.tomakehurst.wiremock.client.WireMock._
 import play.api.libs.json._
-import play.api.libs.ws.WSResponse
-import play.utils.UriEncoding
 import uk.gov.hmrc.fileupload.support._
 import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, QuarantineFile, StoreFile}
 
@@ -13,8 +9,8 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
 
   val data = "{'name':'test'}"
 
-  feature("Odd Url Encoding for FileId") {
-    scenario("Get Envelope Details with a file and check if href encodes FileId") {
+  Feature("Odd Url Encoding for FileId") {
+    Scenario("Get Envelope Details with a file and check if href encodes FileId") {
 
       Given("I have a valid envelope")
       val envelopeId = createEnvelope()
@@ -52,5 +48,4 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       href shouldBe ("\""+targetUrl+"\"")
     }
   }
-
 }

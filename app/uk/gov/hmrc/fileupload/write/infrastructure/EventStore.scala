@@ -18,7 +18,6 @@ package uk.gov.hmrc.fileupload.write.infrastructure
 
 import java.util.concurrent.TimeUnit
 
-import cats.data.Xor
 import com.codahale.metrics.MetricRegistry
 import play.api.Logger
 import reactivemongo.api.collections.bson.BSONCollection
@@ -34,15 +33,15 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object EventStore {
-  type SaveResult = Xor[SaveError, SaveSuccess.type]
+  type SaveResult = Either[SaveError, SaveSuccess.type]
   case object SaveSuccess
   sealed trait SaveError
   case object VersionConflictError extends SaveError
   case class NotSavedError(message: String) extends SaveError
 
-  val saveSuccess = Xor.right(SaveSuccess)
+  val saveSuccess = Right(SaveSuccess)
 
-  type GetResult = Xor[GetError, Seq[UnitOfWork]]
+  type GetResult = Either[GetError, Seq[UnitOfWork]]
   case class GetError(message: String)
 }
 
@@ -60,6 +59,8 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
                       reader: BSONDocumentReader[UnitOfWork],
                       writer: BSONDocumentWriter[UnitOfWork]) extends EventStore {
 
+  private val logger = Logger(getClass)
+
   val collection: BSONCollection = mongo().collection[BSONCollection]("events")
 
   ensureIndex()
@@ -76,17 +77,17 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
 
   override def saveUnitOfWork(streamId: StreamId, unitOfWork: UnitOfWork): Future[SaveResult] = {
     val context = saveTimer.time()
-    collection.insert(unitOfWork, writeConcern).map { r =>
+    collection.insert(ordered = false, writeConcern = writeConcern).one(unitOfWork).map { r =>
       if (r.ok) {
         EventStore.saveSuccess
       } else {
-        Xor.left(NotSavedError("not saved"))
+        Left(NotSavedError("not saved"))
       }
     }.recover {
       case e: DatabaseException if e.code == duplicateKeyErrorCode =>
-        Xor.Left(VersionConflictError)
+        Left(VersionConflictError)
       case e =>
-        Xor.left(NotSavedError(s"not saved: ${e.getMessage}"))
+        Left(NotSavedError(s"not saved: ${e.getMessage}"))
     }.map { e =>
       context.stop()
       e
@@ -104,21 +105,19 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
 
         largeEnvelopeMarker.mark()
         if (size % envelopeEventsThreshold <= 20) {
-          Logger.warn(s"large envelope: envelopeId=$streamId size=$size time=${elapsed.toMillis} ms")
+          logger.warn(s"large envelope: envelopeId=$streamId size=$size time=${elapsed.toMillis} ms")
         }
         if (size % 100 == 0) {
-          Logger.error(s"large envelope: envelopeId=$streamId size=$size")
+          logger.error(s"large envelope: envelopeId=$streamId size=$size")
         }
       }
-      Xor.right(sortByVersion)
+      Right(sortByVersion)
     }.recover { case e =>
-      Xor.left(GetError(e.getMessage))
+      Left(GetError(e.getMessage))
     }.map { e =>
-      val elapsedNanos = context.stop()
-      val elapsed = FiniteDuration(elapsedNanos, TimeUnit.NANOSECONDS)
-
-      if (elapsed > FiniteDuration(10, TimeUnit.SECONDS)) {
-        Logger.warn(s"unitsOfWorkForAggregate: events.find by streamId=$streamId took ${elapsed.toMillis} ms")
+      val elapsed = context.stop().nanoseconds
+      if (elapsed > 10.seconds) {
+        logger.warn(s"unitsOfWorkForAggregate: events.find by streamId=$streamId took ${elapsed.toMillis} ms")
       }
 
       e

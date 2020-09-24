@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.fileupload.filters
 
-import javax.inject.Inject
-
 import akka.stream.Materializer
 import com.codahale.metrics.MetricRegistry
 import play.api.Logger
@@ -41,9 +39,13 @@ object UserAgent {
   val unknownUserAgent = UserAgent("UnknownUserAgent")
 }
 
-class UserAgentRequestFilter @Inject()(metricRegistry: MetricRegistry,
-                                       userAgentWhitelist: Set[UserAgent],
-                                       userAgentIgnoreList: Set[UserAgent])(implicit val mat: Materializer, ec: ExecutionContext) extends Filter {
+class UserAgentRequestFilter(
+  metricRegistry: MetricRegistry,
+  userAgentAllowlist: Set[UserAgent] = UserAgent.allKnown,
+  userAgentIgnoreList: Set[UserAgent] = UserAgent.defaultIgnoreList
+)(implicit val mat: Materializer, ec: ExecutionContext) extends Filter {
+
+  private val logger = Logger(getClass)
 
   override def apply(nextFilter: (RequestHeader) => Future[Result])(rh: RequestHeader): Future[Result] = {
     def timeWith(userAgent: UserAgent): Future[Result] = {
@@ -59,16 +61,14 @@ class UserAgentRequestFilter @Inject()(metricRegistry: MetricRegistry,
       case Some(ua) if userAgentIgnoreList.contains(ua) =>
         nextFilter(rh)
 
-      case Some(ua) if userAgentWhitelist.contains(ua) =>
+      case Some(ua) if userAgentAllowlist.contains(ua) =>
         timeWith(ua)
 
-      case Some(unknownUserAgent) => {
-        Logger.info(s"Agent $unknownUserAgent is not in UserAgentRequestFilter whitelist for ${rh.path}")
+      case Some(unknownUserAgent) =>
+        logger.info(s"Agent $unknownUserAgent is not in UserAgentRequestFilter allowlist for ${rh.path}")
         timeWith(UserAgent.unknownUserAgent)
-      }
 
       case None => timeWith(UserAgent.noUserAgent)
     }
   }
-
 }

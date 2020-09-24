@@ -17,7 +17,6 @@
 package uk.gov.hmrc.fileupload.read.notifier
 
 import akka.actor.{Actor, ActorRef, Props}
-import cats.data.Xor
 import play.api.Logger
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
@@ -32,41 +31,43 @@ class NotifierActor(subscribe: (ActorRef, Class[_]) => Boolean,
                     notify: (Notification, String) => Future[NotifyResult])
                    (implicit executionContext: ExecutionContext) extends Actor {
 
+  private val logger = Logger(getClass)
+
   override def preStart = subscribe(self, classOf[Event])
 
   def receive = {
     case event: Event => event.eventData match {
       case e: FileQuarantined =>
-        Logger.info(s"Quarantined event received for ${e.id} and ${e.fileId}")
+        logger.info(s"Quarantined event received for ${e.id} and ${e.fileId}")
         notifyEnvelopeCallback(Notification(e.id, e.fileId, "QUARANTINED", None))
       case e: NoVirusDetected =>
-        Logger.info(s"NoVirusDetected event received for ${e.id} and ${e.fileId}")
+        logger.info(s"NoVirusDetected event received for ${e.id} and ${e.fileId}")
         notifyEnvelopeCallback(Notification(e.id, e.fileId, "CLEANED", None))
       case e: VirusDetected =>
-        Logger.info(s"VirusDetected event received for ${e.id} and ${e.fileId} ")
+        logger.info(s"VirusDetected event received for ${e.id} and ${e.fileId} ")
         notifyEnvelopeCallback(Notification(e.id, e.fileId, "ERROR", Some("VirusDetected")))
       case e: FileStored =>
-        Logger.info(s"FileStored event received for ${e.id} and ${e.fileId}")
+        logger.info(s"FileStored event received for ${e.id} and ${e.fileId}")
         notifyEnvelopeCallback(Notification(e.id, e.fileId, "AVAILABLE", None))
       case e: EventData =>
-        Logger.debug(s"Not notifying for ${e.getClass.getName}")
+        logger.debug(s"Not notifying for ${e.getClass.getName}")
     }
   }
 
   def notifyEnvelopeCallback(notification: Notification) = {
     findEnvelope(notification.envelopeId).flatMap {
-      case Xor.Right(envelope) =>
+      case Right(envelope) =>
         envelope.callbackUrl.map {
           callbackUrl =>
             notify(notification, callbackUrl).map {
-              case Xor.Right(envelopeId) => Logger.info(s"Successfully sent notification [${notification.status}] for envelope [$envelopeId]")
-              case Xor.Left(error) => Logger.warn(
+              case Right(envelopeId) => logger.info(s"Successfully sent notification [${notification.status}] for envelope [$envelopeId]")
+              case Left(error) => logger.warn(
                 s"Failed to send notification [${notification.status}] for envelope [${error.envelopeId}]. Reason [${error.reason}]"
               )
             }
         }.getOrElse(Future.successful(()))
-      case Xor.Left(e) =>
-        Logger.warn(e.toString)
+      case Left(e) =>
+        logger.warn(e.toString)
         Future.successful(())
     }
   }

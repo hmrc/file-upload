@@ -19,10 +19,11 @@ package uk.gov.hmrc.fileupload.infrastructure
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
 import org.scalatest.concurrent.ScalaFutures
-import uk.gov.hmrc.play.test.UnitSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 
-class BasicAuthSpec extends UnitSpec with ScalaFutures {
+class BasicAuthSpec extends AnyWordSpecLike with Matchers with ScalaFutures {
 
   def basic64(s:String): String = {
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))

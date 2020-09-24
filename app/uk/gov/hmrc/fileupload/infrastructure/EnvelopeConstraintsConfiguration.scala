@@ -45,15 +45,15 @@ object EnvelopeConstraintsConfiguration {
     val times = durationsToDateTime(defaultExpiryDuration, maxExpiryDuration)
 
     def getFileConstraintsFromConfig(keyPrefix: String) = {
-      val acceptedMaxItems: Int = checkOptionIntValue(runModeConfiguration.getInt(s"$keyPrefix.maxItems"), s"$keyPrefix.maxItems")
+      val acceptedMaxItems: Int = checkOptionIntValue(runModeConfiguration.getOptional[Int](s"$keyPrefix.maxItems"), s"$keyPrefix.maxItems")
 
-      val acceptedMaxSize: String = runModeConfiguration.getString(s"$keyPrefix.maxSize").getOrElse(throwRuntimeException(s"$keyPrefix.maxSize"))
+      val acceptedMaxSize: String = runModeConfiguration.getOptional[String](s"$keyPrefix.maxSize").getOrElse(throwRuntimeException(s"$keyPrefix.maxSize"))
 
       val acceptedMaxSizePerItem: String = runModeConfiguration
-        .getString(s"$keyPrefix.maxSizePerItem").getOrElse(throwRuntimeException(s"$keyPrefix.maxSizePerItem"))
+        .getOptional[String](s"$keyPrefix.maxSizePerItem").getOrElse(throwRuntimeException(s"$keyPrefix.maxSizePerItem"))
 
 
-      val acceptedAllowZeroLengthFiles = runModeConfiguration.getBoolean(s"$keyPrefix.allowZeroLengthFiles")
+      val acceptedAllowZeroLengthFiles = runModeConfiguration.getOptional[Boolean](s"$keyPrefix.allowZeroLengthFiles")
 
       for {
         acceptedMaxSize ← Size(acceptedMaxSize).right
@@ -70,7 +70,7 @@ object EnvelopeConstraintsConfiguration {
     val defaultEnvelopeConstraints: Either[ConstraintsValidationFailure, EnvelopeFilesConstraints] =
       getFileConstraintsFromConfig(keyPrefix = "constraints.default")
 
-    val enforceHttps = runModeConfiguration.getBoolean("constraints.enforceHttps").getOrElse(false)
+    val enforceHttps = runModeConfiguration.getOptional[Boolean]("constraints.enforceHttps").getOrElse(false)
 
     validateExpiryDate(times.now, times.max, times.default) match {
       case Right(_) =>

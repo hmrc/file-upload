@@ -16,20 +16,18 @@
 
 package uk.gov.hmrc.fileupload.read.routing
 
-import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, Cancellable, Props}
 import akka.stream.scaladsl.{Sink, Source}
-import cats.data.Xor
-import org.joda.time.DateTime
-import play.api.{Configuration, Logger}
+import play.api.Logger
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusRouteRequested, File}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusRouteRequested}
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
-import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, EnvelopeRouteRequested, MarkEnvelopeAsRouted}
-import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted, Event, EventData}
+import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, MarkEnvelopeAsRouted}
+import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.lock.LockRepository
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration.{DurationLong, FiniteDuration}
+import scala.concurrent.duration.DurationLong
 
 /** When the envelope is routed, if there is a registered endpoint, it will notify the recipient.
   * It checks periodically for files needing routing - this will retry any that previously failed to be delivered.
@@ -40,7 +38,7 @@ class RoutingActor(
    findEnvelope        : EnvelopeId                      => Future[FindResult],
    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
    pushNotification    : FileTransferNotification        => Future[RoutingRepository.PushResult],
-   handleCommand       : EnvelopeCommand                 => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
+   handleCommand       : EnvelopeCommand                 => Future[Either[CommandNotAccepted, CommandAccepted.type]],
    lockRepository      :                                    LockRepository
  )(implicit executionContext: ExecutionContext
  ) extends Actor {
@@ -51,7 +49,7 @@ class RoutingActor(
 
   implicit val actorMaterializer = akka.stream.ActorMaterializer()
 
-  private var scheduler: Cancellable =
+  private val scheduler: Cancellable =
     context.system.scheduler.schedule(config.initialDelay, config.interval, self, PushIfWaiting)
 
   override def preRestart(reason: Throwable, message: Option[Any]) = {
@@ -88,7 +86,7 @@ class RoutingActor(
   }
 
   def routeEnvelope(envelope: Envelope): Future[Unit] = {
-    // we may want to restrict pushing to a sender whitelist too
+    // we may want to restrict pushing to a sender allowlist too
     logger.info(s"Routing envelope [${envelope._id}] from: ${envelope.sender} to: ${envelope.destination}")
 
     // we will push any envelope which has a destination in configuration list
@@ -98,21 +96,21 @@ class RoutingActor(
         for {
           notificationRes <- buildNotification(envelope)
           notification    <- notificationRes match {
-                               case Xor.Right(notification) => Future.successful(notification)
-                               case Xor.Left(error)         => fail(s"Failed to build notification. Reason [${error.reason}]")
+                               case Right(notification) => Future.successful(notification)
+                               case Left(error)         => fail(s"Failed to build notification. Reason [${error.reason}]")
                              }
           _               =  logger.info(s"will push $notification for envelope [${envelope._id}]")
           pushRes         <- pushNotification(notification)
           cmd             <- pushRes match {
-                               case Xor.Right(())   => logger.info(s"Successfully pushed routing for envelope [${envelope._id}]")
-                                                       Future.successful(MarkEnvelopeAsRouted(envelope._id, isPushed = true))
-                               case Xor.Left(error) => fail(s"Failed to push routing for envelope [${envelope._id}]. Reason [${error.reason}]")
+                               case Right(())   => logger.info(s"Successfully pushed routing for envelope [${envelope._id}]")
+                                                   Future.successful(MarkEnvelopeAsRouted(envelope._id, isPushed = true))
+                               case Left(error) => fail(s"Failed to push routing for envelope [${envelope._id}]. Reason [${error.reason}]")
                              }
         } yield cmd
     }.map(cmd =>
       handleCommand(cmd).map {
-        case Xor.Right(_) =>
-        case Xor.Left(error) => fail(s"Could not process $cmd for [${envelope._id}]: $error")
+        case Right(_) =>
+        case Left(error) => fail(s"Could not process $cmd for [${envelope._id}]: $error")
       }.recover { case e => fail(s"Could not process $cmd for [${envelope._id}]: ${e.getMessage}", e) }
     )
   }
@@ -133,7 +131,7 @@ object RoutingActor {
     findEnvelope        : EnvelopeId                      => Future[FindResult],
     getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
     pushNotification    : FileTransferNotification        => Future[RoutingRepository.PushResult],
-    handleCommand       : EnvelopeCommand                 => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
+    handleCommand       : EnvelopeCommand                 => Future[Either[CommandNotAccepted, CommandAccepted.type]],
     lockRepository      :                                    LockRepository
   )(implicit executionContext: ExecutionContext
   ) =

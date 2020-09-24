@@ -3,7 +3,7 @@ package uk.gov.hmrc.fileupload
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.controllers.FileScanned
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, IntegrationSpec}
-import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, MarkFileAsInfected, QuarantineFile}
+import uk.gov.hmrc.fileupload.write.envelope.QuarantineFile
 
 /**
   * Integration tests for FILE-65
@@ -13,9 +13,9 @@ import uk.gov.hmrc.fileupload.write.envelope.{MarkFileAsClean, MarkFileAsInfecte
 
 class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions with EventsActions {
 
-  feature("Delete Envelope") {
+  Feature("Delete Envelope") {
 
-    scenario("Delete Envelope - with wrong Auth") {
+    Scenario("Delete Envelope - with wrong Auth") {
       Given("I have a valid envelope id")
       val createResponse = createEnvelope("{}")
       createResponse.status should equal(CREATED)
@@ -26,10 +26,9 @@ class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
 
       Then("I will receive a 403 OK response")
       envelopeResponse.status shouldBe FORBIDDEN
-
     }
 
-    scenario("Delete Envelope - valid with auth") {
+    Scenario("Delete Envelope - valid with auth") {
       Given("I have a valid envelope id")
       val createResponse = createEnvelope("{}")
       createResponse.status should equal(CREATED)
@@ -51,7 +50,7 @@ class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       checkEnvelopeDeleted.status shouldBe NOT_FOUND
     }
 
-    scenario("Delete Envelope - invalid ID with auth") {
+    Scenario("Delete Envelope - invalid ID with auth") {
       Given("I have an invalid envelope id")
       val invalidEnvelopeId = EnvelopeId()
 
@@ -63,7 +62,7 @@ class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       envelopeResponse.status shouldBe NOT_FOUND
     }
 
-    scenario("Delete an envelope and all files in the Envelope") {
+    Scenario("Delete an envelope and all files in the Envelope") {
       Given("I have a valid envelope id")
       val createResponse = createEnvelope("{}")
       createResponse.status should equal(CREATED)

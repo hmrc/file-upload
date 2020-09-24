@@ -17,14 +17,16 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import org.joda.time.DateTime
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.http.HeaderNames
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import uk.gov.hmrc.fileupload._
+import uk.gov.hmrc.fileupload.Support.fileRefId
 import uk.gov.hmrc.fileupload.read.envelope._
-import uk.gov.hmrc.play.test.UnitSpec
 
-class OutputForTransferSpec extends UnitSpec with ApplicationComponents {
+class OutputForTransferSpec extends AnyWordSpecLike with Matchers with TestApplicationComponents {
 
   "Presenting individual files" should {
     "include all fields if values are present" in {
@@ -32,7 +34,7 @@ class OutputForTransferSpec extends UnitSpec with ApplicationComponents {
       val dateAsText = "2016-03-31T12:33:45Z"
       val f = File(
         fileId = FileId(),
-        fileRefId = FileRefId(),
+        fileRefId = fileRefId(),
         status = FileStatusAvailable,
         name = Some("original-file-name-on-disk.docx"),
         contentType = Some("application/vnd.oasis.opendocument.spreadsheet"),
@@ -69,7 +71,7 @@ class OutputForTransferSpec extends UnitSpec with ApplicationComponents {
     "keep keys for [name, contentType, length, created] even if values are not available" in {
       val f = File(
         fileId = FileId(),
-        fileRefId = FileRefId(),
+        fileRefId = fileRefId(),
         status = FileStatusAvailable,
         name = None,
         contentType = None,
@@ -111,7 +113,7 @@ class OutputForTransferSpec extends UnitSpec with ApplicationComponents {
       val dateAsText = "2016-03-31T12:33:45Z"
       val file = File(
         fileId = FileId(),
-        fileRefId = FileRefId(),
+        fileRefId = fileRefId(),
         status = FileStatusAvailable,
         name = Some("original-file-name-on-disk.docx"),
         contentType = Some("application/vnd.oasis.opendocument.spreadsheet"),

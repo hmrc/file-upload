@@ -17,12 +17,10 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import java.net.URL
-import java.time.Duration
 
 import akka.stream.scaladsl.Source
-import cats.data.Xor
 import cats.syntax.either._
-import org.joda.time.DateTime
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
@@ -30,30 +28,37 @@ import uk.gov.hmrc.fileupload.infrastructure.{BasicAuth, EnvelopeConstraintsConf
 import uk.gov.hmrc.fileupload.read.envelope.Service._
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
-import uk.gov.hmrc.fileupload.utils.JsonUtils.jsonBodyParser
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId, read}
+import uk.gov.hmrc.fileupload.{ApplicationModule, EnvelopeId, FileId, FileRefId, read}
+import uk.gov.hmrc.http.BadRequestException
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.postfixOps
-import uk.gov.hmrc.http.BadRequestException
 
-import scala.util.{Failure, Success, Try}
 
-class EnvelopeController(withBasicAuth: BasicAuth,
-                         nextId: () => EnvelopeId,
-                         handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]],
-                         findEnvelope: EnvelopeId => Future[Xor[FindError, Envelope]],
-                         findMetadata: (EnvelopeId, FileId) => Future[Xor[FindMetadataError, read.envelope.File]],
-                         findAllInProgressFile: () => Future[GetInProgressFileResult],
-                         deleteInProgressFile: (FileRefId) => Future[Boolean],
-                         getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
-                         envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration)
-                        (implicit executionContext: ExecutionContext) extends Controller {
+@Singleton
+class EnvelopeController @Inject()(
+  appModule: ApplicationModule,
+  cc: ControllerComponents
+)(implicit executionContext: ExecutionContext
+) extends BackendController(cc) {
+
+  private val logger = Logger(getClass)
+
+  val withBasicAuth: BasicAuth = appModule.withBasicAuth
+  val nextId: () => EnvelopeId = appModule.nextId
+  val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
+  val findEnvelope: EnvelopeId => Future[Either[FindError, Envelope]] = appModule.findEnvelope
+  val findMetadata: (EnvelopeId, FileId) => Future[Either[FindMetadataError, read.envelope.File]] = appModule.findMetadata
+  val findAllInProgressFile: () => Future[GetInProgressFileResult] = appModule.allInProgressFile
+  val deleteInProgressFile: (FileRefId) => Future[Boolean] = appModule.deleteInProgressFile
+  val getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed] = appModule.getEnvelopesByStatus
+  val envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration = appModule.envelopeConstraintsConfigure
+
   import EnvelopeConstraintsConfiguration.{validateExpiryDate, durationsToDateTime}
 
-  def create() = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
+  def create() = Action.async(parse.json[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
 
     val result = for {
@@ -65,7 +70,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     } yield {
       val command = CreateEnvelope(nextId(), request.body.callbackUrl, userExpiryDate, request.body.metadata, Some(envelopeConstraints))
       val userAgent = request.headers.get("User-Agent").getOrElse("none")
-      Logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
+      logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
       handleCreate(envelopeLocation, command)
     }
 
@@ -73,17 +78,16 @@ class EnvelopeController(withBasicAuth: BasicAuth,
       case Right(successfulResult) =>
         successfulResult
       case Left(error) =>
-        Logger.warn(s"Validation error. user time: ${error}, user-agent: ${request.headers.get("User-Agent")}")
+        logger.warn(s"Validation error. user time: ${error}, user-agent: ${request.headers.get("User-Agent")}")
         Future.successful(BadRequestHandler(new BadRequestException(s"${error.message}")))
     }
-
   }
 
-  private def validateCallbackUrl(request: Request[CreateEnvelopeRequest], envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration):
-  Either[InvalidCallbackUrl, Unit] = {
-
+  private def validateCallbackUrl(
+    request: Request[CreateEnvelopeRequest],
+    envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration
+  ): Either[InvalidCallbackUrl, Unit] =
     if (envelopeConstraintsConfigure.enforceHttps) {
-
       val allowedProtocols = Seq("https")
 
       request.body.callbackUrl match {
@@ -94,16 +98,11 @@ class EnvelopeController(withBasicAuth: BasicAuth,
             _ <- if (allowedProtocols.contains(parsedUrl.getProtocol)) Right(()) else Left(InvalidCallbackUrl(url))
           } yield ()
       }
-    } else {
-
+    } else
       Right(())
 
-    }
 
-  }
-
-
-  def createWithId(id: EnvelopeId) = Action.async(jsonBodyParser[CreateEnvelopeRequest]) { implicit request =>
+  def createWithId(id: EnvelopeId) = Action.async(parse.json[CreateEnvelopeRequest]) { implicit request =>
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
 
     val validatedUserEnvelopeConstraints = validatedEnvelopeFilesConstraints(request)
@@ -112,7 +111,7 @@ class EnvelopeController(withBasicAuth: BasicAuth,
       case Right(envelopeConstraints: EnvelopeFilesConstraints) ⇒
         val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata, Some(envelopeConstraints))
         val userAgent = request.headers.get("User-Agent").getOrElse("none")
-        Logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
+        logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
         handleCreate(envelopeLocation, command)
       case Left(failureReason: ConstraintsValidationFailure) ⇒
         Future.successful(BadRequestHandler(new BadRequestException(s"${failureReason.message}")))
@@ -122,52 +121,52 @@ class EnvelopeController(withBasicAuth: BasicAuth,
 
   private def handleCreate(envelopeLocation: EnvelopeId => (String, String), command: CreateEnvelope): Future[Result] = {
     handleCommand(command).map {
-      case Xor.Right(_) => Created.withHeaders(envelopeLocation(command.id))
-      case Xor.Left(EnvelopeAlreadyCreatedError) => ExceptionHandler(BAD_REQUEST, "Envelope already created")
-      case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Left(error) => ExceptionHandler(BAD_REQUEST, s"Envelope not created due to: $error")
+      case Right(_) => Created.withHeaders(envelopeLocation(command.id))
+      case Left(EnvelopeAlreadyCreatedError) => ExceptionHandler(BAD_REQUEST, "Envelope already created")
+      case Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Left(error) => ExceptionHandler(BAD_REQUEST, s"Envelope not created due to: $error")
     }.recover { case e => ExceptionHandler(e) }
   }
 
   def delete(id: EnvelopeId) = Action.async { implicit request =>
-    Logger.debug(s"delete: EnvelopeId=$id")
+    logger.debug(s"delete: EnvelopeId=$id")
 
     withBasicAuth {
       handleCommand(DeleteEnvelope(id)).map {
-        case Xor.Right(_) => Ok
-        case Xor.Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
-        case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-        case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not deleted")
+        case Right(_) => Ok
+        case Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
+        case Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+        case Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not deleted")
       }.recover { case e => ExceptionHandler(e) }
     }
   }
 
   def deleteFile(id: EnvelopeId, fileId: FileId) = Action.async { request =>
-    Logger.debug(s"deleteFile: EnvelopeId=$id fileId=$fileId")
+    logger.debug(s"deleteFile: EnvelopeId=$id fileId=$fileId")
 
     handleCommand(DeleteFile(id, fileId)).map {
-      case Xor.Right(_) => Ok
-      case Xor.Left(FileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
-      case Xor.Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Xor.Left(EnvelopeRoutingAlreadyRequestedError | EnvelopeSealedError) =>
+      case Right(_) => Ok
+      case Left(FileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
+      case Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Left(EnvelopeRoutingAlreadyRequestedError | EnvelopeSealedError) =>
         ExceptionHandler(LOCKED, s"File not deleted, as routing request already received for envelope: $id sealed")
-      case Xor.Left(_) => ExceptionHandler(BAD_REQUEST, "File not deleted")
+      case Left(_) => ExceptionHandler(BAD_REQUEST, "File not deleted")
     }.recover { case e => ExceptionHandler(e) }
   }
 
   def show(id: EnvelopeId) = Action.async {
     import EnvelopeReport._
-    Logger.debug(s"show: EnvelopeId=$id")
+    logger.debug(s"show: EnvelopeId=$id")
 
     findEnvelope(id).map {
-      case Xor.Right(e) => Ok(Json.toJson(fromEnvelope(e)))
-      case Xor.Left(FindEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
-      case Xor.Left(FindServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Right(e) => Ok(Json.toJson(fromEnvelope(e)))
+      case Left(FindEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
+      case Left(FindServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  def list(getEnvelopesByStatusQuery: GetEnvelopesByStatus) = Action { implicit request =>
-    Logger.debug(s"list by status")
+  def list(getEnvelopesByStatusQuery: GetEnvelopesByStatus) = Action {
+    logger.debug(s"list by status")
     import EnvelopeReport._
     Ok.chunked(
       getEnvelopesByStatus(getEnvelopesByStatusQuery.status, getEnvelopesByStatusQuery.inclusive)
@@ -176,21 +175,21 @@ class EnvelopeController(withBasicAuth: BasicAuth,
   }
 
   def retrieveMetadata(id: EnvelopeId, fileId: FileId) = Action.async { request =>
-    Logger.debug(s"retrieveMetadata: envelopeId=$id fileId=$fileId")
+    logger.debug(s"retrieveMetadata: envelopeId=$id fileId=$fileId")
     import GetFileMetadataReport._
 
     findMetadata(id, fileId).map {
-      case Xor.Right(f) => Ok(Json.toJson(fromFile(id, f)))
-      case Xor.Left(FindMetadataEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
-      case Xor.Left(FindMetadataFileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
-      case Xor.Left(FindMetadataServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Right(f) => Ok(Json.toJson(fromFile(id, f)))
+      case Left(FindMetadataEnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
+      case Left(FindMetadataFileNotFoundError) => ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $id")
+      case Left(FindMetadataServiceError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
     }.recover { case e => ExceptionHandler(e) }
   }
 
   def inProgressFiles() = Action.async {
     findAllInProgressFile().map {
-      case Xor.Right(inProgressFiles) => Ok(Json.toJson(inProgressFiles))
-      case Xor.Left(error) => InternalServerError("It was not possible to retrieve in progress files")
+      case Right(inProgressFiles) => Ok(Json.toJson(inProgressFiles))
+      case Left(error) => InternalServerError("It was not possible to retrieve in progress files")
     }
   }
 
@@ -201,11 +200,8 @@ class EnvelopeController(withBasicAuth: BasicAuth,
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  private def validatedEnvelopeFilesConstraints(request: Request[CreateEnvelopeRequest]): Either[ConstraintsValidationFailure, EnvelopeFilesConstraints] = {
-    for {
-      envelopeConstraints ← EnvelopeConstraintsConfiguration
-        .validateEnvelopeFilesConstraints(request.body.constraints.getOrElse(EnvelopeConstraintsUserSetting()),
-          envelopeConstraintsConfigure).right
-    } yield envelopeConstraints
-  }
+  private def validatedEnvelopeFilesConstraints(request: Request[CreateEnvelopeRequest]): Either[ConstraintsValidationFailure, EnvelopeFilesConstraints] =
+    EnvelopeConstraintsConfiguration
+      .validateEnvelopeFilesConstraints(request.body.constraints.getOrElse(EnvelopeConstraintsUserSetting()),
+        envelopeConstraintsConfigure)
 }

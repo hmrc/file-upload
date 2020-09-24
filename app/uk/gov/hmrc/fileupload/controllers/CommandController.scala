@@ -16,19 +16,28 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import cats.data.Xor
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json, Reads}
 import play.api.mvc._
+import uk.gov.hmrc.fileupload.ApplicationModule
 import uk.gov.hmrc.fileupload.write.envelope.Formatters._
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class CommandController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNotAccepted, CommandAccepted.type]])
-                     (implicit executionContext: ExecutionContext) extends BaseController {
+@Singleton
+class CommandController @Inject()(
+  appModule: ApplicationModule,
+  cc: ControllerComponents
+)(implicit executionContext: ExecutionContext
+) extends BackendController(cc) {
+
+  private val logger = Logger(getClass)
+
+  val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
 
   def unsealEnvelope = process[UnsealEnvelope]
 
@@ -42,27 +51,23 @@ class CommandController(handleCommand: (EnvelopeCommand) => Future[Xor[CommandNo
 
   def process[T <: EnvelopeCommand : Reads : Manifest] = Action.async(parse.json) { implicit req =>
     bindCommandFromRequest[T] { command =>
-      Logger.info(s"Requested command: $command to be processed")
+      logger.info(s"Requested command: $command to be processed")
       handleCommand(command).map {
-        case Xor.Right(_) => Ok
-        case Xor.Left(EnvelopeNotFoundError) =>
+        case Right(_) => Ok
+        case Left(EnvelopeNotFoundError) =>
           ExceptionHandler(NOT_FOUND, s"Envelope with id: ${command.id} not found")
-        case Xor.Left(FileAlreadyProcessed) =>
+        case Left(FileAlreadyProcessed) =>
           ExceptionHandler(BAD_REQUEST, s"File already processed, command was: $command")
-        case Xor.Left(EnvelopeRoutingAlreadyRequestedError | EnvelopeSealedError) =>
+        case Left(EnvelopeRoutingAlreadyRequestedError | EnvelopeSealedError) =>
           ExceptionHandler(LOCKED, s"Routing request already received for envelope: ${command.id}")
-        case Xor.Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
+        case Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
       }
     }
   }
 
   def bindCommandFromRequest[T <: EnvelopeCommand](f: EnvelopeCommand => Future[Result])
-                                                  (implicit r: Reads[T], m: Manifest[T], req: Request[JsValue]) = {
-    Json.fromJson[T](req.body).asOpt.map { command =>
-      f(command)
-    }.getOrElse {
+                                                  (implicit r: Reads[T], m: Manifest[T], req: Request[JsValue]) =
+    Json.fromJson[T](req.body).asOpt.map(f).getOrElse {
       Future.successful(ExceptionHandler(BAD_REQUEST, s"Unable to parse request as ${m.runtimeClass.getSimpleName}"))
     }
-  }
-
 }

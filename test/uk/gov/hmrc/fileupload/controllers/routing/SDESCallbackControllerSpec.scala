@@ -18,33 +18,38 @@ package uk.gov.hmrc.fileupload.controllers.routing
 
 import java.time.Instant
 
-import cats.data.Xor
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.time.{Millis, Seconds, Span}
+import org.mockito.MockitoSugar
+import org.scalatest.concurrent.{ScalaFutures, IntegrationPatience}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.http.Status
 import play.api.libs.json.Json
+import play.api.mvc.ControllerComponents
 import play.api.test.FakeRequest
-import uk.gov.hmrc.fileupload.Support
-import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
-import uk.gov.hmrc.fileupload.read.envelope.Envelope
+import uk.gov.hmrc.fileupload.{ApplicationModule, TestApplicationComponents}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class SDESCallbackControllerSpec extends UnitSpec with ScalaFutures {
-
-  implicit val defaultPatience =
-    PatienceConfig(timeout = Span(5, Seconds), interval = Span(500, Millis))
+class SDESCallbackControllerSpec
+  extends AnyWordSpecLike
+     with Matchers
+     with TestApplicationComponents
+     with MockitoSugar
+     with ScalaFutures
+     with IntegrationPatience {
 
   implicit val ec = ExecutionContext.global
 
   val failed = Future.failed(new Exception("not good"))
 
-  def newController(handleCommand: EnvelopeCommand => Future[Xor[CommandNotAccepted, CommandAccepted.type]] = _ => failed) =
-    new SDESCallbackController(handleCommand)
-
+  def newController(handleCommand: EnvelopeCommand => Future[Either[CommandNotAccepted, CommandAccepted.type]] = _ => failed
+  ) = {
+    val appModule = mock[ApplicationModule]
+    when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
+    new SDESCallbackController(appModule, app.injector.instanceOf[ControllerComponents])
+  }
 
   "callback" should {
 
@@ -54,7 +59,7 @@ class SDESCallbackControllerSpec extends UnitSpec with ScalaFutures {
       s"return response with 200 if notification is ${notification.value}" in {
         val request = FakeRequest().withBody(Json.toJson(notificationItem(notification)))
 
-        val controller = newController(handleCommand = _ => Future.successful(Xor.Left(CommandError("this shouldn't be called"))))
+        val controller = newController(handleCommand = _ => Future.successful(Left(CommandError("this shouldn't be called"))))
         val result = controller.callback()(request).futureValue
 
         result.header.status shouldBe Status.OK
@@ -62,10 +67,9 @@ class SDESCallbackControllerSpec extends UnitSpec with ScalaFutures {
     }
 
     "return response with 500 if handler returns error for FileProcessed" in {
-      val envelope = Support.envelope
       val request = FakeRequest().withBody(Json.toJson(notificationItem(FileProcessed)))
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(CommandError("not good"))))
+      val controller = newController(handleCommand = _ => Future.successful(Left(CommandError("not good"))))
       val result = controller.callback()(request).futureValue
 
       result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
@@ -74,7 +78,7 @@ class SDESCallbackControllerSpec extends UnitSpec with ScalaFutures {
     "return BadRequest if EnvelopeId not found" in {
       val request = FakeRequest().withBody(Json.toJson(notificationItem(FileProcessed)))
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(EnvelopeNotFoundError)))
+      val controller = newController(handleCommand = _ => Future.successful(Left(EnvelopeNotFoundError)))
       val result = controller.callback()(request).futureValue
 
       result.header.status shouldBe Status.BAD_REQUEST
@@ -83,14 +87,13 @@ class SDESCallbackControllerSpec extends UnitSpec with ScalaFutures {
     "return 200 response if handling duplicate request" in {
       val request = FakeRequest().withBody(Json.toJson(notificationItem(FileProcessed)))
 
-      val controller = newController(handleCommand = _ => Future.successful(Xor.Left(EnvelopeArchivedError)))
+      val controller = newController(handleCommand = _ => Future.successful(Left(EnvelopeArchivedError)))
       val result = controller.callback()(request).futureValue
 
       result.header.status shouldBe Status.OK
     }
 
     "return response with 503" in {
-      val envelope = Support.envelope
       val request = FakeRequest().withBody(Json.toJson(notificationItem(FileProcessed)))
 
       val controller = newController(handleCommand = _ => failed)
