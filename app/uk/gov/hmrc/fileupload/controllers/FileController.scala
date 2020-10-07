@@ -77,20 +77,13 @@ class FileController @Inject()(
           Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId in envelope: $envelopeId is not ready for download."))
         else
           foundFile.map { f =>
-            val (filename, fileRefId, lengthO) = (f.name, f.fileRefId, f.length)
-              retrieveFileS3(envelopeId, fileId).map { source =>
-                val caseBase = Ok.sendEntity(HttpEntity.Streamed(source, lengthO, Some("application/octet-stream")))
-                  .withHeaders(
-                    CONTENT_DISPOSITION -> s"""attachment; filename="${filename.getOrElse("data")}"""",
-                    CONTENT_TYPE -> "application/octet-stream")
-                lengthO match {
-                  case Some(length) =>
-                    caseBase.withHeaders(CONTENT_LENGTH -> s"$length")
-                  case None =>
-                    logger.error(s"No file length detected for: envelopeId=$envelopeId fileId=$fileId. Trying to download it without length set.")
-                    caseBase
-                }
-              }
+            if (f.length.isEmpty)
+              logger.error(s"No file length detected for: envelopeId=$envelopeId fileId=$fileId. Trying to download it without length set.")
+
+            retrieveFileS3(envelopeId, fileId).map { source =>
+              Ok.streamed(source, f.length, Some("application/octet-stream"))
+                .withHeaders(Results.contentDispositionHeader(inline = false, name = f.name.orElse(Some("data"))).toList: _*)
+            }
           }.getOrElse {
             Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId"))
           }

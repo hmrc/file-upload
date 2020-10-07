@@ -20,7 +20,7 @@ import akka.stream.scaladsl.Source
 import javax.inject.{Inject, Singleton}
 import play.api.libs.iteratee.Enumeratee
 import play.api.libs.iteratee.streams.IterateeStreams
-import play.api.mvc.ControllerComponents
+import play.api.mvc.{ControllerComponents, Results}
 import uk.gov.hmrc.fileupload.{ApplicationModule, EnvelopeId}
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.file.zip.Zippy._
@@ -58,9 +58,8 @@ class TransferController @Inject()(
       case Right(stream) =>
         val keepOnlyNonEmptyArrays = Enumeratee.filter[Array[Byte]] { _.length > 0 }
         val source = Source.fromPublisher(IterateeStreams.enumeratorToPublisher(stream.through(keepOnlyNonEmptyArrays)))
-        Ok.chunked(source).as("application/zip").withHeaders(
-          CONTENT_DISPOSITION -> s"""attachment; filename="$envelopeId.zip""""
-        )
+        Ok.chunked(source).as("application/zip")
+          .withHeaders(Results.contentDispositionHeader(inline = false, name = Some(s"$envelopeId.zip")).toList: _*)
       case Left(ZipEnvelopeNotFoundError | EnvelopeNotRoutedYet) =>
         ExceptionHandler(404, s"Envelope with id: $envelopeId not found")
       case Left(ZipProcessingError(message)) =>

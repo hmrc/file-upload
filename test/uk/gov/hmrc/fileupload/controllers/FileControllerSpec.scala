@@ -90,10 +90,11 @@ class FileControllerSpec
       val result = controller.downloadFile(envelopeId, fileId)(FakeRequest().withHeaders(authHeaders))
 
       status(result) shouldBe Status.OK
-      header("Content-Length", result).value shouldBe "100"
-      header("Content-Type", result).value shouldBe "application/octet-stream"
+      result.futureValue.body.contentLength shouldBe Some(100)
+      contentType(result) shouldBe  Some("application/octet-stream")
       header("Content-Disposition", result).value shouldBe "attachment; filename=\"myfile.txt\""
     }
+
     "return filename = `data` in headers if absent in client metadata for a given file" in {
       val controller =
         newController(
