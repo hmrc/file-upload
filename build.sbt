@@ -23,6 +23,7 @@ lazy val scoverageSettings =
 
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin)
+  .disablePlugins(JUnitXmlReportPlugin) //Required to prevent https://github.com/scalatest/scalatest/issues/1427
   .settings(majorVersion := 2)
   .settings(PlayKeys.playDefaultPort := 8898)
   .settings(scoverageSettings: _*)
