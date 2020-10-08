@@ -4,6 +4,7 @@ import java.io.RandomAccessFile
 
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
+import org.scalatest.OptionValues
 import org.scalatest.concurrent.IntegrationPatience
 import play.api.libs.json.Json
 import play.api.libs.ws._
@@ -22,6 +23,7 @@ class DownloadFileIntegrationSpec
      with FileActions
      with EventsActions
      with FakeFrontendService
+     with OptionValues
      with IntegrationPatience {
 
   val data = "{'name':'pete'}"
@@ -39,7 +41,8 @@ class DownloadFileIntegrationSpec
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
+      val filename = "test–.pdf" // contains a non-ascii char which needs escaping
+      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, filename, "pdf", Some(123L), Json.obj()))
 
       And("File was scanned and no virus was found")
       sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
@@ -63,7 +66,7 @@ class DownloadFileIntegrationSpec
       response.header("Content-Length") shouldBe Some(s"${data.getBytes.length}")
 
       And("Header should include content disposition")
-      response.header("Content-Disposition") shouldBe Some("attachment; filename=\"test.pdf\"")
+      response.header("Content-Disposition").value should startWith ("attachment; filename=\"test?.pdf\"")
     }
 
     Scenario("File can not be found") {
