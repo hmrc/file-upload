@@ -20,7 +20,6 @@ import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
-import play.api.http.HttpEntity
 import play.api.libs.ws.WSClient
 import play.api.mvc._
 import uk.gov.hmrc.fileupload._
