@@ -127,7 +127,7 @@ object NotificationItem {
       ~ (__ \ "filename").format[String]
       ~ (__ \ "checksumAlgorithm").format[ChecksumAlgorithm]
       ~ (__ \ "checksum").format[String]
-      ~ (__ \ "correlationId").format[String]
+      ~ (__ \ "correlationID").format[String]
       ~ (__ \ "availableUntil").formatNullable[Instant]
       ~ (__ \ "failureReason").formatNullable[String]
       ~ (__ \ "dateTime").format[Instant]
