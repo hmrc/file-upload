@@ -82,16 +82,20 @@ object RoutingRepository {
       case Left(error) => Left(BuildNotificationError(envelope._id, error.message))
       case Right(response) => response.status match {
           case Status.OK => response.json.validate[ZipData] match {
-              case JsSuccess(zipData, _) => Right(createNotification(envelope, zipData))
+              case JsSuccess(zipData, _) => Right(createNotification(envelope, zipData, routingConfig))
               case JsError(errors) => Left(BuildNotificationError(envelope._id, s"Could not parse result $errors"))
             }
           case _ => Left(BuildNotificationError(envelope._id, s"Unexpected response: ${response.status} ${response.body}"))
         }
     }
 
-  def createNotification(envelope: Envelope, zipData: ZipData): FileTransferNotification = {
+  def createNotification(
+    envelope     : Envelope,
+    zipData      : ZipData,
+    routingConfig: RoutingConfig
+  ): FileTransferNotification = {
     val file = FileTransferFile(
-      recipientOrSender = envelope.sender,
+      recipientOrSender = routingConfig.recipientOrSender,
       name              = zipData.name,
       location          = Some(zipData.url.toString),
       checksum          = Checksum(Algorithm.Md5, base64ToHex(zipData.md5Checksum)),

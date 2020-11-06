@@ -44,7 +44,7 @@ object Algorithm {
 }
 
 case class FileTransferFile(
-  recipientOrSender: Option[String],
+  recipientOrSender: String,
   name             : String,
   location         : Option[String],
   checksum         : Checksum,
@@ -79,7 +79,7 @@ object FileTransferNotification {
       (__ \ "correlationID").format[String].inmap(Audit.apply, unlift(Audit.unapply))
 
     implicit val fileFormat =
-      ( (__ \ "recipientOrSender").formatNullable[String]
+      ( (__ \ "recipientOrSender").format[String]
       ~ (__ \ "name"             ).format[String]
       ~ (__ \ "location"         ).formatNullable[String]
       ~ (__ \ "checksum"         ).format[Checksum]
