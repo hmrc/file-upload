@@ -36,9 +36,6 @@ case class Envelope(_id: EnvelopeId = EnvelopeId(),
 
   def getFileById(fileId: FileId): Option[File] =
     files.flatMap(_.find(_.fileId == fileId))
-
-  def sender: Option[String] =
-    metadata.flatMap(js => (js \ "sender" \ "service").asOpt[String])
 }
 
 case class File(fileId: FileId,

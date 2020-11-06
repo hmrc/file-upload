@@ -23,11 +23,12 @@ import scala.concurrent.duration.FiniteDuration
 
 
 case class RoutingConfig(
-  initialDelay : FiniteDuration,
-  interval     : FiniteDuration,
-  clientId     : String,
-  pushUrl      : String,
-  destinations : List[String]
+  initialDelay     : FiniteDuration,
+  interval         : FiniteDuration,
+  clientId         : String,
+  recipientOrSender: String,
+  pushUrl          : String,
+  destinations     : List[String]
 )
 
 object RoutingConfig {
@@ -36,11 +37,12 @@ object RoutingConfig {
     def getStringList(key: String) =
       config.underlying.getStringList(key).asScala.toList
     RoutingConfig(
-      initialDelay   = config.get[FiniteDuration]("routing.initialDelay"),
-      interval       = config.get[FiniteDuration]("routing.interval"),
-      clientId       = config.get[String]("routing.clientId"),
-      pushUrl        = config.get[String]("routing.pushUrl"),
-      destinations   = getStringList("routing.destinations")
+      initialDelay      = config.get[FiniteDuration]("routing.initialDelay"),
+      interval          = config.get[FiniteDuration]("routing.interval"),
+      clientId          = config.get[String]("routing.clientId"),
+      recipientOrSender = config.get[String]("routing.recipientOrSender"),
+      pushUrl           = config.get[String]("routing.pushUrl"),
+      destinations      = getStringList("routing.destinations")
     )
   }
 }

@@ -165,7 +165,7 @@ class FileTransferIntegrationSpec
       verifyPushNotification(FileTransferNotification(
         informationType = destination,
         file            = FileTransferFile(
-                            recipientOrSender = None,
+                            recipientOrSender = "1234",
                             name              = zipData.name,
                             location          = Some(zipData.url.toString),
                             checksum          = Checksum(Algorithm.Md5, RoutingRepository.base64ToHex(zipData.md5Checksum)),
