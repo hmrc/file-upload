@@ -65,7 +65,7 @@ class UserAgentRequestFilter(
         timeWith(ua)
 
       case Some(unknownUserAgent) =>
-        logger.info(s"Agent $unknownUserAgent is not in UserAgentRequestFilter allowlist for ${rh.path}")
+        logger.debug(s"Agent $unknownUserAgent is not in UserAgentRequestFilter allowlist for ${rh.path}")
         timeWith(UserAgent.unknownUserAgent)
 
       case None => timeWith(UserAgent.noUserAgent)

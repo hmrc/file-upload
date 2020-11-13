@@ -4,17 +4,15 @@ private object AppDependencies {
   import play.sbt.PlayImport
   import play.core.PlayVersion
 
-  private val playBootstrapVersion = "2.25.0"
+  private val playBootstrapVersion = "3.0.0"
   private val domainVersion = "5.10.0-play-27"
   private val hmrcTestVersion = "3.9.0-play-27"
   private val akkaVersion = "2.5.26"
-  private val authClientVersion = "3.1.0-play-27"
 
   val compile = Seq(
     "uk.gov.hmrc"              %% "mongo-lock"                % "6.23.0-play-27",
     PlayImport.ws,
     "uk.gov.hmrc"              %% "bootstrap-backend-play-27" % playBootstrapVersion,
-    "uk.gov.hmrc"              %% "auth-client"               % authClientVersion,
     "uk.gov.hmrc"              %% "domain"                    % domainVersion,
     "com.typesafe.akka"        %% "akka-actor"                % akkaVersion,
     "com.typesafe.akka"        %% "akka-testkit"              % akkaVersion,
