@@ -1,6 +1,6 @@
 # file-upload
 
-**This service is currently being replaced.  If you need to use the functions this service delivers, please speak to the owning team**
+**This service is now deprecated. If you need to use the functions this service delivers, please use [Upscan service](https://confluence.tools.tax.service.gov.uk/pages/viewpage.action?pageId=101663507) or speak to the owners of Upscan service**
 
 [ ![Download](https://api.bintray.com/packages/hmrc/releases/file-upload/images/download.svg) ](https://bintray.com/hmrc/releases/file-upload/_latestVersion)
 
