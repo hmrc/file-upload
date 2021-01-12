@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,9 @@ package uk.gov.hmrc.fileupload.read.stats
 
 import play.api.libs.json.{Format, Json}
 import reactivemongo.api.commands.WriteResult
-import reactivemongo.api.{DB, DBMetaCommands}
+import reactivemongo.api.{Cursor, DB, DBMetaCommands, ReadPreference}
 import reactivemongo.bson.BSONObjectID
+import reactivemongo.play.json.ImplicitBSONHandlers
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 import uk.gov.hmrc.mongo.ReactiveRepository
 
@@ -54,7 +55,14 @@ class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionCont
     case _ => false
   }
 
-  def all(): Future[List[InProgressFile]] = findAll()
+  def all(): Future[List[InProgressFile]] = {
+    import ImplicitBSONHandlers.JsObjectDocumentWriter
+    // not using findAll since ordering needs to be reversed
+    collection.find(Json.obj())
+      .sort(Json.obj("startedAt" -> -1))
+      .cursor[InProgressFile](ReadPreference.primaryPreferred)
+      .collect( -1, Cursor.FailOnError[List[InProgressFile]]())
+  }
 
   def findByEnvelopeId(envelopeId: EnvelopeId): Future[List[InProgressFile]] = find("envelopeId" -> envelopeId)
 
