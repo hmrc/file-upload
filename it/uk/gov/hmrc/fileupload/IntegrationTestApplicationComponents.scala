@@ -16,10 +16,12 @@
 
 package uk.gov.hmrc.fileupload
 
+import play.api.inject.bind
 import org.scalatest.TestSuite
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api._
 import play.api.inject.guice.GuiceApplicationBuilder
+import uk.gov.hmrc.fileupload.support.ControlledAllEventsPublisher
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
 trait IntegrationTestApplicationComponents extends GuiceOneServerPerSuite with MongoSpecSupport {
@@ -44,9 +46,16 @@ trait IntegrationTestApplicationComponents extends GuiceOneServerPerSuite with M
     pushUrl.fold(Map.empty[String, String])(url => Map("routing.pushUrl" -> url)) ++
     pushDestinations.fold(Map.empty[String, String])(_.zipWithIndex.map { case (destination, i) => s"routing.destinations.$i" -> destination }.toMap)
 
+  val allEventsPublishControl: Stream[Boolean] = Stream.continually(true)
+
   // creates a new application and sets the components
   implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
       .configure(conf: _*)
+      .overrides(
+        bind[AllEventsPublisher].to(new DefaultAllEventsPublisher with ControlledAllEventsPublisher {
+          override val shouldPublish: Stream[Boolean] = allEventsPublishControl
+        })
+      )
       .build()
 }

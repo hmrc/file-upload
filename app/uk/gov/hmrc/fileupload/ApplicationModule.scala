@@ -17,8 +17,8 @@
 package uk.gov.hmrc.fileupload
 
 import java.util.UUID
-
 import akka.actor.ActorRef
+import com.google.inject.ImplementedBy
 import com.kenshoo.play.metrics.MetricsImpl
 import javax.inject.{Inject, Singleton}
 import play.api._
@@ -29,20 +29,37 @@ import uk.gov.hmrc.fileupload.controllers.RetrieveFile
 import uk.gov.hmrc.fileupload.file.zip.Zippy
 import uk.gov.hmrc.fileupload.infrastructure._
 import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => EnvelopeService, _}
+import uk.gov.hmrc.fileupload.read.infrastructure.ReportHandler
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
 import uk.gov.hmrc.fileupload.read.routing.{RoutingActor, RoutingConfig, RoutingRepository}
 import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor, StatsLogWriter, StatsLogger, StatsLoggingConfiguration, StatsLoggingScheduler, Repository => StatsRepository}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
-import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, MongoEventStore, StreamId}
+import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, Event, MongoEventStore, StreamId}
 import uk.gov.hmrc.lock.LockRepository
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+
+
+/**
+  * This trait is added to control publishing the events in the tests
+  */
+@ImplementedBy(classOf[DefaultAllEventsPublisher])
+trait AllEventsPublisher {
+  def publish(reportHandler: ReportHandler[_, _], replay: Boolean): Seq[Event] => Unit
+}
+
+class DefaultAllEventsPublisher extends AllEventsPublisher {
+  def publish(reportHandler: ReportHandler[_, _],
+              replay: Boolean): Seq[Event] => Unit =
+    reportHandler.handle(replay)
+}
 
 @Singleton
 class ApplicationModule @Inject()(
   servicesConfig: ServicesConfig,
   reactiveMongoComponent: ReactiveMongoComponent,
+  allEventsPublisher: AllEventsPublisher,
   auditConnector: AuditConnector,
   metrics: MetricsImpl,
   val applicationLifecycle: play.api.inject.ApplicationLifecycle,
@@ -142,14 +159,13 @@ class ApplicationModule @Inject()(
     defaultState = (id: EnvelopeId) => uk.gov.hmrc.fileupload.read.envelope.Envelope(id))
 
   // command handler
-  lazy val envelopeCommandHandler = {
-    (command: EnvelopeCommand) =>
-      new Aggregate[EnvelopeCommand, write.envelope.Envelope](
-        handler          = envelopeHandler,
-        defaultState     = () => write.envelope.Envelope(),
-        publish          = publish,
-        publishAllEvents = reportHandler.handle(replay = false)
-      )(eventStore, executionContext).handleCommand(command)
+  lazy val envelopeCommandHandler = { (command: EnvelopeCommand) =>
+    new Aggregate[EnvelopeCommand, write.envelope.Envelope](
+      handler = envelopeHandler,
+      defaultState = () => write.envelope.Envelope(),
+      publish = publish,
+      publishAllEvents = allEventsPublisher.publish(reportHandler, replay = false)
+    )(eventStore, executionContext).handleCommand(command)
   }
 
   lazy val getEnvelopesByStatus = envelopeRepository.getByStatus _
@@ -159,7 +175,7 @@ class ApplicationModule @Inject()(
   lazy val nextId = () => EnvelopeId(UUID.randomUUID().toString)
 
   lazy val unitOfWorks = eventStore.unitsOfWorkForAggregate _
-  lazy val publishAllEvents = reportHandler.handle(replay = true) _
+  lazy val publishAllEventsWithReplay = allEventsPublisher.publish(reportHandler, replay = true)
 
   lazy val fileUploadFrontendBaseUrl = servicesConfig.baseUrl("file-upload-frontend")
 

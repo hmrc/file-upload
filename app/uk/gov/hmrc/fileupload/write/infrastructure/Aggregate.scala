@@ -17,8 +17,8 @@
 package uk.gov.hmrc.fileupload.write.infrastructure
 
 import java.util.UUID
-
 import play.api.Logger
+import uk.gov.hmrc.fileupload.write.envelope.ConflictingCommand
 import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.{NotSavedError, VersionConflictError}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -99,8 +99,10 @@ class Aggregate[C <: Command, S](handler: Handler[C, S],
               Future.successful(commandAcceptedResult)
             }
 
-          case Left(e) =>
+          case Left(e: CommandNotAccepted with ConflictingCommand) =>
+            publishAllEvents(historicalEvents)
             Future.successful(Left(e))
+          case Left(e) => Future.successful(Left(e))
         }
 
       case Left(e) =>
