@@ -212,11 +212,18 @@ object EventSerializer {
 
 // error
 
+/**
+  * This trait allow us to re-publish the events when a conflicting command is encountered.
+  */
+trait ConflictingCommand {
+  self: EnvelopeCommandNotAccepted =>
+}
+
 sealed abstract class EnvelopeCommandNotAccepted extends CommandNotAccepted
 
-case object EnvelopeNotFoundError extends EnvelopeCommandNotAccepted
+case object EnvelopeNotFoundError extends EnvelopeCommandNotAccepted with ConflictingCommand
 
-case object EnvelopeAlreadyCreatedError extends EnvelopeCommandNotAccepted
+case object EnvelopeAlreadyCreatedError extends EnvelopeCommandNotAccepted with ConflictingCommand
 
 sealed trait EnvelopeInvalidConstraintError extends EnvelopeCommandNotAccepted
 
@@ -232,7 +239,7 @@ case object InvalidMaxItemCountConstraintError extends EnvelopeInvalidConstraint
   override def toString = s"constraints.maxItems error"
 }
 
-case object EnvelopeSealedError extends EnvelopeCommandNotAccepted
+case object EnvelopeSealedError extends EnvelopeCommandNotAccepted with ConflictingCommand
 
 case object FileWithError extends EnvelopeCommandNotAccepted
 
@@ -249,8 +256,8 @@ case object FileNotFoundError extends EnvelopeCommandNotAccepted
 
 case object FileAlreadyProcessed extends EnvelopeCommandNotAccepted
 
-case object EnvelopeArchivedError extends EnvelopeCommandNotAccepted
+case object EnvelopeArchivedError extends EnvelopeCommandNotAccepted with ConflictingCommand
 
-case object EnvelopeRoutingAlreadyRequestedError extends EnvelopeCommandNotAccepted
+case object EnvelopeRoutingAlreadyRequestedError extends EnvelopeCommandNotAccepted with ConflictingCommand
 
-case object EnvelopeAlreadyRoutedError extends EnvelopeCommandNotAccepted
+case object EnvelopeAlreadyRoutedError extends EnvelopeCommandNotAccepted with ConflictingCommand

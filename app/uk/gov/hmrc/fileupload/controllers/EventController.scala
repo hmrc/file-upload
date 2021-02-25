@@ -35,7 +35,7 @@ class EventController @Inject()(
 ) extends BackendController(cc) {
 
   val unitOfWorks: StreamId => Future[GetResult] = appModule.unitOfWorks
-  val publishAllEvents: Seq[DomainEvent] => Unit = appModule.publishAllEvents
+  val publishAllEvents: Seq[DomainEvent] => Unit = appModule.publishAllEventsWithReplay
 
   implicit val eventWrites = EventSerializer.eventWrite
 
