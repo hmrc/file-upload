@@ -19,7 +19,6 @@ package uk.gov.hmrc.fileupload.controllers
 import java.net.URL
 
 import akka.stream.scaladsl.Source
-import cats.syntax.either._
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json._
@@ -94,12 +93,21 @@ class EnvelopeController @Inject()(
         case None => Right(())
         case Some(url) =>
           for {
-            parsedUrl <- Either.catchNonFatal(new URL(url)).leftMap(_ => InvalidCallbackUrl(url))
+            parsedUrl <- catchNonFatal(new URL(url)).left.map(_ => InvalidCallbackUrl(url))
             _ <- if (allowedProtocols.contains(parsedUrl.getProtocol)) Right(()) else Left(InvalidCallbackUrl(url))
           } yield ()
       }
     } else
       Right(())
+
+  // catchNonFatal is directly copied from cats-core cats.syntax.either._
+  private def catchNonFatal[A](f: => A): Either[Throwable, A] = {
+    try {
+      Right(f)
+    } catch {
+      case scala.util.control.NonFatal(t) => Left(t)
+    }
+  }
 
 
   def createWithId(id: EnvelopeId) = Action.async(parse.json[CreateEnvelopeRequest]) { implicit request =>
