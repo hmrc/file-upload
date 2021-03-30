@@ -37,7 +37,7 @@ lazy val microservice = Project(appName, file("."))
     routesGenerator := InjectedRoutesGenerator
   )
   .configs(IntegrationTest)
-  .settings(DefaultBuildSettings.integrationTestSettings)
+  .settings(DefaultBuildSettings.integrationTestSettings())
   .settings(
     resolvers += Resolver.jcenterRepo // for metrics-play
   )
