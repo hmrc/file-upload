@@ -24,7 +24,7 @@ import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeS
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
 import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, MarkEnvelopeAsRouted}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
-import uk.gov.hmrc.lock.LockRepository
+import uk.gov.hmrc.mongo.lock.LockRepository
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.DurationLong
@@ -153,7 +153,7 @@ object Lock {
   private val forceReleaseAfter = 1.hour
 
   def takeLock(lockRepository: LockRepository)(implicit ec: ExecutionContext): Future[Option[Lock]] = {
-    lockRepository.lock(reqLockId, reqOwner, new org.joda.time.Duration(forceReleaseAfter.toMillis))
+    lockRepository.takeLock(reqLockId, reqOwner, ttl = forceReleaseAfter)
       .map { taken =>
         if (taken) Some(Lock(() => lockRepository.releaseLock(reqLockId, reqOwner)))
         else None

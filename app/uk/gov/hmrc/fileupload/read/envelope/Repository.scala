@@ -18,19 +18,19 @@ package uk.gov.hmrc.fileupload.read.envelope
 
 import akka.stream.scaladsl.Source
 import play.api.libs.json.Json
-import play.api.libs.iteratee.streams.IterateeStreams
 import play.api.mvc.{Result, Results}
-import reactivemongo.api.commands.{WriteConcern, WriteResult}
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.api.{Cursor, DB, DBMetaCommands, ReadPreference}
-import reactivemongo.bson.BSONObjectID
-import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.mongo.ReactiveRepository
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.language.postfixOps
+import com.mongodb.{MongoException, ReadPreference}
+import org.bson.conversions.Bson
+import org.mongodb.scala.{Document, WriteConcern}
+import org.mongodb.scala.model._
+import org.mongodb.scala.model.Filters._
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 object Repository {
 
@@ -48,56 +48,63 @@ object Repository {
 
   val deleteSuccess = Right(DeleteSuccess)
 
-  def apply(mongo: () => DB with DBMetaCommands): Repository = new Repository(mongo)
+  def apply(mongoComponent: MongoComponent)(implicit ec: ExecutionContext): Repository = new Repository(mongoComponent)
 }
 
-class Repository(mongo: () => DB with DBMetaCommands)
-  extends ReactiveRepository[Envelope, BSONObjectID](collectionName = "envelopes-read-model", mongo, domainFormat = Envelope.envelopeFormat) {
+class Repository(mongoComponent: MongoComponent)
+                (implicit ec: ExecutionContext)
+  extends PlayMongoRepository[Envelope](
+    collectionName = "envelopes-read-model",
+    mongoComponent = mongoComponent,
+    domainFormat = Envelope.envelopeFormat,
+    indexes = Seq(
+      IndexModel(Indexes.ascending("status", "destination"), IndexOptions().background(true))
+    )) {
 
-  val duplicateKeyErrorCode = Some(11000)
-
-  override def ensureIndexes(implicit ec:ExecutionContext) = {
-    collection.indexesManager.ensure(Index(key = List("status" -> IndexType.Ascending, "destination" -> IndexType.Ascending), background = true)).map(Seq(_))
-  }
-
-  import reactivemongo.play.json.ImplicitBSONHandlers._
   import Repository._
 
-  def update(writeConcern: WriteConcern = WriteConcern.Default)
-            (envelope: Envelope, checkVersion: Boolean = true)
-            (implicit ex: ExecutionContext): Future[UpdateResult] = {
+  def update(writeConcern: WriteConcern = WriteConcern.MAJORITY)
+            (envelope: Envelope, checkVersion: Boolean = true): Future[UpdateResult] = {
     val selector = if (checkVersion) {
-      Json.obj(
-        _Id -> envelope._id.value,
-        "version" -> Json.obj("$lte" -> envelope.version))
+      and(
+        equal("_id", envelope._id.value),
+        lte("version", envelope.version.value)
+      )
     } else {
-      Json.obj(
-        _Id -> envelope._id.value)
+      equal("_id", envelope._id.value)
     }
 
+    val document = Document("$set" -> Codecs.toBson(envelope))
+
     collection
-      .update(ordered = false, writeConcern = writeConcern)
-      .one(q = selector, u = envelope, upsert = true, multi = false)
+      .withWriteConcern(writeConcern)
+      .updateOne(filter = selector, update = document, UpdateOptions().upsert(true))
+      .toFuture()
       .map { r =>
-        if (r.ok) {
+        if (r.wasAcknowledged()) {
           updateSuccess
         } else {
           Left(NotUpdatedError("No report updated"))
         }
       }.recover {
-        case f: DatabaseException =>
+        case f: MongoException =>
           Left(NewerVersionAvailable)
         case f: Throwable =>
           Left(NotUpdatedError(f.getMessage))
       }
   }
 
-  def get(id: EnvelopeId)(implicit ec: ExecutionContext): Future[Option[Envelope]] =
-    find("_id" -> id).map(_.headOption)
+  def get(id: EnvelopeId)(implicit ec: ExecutionContext): Future[Option[Envelope]] = {
+    val value = id.value
+    val bsonfilter = Filters.equal("_id", value)
+    collection.find(filter = bsonfilter).toFuture.map { result =>
+      result.headOption
+    }
+  }
 
   def delete(id: EnvelopeId)(implicit ec: ExecutionContext): Future[DeleteResult] =
-    remove("_id" -> id).map { r =>
-      if (toBoolean(r)) {
+    collection.deleteMany(filter = Filters.equal("_id", id.value)).toFuture.map { r =>
+      if (r.wasAcknowledged() && r.getDeletedCount > 0) {
         deleteSuccess
       } else {
         Left(DeleteError("No report deleted"))
@@ -108,40 +115,32 @@ class Repository(mongo: () => DB with DBMetaCommands)
     }
 
   def getByDestination(maybeDestination: Option[String])(implicit ec: ExecutionContext): Future[List[Envelope]] = {
-    val query =
-      Json.obj(
-        "status" -> EnvelopeStatusClosed.name,
-        "isPushed" -> Json.obj("$ne" -> true) // tests with $ne since it may not be present in db
-      ) ++ maybeDestination.fold(Json.obj())(d => Json.obj("destination" -> d))
-    collection.find(query).cursor[Envelope](ReadPreference.secondaryPreferred).collect[List](-1, Cursor.FailOnError())
+    val filters: List[Bson] = List(
+      equal("status", EnvelopeStatusClosed.name),
+      notEqual("isPushed", true)
+    ) ++ maybeDestination.map { d =>
+      equal("destination", d)
+    }
+
+    collection
+      .withReadPreference(ReadPreference.secondaryPreferred())
+      .find(and(filters: _*))
+      .toFuture.map(_.toList)
   }
 
   def getByStatus(status: List[EnvelopeStatus], inclusive: Boolean)(implicit ec: ExecutionContext): Source[Envelope, akka.NotUsed] = {
-    import reactivemongo.play.iteratees.cursorProducer
-
-    val operator = if (inclusive) "$in" else "$nin"
-    val query = Json.obj("status" -> Json.obj(operator -> status.map(_.name)))
-
-    val enumerator = collection
-      .find(query)
-      .cursor[Envelope](ReadPreference.secondaryPreferred)
-      .enumerator()
-
-    Source.fromPublisher(IterateeStreams.enumeratorToPublisher(enumerator))
+    val operator = if (inclusive) in("status", status.map(_.name): _*) else nin("status", status.map(_.name): _*)
+    Source.fromPublisher(collection.find(operator))
   }
 
   def all()(implicit ec: ExecutionContext): Future[List[Envelope]] =
-    findAll()
+    collection.find().toFuture.map(_.toList)
 
   def recreate()(implicit ec: ExecutionContext): Unit = {
-    Await.result(collection.drop(failIfNotFound = false), 5 seconds)
-    Await.result(ensureIndexes(ec), 5 seconds)
+    Await.result(collection.drop().toFuture(), 5 seconds)
+    Await.result(ensureIndexes, 5 seconds)
   }
 
-  def toBoolean(wr: WriteResult): Boolean = wr match {
-    case r if r.ok && r.n > 0 => true
-    case _ => false
-  }
 }
 
 class WithValidEnvelope(getEnvelope: EnvelopeId => Future[Option[Envelope]]) {

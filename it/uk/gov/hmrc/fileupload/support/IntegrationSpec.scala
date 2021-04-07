@@ -16,17 +16,14 @@
 
 package uk.gov.hmrc.fileupload.support
 
-import java.util.UUID
-
-import org.scalatest.{BeforeAndAfterEach, GivenWhenThen}
+import org.scalatest.GivenWhenThen
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.featurespec.AnyFeatureSpec
 import org.scalatest.matchers.should.Matchers
 import play.api.http.Status
-import uk.gov.hmrc.fileupload.read.envelope.Repository
-import uk.gov.hmrc.mongo.MongoSpecSupport
+import uk.gov.hmrc.mongo.test.{CleanMongoCollectionSupport, MongoSupport}
 
-import scala.concurrent.ExecutionContext.Implicits._
+import java.util.UUID
 import scala.util.Random
 
 trait IntegrationSpec
@@ -37,18 +34,10 @@ trait IntegrationSpec
      with Status
      with Eventually
      with FakeConsumingService
-     with BeforeAndAfterEach
-     with MongoSpecSupport {
+     with MongoSupport
+     with CleanMongoCollectionSupport {
 
   val nextId = () => UUID.randomUUID().toString
 
   val nextUtf8String = () => Random.nextString(36)
-
-  override def beforeEach {
-    new Repository(mongo).removeAll().futureValue
-  }
-
-  override def afterAll {
-    mongo.apply().drop.futureValue
-  }
 }

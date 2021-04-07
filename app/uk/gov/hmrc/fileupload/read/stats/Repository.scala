@@ -16,16 +16,18 @@
 
 package uk.gov.hmrc.fileupload.read.stats
 
+import com.mongodb.ReadPreference
+import org.mongodb.scala.model.Sorts._
+import org.mongodb.scala.model._
+import org.mongodb.scala.result.DeleteResult
 import play.api.libs.json.{Format, Json}
-import reactivemongo.api.commands.WriteResult
-import reactivemongo.api.{Cursor, DB, DBMetaCommands, ReadPreference}
-import reactivemongo.bson.BSONObjectID
-import reactivemongo.play.json.ImplicitBSONHandlers
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
-import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
-import scala.concurrent.{Await, ExecutionContext, Future}
+import java.time.Instant
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.language.postfixOps
 
 object InProgressFile {
@@ -35,37 +37,45 @@ object InProgressFile {
 case class InProgressFile(_id: FileRefId, envelopeId: EnvelopeId, fileId: FileId, startedAt: Long)
 
 object Repository {
-  def apply(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext): Repository = new Repository(mongo)
+  def apply(mongoComponent: MongoComponent)(implicit ec: ExecutionContext): Repository = new Repository(mongoComponent)
 }
 
-class Repository(mongo: () => DB with DBMetaCommands)(implicit ec: ExecutionContext)
-  extends ReactiveRepository[InProgressFile, BSONObjectID](collectionName = "inprogress-files", mongo, domainFormat = InProgressFile.format) {
+class Repository(mongoComponent: MongoComponent)(implicit ec: ExecutionContext)
+  extends PlayMongoRepository[InProgressFile](
+    collectionName = "inprogress-files",
+    mongoComponent = mongoComponent,
+    domainFormat = InProgressFile.format,
+    indexes = Seq.empty) {
+
+  def insert(inProgressFile: InProgressFile): Future[Boolean] =
+    collection.insertOne(inProgressFile).toFuture.map(_.wasAcknowledged())
 
   def delete(envelopeId: EnvelopeId, fileId: FileId): Future[Boolean] =
-    remove("envelopeId" -> envelopeId, "fileId" -> fileId) map toBoolean
+    collection.deleteMany(filter = Filters.and(Filters.equal("envelopeId", envelopeId.value), Filters.equal("fileId", fileId.value))).toFuture map toBoolean
 
   def deleteAllInAnEnvelop(envelopeId: EnvelopeId): Future[Boolean] =
-    remove("envelopeId" -> envelopeId) map toBoolean
+    collection.deleteMany(filter = Filters.equal("envelopeId", envelopeId.value)).toFuture map toBoolean
 
   def deleteByFileRefId(fileRefId: FileRefId)(implicit ec: ExecutionContext): Future[Boolean] =
-    remove("_id" -> fileRefId).map(toBoolean)
+    collection.deleteMany(filter = Filters.equal("_id", fileRefId.value)).toFuture map toBoolean
 
-  def toBoolean(wr: WriteResult): Boolean = wr match {
-    case r if r.ok && r.n > 0 => true
-    case _ => false
-  }
+  def toBoolean(wr: DeleteResult): Boolean =
+    wr.wasAcknowledged() && wr.getDeletedCount > 0
 
   def all(): Future[List[InProgressFile]] = {
-    import ImplicitBSONHandlers.JsObjectDocumentWriter
-    // not using findAll since ordering needs to be reversed
-    collection.find(Json.obj())
-      .sort(Json.obj("startedAt" -> -1))
-      .cursor[InProgressFile](ReadPreference.primaryPreferred)
-      .collect( -1, Cursor.FailOnError[List[InProgressFile]]())
+    collection
+      .withReadPreference(ReadPreference.primaryPreferred())
+      .find()
+      .sort(descending("startedAt"))
+      .toFuture().map(_.toList)
   }
 
-  def findByEnvelopeId(envelopeId: EnvelopeId): Future[List[InProgressFile]] = find("envelopeId" -> envelopeId)
+  def statsAddedSince(start: Instant): Future[Long] =
+    collection.countDocuments(Filters.gt("startedAt", start.toEpochMilli)).toFuture()
+
+  def findByEnvelopeId(envelopeId: EnvelopeId): Future[List[InProgressFile]] =
+    collection.find(filter = Filters.equal("envelopeId", envelopeId.value)).toFuture.map(_.toList)
 
   def recreate()(implicit ec: ExecutionContext): Unit =
-    Await.result(drop(ec), 5 seconds)
+    Await.result(collection.drop().toFuture.map(_ => true)(ec), 5 seconds)
 }

@@ -22,9 +22,9 @@ import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api._
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.fileupload.support.ControlledAllEventsPublisher
-import uk.gov.hmrc.mongo.MongoSpecSupport
+import uk.gov.hmrc.mongo.test.MongoSupport
 
-trait IntegrationTestApplicationComponents extends GuiceOneServerPerSuite with MongoSpecSupport {
+trait IntegrationTestApplicationComponents extends GuiceOneServerPerSuite with MongoSupport {
   this: TestSuite =>
 
   lazy val pushUrl: Option[String] = None

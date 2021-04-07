@@ -17,32 +17,25 @@
 package uk.gov.hmrc.fileupload.read.envelope.stats
 
 import java.time.{LocalDateTime, ZoneId}
-
 import org.mockito.MockitoSugar
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.concurrent.{Eventually, IntegrationPatience, ScalaFutures}
+import org.scalatest.concurrent.{Eventually, IntegrationPatience}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.fileupload.read.stats._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
-import uk.gov.hmrc.mongo.MongoSpecSupport
+import uk.gov.hmrc.mongo.test.{CleanMongoCollectionSupport, MongoSupport}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 
 class StatsLoggerSpec
-  extends MongoSpecSupport
-     with AnyWordSpecLike
-     with Matchers
-     with MockitoSugar
-     with Eventually
-     with ScalaFutures
-     with BeforeAndAfterAll
-     with IntegrationPatience {
-
-  override def afterAll {
-    mongo.apply().drop.futureValue
-  }
+  extends MongoSupport
+    with AnyWordSpecLike
+    with CleanMongoCollectionSupport
+    with Matchers
+    with MockitoSugar
+    with Eventually
+    with IntegrationPatience {
 
   val today = LocalDateTime.now().atZone(ZoneId.of("UTC"))
   val todayAsMilli = today.toInstant.toEpochMilli
@@ -59,8 +52,7 @@ class StatsLoggerSpec
 
   "Given an in-progress-files repository, when the logging function is called" should {
     "log the number of in-progress files added over a time period as warning if it exceeds the maximum" in {
-      val repository = Repository(mongo)
-      repository.removeAll().futureValue
+      val repository = Repository(mongoComponent)
 
       val playLogger = mock[StatsLogWriter]
       val statsLogger = new StatsLogger(repository, playLogger)
@@ -78,8 +70,7 @@ class StatsLoggerSpec
     }
 
     "log the number of in-progress files added today as info if it is less than the maximum" in {
-      val repository = Repository(mongo)
-      repository.removeAll().futureValue
+      val repository = Repository(mongoComponent)
 
       val playLogger = mock[StatsLogWriter]
       val statsLogger = new StatsLogger(repository, playLogger)
@@ -97,8 +88,7 @@ class StatsLoggerSpec
     }
 
     "not count files added on previous days in logs" in {
-      val repository = Repository(mongo)
-      repository.removeAll().futureValue
+      val repository = Repository(mongoComponent)
 
       val playLogger = mock[StatsLogWriter]
       val statsLogger = new StatsLogger(repository, playLogger)
@@ -116,8 +106,7 @@ class StatsLoggerSpec
     }
 
     "only count files from today in logs" in {
-      val repository = Repository(mongo)
-      repository.removeAll().futureValue
+      val repository = Repository(mongoComponent)
 
       val playLogger = mock[StatsLogWriter]
       val statsLogger = new StatsLogger(repository, playLogger)

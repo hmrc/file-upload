@@ -54,32 +54,27 @@ class StatsLogger(statsRepository: Repository,
     }
   }
 
-  private def checkIfAddedExceedsMaximum(added: Int, maximum: Int, timePeriod: Duration): Unit = {
+  private def checkIfAddedExceedsMaximum(added: Long, maximum: Int, timePeriod: Duration): Unit = {
       if (added > maximum) statsLogger.logRepoWarning(added, maximum, timePeriod)
       else statsLogger.logRepoSize(added, timePeriod)
   }
 
-  private def countAddedOverTimePeriod(duration: Duration): Future[Int] = {
-    countAddedSince(Instant.now.minus(JDuration.ofMillis(duration.toMillis)))
+  private def countAddedOverTimePeriod(duration: Duration): Future[Long] = {
+    statsRepository.statsAddedSince(Instant.now.minus(JDuration.ofMillis(duration.toMillis)))
   }
 
-  private def countAddedSince(start: Instant): Future[Int] = {
-    statsRepository.find("startedAt" -> Json.obj("$gt" -> start.toEpochMilli)).map { addedSinceStart =>
-      addedSinceStart.size
-    }
-  }
 }
 
 class StatsLogWriter {
   private val logger = Logger(getClass)
 
-  def logRepoSize(count: Int, timePeriod: Duration): Unit =
+  def logRepoSize(count: Long, timePeriod: Duration): Unit =
     logger.info(addedOverTimePeriod(count, timePeriod))
 
-  def logRepoWarning(count: Int, maximum: Int, timePeriod: Duration): Unit =
+  def logRepoWarning(count: Long, maximum: Long, timePeriod: Duration): Unit =
     logger.warn(s"Number of in progress files exceeds maximum $maximum. " + addedOverTimePeriod(count, timePeriod))
 
-  private def addedOverTimePeriod(count: Int, timePeriod: Duration): String =
+  private def addedOverTimePeriod(count: Long, timePeriod: Duration): String =
     s"Number of in progress files added is: $count over ${timePeriod.toMinutes} minutes"
 }
 

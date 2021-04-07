@@ -18,7 +18,6 @@ package uk.gov.hmrc.fileupload.read.stats
 
 import play.api.Logger
 import play.api.libs.iteratee.Enumerator
-import reactivemongo.api.commands.WriteResult
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
@@ -33,7 +32,7 @@ object Stats {
   sealed trait GetInProgressFileError
   object GetInProgressFileGenericError extends GetInProgressFileError
 
-  def save(insert: (InProgressFile) => Future[WriteResult])(fileQuarantined: FileQuarantined)
+  def save(insert: (InProgressFile) => Future[Boolean])(fileQuarantined: FileQuarantined)
           (implicit ec: ExecutionContext): Unit = {
     Future {
       logger.info(s"Currently in progress for file: ${fileQuarantined.fileId}, at: ${fileQuarantined.fileRefId}, " +
