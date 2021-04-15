@@ -17,20 +17,20 @@
 package uk.gov.hmrc.fileupload.write.infrastructure
 
 import java.util.concurrent.TimeUnit
-
 import com.codahale.metrics.MetricRegistry
 import play.api.Logger
-import reactivemongo.api.collections.bson.BSONCollection
-import reactivemongo.api.commands.WriteConcern
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.api.{Cursor, DB, DBMetaCommands}
-import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
-import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.fileupload.write.infrastructure.EventStore._
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import com.mongodb.{MongoException, WriteConcern}
+import org.bson.types._
+import org.mongodb.scala.bson.BsonDocument
+import org.mongodb.scala.model._
+import org.mongodb.scala.model.Filters._
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
 object EventStore {
   type SaveResult = Either[SaveError, SaveSuccess.type]
@@ -54,37 +54,40 @@ trait EventStore {
   def recreate(): Unit
 }
 
-class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegistry, writeConcern: WriteConcern = WriteConcern.Default)
-                     (implicit ec: ExecutionContext,
-                      reader: BSONDocumentReader[UnitOfWork],
-                      writer: BSONDocumentWriter[UnitOfWork]) extends EventStore {
+class MongoEventStore(mongoComponent: MongoComponent,
+                      metrics: MetricRegistry,
+                      writeConcern: WriteConcern = WriteConcern.MAJORITY)
+                     (implicit ec: ExecutionContext)
+    extends PlayMongoRepository[UnitOfWork](
+      collectionName = "events",
+      mongoComponent = mongoComponent,
+      domainFormat = UnitOfWorkSerializer.format,
+      indexes = Seq(IndexModel(Indexes.hashed("streamId"), IndexOptions().background(true)))) with EventStore {
 
   private val logger = Logger(getClass)
 
-  val collection: BSONCollection = mongo().collection[BSONCollection]("events")
+  private val duplicateKeyErrorCode = 11000
+  private val envelopeEventsThreshold = 1000
 
-  ensureIndex()
-
-  def ensureIndex(): Future[Boolean] =
-    collection.indexesManager.ensure(Index(key = List("streamId" -> IndexType.Hashed), background = true))
-
-  val duplicateKeyErrorCode = Some(11000)
-  val envelopeEventsThreshold = 1000
-
-  val saveTimer = metrics.timer("mongo.eventStore.write")
-  val readTimer = metrics.timer("mongo.eventStore.read")
-  val largeEnvelopeMarker = metrics.meter("mongo.largeEnvelope")
+  private val saveTimer = metrics.timer("mongo.eventStore.write")
+  private val readTimer = metrics.timer("mongo.eventStore.read")
+  private val largeEnvelopeMarker = metrics.meter("mongo.largeEnvelope")
 
   override def saveUnitOfWork(streamId: StreamId, unitOfWork: UnitOfWork): Future[SaveResult] = {
     val context = saveTimer.time()
-    collection.insert(ordered = false, writeConcern = writeConcern).one(unitOfWork).map { r =>
-      if (r.ok) {
+
+    collection
+      .withWriteConcern(writeConcern)
+      .insertOne(unitOfWork)
+      .toFuture()
+      .map { r =>
+      if (r.wasAcknowledged()) {
         EventStore.saveSuccess
       } else {
         Left(NotSavedError("not saved"))
       }
     }.recover {
-      case e: DatabaseException if e.code == duplicateKeyErrorCode =>
+      case e: MongoException if e.getCode == duplicateKeyErrorCode =>
         Left(VersionConflictError)
       case e =>
         Left(NotSavedError(s"not saved: ${e.getMessage}"))
@@ -96,36 +99,39 @@ class MongoEventStore(mongo: () => DB with DBMetaCommands, metrics: MetricRegist
 
   override def unitsOfWorkForAggregate(streamId: StreamId): Future[GetResult] = {
     val context = readTimer.time()
-    collection.find(BSONDocument("streamId" -> streamId.value), None).cursor[UnitOfWork]().collect[List](-1, Cursor.FailOnError()).map { l =>
-      val sortByVersion = l.sortBy(_.version.value)
-      val size = sortByVersion.size
-      if (size >= envelopeEventsThreshold) {
-        val elapsedNanos = context.stop()
-        val elapsed = FiniteDuration(elapsedNanos, TimeUnit.NANOSECONDS)
 
-        largeEnvelopeMarker.mark()
-        if (size % envelopeEventsThreshold <= 20) {
-          logger.warn(s"large envelope: envelopeId=$streamId size=$size time=${elapsed.toMillis} ms")
-        }
-        if (size % 100 == 0) {
-          logger.error(s"large envelope: envelopeId=$streamId size=$size")
-        }
-      }
-      Right(sortByVersion)
-    }.recover { case e =>
-      Left(GetError(e.getMessage))
-    }.map { e =>
-      val elapsed = context.stop().nanoseconds
-      if (elapsed > 10.seconds) {
-        logger.warn(s"unitsOfWorkForAggregate: events.find by streamId=$streamId took ${elapsed.toMillis} ms")
-      }
+    collection
+      .find(equal("streamId", streamId.value))
+      .toFuture()
+      .map { l =>
+        val sortByVersion = l.sortBy(_.version.value)
+        val size = sortByVersion.size
+        if (size >= envelopeEventsThreshold) {
+          val elapsedNanos = context.stop()
+          val elapsed = FiniteDuration(elapsedNanos, TimeUnit.NANOSECONDS)
 
-      e
-    }
+          largeEnvelopeMarker.mark()
+          if (size % envelopeEventsThreshold <= 20) {
+            logger.warn(s"large envelope: envelopeId=$streamId size=$size time=${elapsed.toMillis} ms")
+          }
+          if (size % 100 == 0) {
+            logger.error(s"large envelope: envelopeId=$streamId size=$size")
+          }
+        }
+        Right(sortByVersion)
+      }.recover { case e =>
+        Left(GetError(e.getMessage))
+      }.map { e =>
+        val elapsed = context.stop().nanoseconds
+        if (elapsed > 10.seconds) {
+          logger.warn(s"unitsOfWorkForAggregate: events.find by streamId=$streamId took ${elapsed.toMillis} ms")
+        }
+
+        e
+      }
   }
 
   override def recreate(): Unit = {
-    Await.result(collection.drop(failIfNotFound = false), 5 seconds)
-    Await.result(ensureIndex(), 5 seconds)
+    Await.result(collection.drop().toFuture, 5 seconds)
   }
 }

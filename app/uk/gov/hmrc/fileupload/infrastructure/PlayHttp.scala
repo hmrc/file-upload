@@ -27,7 +27,7 @@ import uk.gov.hmrc.play.audit.model.{DataEvent, EventTypes}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.HeaderCarrierConverter
+import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
 object PlayHttp {
 

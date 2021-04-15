@@ -22,7 +22,7 @@ import play.api.mvc._
 import uk.gov.hmrc.fileupload.ApplicationModule
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.GetResult
-import uk.gov.hmrc.fileupload.write.infrastructure.{StreamId, Event => DomainEvent, EventSerializer => _}
+import uk.gov.hmrc.fileupload.write.infrastructure.{StreamId, Event => DomainEvent}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}

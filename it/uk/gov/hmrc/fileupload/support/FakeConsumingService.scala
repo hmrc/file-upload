@@ -33,12 +33,12 @@ trait FakeConsumingService extends BeforeAndAfterAll with ScalaFutures {
 
   final lazy val consumingServiceBaseUrl = s"http://localhost:$consumingServicePort"
 
-  override def beforeAll() = {
+  override protected def beforeAll() = {
     super.beforeAll()
     server.start()
   }
 
-  override def afterAll() = {
+  override protected def afterAll() = {
     super.afterAll()
     server.stop()
   }

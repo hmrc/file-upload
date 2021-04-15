@@ -20,11 +20,10 @@ import java.util.UUID
 import akka.actor.ActorRef
 import com.google.inject.ImplementedBy
 import com.kenshoo.play.metrics.MetricsImpl
+
 import javax.inject.{Inject, Singleton}
 import play.api._
 import play.api.libs.ws.ahc.AhcWSComponents
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.WriteConcern
 import uk.gov.hmrc.fileupload.controllers.RetrieveFile
 import uk.gov.hmrc.fileupload.file.zip.Zippy
 import uk.gov.hmrc.fileupload.infrastructure._
@@ -34,11 +33,11 @@ import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
 import uk.gov.hmrc.fileupload.read.routing.{RoutingActor, RoutingConfig, RoutingRepository}
 import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor, StatsLogWriter, StatsLogger, StatsLoggingConfiguration, StatsLoggingScheduler, Repository => StatsRepository}
 import uk.gov.hmrc.fileupload.write.envelope._
-import uk.gov.hmrc.fileupload.write.infrastructure.UnitOfWorkSerializer.{UnitOfWorkReader, UnitOfWorkWriter}
 import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, Event, MongoEventStore, StreamId}
-import uk.gov.hmrc.lock.LockRepository
+import uk.gov.hmrc.mongo.lock.MongoLockRepository
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.mongo.{CurrentTimestampSupport, MongoComponent}
 
 
 /**
@@ -58,7 +57,7 @@ class DefaultAllEventsPublisher extends AllEventsPublisher {
 @Singleton
 class ApplicationModule @Inject()(
   servicesConfig: ServicesConfig,
-  reactiveMongoComponent: ReactiveMongoComponent,
+  mongoComponent: MongoComponent,
   allEventsPublisher: AllEventsPublisher,
   auditConnector: AuditConnector,
   metrics: MetricsImpl,
@@ -73,11 +72,6 @@ class ApplicationModule @Inject()(
 
   private val logger = Logger(getClass)
 
-  lazy val db = reactiveMongoComponent.mongoConnector.db
-
-  implicit val reader = new UnitOfWorkReader(EventSerializer.toEventData)
-  implicit val writer = new UnitOfWorkWriter(EventSerializer.fromEventData)
-
   val envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration =
     EnvelopeConstraintsConfiguration.getEnvelopeConstraintsConfiguration(configuration) match {
       case Right(envelopeConstraints) => envelopeConstraints
@@ -90,17 +84,8 @@ class ApplicationModule @Inject()(
   val publish: (AnyRef) => Unit = actorSystem.eventStream.publish
   val withBasicAuth: BasicAuth = BasicAuth(basicAuthConfiguration(configuration))
 
-  val eventStore = if (configuration.get[Boolean]("mongodb.replicaSetInUse")) {
-    new MongoEventStore(db, metrics.defaultRegistry, writeConcern = WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = true))
-  } else {
-    new MongoEventStore(db, metrics.defaultRegistry)
-  }
-
-  val updateEnvelope = if (configuration.get[Boolean]("mongodb.replicaSetInUse")) {
-    envelopeRepository.update(writeConcern = WriteConcern.ReplicaAcknowledged(n = 2, timeout = 5000, journaled = true)) _
-  } else {
-    envelopeRepository.update() _
-  }
+  val eventStore = new MongoEventStore(mongoComponent, metrics.defaultRegistry)
+  val updateEnvelope = envelopeRepository.update() _
 
   def basicAuthConfiguration(config: Configuration): BasicAuthConfiguration = {
     def getUsers(config: Configuration): List[User] = {
@@ -134,7 +119,7 @@ class ApplicationModule @Inject()(
   // initialize in-progress files logging actor
   StatsLoggingScheduler.initialize(actorSystem, statsLoggingConfiguration, new StatsLogger(statsRepository, new StatsLogWriter()))
 
-  lazy val envelopeRepository = uk.gov.hmrc.fileupload.read.envelope.Repository.apply(db)
+  lazy val envelopeRepository = uk.gov.hmrc.fileupload.read.envelope.Repository.apply(mongoComponent)
 
   lazy val getEnvelope = envelopeRepository.get _
 
@@ -144,7 +129,7 @@ class ApplicationModule @Inject()(
   lazy val findMetadata = EnvelopeService.findMetadata(findEnvelope) _
 
   lazy val statsLoggingConfiguration = StatsLoggingConfiguration(configuration)
-  lazy val statsRepository = StatsRepository.apply(db)
+  lazy val statsRepository = StatsRepository.apply(mongoComponent)
   lazy val saveFileQuarantinedStat = Stats.save(statsRepository.insert) _
   lazy val deleteFileStoredStat = Stats.deleteFileStored(statsRepository.delete) _
   lazy val deleteVirusDetectedStat = Stats.deleteVirusDetected(statsRepository.delete) _
@@ -184,7 +169,7 @@ class ApplicationModule @Inject()(
   lazy val buildFileTransferNotification = RoutingRepository.buildFileTransferNotification(auditedHttpExecute, wsClient, routingConfig, fileUploadFrontendBaseUrl) _
   lazy val pushFileTransferNotification = RoutingRepository.pushFileTransferNotification(auditedHttpExecute, wsClient, routingConfig) _
 
-  lazy val lockRepository = new LockRepository()(db)
+  lazy val lockRepository = new MongoLockRepository(mongoComponent, new CurrentTimestampSupport())
 
   actorSystem.actorOf(
     RoutingActor.props(
