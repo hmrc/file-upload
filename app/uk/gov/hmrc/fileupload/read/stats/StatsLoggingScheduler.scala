@@ -19,7 +19,6 @@ package uk.gov.hmrc.fileupload.read.stats
 import java.time.{Instant, Duration => JDuration}
 
 import akka.actor.{ActorSystem, Cancellable}
-import play.api.libs.json._
 import play.api.{Configuration, Logger}
 
 import scala.concurrent.duration._

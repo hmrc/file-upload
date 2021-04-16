@@ -25,8 +25,6 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import com.mongodb.{MongoException, WriteConcern}
-import org.bson.types._
-import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.model._
 import org.mongodb.scala.model.Filters._
 import uk.gov.hmrc.mongo.MongoComponent
