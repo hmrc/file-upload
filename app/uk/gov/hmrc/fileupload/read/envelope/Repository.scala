@@ -128,7 +128,7 @@ class Repository(mongoComponent: MongoComponent)
       .toFuture.map(_.toList)
   }
 
-  def getByStatus(status: List[EnvelopeStatus], inclusive: Boolean)(implicit ec: ExecutionContext): Source[Envelope, akka.NotUsed] = {
+  def getByStatus(status: List[EnvelopeStatus], inclusive: Boolean): Source[Envelope, akka.NotUsed] = {
     val operator = if (inclusive) in("status", status.map(_.name): _*) else nin("status", status.map(_.name): _*)
     Source.fromPublisher(collection.find(operator))
   }
@@ -136,7 +136,7 @@ class Repository(mongoComponent: MongoComponent)
   def all()(implicit ec: ExecutionContext): Future[List[Envelope]] =
     collection.find().toFuture.map(_.toList)
 
-  def recreate()(implicit ec: ExecutionContext): Unit = {
+  def recreate(): Unit = {
     Await.result(collection.drop().toFuture(), 5 seconds)
     Await.result(ensureIndexes, 5 seconds)
   }
