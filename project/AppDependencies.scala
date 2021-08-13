@@ -7,7 +7,7 @@ private object AppDependencies {
   private val akkaVersion = "2.6.10"
 
   val compile = Seq(
-    "uk.gov.hmrc.mongo"        %% "hmrc-mongo-play-28"        % "0.47.0",
+    "uk.gov.hmrc.mongo"        %% "hmrc-mongo-play-28"        % "0.51.0",
     PlayImport.ws,
     "uk.gov.hmrc"              %% "bootstrap-backend-play-28" % "5.11.0",
     "com.typesafe.play"        %% "play-json-joda"            % "2.8.1",
