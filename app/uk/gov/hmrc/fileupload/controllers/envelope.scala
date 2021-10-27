@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import cats.syntax.all._
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.QueryStringBindable
@@ -23,15 +24,17 @@ import uk.gov.hmrc.fileupload.read.envelope._
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.ContentTypes
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
-case class EnvelopeReport(id: Option[EnvelopeId] = None,
-                          callbackUrl: Option[String] = None,
-                          expiryDate: Option[DateTime] = None,
-                          metadata: Option[JsObject] = None,
-                          constraints: Option[EnvelopeFilesConstraints] = None,
-                          status: Option[String] = None,
-                          destination: Option[String] = None,
-                          application: Option[String] = None,
-                          files: Option[Seq[GetFileMetadataReport]] = None)
+case class EnvelopeReport(
+  id         : Option[EnvelopeId]                 = None,
+  callbackUrl: Option[String]                     = None,
+  expiryDate : Option[DateTime]                   = None,
+  metadata   : Option[JsObject]                   = None,
+  constraints: Option[EnvelopeFilesConstraints]   = None,
+  status     : Option[String]                     = None,
+  destination: Option[String]                     = None,
+  application: Option[String]                     = None,
+  files      : Option[Seq[GetFileMetadataReport]] = None
+)
 
 object EnvelopeReport {
   implicit val dateReads: Reads[DateTime] = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
@@ -45,27 +48,33 @@ object EnvelopeReport {
   implicit val createEnvelopeReads: Format[EnvelopeReport] = Json.format[EnvelopeReport]
 
   def fromEnvelope(envelope: Envelope): EnvelopeReport =
-    EnvelopeReport(id = Some(envelope._id),
-                   callbackUrl = envelope.callbackUrl,
-                   expiryDate = envelope.expiryDate,
-                   status = Some(envelope.status.name),
-                   metadata = envelope.metadata,
-                   constraints = envelope.constraints,
-                   destination = envelope.destination,
-                   application = envelope.application,
-                   files = envelope.files.map(_.map(file => GetFileMetadataReport.fromFile(envelope._id, file))))
+    EnvelopeReport(
+      id          = Some(envelope._id),
+      callbackUrl = envelope.callbackUrl,
+      expiryDate  = envelope.expiryDate,
+      status      = Some(envelope.status.name),
+      metadata    = envelope.metadata,
+      constraints = envelope.constraints,
+      destination = envelope.destination,
+      application = envelope.application,
+      files       = envelope.files.map(_.map(file => GetFileMetadataReport.fromFile(envelope._id, file)))
+    )
   }
 
-case class CreateEnvelopeRequest(callbackUrl: Option[String] = None,
-                                 expiryDate: Option[DateTime] = None,
-                                 metadata: Option[JsObject] = None,
-                                 constraints: Option[EnvelopeConstraintsUserSetting] = None)
+case class CreateEnvelopeRequest(
+  callbackUrl: Option[String]                         = None,
+  expiryDate : Option[DateTime]                       = None,
+  metadata   : Option[JsObject]                       = None,
+  constraints: Option[EnvelopeConstraintsUserSetting] = None
+)
 
-case class EnvelopeConstraintsUserSetting(maxItems: Option[Int] = None,
-                                          maxSize: Option[String] = None,
-                                          maxSizePerItem: Option[String] = None,
-                                          contentTypes: Option[List[ContentTypes]] = None,
-                                          allowZeroLengthFiles: Option[Boolean] = None)
+case class EnvelopeConstraintsUserSetting(
+  maxItems            : Option[Int]                = None,
+  maxSize             : Option[String]             = None,
+  maxSizePerItem      : Option[String]             = None,
+  contentTypes        : Option[List[ContentTypes]] = None,
+  allowZeroLengthFiles: Option[Boolean]            = None
+)
 
 object CreateEnvelopeRequest {
   import play.api.libs.json._
@@ -76,15 +85,17 @@ object CreateEnvelopeRequest {
   implicit val formats: OFormat[CreateEnvelopeRequest] = Json.format[CreateEnvelopeRequest]
 }
 
-case class GetFileMetadataReport(id: FileId,
-                                 status: Option[String] = None,
-                                 name: Option[String] = None,
-                                 contentType: Option[String] = None,
-                                 length: Option[Long] = None,
-                                 created: Option[DateTime] = None,
-                                 revision: Option[Int] = None,
-                                 metadata: Option[JsObject] = None,
-                                 href: Option[String] = None)
+case class GetFileMetadataReport(
+  id         : FileId,
+  status     : Option[String]   = None,
+  name       : Option[String]   = None,
+  contentType: Option[String]   = None,
+  length     : Option[Long]     = None,
+  created    : Option[DateTime] = None,
+  revision   : Option[Int]      = None,
+  metadata   : Option[JsObject] = None,
+  href       : Option[String]   = None
+)
 
 object GetFileMetadataReport {
   implicit val dateReads: Reads[DateTime] = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
@@ -95,31 +106,35 @@ object GetFileMetadataReport {
     uk.gov.hmrc.fileupload.controllers.routes.FileController.downloadFile(envelopeId, fileId).url
 
   def fromFile(envelopeId: EnvelopeId, file: File): GetFileMetadataReport =
-    GetFileMetadataReport(id = file.fileId,
-                          status = Some(file.status.name),
-                          name = file.name,
-                          contentType = file.contentType,
-                          length = file.length,
-                          created = file.uploadDate,
-                          metadata = file.metadata,
-                          href = Some(href(envelopeId, file.fileId))
-                        )
+    GetFileMetadataReport(
+      id          = file.fileId,
+      status      = Some(file.status.name),
+      name        = file.name,
+      contentType = file.contentType,
+      length      = file.length,
+      created     = file.uploadDate,
+      metadata    = file.metadata,
+      href        = Some(href(envelopeId, file.fileId))
+    )
 }
 
 case class GetEnvelopesByStatus(status: List[EnvelopeStatus], inclusive: Boolean)
 
 object GetEnvelopesByStatus {
 
-  implicit def getEnvelopesByStatusQueryStringBindable(implicit booleanBinder: QueryStringBindable[Boolean],
-                                                       listBinder: QueryStringBindable[List[String]]) =
+  implicit def getEnvelopesByStatusQueryStringBindable(implicit
+    booleanBinder: QueryStringBindable[Boolean],
+    listBinder: QueryStringBindable[List[String]]
+  ) =
     new QueryStringBindable[GetEnvelopesByStatus] {
       override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, GetEnvelopesByStatus]] =
         for {
-          status <- listBinder.bind("status", params)
+          statusStr <- listBinder.bind("status", params)
+          status    =  statusStr.flatMap(l => Either.fromOption(l.traverse(EnvelopeStatusTransformer.fromName), "Invalid status"))
           inclusive <- booleanBinder.bind("inclusive", params)
         } yield {
           (status, inclusive) match {
-            case (Right(s), Right(i)) => Right(GetEnvelopesByStatus(s.map(EnvelopeStatusTransformer.fromName), i))
+            case (Right(s), Right(i)) => Right(GetEnvelopesByStatus(s, i))
             case _ => Left("Unable to bind a GetEnvelopesByStatus")
           }
         }

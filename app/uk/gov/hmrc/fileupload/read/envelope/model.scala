@@ -101,17 +101,19 @@ object EnvelopeStatusWrites extends Writes[EnvelopeStatus] {
 }
 
 object EnvelopeStatusReads extends Reads[EnvelopeStatus] {
-  def reads(value: JsValue) = JsSuccess(EnvelopeStatusTransformer.fromName(value.as[String]))
+  def reads(value: JsValue) =
+    EnvelopeStatusTransformer.fromName(value.as[String]).fold[JsResult[EnvelopeStatus]](JsError("Invalid EnvelopeStatus"))(JsSuccess(_))
 }
 
 object EnvelopeStatusTransformer {
-  def fromName(name: String): EnvelopeStatus =
+  def fromName(name: String): Option[EnvelopeStatus] =
     name match {
-      case EnvelopeStatusOpen.name => EnvelopeStatusOpen
-      case EnvelopeStatusSealed.name => EnvelopeStatusSealed
-      case EnvelopeStatusRouteRequested.name => EnvelopeStatusRouteRequested
-      case EnvelopeStatusClosed.name => EnvelopeStatusClosed
-      case EnvelopeStatusDeleted.name => EnvelopeStatusDeleted
+      case EnvelopeStatusOpen.name           => Some(EnvelopeStatusOpen)
+      case EnvelopeStatusSealed.name         => Some(EnvelopeStatusSealed)
+      case EnvelopeStatusRouteRequested.name => Some(EnvelopeStatusRouteRequested)
+      case EnvelopeStatusClosed.name         => Some(EnvelopeStatusClosed)
+      case EnvelopeStatusDeleted.name        => Some(EnvelopeStatusDeleted)
+      case _                                 => None
     }
 }
 
