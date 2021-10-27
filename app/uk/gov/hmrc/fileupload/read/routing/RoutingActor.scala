@@ -22,7 +22,7 @@ import play.api.Logger
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusRouteRequested}
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
-import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, MarkEnvelopeAsRouted}
+import uk.gov.hmrc.fileupload.write.envelope.{ArchiveEnvelope, EnvelopeCommand, MarkEnvelopeAsRouted}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.mongo.lock.LockRepository
 
@@ -47,10 +47,10 @@ class RoutingActor(
 
   val logger = Logger(getClass)
 
-  implicit val actorMaterializer = akka.stream.ActorMaterializer()
+  implicit val as = context.system
 
   private val scheduler: Cancellable =
-    context.system.scheduler.schedule(config.initialDelay, config.interval, self, PushIfWaiting)
+    context.system.scheduler.scheduleAtFixedRate(config.initialDelay, config.interval, self, PushIfWaiting)
 
   override def preRestart(reason: Throwable, message: Option[Any]) = {
     super.preRestart(reason, message)
@@ -98,8 +98,8 @@ class RoutingActor(
                                   case Right(notification) =>
                                     Future.successful(Right(notification))
                                   case Left(error) if !error.isTransient =>
-                                    fail(s"Failed to build notification. Reason [${error.reason}]. Will mark envelope as routed")
-                                    Future.successful(Left(MarkEnvelopeAsRouted(envelope._id, isPushed = true)))
+                                    fail(s"Failed to build notification. Reason [${error.reason}]. Will archive envelope ${envelope._id}")
+                                    Future.successful(Left(ArchiveEnvelope(envelope._id)))
                                   case Left(error) =>
                                     fail(s"Failed to build notification. Reason [${error.reason}]")
                                 }

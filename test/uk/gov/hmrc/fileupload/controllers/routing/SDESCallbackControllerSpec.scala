@@ -55,7 +55,7 @@ class SDESCallbackControllerSpec
 
     val justReturn200s = Seq(FileReceived, FileReady, FileProcessingFailure)
 
-    justReturn200s foreach { notification =>
+    justReturn200s.foreach { notification =>
       s"return response with 200 if notification is ${notification.value}" in {
         val request = FakeRequest().withBody(Json.toJson(notificationItem(notification)))
 

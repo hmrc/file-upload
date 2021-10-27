@@ -201,5 +201,35 @@ class FileTransferIntegrationSpec
       val body = Json.parse(response.body)
       (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe 0
     }
+
+    Scenario("Mark envelopes as routed if cannot be zipped (410)") {
+      Given("I use a destination configured for push")
+      val destination = "DMS"
+
+      val envelopeId = createEnvelope()
+
+      And("The frontend fails to create the zip with 410")
+      stubZipEndpoint(envelopeId, Left(410))
+
+      And("I route an envelope")
+      submitRoutingRequest(envelopeId, destination)
+
+      Then("There exists DELETED envelopes that match it")
+      eventually {
+        val response = getEnvelopesForStatus(status = List("DELETED"), inclusive = true)
+        response.body.isEmpty shouldBe false
+      }
+
+      When(s"I invoke GET /file-transfer/envelopes?destination=$destination")
+      val response = getEnvelopesForDestination(Some(destination))
+
+      Then("I will receive a 200 Ok response")
+      response.status shouldBe OK
+
+      And("It will not include the pushed envelope")
+      val body = Json.parse(response.body)
+      println(s"body=$body")
+      (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe 0
+    }
   }
 }

@@ -41,7 +41,7 @@ class CallbackIntegrationSpec
       val callbackPath = "mycallbackpath"
       stubCallback(callbackPath)
 
-      val createEnvelopeResponse = createEnvelope(EnvelopeReportSupport.requestBody(Map("callbackUrl" -> callbackUrl(callbackPath))))
+      val createEnvelopeResponse = createEnvelope(EnvelopeReportSupport.requestBodyAsJson(Map("callbackUrl" -> callbackUrl(callbackPath))).toString)
       val locationHeader = createEnvelopeResponse.header("Location").get
       val envelopeId = EnvelopeId(locationHeader.substring(locationHeader.lastIndexOf('/') + 1))
       val fileId = FileId("1")
@@ -57,7 +57,7 @@ class CallbackIntegrationSpec
       val callbackPath = "mycallbackpath"
       stubCallback(callbackPath)
 
-      val createEnvelopeResponse = createEnvelope(EnvelopeReportSupport.requestBody(Map("callbackUrl" -> callbackUrl(callbackPath))))
+      val createEnvelopeResponse = createEnvelope(EnvelopeReportSupport.requestBodyAsJson(Map("callbackUrl" -> callbackUrl(callbackPath))).toString)
       val locationHeader = createEnvelopeResponse.header("Location").get
       val envelopeId = EnvelopeId(locationHeader.substring(locationHeader.lastIndexOf('/') + 1))
       val fileId = FileId("1")
@@ -74,7 +74,7 @@ class CallbackIntegrationSpec
       val callbackPath = "mycallbackpath"
       stubCallback(callbackPath)
 
-      val createEnvelopeResponse = createEnvelope(EnvelopeReportSupport.requestBody(Map("callbackUrl" -> callbackUrl(callbackPath))))
+      val createEnvelopeResponse = createEnvelope(EnvelopeReportSupport.requestBodyAsJson(Map("callbackUrl" -> callbackUrl(callbackPath))).toString)
       val locationHeader = createEnvelopeResponse.header("Location").get
       val envelopeId = EnvelopeId(locationHeader.substring(locationHeader.lastIndexOf('/') + 1))
       val fileId = FileId("1")
@@ -91,7 +91,7 @@ class CallbackIntegrationSpec
       val callbackPath = "mycallbackpath"
       stubCallback(callbackPath)
 
-      val createEnvelopeResponse = createEnvelope(EnvelopeReportSupport.requestBody(Map("callbackUrl" -> callbackUrl(callbackPath))))
+      val createEnvelopeResponse = createEnvelope(EnvelopeReportSupport.requestBodyAsJson(Map("callbackUrl" -> callbackUrl(callbackPath))).toString)
       val locationHeader = createEnvelopeResponse.header("Location").get
       val envelopeId = EnvelopeId(locationHeader.substring(locationHeader.lastIndexOf('/') + 1))
       val fileId = FileId("1")
