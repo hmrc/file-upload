@@ -17,7 +17,6 @@
 package uk.gov.hmrc.fileupload
 
 import play.api.libs.json.JsObject
-import uk.gov.hmrc.fileupload.support.EnvelopeReportSupport.prettify
 import uk.gov.hmrc.fileupload.support.FileMetadataReportSupport._
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, FileActions, IntegrationSpec}
 import uk.gov.hmrc.fileupload.write.envelope.QuarantineFile
@@ -53,7 +52,7 @@ class GetFileMetadataIntegrationSpec extends IntegrationSpec with EnvelopeAction
       response.status shouldBe OK
 
       And("the response body should contain the file reference details")
-      prettify(response.body) shouldBe responseBody(envelopeId, fileId)
+      response.json shouldBe responseBodyAsJson(envelopeId, fileId)
     }
 
     Scenario("GET metadata with invalid envelope id") {

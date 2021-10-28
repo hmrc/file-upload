@@ -58,10 +58,10 @@ class CreateEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       val formattedExpiryDate: String = formatter.print(today)
 
       Given("I have a default Create Envelope request")
-      val json = requestBody(Map("formattedExpiryDate" -> formattedExpiryDate))
+      val json = requestBodyAsJson(Map("formattedExpiryDate" -> formattedExpiryDate))
 
       When("I invoke POST /file-upload/envelopes")
-      val response: WSResponse = createEnvelope(json)
+      val response: WSResponse = createEnvelope(json.toString)
 
       Then("I will receive a 201 Created response")
       response.status shouldBe CREATED

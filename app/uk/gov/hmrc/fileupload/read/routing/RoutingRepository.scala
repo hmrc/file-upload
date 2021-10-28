@@ -34,7 +34,7 @@ object RoutingRepository {
   case class PushError(correlationId: String, reason: String)
 
   type BuildNotificationResult = Either[BuildNotificationError, FileTransferNotification]
-  case class BuildNotificationError(envelopeId: EnvelopeId, reason: String)
+  case class BuildNotificationError(envelopeId: EnvelopeId, reason: String, isTransient: Boolean)
 
   implicit val ftnw = FileTransferNotification.format
   implicit val zrw = ZipRequest.writes
@@ -79,13 +79,14 @@ object RoutingRepository {
         .withBody(Json.toJson(ZipRequest(files = envelope.files.toList.flatten.map(f => f.fileId -> f.name))))
         .withMethod("POST")
     ).map {
-      case Left(error) => Left(BuildNotificationError(envelope._id, error.message))
+      case Left(error) => Left(BuildNotificationError(envelope._id, error.message, isTransient = true))
       case Right(response) => response.status match {
           case Status.OK => response.json.validate[ZipData] match {
               case JsSuccess(zipData, _) => Right(createNotification(envelope, zipData, routingConfig))
-              case JsError(errors) => Left(BuildNotificationError(envelope._id, s"Could not parse result $errors"))
+              case JsError(errors) => Left(BuildNotificationError(envelope._id, s"Could not parse result $errors", isTransient = true))
             }
-          case _ => Left(BuildNotificationError(envelope._id, s"Unexpected response: ${response.status} ${response.body}"))
+          case Status.GONE => Left(BuildNotificationError(envelope._id, "Files to zip are no-longer available", isTransient = false))
+          case _ => Left(BuildNotificationError(envelope._id, s"Unexpected response: ${response.status} ${response.body}", isTransient = true))
         }
     }
 

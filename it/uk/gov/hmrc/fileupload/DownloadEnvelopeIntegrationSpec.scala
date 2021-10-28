@@ -39,13 +39,15 @@ class DownloadEnvelopeIntegrationSpec
 
     Scenario("A client can download an envelope including its file ~containing random UTF-8 string") {
       val uidRegexPattern = "[a-z0-9-]*"
-      mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/internal-file-upload/download/envelopes/$uidRegexPattern/files/$uidRegexPattern"))
-        .willReturn(WireMock.aResponse().withStatus(200).withBody("sampleFileContent".getBytes)))
+      mockFEServer.stubFor(
+        WireMock.get(urlPathMatching(s"/internal-file-upload/download/envelopes/($uidRegexPattern)/files/($uidRegexPattern)"))
+          .willReturn(WireMock.aResponse().withStatus(200).withBody("sampleFileContent".getBytes))
+      )
 
       Given("I have an envelope with files")
       val envelopeId = createEnvelope()
 
-      val fileId = FileId(s"fileId-${nextUtf8String()}")
+      val fileId = FileId(nextId())
       val fileRefId = FileRefId(uid)
 
       And("File has been stored in quarantine on the front-end")

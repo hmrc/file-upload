@@ -16,20 +16,19 @@
 
 package uk.gov.hmrc.fileupload.support
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, JsValue}
 
-object EnvelopeReportSupport extends Support {
+object EnvelopeReportSupport {
 
-  def requestBodyAsJson(args: Map[String, Any] = Map.empty) = Json.parse(requestBody(args))
-
-  def requestBody(args: Map[String, Any] = Map.empty) = s"""
-     |{
-     |  "callbackUrl": "${args.getOrElse("callbackUrl", "http://localhost:8900")}",
-     |  "metadata": {
-     |    "anything": "the caller wants to add to the envelope"
-     |  }
-     |}
-		 """.stripMargin
+  def requestBodyAsJson(args: Map[String, Any] = Map.empty): JsValue =
+    Json.parse(s"""
+      {
+        "callbackUrl": "${args.getOrElse("callbackUrl", "http://localhost:8900")}",
+        "metadata": {
+          "anything": "the caller wants to add to the envelope"
+        }
+      }
+		""")
 
   def requestBodyWithConstraints(args: Map[String, Any] = Map.empty) = s"""
        |{

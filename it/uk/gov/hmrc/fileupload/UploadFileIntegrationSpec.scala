@@ -40,11 +40,10 @@ class UploadFileIntegrationSpec
     info("So that I can persist it in the the database")
 
     Scenario("Add file to envelope (valid)") {
-
       Given("I have a valid envelope-id")
       stubCallback()
 
-      val createEnvelopeResponse = createEnvelope(EnvelopeReportSupport.requestBody(Map("callbackUrl" -> callbackUrl())))
+      val createEnvelopeResponse = createEnvelope(EnvelopeReportSupport.requestBodyAsJson(Map("callbackUrl" -> callbackUrl())).toString)
       val locationHeader = createEnvelopeResponse.header("Location").get
       val envelopeId = EnvelopeId(locationHeader.substring(locationHeader.lastIndexOf('/') + 1))
 

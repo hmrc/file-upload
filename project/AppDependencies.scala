@@ -1,29 +1,28 @@
+import play.core.PlayVersion.akkaVersion
 import sbt._
 
 private object AppDependencies {
   import play.sbt.PlayImport
   import play.core.PlayVersion
 
-  private val akkaVersion = "2.6.10"
+  private val bootstrapPlayVersion = "5.16.0"
+  private val mongoVersion = "0.55.0"
 
   val compile = Seq(
-    "uk.gov.hmrc.mongo"        %% "hmrc-mongo-play-28"        % "0.51.0",
+    "uk.gov.hmrc.mongo"      %% "hmrc-mongo-play-28"          % mongoVersion,
     PlayImport.ws,
-    "uk.gov.hmrc"              %% "bootstrap-backend-play-28" % "5.11.0",
-    "com.typesafe.play"        %% "play-json-joda"            % "2.8.1",
-    "com.typesafe.play"        %% "play-iteratees-reactive-streams" % "2.6.1",
-    "com.google.code.findbugs" %  "jsr305"                    % "2.0.3"
+    "uk.gov.hmrc"            %% "bootstrap-backend-play-28"   % bootstrapPlayVersion,
+    "com.typesafe.play"      %% "play-json-joda"              % "2.8.1",
+    "com.typesafe.play"      %% "play-iteratees-reactive-streams" % "2.6.1",
+    "org.typelevel"          %% "cats-core"                   % "2.6.1",
   )
 
   val test = Seq(
-    "com.vladsch.flexmark"   %  "flexmark-all"                % "0.35.10"           % "test, it",
-    "com.typesafe.play"      %% "play-test"                   % PlayVersion.current % "test,it",
-    "uk.gov.hmrc.mongo"      %% "hmrc-mongo-test-play-28"     % "0.47.0"            % "test,it",
-    "org.scalatestplus.play" %% "scalatestplus-play"          % "5.1.0"             % "test,it",
-    "com.typesafe.akka"      %% "akka-testkit"                % akkaVersion         % "test",
-    "org.mockito"            %% "mockito-scala"               % "1.10.1"            % "test",
-    "org.scalamock"          %% "scalamock-scalatest-support" % "3.6.0"             % "test",
-    "com.github.tomakehurst" %  "wiremock"                    % "1.58"              % "it"
+    "uk.gov.hmrc"            %% "bootstrap-test-play-28"      % bootstrapPlayVersion % "test,it",
+    "uk.gov.hmrc.mongo"      %% "hmrc-mongo-test-play-28"     % mongoVersion         % "test,it",
+    "org.mockito"            %% "mockito-scala-scalatest"     % "1.16.46"            % "test,it",
+    "com.typesafe.akka"      %% "akka-testkit"                % akkaVersion          % "test",
+    "org.scalamock"          %% "scalamock-scalatest-support" % "3.6.0"              % "test"
   )
 
   val libraryDependencies = compile ++ test

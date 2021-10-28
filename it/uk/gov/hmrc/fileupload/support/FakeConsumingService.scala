@@ -43,49 +43,40 @@ trait FakeConsumingService extends BeforeAndAfterAll with ScalaFutures {
     server.stop()
   }
 
-  def stubCallback(callbackPath: String = "mycallbackpath") = {
-    server.stubFor(WireMock.get(urlEqualTo(callbackPath))
-      .willReturn(WireMock.aResponse().withStatus(200)
-      ))
-  }
+  def stubCallback(callbackPath: String = "mycallbackpath") =
+    server.stubFor(
+      WireMock.get(urlEqualTo(s"/$callbackPath"))
+        .willReturn(WireMock.aResponse().withStatus(200))
+    )
 
-  def verifyQuarantinedCallbackReceived(callbackPath: String = "mycallbackpath", envelopeId: EnvelopeId, fileId: FileId): Unit = {
+  def verifyQuarantinedCallbackReceived(callbackPath: String = "mycallbackpath", envelopeId: EnvelopeId, fileId: FileId): Unit =
     happyCallbackEvent(callbackPath, envelopeId, fileId, "QUARANTINED")
-  }
 
-  def verifyNoVirusDetectedCallbackReceived(callbackPath: String = "mycallbackpath", envelopeId: EnvelopeId, fileId: FileId): Unit = {
+  def verifyNoVirusDetectedCallbackReceived(callbackPath: String = "mycallbackpath", envelopeId: EnvelopeId, fileId: FileId): Unit =
     happyCallbackEvent(callbackPath, envelopeId, fileId, "CLEANED")
-  }
 
-  def verifyVirusDetectedCallbackReceived(callbackPath: String = "mycallbackpath", envelopeId: EnvelopeId, fileId: FileId): Unit = {
+  def verifyVirusDetectedCallbackReceived(callbackPath: String = "mycallbackpath", envelopeId: EnvelopeId, fileId: FileId): Unit =
     sadCallbackEvent(callbackPath, envelopeId, fileId, "ERROR", "VirusDetected")
-  }
 
-  def verifyAvailableCallbackReceived(callbackPath: String = "mycallbackpath", envelopeId: EnvelopeId, fileId: FileId): Unit = {
+  def verifyAvailableCallbackReceived(callbackPath: String = "mycallbackpath", envelopeId: EnvelopeId, fileId: FileId): Unit =
     happyCallbackEvent(callbackPath, envelopeId, fileId, "AVAILABLE")
-  }
 
-  private def happyCallbackEvent(callbackPath: String, envelopeId: EnvelopeId, fileId: FileId, status: String): Unit = {
-    server.verify(postRequestedFor(
-      urlEqualTo(s"/$callbackPath"))
-      .withHeader("Content-Type", containing("application/json"))
-      .withRequestBody(equalToJson( s"""{"envelopeId": "$envelopeId", "fileId": "$fileId", "status": "$status"}""".stripMargin))
+  private def happyCallbackEvent(callbackPath: String, envelopeId: EnvelopeId, fileId: FileId, status: String): Unit =
+    server.verify(
+      postRequestedFor(urlEqualTo(s"/$callbackPath"))
+        .withHeader("Content-Type", containing("application/json"))
+        .withRequestBody(equalToJson(s"""{"envelopeId": "$envelopeId", "fileId": "$fileId", "status": "$status"}"""))
     )
-  }
 
-  private def sadCallbackEvent(callbackPath: String, envelopeId: EnvelopeId, fileId: FileId, status: String, reason: String): Unit = {
-    server.verify(postRequestedFor(
-      urlEqualTo(s"/$callbackPath"))
-      .withHeader("Content-Type", containing("application/json"))
-      .withRequestBody(equalToJson(
-        s"""
-           |{"envelopeId": "$envelopeId", "fileId": "$fileId", "status": "$status", "reason": "$reason"}
-        """.stripMargin))
+  private def sadCallbackEvent(callbackPath: String, envelopeId: EnvelopeId, fileId: FileId, status: String, reason: String): Unit =
+    server.verify(
+      postRequestedFor(urlEqualTo(s"/$callbackPath"))
+        .withHeader("Content-Type", containing("application/json"))
+        .withRequestBody(equalToJson(
+          s"""{"envelopeId": "$envelopeId", "fileId": "$fileId", "status": "$status", "reason": "$reason"}"""
+        ))
     )
-  }
 
-  def callbackUrl(callbackPath: String = "mycallbackpath") = {
+  def callbackUrl(callbackPath: String = "mycallbackpath") =
     s"$consumingServiceBaseUrl/$callbackPath"
-  }
-
 }

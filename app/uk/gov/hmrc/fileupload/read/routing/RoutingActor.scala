@@ -22,7 +22,7 @@ import play.api.Logger
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusRouteRequested}
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
-import uk.gov.hmrc.fileupload.write.envelope.{EnvelopeCommand, MarkEnvelopeAsRouted}
+import uk.gov.hmrc.fileupload.write.envelope.{ArchiveEnvelope, EnvelopeCommand, MarkEnvelopeAsRouted}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.mongo.lock.LockRepository
 
@@ -47,10 +47,10 @@ class RoutingActor(
 
   val logger = Logger(getClass)
 
-  implicit val actorMaterializer = akka.stream.ActorMaterializer()
+  implicit val as = context.system
 
   private val scheduler: Cancellable =
-    context.system.scheduler.schedule(config.initialDelay, config.interval, self, PushIfWaiting)
+    context.system.scheduler.scheduleAtFixedRate(config.initialDelay, config.interval, self, PushIfWaiting)
 
   override def preRestart(reason: Throwable, message: Option[Any]) = {
     super.preRestart(reason, message)
@@ -93,18 +93,28 @@ class RoutingActor(
       .fold(Future.successful(MarkEnvelopeAsRouted(envelope._id, isPushed = false): EnvelopeCommand)){ destination =>
         logger.info(s"envelope [${envelope._id}] to '$destination' will be routed to '${config.pushUrl}'")
         for {
-          notificationRes <- buildNotification(envelope)
-          notification    <- notificationRes match {
-                               case Right(notification) => Future.successful(notification)
-                               case Left(error)         => fail(s"Failed to build notification. Reason [${error.reason}]")
-                             }
-          _               =  logger.info(s"will push $notification for envelope [${envelope._id}]")
-          pushRes         <- pushNotification(notification)
-          cmd             <- pushRes match {
-                               case Right(())   => logger.info(s"Successfully pushed routing for envelope [${envelope._id}]")
-                                                   Future.successful(MarkEnvelopeAsRouted(envelope._id, isPushed = true))
-                               case Left(error) => fail(s"Failed to push routing for envelope [${envelope._id}]. Reason [${error.reason}]")
-                             }
+          notificationRes    <- buildNotification(envelope)
+          notificationEither <- notificationRes match {
+                                  case Right(notification) =>
+                                    Future.successful(Right(notification))
+                                  case Left(error) if !error.isTransient =>
+                                    fail(s"Failed to build notification. Reason [${error.reason}]. Will archive envelope ${envelope._id}")
+                                    Future.successful(Left(ArchiveEnvelope(envelope._id)))
+                                  case Left(error) =>
+                                    fail(s"Failed to build notification. Reason [${error.reason}]")
+                                }
+          cmd                <- notificationEither match {
+                                  case Left(cmd)           => Future.successful(cmd)
+                                  case Right(notification) => for {
+                                      _               <- Future.successful(logger.info(s"will push $notification for envelope [${envelope._id}]"))
+                                      pushRes         <- pushNotification(notification)
+                                      cmd             <- pushRes match {
+                                                           case Right(())   => logger.info(s"Successfully pushed routing for envelope [${envelope._id}]")
+                                                                               Future.successful(MarkEnvelopeAsRouted(envelope._id, isPushed = true))
+                                                           case Left(error) => fail(s"Failed to push routing for envelope [${envelope._id}]. Reason [${error.reason}]")
+                                                         }
+                                    } yield cmd
+                                }
         } yield cmd
     }.map(cmd =>
       handleCommand(cmd).map {

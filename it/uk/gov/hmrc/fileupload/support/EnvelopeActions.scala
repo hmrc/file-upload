@@ -62,7 +62,7 @@ trait EnvelopeActions extends ActionsSupport {
   }
 
   def createEnvelope(): EnvelopeId = {
-    val response: WSResponse = createEnvelope(EnvelopeReportSupport.requestBody())
+    val response: WSResponse = createEnvelope(EnvelopeReportSupport.requestBodyAsJson().toString)
     val locationHeader = response.header("Location").get
     EnvelopeId(locationHeader.substring(locationHeader.lastIndexOf('/') + 1))
   }
