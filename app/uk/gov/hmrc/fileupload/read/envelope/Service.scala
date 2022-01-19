@@ -35,23 +35,33 @@ object Service {
   case object FindMetadataFileNotFoundError extends FindMetadataError
   case class FindMetadataServiceError(message: String) extends FindMetadataError
 
-  def find(get: EnvelopeId => Future[Option[Envelope]])(id: EnvelopeId)
-          (implicit ex: ExecutionContext): Future[FindResult] =
+  def find(
+    get: EnvelopeId => Future[Option[Envelope]]
+  )(
+    id: EnvelopeId
+  )(implicit
+    ex: ExecutionContext
+  ): Future[FindResult] =
     get(id).map {
       case Some(e) => Right(e)
       case _ => Left(FindEnvelopeNotFoundError)
     }.recover { case e => Left(FindServiceError(e.getMessage)) }
 
-  def findMetadata(find: EnvelopeId => Future[FindResult])(id: EnvelopeId, fileId: FileId)
-                  (implicit ex: ExecutionContext): Future[FindMetadataResult] =
+  def findMetadata(
+    find  : EnvelopeId => Future[FindResult]
+  )(id    : EnvelopeId,
+    fileId: FileId
+  )(implicit
+    ex: ExecutionContext
+  ): Future[FindMetadataResult] =
     find(id).map {
       case Right(envelope) =>
         envelope.getFileById(fileId) match {
           case Some(file) => Right(file)
-          case None => Left(FindMetadataFileNotFoundError)
+          case None       => Left(FindMetadataFileNotFoundError)
         }
       case Left(FindEnvelopeNotFoundError) => Left(FindMetadataEnvelopeNotFoundError)
-      case Left(FindServiceError(m)) => Left(FindMetadataServiceError(m))
+      case Left(FindServiceError(m))       => Left(FindMetadataServiceError(m))
     }.recover { case e => Left(FindMetadataServiceError(e.getMessage)) }
 
 }

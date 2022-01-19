@@ -24,18 +24,16 @@ import uk.gov.hmrc.fileupload.controllers._
 
 object EnvelopeConstraintsConfiguration {
 
-  private def throwRuntimeException(key: String): Nothing = {
+  private def throwRuntimeException(key: String): Nothing =
     throw new RuntimeException(s"default value $key need to define correctly")
-  }
 
-  def checkOptionIntValue(data: Option[Int], position: String): Int = {
+  def checkOptionIntValue(data: Option[Int], position: String): Int =
     data match {
       case Some(num: Int) ⇒
         if (num < 1) throwRuntimeException(s"$position")
         else num
       case _ ⇒ throwRuntimeException(s"$position")
     }
-  }
 
   def getEnvelopeConstraintsConfiguration(runModeConfiguration: Configuration): Either[ConstraintsValidationFailure, EnvelopeConstraintsConfiguration] = {
 
@@ -58,10 +56,12 @@ object EnvelopeConstraintsConfiguration {
       for {
         acceptedMaxSize ← Size(acceptedMaxSize).right
         acceptedMaxSizePerItem ← Size(acceptedMaxSizePerItem).right
-      } yield EnvelopeFilesConstraints(maxItems = acceptedMaxItems,
-                                       maxSize = acceptedMaxSize,
-                                       maxSizePerItem = acceptedMaxSizePerItem,
-                                       allowZeroLengthFiles = acceptedAllowZeroLengthFiles)
+      } yield EnvelopeFilesConstraints(
+        maxItems             = acceptedMaxItems,
+        maxSize              = acceptedMaxSize,
+        maxSizePerItem       = acceptedMaxSizePerItem,
+        allowZeroLengthFiles = acceptedAllowZeroLengthFiles
+      )
     }
 
     val acceptedEnvelopeConstraints: Either[ConstraintsValidationFailure, EnvelopeFilesConstraints] =
@@ -75,8 +75,8 @@ object EnvelopeConstraintsConfiguration {
     validateExpiryDate(times.now, times.max, times.default) match {
       case Right(_) =>
         for {
-          accepted ← acceptedEnvelopeConstraints.right
-          default ← defaultEnvelopeConstraints.right
+          accepted <- acceptedEnvelopeConstraints.right
+          default  <- defaultEnvelopeConstraints.right
         } yield EnvelopeConstraintsConfiguration(
           acceptedEnvelopeConstraints = accepted,
           defaultEnvelopeConstraints = default,
@@ -88,26 +88,29 @@ object EnvelopeConstraintsConfiguration {
     }
   }
 
-  def validateEnvelopeFilesConstraints(constraintsO: EnvelopeConstraintsUserSetting,
-                                       envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration): Either[ConstraintsValidationFailure, EnvelopeFilesConstraints] = {
+  def validateEnvelopeFilesConstraints(
+    constraintsO                : EnvelopeConstraintsUserSetting,
+    envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration
+): Either[ConstraintsValidationFailure, EnvelopeFilesConstraints] = {
 
     val defaultEnvelopeConstraints = envelopeConstraintsConfigure.defaultEnvelopeConstraints
     val acceptedEnvelopeConstraints = envelopeConstraintsConfigure.acceptedEnvelopeConstraints
 
     val maxItems = constraintsO.maxItems.getOrElse(defaultEnvelopeConstraints.maxItems)
 
-    val userEnvelopeConstraints = {
+    val userEnvelopeConstraints =
       for {
-        userMaxSize ← Size(constraintsO.maxSize.getOrElse(defaultEnvelopeConstraints.maxSize.toString)).right
-        userMaxSizePerItem ← Size(constraintsO.maxSizePerItem.getOrElse(defaultEnvelopeConstraints.maxSizePerItem.toString)).right
-      } yield EnvelopeFilesConstraints(maxItems = maxItems,
-                                  maxSize = userMaxSize,
-                                  maxSizePerItem = userMaxSizePerItem,
-                                  allowZeroLengthFiles = constraintsO.allowZeroLengthFiles.orElse(defaultEnvelopeConstraints.allowZeroLengthFiles))
-    }
+        userMaxSize        <- Size(constraintsO.maxSize.getOrElse(defaultEnvelopeConstraints.maxSize.toString)).right
+        userMaxSizePerItem <- Size(constraintsO.maxSizePerItem.getOrElse(defaultEnvelopeConstraints.maxSizePerItem.toString)).right
+      } yield EnvelopeFilesConstraints(
+        maxItems             = maxItems,
+        maxSize              = userMaxSize,
+        maxSizePerItem       = userMaxSizePerItem,
+        allowZeroLengthFiles = constraintsO.allowZeroLengthFiles.orElse(defaultEnvelopeConstraints.allowZeroLengthFiles)
+      )
 
     for {
-      useConstraints ← userEnvelopeConstraints.right
+      useConstraints <- userEnvelopeConstraints.right
     } {
       val maxSizeInBytes: Long = useConstraints.maxSizeInBytes
       val maxSizePerItemInBytes: Long = useConstraints.maxSizePerItemInBytes
@@ -126,12 +129,11 @@ object EnvelopeConstraintsConfiguration {
     userEnvelopeConstraints
   }
 
-  def validateExpiryDate(now: DateTime, max: DateTime, userExpiryDate: DateTime): Either[InvalidExpiryDate.type, Unit] = {
-    if(now.isAfter(userExpiryDate) || userExpiryDate.isAfter(max))
+  def validateExpiryDate(now: DateTime, max: DateTime, userExpiryDate: DateTime): Either[InvalidExpiryDate.type, Unit] =
+    if (now.isAfter(userExpiryDate) || userExpiryDate.isAfter(max))
       Left(InvalidExpiryDate)
     else
       Right(())
-  }
 
 
   def durationsToDateTime(default: Duration, max: Duration): ExpiryTimes = {
@@ -141,11 +143,17 @@ object EnvelopeConstraintsConfiguration {
     def defaultT = expiryDateFromDuration(default)
     ExpiryTimes(defaultT, maxT, now)
   }
-  case class ExpiryTimes(default: DateTime, max: DateTime, now: DateTime)
+  case class ExpiryTimes(
+    default: DateTime,
+    max    : DateTime,
+    now    : DateTime
+  )
 }
 
-case class EnvelopeConstraintsConfiguration(acceptedEnvelopeConstraints: EnvelopeFilesConstraints,
-                                            defaultEnvelopeConstraints: EnvelopeFilesConstraints,
-                                            maxExpirationDuration: Duration,
-                                            defaultExpirationDuration: Duration,
-                                            enforceHttps: Boolean)
+case class EnvelopeConstraintsConfiguration(
+  acceptedEnvelopeConstraints: EnvelopeFilesConstraints,
+  defaultEnvelopeConstraints : EnvelopeFilesConstraints,
+  maxExpirationDuration      : Duration,
+  defaultExpirationDuration  : Duration,
+  enforceHttps               : Boolean
+)

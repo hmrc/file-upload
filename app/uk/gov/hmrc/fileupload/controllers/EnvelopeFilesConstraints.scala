@@ -18,11 +18,12 @@ package uk.gov.hmrc.fileupload.controllers
 
 import scala.util.matching.Regex
 
-case class EnvelopeFilesConstraints(maxItems: Int,
-                                    maxSize: Size,
-                                    maxSizePerItem: Size,
-                                    allowZeroLengthFiles: Option[Boolean]) {
-
+case class EnvelopeFilesConstraints(
+  maxItems            : Int,
+  maxSize             : Size,
+  maxSizePerItem      : Size,
+  allowZeroLengthFiles: Option[Boolean]
+) {
   val maxSizeInBytes: Long = maxSize.inBytes
   val maxSizePerItemInBytes: Long = maxSizePerItem.inBytes
 }
@@ -54,7 +55,7 @@ object Size {
           unit match {
             case "KB" => Right(Size(num.toInt, KB))
             case "MB" => Right(Size(num.toInt, MB))
-            case _ => Left(InvalidFormat)
+            case _    => Left(InvalidFormat)
           }
         case _ => Left(InvalidFormat)
       }

@@ -52,15 +52,18 @@ trait EventStore {
   def recreate(): Unit
 }
 
-class MongoEventStore(mongoComponent: MongoComponent,
-                      metrics: MetricRegistry,
-                      writeConcern: WriteConcern = WriteConcern.MAJORITY)
-                     (implicit ec: ExecutionContext)
-    extends PlayMongoRepository[UnitOfWork](
-      collectionName = "events",
-      mongoComponent = mongoComponent,
-      domainFormat = UnitOfWorkSerializer.format,
-      indexes = Seq(IndexModel(Indexes.hashed("streamId"), IndexOptions().background(true)))) with EventStore {
+class MongoEventStore(
+  mongoComponent: MongoComponent,
+  metrics       : MetricRegistry,
+  writeConcern  : WriteConcern = WriteConcern.MAJORITY
+)(implicit
+  ec: ExecutionContext
+) extends PlayMongoRepository[UnitOfWork](
+  collectionName = "events",
+  mongoComponent = mongoComponent,
+  domainFormat   = UnitOfWorkSerializer.format,
+  indexes        = Seq(IndexModel(Indexes.hashed("streamId"), IndexOptions().background(true)))
+) with EventStore {
 
   private val logger = Logger(getClass)
 
@@ -79,11 +82,10 @@ class MongoEventStore(mongoComponent: MongoComponent,
       .insertOne(unitOfWork)
       .toFuture()
       .map { r =>
-      if (r.wasAcknowledged()) {
+      if (r.wasAcknowledged())
         EventStore.saveSuccess
-      } else {
+      else
         Left(NotSavedError("not saved"))
-      }
     }.recover {
       case e: MongoException if e.getCode == duplicateKeyErrorCode =>
         Left(VersionConflictError)
@@ -109,27 +111,25 @@ class MongoEventStore(mongoComponent: MongoComponent,
           val elapsed = FiniteDuration(elapsedNanos, TimeUnit.NANOSECONDS)
 
           largeEnvelopeMarker.mark()
-          if (size % envelopeEventsThreshold <= 20) {
+
+          if (size % envelopeEventsThreshold <= 20)
             logger.warn(s"large envelope: envelopeId=$streamId size=$size time=${elapsed.toMillis} ms")
-          }
-          if (size % 100 == 0) {
+
+          if (size % 100 == 0)
             logger.error(s"large envelope: envelopeId=$streamId size=$size")
-          }
         }
         Right(sortByVersion)
       }.recover { case e =>
         Left(GetError(e.getMessage))
       }.map { e =>
         val elapsed = context.stop().nanoseconds
-        if (elapsed > 10.seconds) {
+        if (elapsed > 10.seconds)
           logger.warn(s"unitsOfWorkForAggregate: events.find by streamId=$streamId took ${elapsed.toMillis} ms")
-        }
 
         e
       }
   }
 
-  override def recreate(): Unit = {
+  override def recreate(): Unit =
     Await.result(collection.drop().toFuture, 5 seconds)
-  }
 }

@@ -37,15 +37,15 @@ case class EnvelopeReport(
 )
 
 object EnvelopeReport {
-  implicit val dateReads: Reads[DateTime] = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  implicit val dateWrites: Writes[DateTime] = JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  implicit val fileStatusReads: Reads[FileStatus] = FileStatusReads
-  implicit val fileStatusWrites: Writes[FileStatus] = FileStatusWrites
-  implicit val fileFormat: Format[File] = Json.format[File]
-  implicit val sizeReads: Reads[Size] = SizeReads
-  implicit val sizeWrites: Writes[Size] = SizeWrites
+  implicit val dateReads               : Reads[DateTime]                  = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val dateWrites              : Writes[DateTime]                 = JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val fileStatusReads         : Reads[FileStatus]                = FileStatusReads
+  implicit val fileStatusWrites        : Writes[FileStatus]               = FileStatusWrites
+  implicit val fileFormat              : Format[File]                     = Json.format[File]
+  implicit val sizeReads               : Reads[Size]                      = SizeReads
+  implicit val sizeWrites              : Writes[Size]                     = SizeWrites
   implicit val envelopeConstraintsReads: Format[EnvelopeFilesConstraints] = Json.format[EnvelopeFilesConstraints]
-  implicit val createEnvelopeReads: Format[EnvelopeReport] = Json.format[EnvelopeReport]
+  implicit val createEnvelopeReads     : Format[EnvelopeReport]           = Json.format[EnvelopeReport]
 
   def fromEnvelope(envelope: Envelope): EnvelopeReport =
     EnvelopeReport(
@@ -79,10 +79,10 @@ case class EnvelopeConstraintsUserSetting(
 object CreateEnvelopeRequest {
   import play.api.libs.json._
 
-  implicit val dateReads: Reads[DateTime] = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  implicit val dateWrites: Writes[DateTime] = JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val dateReads         : Reads[DateTime]                         = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val dateWrites        : Writes[DateTime]                        = JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val constraintsFormats: OFormat[EnvelopeConstraintsUserSetting] = Json.format[EnvelopeConstraintsUserSetting]
-  implicit val formats: OFormat[CreateEnvelopeRequest] = Json.format[CreateEnvelopeRequest]
+  implicit val formats           : OFormat[CreateEnvelopeRequest]          = Json.format[CreateEnvelopeRequest]
 }
 
 case class GetFileMetadataReport(
@@ -98,8 +98,8 @@ case class GetFileMetadataReport(
 )
 
 object GetFileMetadataReport {
-  implicit val dateReads: Reads[DateTime] = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  implicit val dateWrites: Writes[DateTime] = JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val dateReads                  : Reads[DateTime]               = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  implicit val dateWrites                 : Writes[DateTime]              = JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val getFileMetaDataReportFormat: Format[GetFileMetadataReport] = Json.format[GetFileMetadataReport]
 
   def href(envelopeId: EnvelopeId, fileId: FileId): String =
@@ -118,13 +118,16 @@ object GetFileMetadataReport {
     )
 }
 
-case class GetEnvelopesByStatus(status: List[EnvelopeStatus], inclusive: Boolean)
+case class GetEnvelopesByStatus(
+  status   : List[EnvelopeStatus],
+  inclusive: Boolean
+)
 
 object GetEnvelopesByStatus {
 
   implicit def getEnvelopesByStatusQueryStringBindable(implicit
     booleanBinder: QueryStringBindable[Boolean],
-    listBinder: QueryStringBindable[List[String]]
+    listBinder   : QueryStringBindable[List[String]]
   ) =
     new QueryStringBindable[GetEnvelopesByStatus] {
       override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, GetEnvelopesByStatus]] =

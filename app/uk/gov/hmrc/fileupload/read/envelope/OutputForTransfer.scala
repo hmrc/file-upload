@@ -38,47 +38,41 @@ object OutputForTransfer {
 
   def stringifyEnvelope(e: Envelope): JsValue = {
     Json.obj(
-      id -> e._id,
+      id          -> e._id,
       destination -> e.destination,
       application -> e.application,
-      _embedded -> Json.obj(
-        files -> mapFiles(e.files)(stringifyFile(e,_))
-      ),
-      _links -> Json.obj(
-        self -> Json.obj(
-          href -> URLs.fileTransferEnvelope(e._id)
-        ),
-        "package" -> Json.obj(
-          href -> URLs.fileTransferEnvelope(e._id),
-          "type" -> "application/zip"
-        ),
-        files -> {
-          mapFiles(e.files){ file =>
-            Json.obj(href -> URLs.fileRelativeToEnvelope(file, e._id))
-          }
-        }
-      )
+      _embedded   -> Json.obj(
+                       files -> mapFiles(e.files)(stringifyFile(e,_))
+                     ),
+      _links      -> Json.obj(
+                       self      -> Json.obj(href -> URLs.fileTransferEnvelope(e._id)),
+                       "package" -> Json.obj(
+                                      href -> URLs.fileTransferEnvelope(e._id),
+                                      "type" -> "application/zip"
+                                    ),
+                       files     -> mapFiles(e.files)(file =>
+                                      Json.obj(href -> URLs.fileRelativeToEnvelope(file, e._id))
+                                    )
+                     )
     )
   }
 
-  def mapFiles[A](files: Option[Seq[File]])(f: File => A): Seq[A] = {
+  def mapFiles[A](files: Option[Seq[File]])(f: File => A): Seq[A] =
     files.map(_.map(f)).getOrElse(List.empty[A])
-  }
 
-  def stringifyFile(e: Envelope, f: File): JsValue = {
+  def stringifyFile(e: Envelope, f: File): JsValue =
     Json.obj(
-      href -> URLs.fileDownloadContent(e._id, f.fileId),
-      name -> f.name,
+      href        -> URLs.fileDownloadContent(e._id, f.fileId),
+      name        -> f.name,
       contentType -> f.contentType,
-      length -> f.length,
-      created -> f.uploadDate.map(formatDateAsUtc),
-      _links -> Json.obj(
-        self -> Json.obj(
-          href -> URLs.fileUri(e._id, f.fileId)
-        )
-      )
+      length      -> f.length,
+      created     -> f.uploadDate.map(formatDateAsUtc),
+      _links      -> Json.obj(self ->
+                       Json.obj(href ->
+                         URLs.fileUri(e._id, f.fileId)
+                       )
+                     )
     )
-  }
 
   def formatDateAsUtc(date: DateTime) = date.toString("yyyy-MM-dd'T'HH:mm:ss'Z'")
 
@@ -89,17 +83,14 @@ object OutputForTransfer {
     }
 
 
-    def fileTransferEnvelope(envelopeId: EnvelopeId): String = {
+    def fileTransferEnvelope(envelopeId: EnvelopeId): String =
       controllers.transfer.routes.TransferController.download(envelopeId).url
-    }
 
-    def fileDownloadContent(envelopeId: EnvelopeId, fileId: FileId): String = {
+    def fileDownloadContent(envelopeId: EnvelopeId, fileId: FileId): String =
        controllers.routes.FileController.downloadFile(envelopeId, fileId).url
-    }
 
-    def fileUri(envelopeId: EnvelopeId, fileId: FileId): String = {
+    def fileUri(envelopeId: EnvelopeId, fileId: FileId): String =
       controllers.routes.EnvelopeController.deleteFile(envelopeId, fileId).url
-    }
 
     def fileRelativeToEnvelope(file: File, envelopeId: EnvelopeId): String = {
       val envelopeUrl =  controllers.routes.EnvelopeController.show(envelopeId).url
@@ -107,16 +98,16 @@ object OutputForTransfer {
     }
   }
 
-  val _links = "_links"
-  val self = "self"
-  val href = "href"
-  val _embedded = "_embedded"
-  val id = "id"
+  val _links      = "_links"
+  val self        = "self"
+  val href        = "href"
+  val _embedded   = "_embedded"
+  val id          = "id"
   val destination = "destination"
   val application = "application"
-  val files = "files"
-  val name = "name"
+  val files       = "files"
+  val name        = "name"
   val contentType = "contentType"
-  val length = "length"
-  val created = "created"
+  val length      = "length"
+  val created     = "created"
 }

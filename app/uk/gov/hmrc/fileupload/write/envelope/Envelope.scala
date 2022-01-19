@@ -27,7 +27,9 @@ object EnvelopeHandler {
   type ContentTypes = String
 }
 
-class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration) extends Handler[EnvelopeCommand, Envelope] {
+class EnvelopeHandler(
+  envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration
+) extends Handler[EnvelopeCommand, Envelope] {
 
   val acceptedConstraints: EnvelopeFilesConstraints = envelopeConstraintsConfigure.acceptedEnvelopeConstraints
 
@@ -63,11 +65,10 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
       envelope.canStoreFile(command.fileId, command.fileRefId).map { _ =>
         val fileStored = FileStored(command.id, command.fileId, command.fileRefId, command.length)
 
-        if (withEvent(envelope, fileStored).canRequestRoute.isRight) {
+        if (withEvent(envelope, fileStored).canRequestRoute.isRight)
           fileStored And EnvelopeRouteRequested(command.id)
-        } else {
+        else
           fileStored
-        }
       }
 
     case (command: DeleteFile, envelope: Envelope) =>
@@ -80,11 +81,10 @@ class EnvelopeHandler(envelopeConstraintsConfigure: EnvelopeConstraintsConfigura
       envelope.canSeal(command.destination, envelope.constraints.getOrElse(acceptedConstraints)).map { _ =>
         val envelopeSealed = EnvelopeSealed(command.id, command.routingRequestId, command.destination, command.application)
 
-        if (withEvent(envelope, envelopeSealed).canRequestRoute.isRight) {
+        if (withEvent(envelope, envelopeSealed).canRequestRoute.isRight)
           envelopeSealed And EnvelopeRouteRequested(command.id)
-        } else {
+        else
           envelopeSealed
-        }
       }
 
     case (command: UnsealEnvelope, envelope: Envelope) =>
@@ -170,124 +170,148 @@ case class Envelope(
 
   def canCreate: CanResult = state.canCreate
 
-  def canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints: EnvelopeFilesConstraints,
-                                                       maxLimitConstrains: EnvelopeFilesConstraints): CanResult = {
+  def canCreateWithFilesCapacityAndSizeAndContentTypes(
+    userConstraints: EnvelopeFilesConstraints,
+    maxLimitConstrains: EnvelopeFilesConstraints
+  ): CanResult =
     state.canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints, maxLimitConstrains)
-  }
 
   def canDeleteFile(fileId: FileId): CanResult = state.canDeleteFile(fileId, files)
 
-  def canQuarantine(fileId: FileId, fileRefId: FileRefId, name: String): CanResult = state.canQuarantine(fileId, fileRefId, name, files)
+  def canQuarantine(fileId: FileId, fileRefId: FileRefId, name: String): CanResult =
+    state.canQuarantine(fileId, fileRefId, name, files)
 
-  def canMarkFileAsCleanOrInfected(fileId: FileId, fileRefId: FileRefId): CanResult = state.canMarkFileAsCleanOrInfected(fileId, fileRefId, files)
+  def canMarkFileAsCleanOrInfected(fileId: FileId, fileRefId: FileRefId): CanResult =
+    state.canMarkFileAsCleanOrInfected(fileId, fileRefId, files)
 
-  def canStoreFile(fileId: FileId, fileRefId: FileRefId): CanResult = state.canStoreFile(fileId, fileRefId, files)
+  def canStoreFile(fileId: FileId, fileRefId: FileRefId): CanResult =
+    state.canStoreFile(fileId, fileRefId, files)
 
-  def canSeal(destination: String, envelopeConstraints: EnvelopeFilesConstraints): CanResult = state.canSeal(files.values.toSeq, destination, envelopeConstraints)
+  def canSeal(destination: String, envelopeConstraints: EnvelopeFilesConstraints): CanResult =
+    state.canSeal(files.values.toSeq, destination, envelopeConstraints)
 
-  def canUnseal: CanResult = state.canUnseal
+  def canUnseal: CanResult =
+    state.canUnseal
 
-  def canDelete: CanResult = state.canDelete
+  def canDelete: CanResult =
+    state.canDelete
 
-  def canRequestRoute: CanResult = state.canRequestRoute(files.values.toSeq)
+  def canRequestRoute: CanResult =
+    state.canRequestRoute(files.values.toSeq)
 
-  def canRoute: CanResult = state.canRoute
+  def canRoute: CanResult =
+    state.canRoute
 
-  def canArchive: CanResult = state.canArchive
+  def canArchive: CanResult =
+    state.canArchive
 }
 
 object State {
-  val successResult = Right(())
-  val envelopeNotFoundError = Left(EnvelopeNotFoundError)
-  val envelopeAlreadyCreatedError = Left(EnvelopeAlreadyCreatedError)
-  val envelopeMaxSizeExceededError = Left(InvalidMaxSizeConstraintError)
-  val envelopeMaxSizePerItemExceededError = Left(InvalidMaxSizePerItemConstraintError)
-  val envelopeMaxItemCountExceededError = Left(InvalidMaxItemCountConstraintError)
-  val fileNotFoundError = Left(FileNotFoundError)
-  val envelopeSealedError = Left(EnvelopeSealedError)
-  val envelopeAlreadyArchivedError = Left(EnvelopeArchivedError)
+  val successResult                        = Right(())
+  val envelopeNotFoundError                = Left(EnvelopeNotFoundError)
+  val envelopeAlreadyCreatedError          = Left(EnvelopeAlreadyCreatedError)
+  val envelopeMaxSizeExceededError         = Left(InvalidMaxSizeConstraintError)
+  val envelopeMaxSizePerItemExceededError  = Left(InvalidMaxSizePerItemConstraintError)
+  val envelopeMaxItemCountExceededError    = Left(InvalidMaxItemCountConstraintError)
+  val fileNotFoundError                    = Left(FileNotFoundError)
+  val envelopeSealedError                  = Left(EnvelopeSealedError)
+  val envelopeAlreadyArchivedError         = Left(EnvelopeArchivedError)
   val envelopeRoutingAlreadyRequestedError = Left(EnvelopeRoutingAlreadyRequestedError)
-  val envelopeAlreadyRoutedError = Left(EnvelopeAlreadyRoutedError)
-  val fileAlreadyProcessedError = Left(FileAlreadyProcessed)
+  val envelopeAlreadyRoutedError           = Left(EnvelopeAlreadyRoutedError)
+  val fileAlreadyProcessedError            = Left(FileAlreadyProcessed)
 }
 
 sealed trait State {
-
   import State._
 
-  def canCreate: CanResult = envelopeAlreadyCreatedError
+  def canCreate: CanResult =
+    envelopeAlreadyCreatedError
 
-  def canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints: EnvelopeFilesConstraints,
-                                                       maxLimitConstrains: EnvelopeFilesConstraints): CanResult = genericError
+  def canCreateWithFilesCapacityAndSizeAndContentTypes(
+    userConstraints: EnvelopeFilesConstraints,
+    maxLimitConstrains: EnvelopeFilesConstraints
+  ): CanResult =
+    genericError
 
-  def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult = genericError
+  def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult =
+    genericError
 
-  def canQuarantine(fileId: FileId, fileRefId: FileRefId, name: String, files: Map[FileId, File]): CanResult = genericError
+  def canQuarantine(fileId: FileId, fileRefId: FileRefId, name: String, files: Map[FileId, File]): CanResult =
+    genericError
 
-  def canMarkFileAsCleanOrInfected(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult = genericError
+  def canMarkFileAsCleanOrInfected(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
+    genericError
 
-  def canStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult = genericError
+  def canStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
+    genericError
 
-  def canSeal(files: Seq[File], destination: String, userConstraints: EnvelopeFilesConstraints): CanResult = genericError
+  def canSeal(files: Seq[File], destination: String, userConstraints: EnvelopeFilesConstraints): CanResult =
+    genericError
 
-  def canUnseal: CanResult = genericError
+  def canUnseal: CanResult =
+    genericError
 
-  def canDelete: CanResult = genericError
+  def canDelete: CanResult =
+    genericError
 
-  def canRequestRoute(files: Seq[File]): CanResult = genericError
+  def canRequestRoute(files: Seq[File]): CanResult =
+    genericError
 
-  def canRoute: CanResult = genericError
+  def canRoute: CanResult =
+    genericError
 
-  def canArchive: CanResult = genericError
+  def canArchive: CanResult =
+    genericError
 
-  def genericError: CanResult = envelopeNotFoundError
+  def genericError: CanResult =
+    envelopeNotFoundError
 
   def checkCanMarkFileAsCleanOrInfected(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
-    files.get(fileId).filter(_.isSame(fileRefId)).map(f =>
-      if (!f.isScanned && !f.isAvailable) {
-        successResult
-      } else {
-        Left(FileAlreadyProcessed)
-      }).getOrElse(fileNotFoundError)
+    files.get(fileId).filter(_.isSame(fileRefId))
+      .map(f =>
+        if (!f.isScanned && !f.isAvailable)
+          successResult
+        else
+          Left(FileAlreadyProcessed)
+      ).getOrElse(fileNotFoundError)
 
   def checkCanStoreFile(fileId: FileId, fileRefId: FileRefId, files: Map[FileId, File]): CanResult =
-    files.get(fileId).filter(_.isSame(fileRefId)).map(f =>
-      if (!f.hasError) {
-        if (!f.isScanned) {
+    files.get(fileId).filter(_.isSame(fileRefId))
+      .map(f =>
+        if (f.hasError)
+          Left(FileWithError)
+        else if (!f.isScanned)
           fileNotFoundError
-        } else if (f.isAvailable) {
+        else if (f.isAvailable)
           Left(FileAlreadyProcessed)
-        } else {
+        else
           successResult
-        }
-      } else {
-        Left(FileWithError)
-      }
-    ).getOrElse(fileNotFoundError)
+      ).getOrElse(fileNotFoundError)
 
 
-  def isValidSize(size: Long, acceptedSize: Long): Boolean = {
+  def isValidSize(size: Long, acceptedSize: Long): Boolean =
     (size <= acceptedSize) && (size > 0)
-  }
 }
 
 object NotCreated extends State {
-
   import State._
 
   override def canCreate: CanResult =
     successResult
 
   override def canCreateWithFilesCapacityAndSizeAndContentTypes(userConstraints: EnvelopeFilesConstraints, maxLimitConstraints: EnvelopeFilesConstraints): CanResult = {
-    if (userConstraints.maxItems > maxLimitConstraints.maxItems || userConstraints.maxItems < 1) envelopeMaxItemCountExceededError
-    else if (!isValidSize(userConstraints.maxSizeInBytes, maxLimitConstraints.maxSizeInBytes)) envelopeMaxSizeExceededError
-    else if (!isValidSize(userConstraints.maxSizePerItemInBytes, maxLimitConstraints.maxSizePerItemInBytes)) envelopeMaxSizePerItemExceededError
-    else successResult
+    if (userConstraints.maxItems > maxLimitConstraints.maxItems || userConstraints.maxItems < 1)
+      envelopeMaxItemCountExceededError
+    else if (!isValidSize(userConstraints.maxSizeInBytes, maxLimitConstraints.maxSizeInBytes))
+      envelopeMaxSizeExceededError
+    else if (!isValidSize(userConstraints.maxSizePerItemInBytes, maxLimitConstraints.maxSizePerItemInBytes))
+      envelopeMaxSizePerItemExceededError
+    else
+      successResult
   }
 }
 
 object Open extends State {
-
   import State._
 
   override def canDeleteFile(fileId: FileId, files: Map[FileId, File]): CanResult =
@@ -308,18 +332,14 @@ object Open extends State {
 
   override def canSeal(files: Seq[File], destination: String, constraints: EnvelopeFilesConstraints): CanResult = {
     val filesWithError = files.filter(_.hasError)
-    if (filesWithError.nonEmpty) {
+    if (filesWithError.nonEmpty)
       Left(FilesWithError(filesWithError.map(_.fileId)))
-    }
-    else if (files.size > constraints.maxItems) {
+    else if (files.size > constraints.maxItems)
       Left(EnvelopeItemCountExceededError(constraints.maxItems, files.size))
-    }
-    else if (files.map(_.fileLength).sum > constraints.maxSizeInBytes) {
+    else if (files.map(_.fileLength).sum > constraints.maxSizeInBytes)
       Left(EnvelopeMaxSizeExceededError(constraints.maxSizeInBytes))
-    }
-    else {
+    else
       successResult
-    }
   }
 }
 
@@ -339,11 +359,10 @@ object Sealed extends State {
 
   override def canRequestRoute(files: Seq[File]): CanResult = {
     val filesNotAvailable = files.filter(!_.isAvailable)
-    if (filesNotAvailable.isEmpty) {
+    if (filesNotAvailable.isEmpty)
       successResult
-    } else {
+    else
       Left(FilesNotAvailableError(filesNotAvailable.map(_.fileId)))
-    }
   }
 
   override def genericError: CanResult = envelopeSealedError
@@ -352,27 +371,31 @@ object Sealed extends State {
 object RouteRequested extends State {
   import State._
 
-  override def canRoute: CanResult = successResult
+  override def canRoute: CanResult =
+    successResult
 
-  override def canArchive: CanResult = successResult
+  override def canArchive: CanResult =
+    successResult
 
-  override def genericError: CanResult = envelopeRoutingAlreadyRequestedError
+  override def genericError: CanResult =
+    envelopeRoutingAlreadyRequestedError
 }
 
 object Routed extends State {
-
   import State._
 
-  override def canArchive: CanResult = successResult
+  override def canArchive: CanResult =
+    successResult
 
-  override def genericError: CanResult = envelopeAlreadyRoutedError
+  override def genericError: CanResult =
+    envelopeAlreadyRoutedError
 }
 
 object Archived extends State {
-
   import State._
 
-  override def genericError: CanResult = envelopeAlreadyArchivedError
+  override def genericError: CanResult =
+    envelopeAlreadyArchivedError
 }
 
 trait File {
@@ -394,18 +417,38 @@ trait File {
   def isAvailable: Boolean = false
 }
 
-case class QuarantinedFile(fileRefId: FileRefId, fileId: FileId, name: String, fileLength: Long) extends File
+case class QuarantinedFile(
+  override val fileRefId : FileRefId,
+  override val fileId    : FileId,
+  override val name      : String,
+  override val fileLength: Long
+) extends File
 
-case class CleanedFile(fileRefId: FileRefId, fileId: FileId, name: String, fileLength: Long) extends File {
+case class CleanedFile(
+  override val fileRefId : FileRefId,
+  override val fileId    : FileId,
+  override val name      : String,
+  override val fileLength: Long
+) extends File {
   override val isScanned: Boolean = true
 }
 
-case class InfectedFile(fileRefId: FileRefId, fileId: FileId, name: String, fileLength: Long) extends File {
+case class InfectedFile(
+  override val fileRefId : FileRefId,
+  override val fileId    : FileId,
+  override val name      : String,
+  override val fileLength: Long
+) extends File {
   override val isScanned: Boolean = true
   override val hasError: Boolean = true
 }
 
-case class StoredFile(fileRefId: FileRefId, fileId: FileId, name: String, fileLength: Long) extends File {
+case class StoredFile(
+  override val fileRefId : FileRefId,
+  override val fileId    : FileId,
+  override val name      : String,
+  override val fileLength: Long
+) extends File {
   override val isScanned: Boolean = true
   override val isAvailable: Boolean = true
 }

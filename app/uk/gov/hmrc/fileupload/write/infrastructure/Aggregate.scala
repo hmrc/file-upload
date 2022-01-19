@@ -23,13 +23,17 @@ import uk.gov.hmrc.fileupload.write.infrastructure.EventStore.{NotSavedError, Ve
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class Aggregate[C <: Command, S](handler: Handler[C, S],
-                                 defaultState: () => S,
-                                 publish: AnyRef => Unit,
-                                 publishAllEvents: Seq[Event] => Unit,
-                                 nextEventId: () => EventId = () => EventId(UUID.randomUUID().toString),
-                                 toCreated: () => Created = () => Created(System.currentTimeMillis()))
-                                (implicit eventStore: EventStore, executionContext: ExecutionContext) {
+class Aggregate[C <: Command, S](
+  handler         : Handler[C, S],
+  defaultState    : () => S,
+  publish         : AnyRef => Unit,
+  publishAllEvents: Seq[Event] => Unit,
+  nextEventId     : () => EventId       = () => EventId(UUID.randomUUID().toString),
+  toCreated       : () => Created       = () => Created(System.currentTimeMillis())
+)(implicit
+  eventStore: EventStore,
+  executionContext: ExecutionContext
+) {
 
   type CommandResult = Either[CommandNotAccepted, CommandAccepted.type]
 
@@ -39,18 +43,28 @@ class Aggregate[C <: Command, S](handler: Handler[C, S],
 
   val numOfRetry: Int = 15
 
-  def createUnitOfWork(streamId: StreamId, eventsData: List[EventData], version: Version): UnitOfWork = {
+  def createUnitOfWork(
+    streamId  : StreamId,
+    eventsData: List[EventData],
+    version   : Version
+  ): UnitOfWork = {
     val created = toCreated()
 
-    UnitOfWork(streamId = streamId, version = version, created = created, events = eventsData.map { eventData =>
-      Event(
-        eventId = EventId(UUID.randomUUID().toString),
-        streamId = streamId,
-        version = version,
-        created = created,
-        eventType = EventType(eventData.getClass.getName),
-        eventData = eventData)
-    })
+    UnitOfWork(
+      streamId = streamId,
+      version  = version,
+      created  = created,
+      events   = eventsData.map { eventData =>
+                   Event(
+                     eventId = EventId(UUID.randomUUID().toString),
+                     streamId = streamId,
+                     version = version,
+                     created = created,
+                     eventType = EventType(eventData.getClass.getName),
+                     eventData = eventData
+                   )
+                 }
+    )
   }
 
   def applyEvent(state: S, event: EventData): S =

@@ -25,11 +25,26 @@ object ZipStream {
   import play.api.libs.iteratee._
   import Utils._
 
-  case class ZipInfo(filename: Bytes, date: Int, time: Int, compressType: Int,
-                     comment: Bytes, extra: Bytes, createSystem: Int, createVersion: Int,
-                     extractVersion: Int, reserved: Int, flagBits: Int, volume: Int,
-                     internalAttr: Int, externalAttr: Int, headerOffset: Int, crc: Int,
-                     compressSize: Int, fileSize: Int) {
+  case class ZipInfo(
+    filename      : Bytes,
+    date          : Int,
+    time          : Int,
+    compressType  : Int,
+    comment       : Bytes,
+    extra         : Bytes,
+    createSystem  : Int,
+    createVersion : Int,
+    extractVersion: Int,
+    reserved      : Int,
+    flagBits      : Int,
+    volume        : Int,
+    internalAttr  : Int,
+    externalAttr  : Int,
+    headerOffset  : Int,
+    crc           : Int,
+    compressSize  : Int,
+    fileSize      : Int
+) {
 
     def header: Array[Byte] = {
       Array[Byte](0x50, 0x4b, 0x03, 0x04) ++
@@ -101,34 +116,38 @@ object ZipStream {
       val time = dt(3) << 11 | dt(4) << 5 | (dt(5) / 2)
 
       ZipInfo(
-        filename = nameBytes,
-        date = date,
-        time = time,
-        compressType = 0, // store
-        comment = Array[Byte](),
-        extra = Array[Byte](),
-        createSystem = 3, // unix
-        createVersion = 20,
+        filename       = nameBytes,
+        date           = date,
+        time           = time,
+        compressType   = 0, // store
+        comment        = Array[Byte](),
+        extra          = Array[Byte](),
+        createSystem   = 3, // unix
+        createVersion  = 20,
         extractVersion = 20,
-        reserved = 0,
-        flagBits = if (isDir) 0x800 else 0x808, // UTF8 filename, CRC at the end
-        volume = 0,
-        internalAttr = 0,
-        externalAttr = if (isDir) 0x41fd0000 else 0x81b40000,
-        headerOffset = 0,
-        crc = 0,
-        compressSize = 0,
-        fileSize = 0
+        reserved       = 0,
+        flagBits       = if (isDir) 0x800 else 0x808, // UTF8 filename, CRC at the end
+        volume         = 0,
+        internalAttr   = 0,
+        externalAttr   = if (isDir) 0x41fd0000 else 0x81b40000,
+        headerOffset   = 0,
+        crc            = 0,
+        compressSize   = 0,
+        fileSize       = 0
       )
     }
-
   }
 
-  case class ZipEnd(diskNumber: Int, centDirDisk: Int, centDirDiskCount: Int,
-                    centDirTotalCount: Int, centDirSize: Int, centDirOffset: Int,
-                    comment: Bytes) {
+  case class ZipEnd(
+    diskNumber: Int,
+    centDirDisk: Int,
+    centDirDiskCount: Int,
+    centDirTotalCount: Int,
+    centDirSize: Int,
+    centDirOffset: Int,
+    comment: Bytes) {
 
-    def bytes: Array[Byte] = {
+    def bytes: Array[Byte] =
       Array[Byte](0x50, 0x4b, 0x05, 0x06) ++
         diskNumber.littleShort ++
         centDirDisk.littleShort ++
@@ -138,28 +157,28 @@ object ZipStream {
         centDirOffset.littleInt ++
         comment.length.littleShort ++
         comment
-    }
-
   }
 
   object ZipEnd {
 
-    def apply(centDirCount: Int, centDirSize: Int, centDirOffset: Int): ZipEnd = {
+    def apply(centDirCount: Int, centDirSize: Int, centDirOffset: Int): ZipEnd =
       ZipEnd(
-        diskNumber = 0,
-        centDirDisk = 0,
-        centDirDiskCount = centDirCount,
+        diskNumber        = 0,
+        centDirDisk       = 0,
+        centDirDiskCount  = centDirCount,
         centDirTotalCount = centDirCount,
-        centDirSize = centDirSize,
-        centDirOffset = centDirOffset,
-        comment = Array[Byte]()
+        centDirSize       = centDirSize,
+        centDirOffset     = centDirOffset,
+        comment           = Array[Byte]()
       )
-    }
-
   }
 
-  case class ZipFileInfo(name: String, isDir: Boolean, modified: Date,
-                         getContent: Option[() => Future[Enumerator[Bytes]]])
+  case class ZipFileInfo(
+    name      : String,
+    isDir     : Boolean,
+    modified  : Date,
+    getContent: Option[() => Future[Enumerator[Bytes]]]
+  )
 
   object ZipStreamEnumerator {
 
@@ -238,6 +257,5 @@ object ZipStream {
 
       filesEn >>> centDirsWithEndEn >>> Enumerator.eof
     }
-
   }
 }

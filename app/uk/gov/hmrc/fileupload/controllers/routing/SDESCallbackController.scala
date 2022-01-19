@@ -41,7 +41,8 @@ class SDESCallbackController @Inject()(
 
   private val logger = Logger(getClass)
 
-  val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
+  val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] =
+    appModule.envelopeCommandHandler
 
   def callback() = Action.async(parse.json) { implicit request =>
     withJsonBody[NotificationItem] { item =>
@@ -85,15 +86,17 @@ class SDESCallbackController @Inject()(
     }
 }
 
-case class NotificationItem(notification: Notification,
-                            informationType: Option[String],
-                            filename: String,
-                            checksumAlgorithm: ChecksumAlgorithm,
-                            checksum: String,
-                            correlationId: String,
-                            availableUntil: Option[Instant],
-                            failureReason: Option[String],
-                            dateTime: Instant)
+case class NotificationItem(
+  notification     : Notification,
+  informationType  : Option[String],
+  filename         : String,
+  checksumAlgorithm: ChecksumAlgorithm,
+  checksum         : String,
+  correlationId    : String,
+  availableUntil   : Option[Instant],
+  failureReason    : Option[String],
+  dateTime         : Instant
+)
 
 object NotificationItem {
 
@@ -122,16 +125,16 @@ object NotificationItem {
   }
 
   implicit val format: OFormat[NotificationItem] =
-    ((__ \ "notification").format[Notification]
-      ~ (__ \ "informationType").formatNullable[String]
-      ~ (__ \ "filename").format[String]
-      ~ (__ \ "checksumAlgorithm").format[ChecksumAlgorithm]
-      ~ (__ \ "checksum").format[String]
-      ~ (__ \ "correlationID").format[String]
-      ~ (__ \ "availableUntil").formatNullable[Instant]
-      ~ (__ \ "failureReason").formatNullable[String]
-      ~ (__ \ "dateTime").format[Instant]
-      ) (NotificationItem.apply, unlift(NotificationItem.unapply))
+    ( (__ \ "notification"     ).format[Notification]
+    ~ (__ \ "informationType"  ).formatNullable[String]
+    ~ (__ \ "filename"         ).format[String]
+    ~ (__ \ "checksumAlgorithm").format[ChecksumAlgorithm]
+    ~ (__ \ "checksum"         ).format[String]
+    ~ (__ \ "correlationID"    ).format[String]
+    ~ (__ \ "availableUntil"   ).formatNullable[Instant]
+    ~ (__ \ "failureReason"    ).formatNullable[String]
+    ~ (__ \ "dateTime"         ).format[Instant]
+    )(NotificationItem.apply, unlift(NotificationItem.unapply))
 }
 
 sealed trait Notification {

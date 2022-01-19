@@ -25,12 +25,13 @@ import uk.gov.hmrc.fileupload.write.infrastructure.Event
 
 import scala.concurrent.Future
 
-class StatsActor(subscribe: (ActorRef, Class[_]) => Boolean,
-                 notify: (Notification, String) => Future[NotifyResult],
-                 save: (FileQuarantined) => Unit,
-                 deleteVirusDetected: (VirusDetected) => Unit,
-                 deleteFileStored: (FileStored) => Unit,
-                 deleteFiles: (EnvelopeDeleted) => Unit
+class StatsActor(
+  subscribe          : (ActorRef, Class[_]) => Boolean,
+  notify             : (Notification, String) => Future[NotifyResult],
+  save               : FileQuarantined => Unit,
+  deleteVirusDetected: VirusDetected => Unit,
+  deleteFileStored   : FileStored => Unit,
+  deleteFiles        : EnvelopeDeleted => Unit
 ) extends Actor {
 
   override def preStart = subscribe(self, classOf[Event])
@@ -51,14 +52,21 @@ class StatsActor(subscribe: (ActorRef, Class[_]) => Boolean,
 }
 
 object StatsActor {
-  def props(subscribe: (ActorRef, Class[_]) => Boolean,
-            findEnvelope: (EnvelopeId) => Future[FindResult],
-            notify: (Notification, String) => Future[NotifyResult],
-            save: (FileQuarantined) => Unit,
-            deleteVirusDetected: (VirusDetected) => Unit,
-            deleteFileStored: (FileStored) => Unit,
-            deleteFiles: (EnvelopeDeleted) => Unit
+  def props(
+    subscribe          : (ActorRef, Class[_]) => Boolean,
+    findEnvelope       : EnvelopeId => Future[FindResult],
+    notify             : (Notification, String) => Future[NotifyResult],
+    save               : FileQuarantined => Unit,
+    deleteVirusDetected: VirusDetected => Unit,
+    deleteFileStored   : FileStored => Unit,
+    deleteFiles        : EnvelopeDeleted => Unit
   ) =
-    Props(new StatsActor(subscribe = subscribe, notify = notify, save = save, deleteFileStored = deleteFileStored,
-                         deleteVirusDetected = deleteVirusDetected, deleteFiles = deleteFiles))
+    Props(new StatsActor(
+      subscribe           = subscribe,
+      notify              = notify,
+      save                = save,
+      deleteFileStored    = deleteFileStored,
+      deleteVirusDetected = deleteVirusDetected,
+      deleteFiles         = deleteFiles
+    ))
 }
