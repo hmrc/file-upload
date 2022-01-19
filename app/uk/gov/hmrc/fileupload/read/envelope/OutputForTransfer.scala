@@ -63,7 +63,7 @@ object OutputForTransfer {
   def stringifyFile(e: Envelope, f: File): JsValue =
     Json.obj(
       href        -> URLs.fileDownloadContent(e._id, f.fileId),
-      name        -> f.name,
+      name        -> f.name.map(_.value),
       contentType -> f.contentType,
       length      -> f.length,
       created     -> f.uploadDate.map(formatDateAsUtc),

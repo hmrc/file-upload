@@ -54,7 +54,16 @@ class UploadFileIntegrationSpec
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(
+        envelopeId,
+        fileId,
+        fileRefId,
+        0,
+        FileName("test.pdf"),
+        "pdf",
+        Some(123L),
+        Json.obj()
+      ))
 
       And("FileScanned")
       sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
@@ -80,7 +89,16 @@ class UploadFileIntegrationSpec
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(
+        envelopeId,
+        fileId,
+        fileRefId,
+        0,
+        FileName("test.pdf"),
+        "pdf",
+        Some(123L),
+        Json.obj()
+      ))
 
       And("FileScanned")
       sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
@@ -99,7 +117,16 @@ class UploadFileIntegrationSpec
       val envelopeId = createEnvelope()
       val firstFileId = FileId(s"fileId-${nextUtf8String()}")
       val firstFileRefId = FileRefId(s"fileRefId-${nextId()}")
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, firstFileId, firstFileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(
+        envelopeId,
+        firstFileId,
+        firstFileRefId,
+        0,
+        FileName("test.pdf"),
+        "pdf",
+        Some(123L),
+        Json.obj()
+      ))
 
       sendCommandStoreFile(StoreFile(envelopeId, firstFileId, firstFileRefId, "{}".getBytes.length))
 
@@ -111,7 +138,16 @@ class UploadFileIntegrationSpec
       val secondFileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, secondFileId, secondFileRefId, 0, "test.pdf", "pdf", Some(data.length), Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(
+        envelopeId,
+        secondFileId,
+        secondFileRefId,
+        0,
+        FileName("test.pdf"),
+        "pdf",
+        Some(data.length),
+        Json.obj()
+      ))
 
       And("FileScanned")
       sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, secondFileId, secondFileRefId))
@@ -138,7 +174,16 @@ class UploadFileIntegrationSpec
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(
+        envelopeId,
+        fileId,
+        fileRefId,
+        0,
+        FileName("test.pdf"),
+        "pdf",
+        Some(123L),
+        Json.obj()
+      ))
 
       When(s"StoreFile($envelopeId, $fileId, $fileRefId, 123KB) command is sent")
       val response: WSResponse = sendCommandStoreFile(StoreFile(envelopeId, fileId, fileRefId, 123L))
@@ -158,7 +203,16 @@ class UploadFileIntegrationSpec
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(
+        envelopeId,
+        fileId,
+        fileRefId,
+        0,
+        FileName("test.pdf"),
+        "pdf",
+        Some(123L),
+        Json.obj()
+      ))
 
       And("FileScanned")
       sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))

@@ -53,12 +53,16 @@ class EnvelopeSpec extends AnyWordSpecLike with Matchers {
 
 	    val result: Envelope = Envelope.fromJson(json, id)
 
-      val expectedResult = Envelope(id, Version(1), EnvelopeStatusOpen,
-                                    constraints = None,
-                                    callbackUrl = Some("http://absolute.callback.url"),
-                                    expiryDate = Some(formatter.parseDateTime(formattedExpiryDate)),
-                                    metadata = Some(Json.obj("anything" -> "the caller wants to add to the envelope")),
-                                    isPushed = None)
+      val expectedResult = Envelope(
+        id,
+        Version(1),
+        EnvelopeStatusOpen,
+        constraints = None,
+        callbackUrl = Some("http://absolute.callback.url"),
+        expiryDate  = Some(formatter.parseDateTime(formattedExpiryDate)),
+        metadata    = Some(Json.obj("anything" -> "the caller wants to add to the envelope")),
+        isPushed    = None
+      )
 
       result shouldEqual expectedResult
     }

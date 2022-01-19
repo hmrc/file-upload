@@ -18,6 +18,7 @@ package uk.gov.hmrc.fileupload
 
 import java.util.UUID
 
+import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import play.api.mvc.PathBindable
 
@@ -80,4 +81,15 @@ object FileRefId {
 
 case class EventType(value: String) extends AnyVal {
   override def toString: String = value
+}
+
+case class FileName(value: String) extends AnyVal {
+  override def toString(): String =
+    // do not log value
+    "FileName(...)"
+}
+
+object FileName {
+  val apiFormat =
+    implicitly[Format[String]].inmap[FileName](FileName.apply, _.value)
 }

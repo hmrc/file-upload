@@ -24,7 +24,7 @@ import uk.gov.hmrc.fileupload.Support.fileRefId
 import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure._
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileName}
 
 import scala.concurrent.Future
 
@@ -53,14 +53,31 @@ class EnvelopeReportHandlerSpec extends AnyWordSpecLike with Matchers {
         constraints = envelopeConstraints)
     }
     "mark file as quarantined" in new UpdateEnvelopeFixture {
-      val event = FileQuarantined(envelopeId, FileId(), fileRefId(), 1, "name", "contentType", Some(123L), Json.obj("abc" -> "xyz"))
+      val event = FileQuarantined(
+        envelopeId,
+        FileId(),
+        fileRefId(),
+        1,
+        FileName("name"),
+        "contentType",
+        Some(123L),
+        Json.obj("abc" -> "xyz")
+      )
 
       sendEvent(event)
 
       val expectedEnvelope = initialState.copy(version = newVersion,
-        files = Some(List(File(event.fileId, fileRefId = event.fileRefId,
-          status = FileStatusQuarantined, name = Some(event.name), contentType = Some(event.contentType),
-          length = Some(123L), uploadDate = Some(new DateTime(event.created, DateTimeZone.UTC)), revision = None, metadata = Some(event.metadata)))))
+        files = Some(List(File(
+          event.fileId,
+          fileRefId   = event.fileRefId,
+          status      = FileStatusQuarantined,
+          name        = Some(event.fileName),
+          contentType = Some(event.contentType),
+          length      = Some(123L),
+          uploadDate  = Some(new DateTime(event.created, DateTimeZone.UTC)),
+          revision    = None,
+          metadata    = Some(event.metadata)
+        ))))
 
       modifiedEnvelope shouldBe expectedEnvelope
     }
@@ -69,20 +86,38 @@ class EnvelopeReportHandlerSpec extends AnyWordSpecLike with Matchers {
       val expiryDate = Some(new DateTime())
       val metadata = Some(Json.obj("key" -> "value"))
       val envelopeCreated = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, envelopeConstraints)
-      val fileQuarantined = FileQuarantined(envelopeId, FileId(), fileRefId(), 1, "name", "contentType", Some(123L), Json.obj("abc" -> "xyz"))
+      val fileQuarantined = FileQuarantined(
+        envelopeId,
+        FileId(),
+        fileRefId(),
+        1,
+        FileName("name"),
+        "contentType",
+        Some(123L),
+        Json.obj("abc" -> "xyz")
+      )
 
       val events = List(envelopeCreated, fileQuarantined)
 
       sendEvents(events)
 
-      val expectedEnvelope = initialState.copy(version = Version(2),
+      val expectedEnvelope = initialState.copy(
+        version     = Version(2),
         callbackUrl = callbackUrl,
-        expiryDate = expiryDate,
-        metadata = metadata,
+        expiryDate  = expiryDate,
+        metadata    = metadata,
         constraints = envelopeConstraints,
-        files = Some(List(File(fileQuarantined.fileId, fileRefId = fileQuarantined.fileRefId,
-          status = FileStatusQuarantined, name = Some(fileQuarantined.name), contentType = Some(fileQuarantined.contentType),
-          length = Some(123L), uploadDate = Some(new DateTime(fileQuarantined.created, DateTimeZone.UTC)), revision = None, metadata = Some(fileQuarantined.metadata)))))
+        files       = Some(List(File(
+          fileQuarantined.fileId,
+          fileRefId   = fileQuarantined.fileRefId,
+          status      = FileStatusQuarantined,
+          name        = Some(fileQuarantined.fileName),
+          contentType = Some(fileQuarantined.contentType),
+          length      = Some(123L),
+          uploadDate  = Some(new DateTime(fileQuarantined.created, DateTimeZone.UTC)),
+          revision    = None,
+          metadata    = Some(fileQuarantined.metadata)
+        ))))
 
       modifiedEnvelope shouldBe expectedEnvelope
     }
@@ -110,8 +145,13 @@ class EnvelopeReportHandlerSpec extends AnyWordSpecLike with Matchers {
 
       sendEvent(event)
 
-      val expectedEnvelope = initialState.copy(files = Some(
-        Seq(file.copy(status = FileStatusAvailable, length = Some(event.length)))), version = newVersion)
+      val expectedEnvelope = initialState.copy(
+        files   = Some(Seq(file.copy(
+                      status = FileStatusAvailable,
+                      length = Some(event.length)
+                  ))),
+        version = newVersion
+      )
       modifiedEnvelope shouldBe expectedEnvelope
     }
     "delete a file" in new UpdateEnvelopeFixture {
@@ -130,7 +170,10 @@ class EnvelopeReportHandlerSpec extends AnyWordSpecLike with Matchers {
       sendEvent(event)
 
       val expectedEnvelope = initialState.copy(
-        version = Version(1), status = EnvelopeStatusSealed, destination = Some(event.destination), application = Some(event.application)
+        version     = Version(1),
+        status      = EnvelopeStatusSealed,
+        destination = Some(event.destination),
+        application = Some(event.application)
       )
       modifiedEnvelope shouldBe expectedEnvelope
     }
@@ -152,9 +195,10 @@ class EnvelopeReportHandlerSpec extends AnyWordSpecLike with Matchers {
       sendEvent(event)
 
       val expectedEnvelope = initialState.copy(
-        version = Version(1),
-        status = EnvelopeStatusClosed,
-        isPushed = Some(event.isPushed))
+        version  = Version(1),
+        status   = EnvelopeStatusClosed,
+        isPushed = Some(event.isPushed)
+      )
       modifiedEnvelope shouldBe expectedEnvelope
     }
     "delete envelope" in new UpdateEnvelopeFixture {
@@ -187,9 +231,17 @@ class EnvelopeReportHandlerSpec extends AnyWordSpecLike with Matchers {
       Future.successful(Repository.deleteSuccess)
     }
 
-    val file = File(FileId(), fileRefId = fileRefId(),
-      status = FileStatusQuarantined, name = Some("name"), contentType = Some("contentType"),
-      length = None, uploadDate = Some(new DateTime(DateTimeZone.UTC)), revision = None, metadata = None)
+    val file = File(
+      FileId(),
+      fileRefId   = fileRefId(),
+      status      = FileStatusQuarantined,
+      name        = Some(FileName("name")),
+      contentType = Some("contentType"),
+      length      = None,
+      uploadDate  = Some(new DateTime(DateTimeZone.UTC)),
+      revision    = None,
+      metadata    = None
+    )
 
     val initialState = Envelope(envelopeId)
     val newVersion = Version(1)

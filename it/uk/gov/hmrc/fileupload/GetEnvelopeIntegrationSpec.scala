@@ -84,7 +84,16 @@ class GetEnvelopeIntegrationSpec
       val envelopeId = envelopeIdFromHeader(createResponse)
       val fileId = FileId("myfileid")
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(
+        envelopeId,
+        fileId,
+        fileRefId,
+        0,
+        FileName("test.pdf"),
+        "pdf",
+        Some(123L),
+        Json.obj()
+      ))
 
       eventually {
         When("I call GET /file-upload/envelopes/:envelope-id")

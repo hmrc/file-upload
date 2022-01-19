@@ -34,7 +34,16 @@ class UrlEncodingISpec extends IntegrationSpec with EnvelopeActions with FileAct
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("File is In Quarantine Store")
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(data.getBytes().length), Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(
+        envelopeId,
+        fileId,
+        fileRefId,
+        0,
+        FileName("test.pdf"),
+        "pdf",
+        Some(data.getBytes().length),
+        Json.obj()
+      ))
 
       And("File was scanned and no virus was found")
       sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))

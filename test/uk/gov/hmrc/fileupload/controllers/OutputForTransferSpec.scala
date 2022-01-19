@@ -33,13 +33,13 @@ class OutputForTransferSpec extends AnyWordSpecLike with Matchers with TestAppli
 
       val dateAsText = "2016-03-31T12:33:45Z"
       val f = File(
-        fileId = FileId(),
-        fileRefId = fileRefId(),
-        status = FileStatusAvailable,
-        name = Some("original-file-name-on-disk.docx"),
+        fileId      = FileId(),
+        fileRefId   = fileRefId(),
+        status      = FileStatusAvailable,
+        name        = Some(FileName("original-file-name-on-disk.docx")),
         contentType = Some("application/vnd.oasis.opendocument.spreadsheet"),
-        length = Some(1231222),
-        uploadDate = Some(DateTime.parse(dateAsText))
+        length      = Some(1231222),
+        uploadDate  = Some(DateTime.parse(dateAsText))
       )
       val envelope = Support.envelope.copy(files = Some(Seq(f)))
 
@@ -47,7 +47,7 @@ class OutputForTransferSpec extends AnyWordSpecLike with Matchers with TestAppli
         s"""
              {
                "href": "/file-upload/envelopes/${envelope._id}/files/${f.fileId}/content",
-               "name": "${f.name.get}",
+               "name": "${f.name.map(_.value).get}",
                "contentType": "${f.contentType.get}",
                "length": ${f.length.get},
                "created": "$dateAsText",
@@ -112,18 +112,18 @@ class OutputForTransferSpec extends AnyWordSpecLike with Matchers with TestAppli
     "include all required HATEOAS boilerplate" in {
       val dateAsText = "2016-03-31T12:33:45Z"
       val file = File(
-        fileId = FileId(),
-        fileRefId = fileRefId(),
-        status = FileStatusAvailable,
-        name = Some("original-file-name-on-disk.docx"),
+        fileId      = FileId(),
+        fileRefId   = fileRefId(),
+        status      = FileStatusAvailable,
+        name        = Some(FileName("original-file-name-on-disk.docx")),
         contentType = Some("application/vnd.oasis.opendocument.spreadsheet"),
-        length = Some(1231222),
-        uploadDate = Some(DateTime.parse(dateAsText))
+        length      = Some(1231222),
+        uploadDate  = Some(DateTime.parse(dateAsText))
       )
       val envelope = Envelope(
         destination = Some("DMS"),
         application = Some("app/sth/sthElse"),
-        files = Some(List(file))
+        files       = Some(List(file))
       )
 
       val destination = "DMS"
@@ -149,7 +149,7 @@ class OutputForTransferSpec extends AnyWordSpecLike with Matchers with TestAppli
                      "files": [
                        {
                          "href": "/file-upload/envelopes/${envelope._id}/files/${file.fileId}/content",
-                         "name": "${file.name.get}",
+                         "name": "${file.name.map(_.value).get}",
                          "contentType": "${file.contentType.get}",
                          "length": ${file.length.get},
                          "created": "$dateAsText",

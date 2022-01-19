@@ -28,7 +28,7 @@ object EventsSupport {
         "fileId": "${e.fileId.value}",
         "fileRefId": "${e.fileRefId.value}",
         "created": ${e.created},
-        "name": "${e.name}",
+        "name": "${e.name.value}",
         "contentType": "${e.contentType}",
         "fileLength": ${e.fileLength.get},
         "metadata": ${Json.stringify(e.metadata)}

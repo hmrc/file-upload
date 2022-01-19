@@ -22,7 +22,7 @@ import play.api.libs.json._
 import play.api.mvc.QueryStringBindable
 import uk.gov.hmrc.fileupload.read.envelope._
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeHandler.ContentTypes
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileName}
 
 case class EnvelopeReport(
   id         : Option[EnvelopeId]                 = None,
@@ -41,7 +41,10 @@ object EnvelopeReport {
   implicit val dateWrites              : Writes[DateTime]                 = JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val fileStatusReads         : Reads[FileStatus]                = FileStatusReads
   implicit val fileStatusWrites        : Writes[FileStatus]               = FileStatusWrites
-  implicit val fileFormat              : Format[File]                     = Json.format[File]
+  implicit val fileFormat              : Format[File]                     = {
+    implicit val fnf: Format[FileName] = FileName.apiFormat
+    Json.format[File]
+  }
   implicit val sizeReads               : Reads[Size]                      = SizeReads
   implicit val sizeWrites              : Writes[Size]                     = SizeWrites
   implicit val envelopeConstraintsReads: Format[EnvelopeFilesConstraints] = Json.format[EnvelopeFilesConstraints]
@@ -88,7 +91,7 @@ object CreateEnvelopeRequest {
 case class GetFileMetadataReport(
   id         : FileId,
   status     : Option[String]   = None,
-  name       : Option[String]   = None,
+  name       : Option[FileName] = None,
   contentType: Option[String]   = None,
   length     : Option[Long]     = None,
   created    : Option[DateTime] = None,
@@ -98,9 +101,13 @@ case class GetFileMetadataReport(
 )
 
 object GetFileMetadataReport {
-  implicit val dateReads                  : Reads[DateTime]               = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  implicit val dateWrites                 : Writes[DateTime]              = JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  implicit val getFileMetaDataReportFormat: Format[GetFileMetadataReport] = Json.format[GetFileMetadataReport]
+
+  implicit val getFileMetaDataReportFormat: Format[GetFileMetadataReport] = {
+    implicit val dr  : Reads[DateTime]  = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    implicit val dw  : Writes[DateTime] = JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    implicit val fnf : Format[FileName] = FileName.apiFormat
+    Json.format[GetFileMetadataReport]
+  }
 
   def href(envelopeId: EnvelopeId, fileId: FileId): String =
     uk.gov.hmrc.fileupload.controllers.routes.FileController.downloadFile(envelopeId, fileId).url

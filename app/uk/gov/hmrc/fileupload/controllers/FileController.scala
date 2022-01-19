@@ -81,7 +81,10 @@ class FileController @Inject()(
 
             retrieveFileS3(envelopeId, fileId).map { source =>
               Ok.streamed(source, f.length, Some("application/octet-stream"))
-                .withHeaders(Results.contentDispositionHeader(inline = false, name = f.name.orElse(Some("data"))).toList: _*)
+                .withHeaders(Results.contentDispositionHeader(
+                  inline = false,
+                  name   = f.name.map(_.value).orElse(Some("data"))).toList: _*
+                )
             }
           }.getOrElse {
             Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId"))
