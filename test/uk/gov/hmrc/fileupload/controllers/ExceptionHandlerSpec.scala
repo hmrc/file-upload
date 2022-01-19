@@ -26,7 +26,7 @@ import uk.gov.hmrc.http.BadRequestException
 import scala.concurrent.Future
 
 class ExceptionHandlerSpec extends AnyWordSpecLike with Matchers {
-  import uk.gov.hmrc.fileupload.Support.StreamImplicits.materializer
+  import uk.gov.hmrc.fileupload.Support.StreamImplicits.system
 
   "exception handler" should {
     "handle an unknown exception as an internal server error" in {

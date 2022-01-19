@@ -33,11 +33,12 @@ object StatsLoggingScheduler {
   )(implicit
     ec: ExecutionContext
   ): Cancellable =
-    actorSystem.scheduler.schedule(configuration.initialDelay, configuration.interval) {
+    actorSystem.scheduler.scheduleAtFixedRate(configuration.initialDelay, configuration.interval)(() =>
       statsLogger.logAddedOverTimePeriod(
-        configuration.timePeriod, configuration.maximumInProgressFiles
+        configuration.timePeriod,
+        configuration.maximumInProgressFiles
       )
-    }
+    )
 }
 
 class StatsLogger(

@@ -41,7 +41,7 @@ class RoutingControllerSpec
      with OptionValues {
 
   implicit val ec = ExecutionContext.global
-  import uk.gov.hmrc.fileupload.Support.StreamImplicits.materializer
+  import uk.gov.hmrc.fileupload.Support.StreamImplicits.system
 
   val failed = Future.failed(new Exception("not good"))
 

@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.google.common.base.Charsets
@@ -48,6 +46,7 @@ class FileControllerSpec
      with OptionValues
      with IntegrationPatience {
 
+  import uk.gov.hmrc.fileupload.Support.StreamImplicits.system
   implicit val ec = ExecutionContext.global
 
   val failed = Future.failed(new Exception("not good"))
@@ -116,8 +115,6 @@ class FileControllerSpec
       val controller = newController(retrieveFile = (_,_) => Future.successful(source))
 
       val result = controller.downloadFile(envelopeId, randomFileId)(FakeRequest().withHeaders(authHeaders))
-      implicit val actorSystem = ActorSystem()
-      implicit val materializer = ActorMaterializer()
 
       status(result) shouldBe Status.NOT_FOUND
       contentAsString(result) should include (s"File with id: $randomFileId not found")
@@ -131,9 +128,6 @@ class FileControllerSpec
       )
 
       val result = controller.downloadFile(envelopeId, fileId)(FakeRequest().withHeaders(authHeaders))
-
-      implicit val actorSystem = ActorSystem()
-      implicit val materializer = ActorMaterializer()
 
       status(result) shouldBe Status.NOT_FOUND
       contentAsString(result) should include (s"Envelope with id: $envelopeId not found")
