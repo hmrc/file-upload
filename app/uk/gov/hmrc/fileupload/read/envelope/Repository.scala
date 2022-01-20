@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,44 +48,53 @@ object Repository {
 
   val deleteSuccess = Right(DeleteSuccess)
 
-  def apply(mongoComponent: MongoComponent)(implicit ec: ExecutionContext): Repository = new Repository(mongoComponent)
+  def apply(mongoComponent: MongoComponent)(implicit ec: ExecutionContext): Repository =
+    new Repository(mongoComponent)
 }
 
-class Repository(mongoComponent: MongoComponent)
-                (implicit ec: ExecutionContext)
-  extends PlayMongoRepository[Envelope](
-    collectionName = "envelopes-read-model",
-    mongoComponent = mongoComponent,
-    domainFormat = Envelope.envelopeFormat,
-    indexes = Seq(
-      IndexModel(Indexes.ascending("status", "destination"), IndexOptions().background(true))
-    )) {
+class Repository(
+  mongoComponent: MongoComponent
+)(implicit
+  ec: ExecutionContext
+) extends PlayMongoRepository[Envelope](
+  collectionName = "envelopes-read-model",
+  mongoComponent = mongoComponent,
+  domainFormat   = Envelope.envelopeFormat,
+  indexes        = Seq(
+                     IndexModel(Indexes.ascending("status", "destination"), IndexOptions().background(true))
+                   )
+) {
 
   import Repository._
 
-  def update(writeConcern: WriteConcern = WriteConcern.MAJORITY)
-            (envelope: Envelope, checkVersion: Boolean = true): Future[UpdateResult] = {
-    val selector = if (checkVersion) {
-      and(
-        equal("_id", envelope._id.value),
-        lte("version", envelope.version.value)
-      )
-    } else {
-      equal("_id", envelope._id.value)
-    }
-
-    val document = Document("$set" -> Codecs.toBson(envelope))
+  def update(
+    writeConcern: WriteConcern = WriteConcern.MAJORITY
+  )(
+    envelope: Envelope,
+    checkVersion: Boolean = true
+  ): Future[UpdateResult] = {
+    val selector =
+      if (checkVersion)
+        and(
+          equal("_id", envelope._id.value),
+          lte("version", envelope.version.value)
+        )
+      else
+        equal("_id", envelope._id.value)
 
     collection
       .withWriteConcern(writeConcern)
-      .updateOne(filter = selector, update = document, UpdateOptions().upsert(true))
+      .updateOne(
+        filter = selector,
+        update = Document("$set" -> Codecs.toBson(envelope)),
+        UpdateOptions().upsert(true)
+      )
       .toFuture()
       .map { r =>
-        if (r.wasAcknowledged()) {
+        if (r.wasAcknowledged())
           updateSuccess
-        } else {
+        else
           Left(NotUpdatedError("No report updated"))
-        }
       }.recover {
         case f: MongoException =>
           Left(NewerVersionAvailable)
@@ -94,33 +103,33 @@ class Repository(mongoComponent: MongoComponent)
       }
   }
 
-  def get(id: EnvelopeId)(implicit ec: ExecutionContext): Future[Option[Envelope]] = {
-    val value = id.value
-    val bsonfilter = Filters.equal("_id", value)
-    collection.find(filter = bsonfilter).toFuture.map { result =>
-      result.headOption
-    }
-  }
+  def get(id: EnvelopeId)(implicit ec: ExecutionContext): Future[Option[Envelope]] =
+    collection
+      .find(filter = equal("_id", id.value))
+      .toFuture
+      .map(_.headOption)
 
   def delete(id: EnvelopeId)(implicit ec: ExecutionContext): Future[DeleteResult] =
-    collection.deleteMany(filter = Filters.equal("_id", id.value)).toFuture.map { r =>
-      if (r.wasAcknowledged() && r.getDeletedCount > 0) {
-        deleteSuccess
-      } else {
-        Left(DeleteError("No report deleted"))
+    collection
+      .deleteMany(filter = equal("_id", id.value))
+      .toFuture
+      .map { r =>
+        if (r.wasAcknowledged() && r.getDeletedCount > 0)
+          deleteSuccess
+        else
+          Left(DeleteError("No report deleted"))
+      }.recover {
+        case f: Throwable =>
+          Left(DeleteError(f.getMessage))
       }
-    }.recover {
-      case f: Throwable =>
-        Left(DeleteError(f.getMessage))
-    }
 
   def getByDestination(maybeDestination: Option[String])(implicit ec: ExecutionContext): Future[List[Envelope]] = {
     val filters: List[Bson] = List(
       equal("status", EnvelopeStatusClosed.name),
       notEqual("isPushed", true)
-    ) ++ maybeDestination.map { d =>
+    ) ++ maybeDestination.map(d =>
       equal("destination", d)
-    }
+    )
 
     collection
       .withReadPreference(ReadPreference.secondaryPreferred())
@@ -134,7 +143,10 @@ class Repository(mongoComponent: MongoComponent)
   }
 
   def all()(implicit ec: ExecutionContext): Future[List[Envelope]] =
-    collection.find().toFuture.map(_.toList)
+    collection
+      .find()
+      .toFuture
+      .map(_.toList)
 
   def recreate(): Unit = {
     Await.result(collection.drop().toFuture(), 5 seconds)
@@ -144,12 +156,11 @@ class Repository(mongoComponent: MongoComponent)
 }
 
 class WithValidEnvelope(getEnvelope: EnvelopeId => Future[Option[Envelope]]) {
-  def apply(id: EnvelopeId)(block: Envelope => Future[Result])(implicit ec: ExecutionContext): Future[Result] = {
+  def apply(id: EnvelopeId)(block: Envelope => Future[Result])(implicit ec: ExecutionContext): Future[Result] =
     getEnvelope(id).flatMap {
       case Some(e) => block(e) // eventually do other checks here, e.g. is envelope sealed?
-      case None => Future.successful(
-        Results.NotFound(Json.obj("message" -> s"Envelope with id: $id not found"))
-      )
+      case None    => Future.successful(
+                        Results.NotFound(Json.obj("message" -> s"Envelope with id: $id not found"))
+                      )
     }
-  }
 }

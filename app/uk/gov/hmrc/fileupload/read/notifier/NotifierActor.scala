@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,10 +26,13 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{Event, EventData}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class NotifierActor(subscribe: (ActorRef, Class[_]) => Boolean,
-                    findEnvelope: (EnvelopeId) => Future[FindResult],
-                    notify: (Notification, String) => Future[NotifyResult])
-                   (implicit executionContext: ExecutionContext) extends Actor {
+class NotifierActor(
+  subscribe   : (ActorRef, Class[_]) => Boolean,
+  findEnvelope: (EnvelopeId) => Future[FindResult],
+  notify      : (Notification, String) => Future[NotifyResult]
+)(implicit
+  ec: ExecutionContext
+) extends Actor {
 
   private val logger = Logger(getClass)
 
@@ -75,9 +78,16 @@ class NotifierActor(subscribe: (ActorRef, Class[_]) => Boolean,
 
 object NotifierActor {
 
-  def props(subscribe: (ActorRef, Class[_]) => Boolean,
-            findEnvelope: (EnvelopeId) => Future[FindResult],
-            notify: (Notification, String) => Future[NotifyResult])
-           (implicit executionContext: ExecutionContext) =
-    Props(new NotifierActor(subscribe = subscribe, findEnvelope = findEnvelope, notify = notify))
+  def props(
+    subscribe   : (ActorRef, Class[_]) => Boolean,
+    findEnvelope: (EnvelopeId) => Future[FindResult],
+    notify      : (Notification, String) => Future[NotifyResult]
+  )(implicit
+    ec: ExecutionContext
+  ) =
+    Props(new NotifierActor(
+      subscribe = subscribe,
+      findEnvelope = findEnvelope,
+      notify = notify
+    ))
 }

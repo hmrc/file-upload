@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import uk.gov.hmrc.http.BadRequestException
 import scala.concurrent.Future
 
 class ExceptionHandlerSpec extends AnyWordSpecLike with Matchers {
-  import uk.gov.hmrc.fileupload.Support.StreamImplicits.materializer
+  import uk.gov.hmrc.fileupload.Support.StreamImplicits.system
 
   "exception handler" should {
     "handle an unknown exception as an internal server error" in {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,19 +33,32 @@ object PlayHttp {
 
   case class PlayHttpError(message: String)
 
-  def execute(connector: AuditConnector, appName: String, errorLogger: Option[(Throwable => Unit)])(request: WSRequest)
-             (implicit ec: ExecutionContext): Future[Either[PlayHttpError, WSResponse]] = {
+  def execute(
+    connector: AuditConnector,
+    appName: String,
+    errorLogger: Option[(Throwable => Unit)]
+  )(
+    request: WSRequest
+  )(implicit
+     ec: ExecutionContext
+   ): Future[Either[PlayHttpError, WSResponse]] = {
     val hc = headerCarrier(request)
     val eventualResponse = request.execute()
 
     eventualResponse.foreach {
-      response => {
+      response =>
         val path = new URL(request.url).getPath
-        connector.sendEvent(DataEvent(appName, EventTypes.Succeeded,
-          tags = Map("method" -> request.method, "statusCode" -> s"${ response.status }", "responseBody" -> response.body)
-            ++ hc.toAuditTags(path, path),
-          detail = hc.toAuditDetails()))
-      }
+        connector.sendEvent(
+          DataEvent(
+          appName,
+          EventTypes.Succeeded,
+          tags   = Map(
+                     "method" -> request.method,
+                     "statusCode" -> s"${ response.status }",
+                     "responseBody" -> response.body
+                   ) ++ hc.toAuditTags(path, path),
+          detail = hc.toAuditDetails())
+        )
     }
     eventualResponse.map(Right.apply)
       .recover {
@@ -55,7 +68,6 @@ object PlayHttp {
       }
   }
 
-  private def headerCarrier(request: WSRequest): HeaderCarrier = {
-    HeaderCarrierConverter.fromHeadersAndSession(new Headers(request.headers.toSeq.map{ case (s, seq) => (s, seq.head) }))
-  }
+  private def headerCarrier(request: WSRequest): HeaderCarrier =
+    HeaderCarrierConverter.fromHeadersAndSession(new Headers(request.headers.toSeq.map { case (s, seq) => (s, seq.head) }))
 }

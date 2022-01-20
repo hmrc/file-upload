@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,42 +26,47 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object StatsLoggingScheduler {
 
-  def initialize(actorSystem: ActorSystem,
-                 configuration: StatsLoggingConfiguration,
-                 statsLogger: StatsLogger)
-                (implicit executionContext: ExecutionContext): Cancellable = {
-
-    actorSystem.scheduler.schedule(configuration.initialDelay, configuration.interval) {
+  def initialize(
+    actorSystem: ActorSystem,
+    configuration: StatsLoggingConfiguration,
+    statsLogger: StatsLogger
+  )(implicit
+    ec: ExecutionContext
+  ): Cancellable =
+    actorSystem.scheduler.scheduleAtFixedRate(configuration.initialDelay, configuration.interval)(() =>
       statsLogger.logAddedOverTimePeriod(
-        configuration.timePeriod, configuration.maximumInProgressFiles
+        configuration.timePeriod,
+        configuration.maximumInProgressFiles
       )
-    }
-  }
+    )
 }
 
-class StatsLogger(statsRepository: Repository,
-                  statsLogger: StatsLogWriter)
-                 (implicit executionContext: ExecutionContext) {
+class StatsLogger(
+  statsRepository: Repository,
+  statsLogger: StatsLogWriter
+)(implicit
+  ec: ExecutionContext
+) {
 
-  def logAddedOverTimePeriod(timePeriod: Duration,
-                             maximumInProgressFiles: Option[Int]): Future[Unit] = {
+  def logAddedOverTimePeriod(
+    timePeriod            : Duration,
+    maximumInProgressFiles: Option[Int]
+  ): Future[Unit] =
     countAddedOverTimePeriod(timePeriod).map { added =>
       maximumInProgressFiles match {
         case Some(maximum: Int) => checkIfAddedExceedsMaximum(added, maximum, timePeriod)
-        case None => statsLogger.logRepoSize(added, timePeriod)
+        case None               => statsLogger.logRepoSize(added, timePeriod)
       }
     }
-  }
 
-  private def checkIfAddedExceedsMaximum(added: Long, maximum: Int, timePeriod: Duration): Unit = {
-      if (added > maximum) statsLogger.logRepoWarning(added, maximum, timePeriod)
-      else statsLogger.logRepoSize(added, timePeriod)
-  }
+  private def checkIfAddedExceedsMaximum(added: Long, maximum: Int, timePeriod: Duration): Unit =
+      if (added > maximum)
+        statsLogger.logRepoWarning(added, maximum, timePeriod)
+      else
+        statsLogger.logRepoSize(added, timePeriod)
 
-  private def countAddedOverTimePeriod(duration: Duration): Future[Long] = {
+  private def countAddedOverTimePeriod(duration: Duration): Future[Long] =
     statsRepository.statsAddedSince(Instant.now.minus(JDuration.ofMillis(duration.toMillis)))
-  }
-
 }
 
 class StatsLogWriter {
@@ -91,7 +96,9 @@ object StatsLoggingConfiguration {
     )
 }
 
-case class StatsLoggingConfiguration(initialDelay: FiniteDuration,
-                                     interval: FiniteDuration,
-                                     timePeriod: FiniteDuration,
-                                     maximumInProgressFiles: Option[Int])
+case class StatsLoggingConfiguration(
+  initialDelay          : FiniteDuration,
+  interval              : FiniteDuration,
+  timePeriod            : FiniteDuration,
+  maximumInProgressFiles: Option[Int]
+)

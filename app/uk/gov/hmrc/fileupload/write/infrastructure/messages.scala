@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,21 @@ import play.api.libs.json._
 import play.api.mvc.PathBindable
 import uk.gov.hmrc.fileupload.SimpleObjectBinder
 
-case class UnitOfWork(streamId: StreamId, version: Version, created: Created, events: Seq[Event])
+case class UnitOfWork(
+  streamId: StreamId,
+  version : Version,
+  created : Created,
+  events  : Seq[Event]
+)
 
-case class Event(eventId: EventId, streamId: StreamId, version: Version, created: Created, eventType: EventType, eventData: EventData)
+case class Event(
+  eventId  : EventId,
+  streamId : StreamId,
+  version  : Version,
+  created  : Created,
+  eventType: EventType,
+  eventData: EventData
+)
 
 case class EventId(value: String) extends AnyVal {
   override def toString = value.toString
@@ -51,7 +63,7 @@ object Version {
   implicit val reads = new Reads[Version] {
     def reads(json: JsValue): JsResult[Version] = json match {
       case JsNumber(value) => JsSuccess(Version(value.toInt))
-      case _ => JsError("invalid envelopeId")
+      case _               => JsError("invalid envelopeId")
     }
   }
 }

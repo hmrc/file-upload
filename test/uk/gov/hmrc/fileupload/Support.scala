@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package uk.gov.hmrc.fileupload
 import java.util.UUID
 
 import akka.actor.{Actor, ActorRef, ActorSystem}
-import akka.stream.{ActorMaterializer, Materializer}
 import akka.testkit.TestActorRef
 import org.joda.time.DateTime
 import play.api.http.HttpEntity
@@ -37,7 +36,6 @@ object Support {
 
   object StreamImplicits {
     implicit val system = ActorSystem()
-    implicit val materializer: Materializer = ActorMaterializer()
   }
 
   class BlockingExecutionContext extends ExecutionContext {
@@ -50,7 +48,7 @@ object Support {
   val blockingExeContext: ExecutionContext = new BlockingExecutionContext()
 
   def consume(data: HttpEntity) = {
-    import StreamImplicits.materializer
+    import StreamImplicits.system
     Await.result(data.consumeData, 500.millis).toArray
   }
 

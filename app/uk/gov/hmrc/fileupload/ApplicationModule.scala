@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,18 +56,18 @@ class DefaultAllEventsPublisher extends AllEventsPublisher {
 
 @Singleton
 class ApplicationModule @Inject()(
-  servicesConfig: ServicesConfig,
-  mongoComponent: MongoComponent,
+  servicesConfig    : ServicesConfig,
+  mongoComponent    : MongoComponent,
   allEventsPublisher: AllEventsPublisher,
-  auditConnector: AuditConnector,
-  metrics: MetricsImpl,
-  val applicationLifecycle: play.api.inject.ApplicationLifecycle,
-  val configuration: play.api.Configuration,
-  val environment: play.api.Environment,
+  auditConnector    : AuditConnector,
+  metrics           : MetricsImpl,
+  override val applicationLifecycle: play.api.inject.ApplicationLifecycle,
+  override val configuration: play.api.Configuration,
+  override val environment: play.api.Environment,
   actorSystem: akka.actor.ActorSystem
 )(implicit
-  val executionContext: scala.concurrent.ExecutionContext,
-  val materializer: akka.stream.Materializer
+  override val executionContext: scala.concurrent.ExecutionContext,
+  override val materializer: akka.stream.Materializer
 ) extends AhcWSComponents {
 
   private val logger = Logger(getClass)
@@ -75,7 +75,7 @@ class ApplicationModule @Inject()(
   val envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration =
     EnvelopeConstraintsConfiguration.getEnvelopeConstraintsConfiguration(configuration) match {
       case Right(envelopeConstraints) => envelopeConstraints
-      case Left(failureReason) => throw new IllegalArgumentException(s"${failureReason.message}")
+      case Left(failureReason)        => throw new IllegalArgumentException(s"${failureReason.message}")
     }
 
   val envelopeHandler = new EnvelopeHandler(envelopeConstraintsConfigure)
@@ -112,9 +112,26 @@ class ApplicationModule @Inject()(
 
   // notifier
   lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute, wsClient) _
-  actorSystem.actorOf(NotifierActor.props(subscribe, findEnvelope, sendNotification), "notifierActor")
-  actorSystem.actorOf(StatsActor.props(subscribe, findEnvelope, sendNotification, saveFileQuarantinedStat,
-    deleteVirusDetectedStat, deleteFileStoredStat, deleteFiles), "statsActor")
+  actorSystem.actorOf(
+    NotifierActor.props(
+      subscribe,
+      findEnvelope,
+      sendNotification
+    ),
+    "notifierActor"
+  )
+  actorSystem.actorOf(
+    StatsActor.props(
+      subscribe,
+      findEnvelope,
+      sendNotification,
+      saveFileQuarantinedStat,
+      deleteVirusDetectedStat,
+      deleteFileStoredStat,
+      deleteFiles
+    ),
+    "statsActor"
+  )
 
   // initialize in-progress files logging actor
   StatsLoggingScheduler.initialize(actorSystem, statsLoggingConfiguration, new StatsLogger(statsRepository, new StatsLogWriter()))
@@ -141,17 +158,18 @@ class ApplicationModule @Inject()(
     toId = (streamId: StreamId) => EnvelopeId(streamId.value),
     updateEnvelope,
     envelopeRepository.delete,
-    defaultState = (id: EnvelopeId) => uk.gov.hmrc.fileupload.read.envelope.Envelope(id))
+    defaultState = (id: EnvelopeId) => uk.gov.hmrc.fileupload.read.envelope.Envelope(id)
+  )
 
   // command handler
-  lazy val envelopeCommandHandler = { (command: EnvelopeCommand) =>
-    new Aggregate[EnvelopeCommand, write.envelope.Envelope](
-      handler = envelopeHandler,
-      defaultState = () => write.envelope.Envelope(),
-      publish = publish,
-      publishAllEvents = allEventsPublisher.publish(reportHandler, replay = false)
-    )(eventStore, executionContext).handleCommand(command)
-  }
+  lazy val envelopeCommandHandler =
+    (command: EnvelopeCommand) =>
+      new Aggregate[EnvelopeCommand, write.envelope.Envelope](
+        handler          = envelopeHandler,
+        defaultState     = () => write.envelope.Envelope(),
+        publish          = publish,
+        publishAllEvents = allEventsPublisher.publish(reportHandler, replay = false)
+      )(eventStore, executionContext).handleCommand(command)
 
   lazy val getEnvelopesByStatus = envelopeRepository.getByStatus _
 
@@ -167,19 +185,20 @@ class ApplicationModule @Inject()(
   lazy val routingConfig = RoutingConfig(configuration)
 
   lazy val buildFileTransferNotification = RoutingRepository.buildFileTransferNotification(auditedHttpExecute, wsClient, routingConfig, fileUploadFrontendBaseUrl) _
+
   lazy val pushFileTransferNotification = RoutingRepository.pushFileTransferNotification(auditedHttpExecute, wsClient, routingConfig) _
 
   lazy val lockRepository = new MongoLockRepository(mongoComponent, new CurrentTimestampSupport())
 
   actorSystem.actorOf(
     RoutingActor.props(
-      config = routingConfig,
+      config            = routingConfig,
       buildNotification = buildFileTransferNotification,
       findEnvelope,
       getEnvelopesByStatus,
-      pushNotification = pushFileTransferNotification,
-      handleCommand = envelopeCommandHandler,
-      lockRepository = lockRepository
+      pushNotification  = pushFileTransferNotification,
+      handleCommand     = envelopeCommandHandler,
+      lockRepository    = lockRepository
     ),
     "routingActor")
 

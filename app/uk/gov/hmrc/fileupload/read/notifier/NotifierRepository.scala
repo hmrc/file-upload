@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,15 +28,26 @@ object NotifierRepository {
 
   type NotifyResult = Either[NotifyError, EnvelopeId]
 
-  case class Notification(envelopeId: EnvelopeId, fileId: FileId, status: String, reason: Option[String])
+  case class Notification(
+    envelopeId: EnvelopeId,
+    fileId: FileId,
+    status: String,
+    reason: Option[String]
+  )
 
   implicit val notificationFormats: Format[Notification] = Json.format[Notification]
 
   case class NotifyError(envelopeId: EnvelopeId, fileId: FileId, reason: String)
 
-  def notify(httpCall: (WSRequest => Future[Either[PlayHttpError, WSResponse]]), wSClient: WSClient)
-            (notification: Notification, url: String)
-            (implicit executionContext: ExecutionContext): Future[NotifyResult] =
+  def notify(
+    httpCall: WSRequest => Future[Either[PlayHttpError, WSResponse]],
+    wSClient: WSClient
+  )(
+    notification: Notification,
+    url         : String
+  )(implicit
+    ec: ExecutionContext
+  ): Future[NotifyResult] =
     httpCall(
       wSClient
         .url(s"$url")

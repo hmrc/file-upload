@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,18 +34,28 @@ object InProgressFile {
   implicit val format: Format[InProgressFile] = Json.format[InProgressFile]
 }
 
-case class InProgressFile(_id: FileRefId, envelopeId: EnvelopeId, fileId: FileId, startedAt: Long)
+case class InProgressFile(
+  _id       : FileRefId,
+  envelopeId: EnvelopeId,
+  fileId    : FileId,
+  startedAt : Long
+)
 
 object Repository {
-  def apply(mongoComponent: MongoComponent)(implicit ec: ExecutionContext): Repository = new Repository(mongoComponent)
+  def apply(mongoComponent: MongoComponent)(implicit ec: ExecutionContext): Repository =
+    new Repository(mongoComponent)
 }
 
-class Repository(mongoComponent: MongoComponent)(implicit ec: ExecutionContext)
-  extends PlayMongoRepository[InProgressFile](
-    collectionName = "inprogress-files",
-    mongoComponent = mongoComponent,
-    domainFormat = InProgressFile.format,
-    indexes = Seq.empty) {
+class Repository(
+  mongoComponent: MongoComponent
+)(implicit
+  ec: ExecutionContext
+) extends PlayMongoRepository[InProgressFile](
+  collectionName = "inprogress-files",
+  mongoComponent = mongoComponent,
+  domainFormat   = InProgressFile.format,
+  indexes        = Seq.empty
+) {
 
   def insert(inProgressFile: InProgressFile): Future[Boolean] =
     collection.insertOne(inProgressFile).toFuture.map(_.wasAcknowledged())
@@ -62,13 +72,12 @@ class Repository(mongoComponent: MongoComponent)(implicit ec: ExecutionContext)
   def toBoolean(wr: DeleteResult): Boolean =
     wr.wasAcknowledged() && wr.getDeletedCount > 0
 
-  def all(): Future[List[InProgressFile]] = {
+  def all(): Future[List[InProgressFile]] =
     collection
       .withReadPreference(ReadPreference.primaryPreferred())
       .find()
       .sort(descending("startedAt"))
       .toFuture().map(_.toList)
-  }
 
   def statsAddedSince(start: Instant): Future[Long] =
     collection.countDocuments(Filters.gt("startedAt", start.toEpochMilli)).toFuture()

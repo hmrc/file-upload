@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +18,12 @@ package uk.gov.hmrc.fileupload.controllers
 
 import scala.util.matching.Regex
 
-case class EnvelopeFilesConstraints(maxItems: Int,
-                                    maxSize: Size,
-                                    maxSizePerItem: Size,
-                                    allowZeroLengthFiles: Option[Boolean]) {
-
+case class EnvelopeFilesConstraints(
+  maxItems            : Int,
+  maxSize             : Size,
+  maxSizePerItem      : Size,
+  allowZeroLengthFiles: Option[Boolean]
+) {
   val maxSizeInBytes: Long = maxSize.inBytes
   val maxSizePerItemInBytes: Long = maxSizePerItem.inBytes
 }
@@ -54,7 +55,7 @@ object Size {
           unit match {
             case "KB" => Right(Size(num.toInt, KB))
             case "MB" => Right(Size(num.toInt, MB))
-            case _ => Left(InvalidFormat)
+            case _    => Left(InvalidFormat)
           }
         case _ => Left(InvalidFormat)
       }
