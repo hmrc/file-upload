@@ -191,7 +191,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with Tes
         envelopeCreated And fileQuarantined.copy(
           fileId    = FileId(),
           fileRefId = defaultFileRefId,
-          fileName  = FileName("abc.pdf")
+          name      = FileName("abc.pdf")
         ),
         QuarantineFile(
           envelopeId,
