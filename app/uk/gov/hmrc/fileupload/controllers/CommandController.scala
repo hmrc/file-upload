@@ -37,7 +37,8 @@ class CommandController @Inject()(
 
   private val logger = Logger(getClass)
 
-  val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
+  val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] =
+    appModule.envelopeCommandHandler
 
   def unsealEnvelope = process[UnsealEnvelope]
 
@@ -65,9 +66,15 @@ class CommandController @Inject()(
     }
   }
 
-  def bindCommandFromRequest[T <: EnvelopeCommand](f: EnvelopeCommand => Future[Result])
-                                                  (implicit r: Reads[T], m: Manifest[T], req: Request[JsValue]) =
-    Json.fromJson[T](req.body).asOpt.map(f).getOrElse {
-      Future.successful(ExceptionHandler(BAD_REQUEST, s"Unable to parse request as ${m.runtimeClass.getSimpleName}"))
-    }
+  def bindCommandFromRequest[T <: EnvelopeCommand](
+    f: EnvelopeCommand => Future[Result]
+  )(implicit
+    r  : Reads[T],
+    m  : Manifest[T],
+    req: Request[JsValue]
+  ) =
+    Json.fromJson[T](req.body)
+      .asOpt
+      .map(f)
+      .getOrElse(Future.successful(ExceptionHandler(BAD_REQUEST, s"Unable to parse request as ${m.runtimeClass.getSimpleName}")))
 }

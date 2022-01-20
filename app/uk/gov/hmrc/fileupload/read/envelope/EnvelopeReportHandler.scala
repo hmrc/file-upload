@@ -50,7 +50,7 @@ class EnvelopeReportHandler(
         fileId      = e.fileId,
         fileRefId   = e.fileRefId,
         status      = FileStatusQuarantined,
-        name        = Some(e.fileName),
+        name        = Some(e.name),
         contentType = Some(e.contentType),
         metadata    = Some(e.metadata),
         uploadDate  = Some(new DateTime(e.created, DateTimeZone.UTC)),

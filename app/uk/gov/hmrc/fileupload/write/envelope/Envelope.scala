@@ -59,13 +59,13 @@ class EnvelopeHandler(
       }
 
     case (command: QuarantineFile, envelope: Envelope) =>
-      envelope.canQuarantine(command.fileId, command.fileRefId, command.fileName).map(_ =>
+      envelope.canQuarantine(command.fileId, command.fileRefId, command.name).map(_ =>
         FileQuarantined(
           id          = command.id,
           fileId      = command.fileId,
           fileRefId   = command.fileRefId,
           created     = command.created,
-          fileName    = command.fileName,
+          name        = command.name,
           contentType = command.contentType,
           length      = command.length,
           metadata    = command.metadata
@@ -128,19 +128,19 @@ class EnvelopeHandler(
       envelope.copy(state = Open, constraints = e.constraints)
 
     case (envelope: Envelope, e: FileQuarantined) =>
-      envelope.copy(files = envelope.files + (e.fileId -> QuarantinedFile(e.fileRefId, e.fileId, e.fileName, e.length.getOrElse(0L))))
+      envelope.copy(files = envelope.files + (e.fileId -> QuarantinedFile(e.fileRefId, e.fileId, e.name, e.length.getOrElse(0L))))
 
     case (envelope: Envelope, e: NoVirusDetected) =>
-      envelope.copy(files = envelope.files + (e.fileId -> CleanedFile(e.fileRefId, e.fileId, envelope.files(e.fileId).fileName, e.length)))
+      envelope.copy(files = envelope.files + (e.fileId -> CleanedFile(e.fileRefId, e.fileId, envelope.files(e.fileId).name, e.length)))
 
     case (envelope: Envelope, e: VirusDetected) =>
-      envelope.copy(files = envelope.files + (e.fileId -> InfectedFile(e.fileRefId, e.fileId, envelope.files(e.fileId).fileName, e.length)))
+      envelope.copy(files = envelope.files + (e.fileId -> InfectedFile(e.fileRefId, e.fileId, envelope.files(e.fileId).name, e.length)))
 
     case (envelope: Envelope, e: FileDeleted) =>
       envelope.copy(files = envelope.files - e.fileId)
 
     case (envelope: Envelope, e: FileStored) =>
-      envelope.copy(files = envelope.files + (e.fileId -> StoredFile(e.fileRefId, e.fileId, envelope.files(e.fileId).fileName, e.length)))
+      envelope.copy(files = envelope.files + (e.fileId -> StoredFile(e.fileRefId, e.fileId, envelope.files(e.fileId).name, e.length)))
 
     case (envelope: Envelope, e: EnvelopeDeleted) =>
       envelope.copy(state = Deleted)
@@ -429,7 +429,7 @@ trait File {
 
   def fileId: FileId
 
-  def fileName: FileName
+  def name: FileName
 
   def fileLength: Long
 
@@ -446,14 +446,14 @@ trait File {
 case class QuarantinedFile(
   override val fileRefId : FileRefId,
   override val fileId    : FileId,
-  override val fileName  : FileName,
+  override val name      : FileName,
   override val fileLength: Long
 ) extends File
 
 case class CleanedFile(
   override val fileRefId : FileRefId,
   override val fileId    : FileId,
-  override val fileName  : FileName,
+  override val name      : FileName,
   override val fileLength: Long
 ) extends File {
   override val isScanned: Boolean = true
@@ -462,7 +462,7 @@ case class CleanedFile(
 case class InfectedFile(
   override val fileRefId : FileRefId,
   override val fileId    : FileId,
-  override val fileName  : FileName,
+  override val name      : FileName,
   override val fileLength: Long
 ) extends File {
   override val isScanned: Boolean = true
@@ -472,7 +472,7 @@ case class InfectedFile(
 case class StoredFile(
   override val fileRefId : FileRefId,
   override val fileId    : FileId,
-  override val fileName  : FileName,
+  override val name      : FileName,
   override val fileLength: Long
 ) extends File {
   override val isScanned: Boolean = true

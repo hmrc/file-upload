@@ -45,7 +45,7 @@ case class QuarantineFile(
   fileId         : FileId,
   fileRefId      : FileRefId,
   created        : Long,
-  fileName       : FileName,
+  name           : FileName,
   contentType    : String,
   length         : Option[Long],
   metadata       : JsObject
@@ -120,7 +120,7 @@ case class FileQuarantined(
   fileId         : FileId,
   fileRefId      : FileRefId,
   created        : Long,
-  fileName       : FileName,
+  name           : FileName,
   contentType    : String,
   length         : Option[Long] = None,
   metadata       : JsObject
