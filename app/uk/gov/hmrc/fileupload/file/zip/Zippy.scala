@@ -30,7 +30,7 @@ import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
 import uk.gov.hmrc.fileupload.file.zip.ZipStream.{ZipFileInfo, ZipStreamEnumerator}
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindEnvelopeNotFoundError, FindResult, FindServiceError}
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatusClosed, EnvelopeStatusRouteRequested}
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileName}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -60,10 +60,12 @@ object Zippy {
       case Right(envelopeWithFiles @ Envelope(_, _, EnvelopeStatusRouteRequested | EnvelopeStatusClosed, _, _, _, _, Some(files), _, _, _)) =>
         val zipFiles = files.collect {
           case f =>
-            val fileName = f.name.getOrElse(UUID.randomUUID().toString)
+            val fileName = f.name.getOrElse(FileName(UUID.randomUUID().toString))
             logger.info(s"""zipEnvelope: envelopeId=${envelopeWithFiles._id} fileId=${f.fileId} fileRefId=${f.fileRefId} length=${f.length.getOrElse(-1)} uploadDate=${f.uploadDate.getOrElse("-")}""")
             ZipFileInfo(
-              fileName, isDir = false, new java.util.Date(),
+              fileName,
+              isDir = false,
+              new java.util.Date(),
               Some(() => retrieveS3File(envelopeWithFiles._id, f.fileId).map { sourceToEnumerator })
             )
         }

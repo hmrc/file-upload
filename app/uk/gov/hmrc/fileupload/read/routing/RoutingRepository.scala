@@ -76,7 +76,7 @@ object RoutingRepository {
       wSClient
         .url(s"$frontendBaseUrl/internal-file-upload/zip/envelopes/${envelope._id}")
         .withHttpHeaders("User-Agent" -> "file-upload")
-        .withBody(Json.toJson(ZipRequest(files = envelope.files.toList.flatten.map(f => f.fileId -> f.name))))
+        .withBody(Json.toJson(ZipRequest(files = envelope.files.toList.flatten.map(f => f.fileId -> f.name.map(_.value)))))
         .withMethod("POST")
     ).map {
       case Left(error) => Left(BuildNotificationError(envelope._id, error.message, isTransient = true))

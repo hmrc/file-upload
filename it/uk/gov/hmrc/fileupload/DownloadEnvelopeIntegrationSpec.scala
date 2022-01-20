@@ -52,7 +52,16 @@ class DownloadEnvelopeIntegrationSpec
 
       And("File has been stored in quarantine on the front-end")
       sendCommandQuarantineFile(
-        QuarantineFile(envelopeId, fileId, fileRefId, 0, "file-name", "contentType", Some(123L), Json.obj("metadata" -> "foo"))
+        QuarantineFile(
+          envelopeId,
+          fileId,
+          fileRefId,
+          0,
+          FileName("file-name"),
+          "contentType",
+          Some(123L),
+          Json.obj("metadata" -> "foo")
+        )
       )
 
       And("File was scanned and no virus was found")

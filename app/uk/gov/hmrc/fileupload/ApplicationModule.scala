@@ -49,8 +49,10 @@ trait AllEventsPublisher {
 }
 
 class DefaultAllEventsPublisher extends AllEventsPublisher {
-  def publish(reportHandler: ReportHandler[_, _],
-              replay: Boolean): Seq[Event] => Unit =
+  def publish(
+    reportHandler: ReportHandler[_, _],
+    replay       : Boolean
+  ): Seq[Event] => Unit =
     reportHandler.handle(replay)
 }
 

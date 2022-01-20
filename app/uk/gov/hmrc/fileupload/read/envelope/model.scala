@@ -20,7 +20,7 @@ import org.joda.time.DateTime
 import play.api.libs.json._
 import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
 import uk.gov.hmrc.fileupload.write.infrastructure.Version
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileName, FileRefId}
 
 case class Envelope(
   _id        : EnvelopeId                       = EnvelopeId(),
@@ -43,7 +43,7 @@ case class File(
   fileId     : FileId,
   fileRefId  : FileRefId,
   status     : FileStatus,
-  name       : Option[String]   = None,
+  name       : Option[FileName] = None,
   contentType: Option[String]   = None,
   length     : Option[Long]     = None,
   uploadDate : Option[DateTime] = None,
@@ -57,7 +57,10 @@ object Envelope {
   implicit val dateWrites                : Writes[DateTime]                  = JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
   implicit val fileStatusReads           : Reads[FileStatus]                 = FileStatusReads
   implicit val fileStatusWrites          : Writes[FileStatus]                = FileStatusWrites
-  implicit val fileReads                 : Format[File]                      = Json.format[File]
+  implicit val fileFormat                : Format[File]                      = {
+    implicit val fnf: Format[FileName] = FileName.apiFormat
+    Json.format[File]
+  }
   implicit val envelopeStatusReads       : Reads[EnvelopeStatus]             = EnvelopeStatusReads
   implicit val envelopeStatusWrites      : Writes[EnvelopeStatus]            = EnvelopeStatusWrites
   implicit val sizeReads                 : Reads[Size]                       = SizeReads

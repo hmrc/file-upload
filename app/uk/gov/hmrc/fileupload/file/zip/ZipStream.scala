@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.fileupload.file.zip
 
+import uk.gov.hmrc.fileupload.FileName
+
 object ZipStream {
   import scala.concurrent.{ExecutionContext, Future, Promise}
   import java.util.Date
@@ -174,7 +176,7 @@ object ZipStream {
   }
 
   case class ZipFileInfo(
-    name      : String,
+    name      : FileName,
     isDir     : Boolean,
     modified  : Date,
     getContent: Option[() => Future[Enumerator[Bytes]]]
@@ -185,7 +187,7 @@ object ZipStream {
     def apply(files: Seq[ZipFileInfo])(implicit executionContext: ExecutionContext): Enumerator[Bytes] = {
       val (filesEn, infosSizeF) = files.foldLeft((Enumerator[Bytes](), Future.successful((Seq[ZipInfo](), 0)))) { case ((totalEn, infosSizeF), file) =>
         val nextF = infosSizeF map { case (infos, offset) =>
-          val inf = ZipInfo.apply(file.name, file.modified, file.isDir)
+          val inf = ZipInfo.apply(file.name.value, file.modified, file.isDir)
 
           if (file.isDir) {
             val header = inf.header
@@ -222,8 +224,8 @@ object ZipStream {
               size + data.length
             }
 
-            val nextInfosSizeF = infCompleteP.future flatMap { inf =>
-              totalSizeF map { totalSize =>
+            val nextInfosSizeF = infCompleteP.future.flatMap { inf =>
+              totalSizeF.map { totalSize =>
                 (infos :+ inf, offset + totalSize)
               }
             }

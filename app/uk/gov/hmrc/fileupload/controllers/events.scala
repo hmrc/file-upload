@@ -17,17 +17,18 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import play.api.libs.json.{Format, JsObject, Json}
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileName, FileRefId}
 
 sealed trait Event
 
 //Note that fileLength has been made Option[Long] for backwards compatibility reason.
+// Is this class ever instantiated?
 case class FileInQuarantineStored(
   envelopeId : EnvelopeId,
   fileId     : FileId,
   fileRefId  : FileRefId,
   created    : Long,
-  name       : String,
+  name       : FileName,
   contentType: String,
   fileLength : Option[Long] = None,
   metadata   : JsObject
@@ -41,6 +42,9 @@ case class FileScanned(
 ) extends Event
 
 object EventFormatters {
-  implicit val fileInQuarantineStoredFormat: Format[FileInQuarantineStored] = Json.format[FileInQuarantineStored]
+  implicit val fileInQuarantineStoredFormat: Format[FileInQuarantineStored] = {
+    implicit val fnf = FileName.apiFormat
+    Json.format[FileInQuarantineStored]
+  }
   implicit val fileScannedFormat           : Format[FileScanned]            = Json.format[FileScanned]
 }

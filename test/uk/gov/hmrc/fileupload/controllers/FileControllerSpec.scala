@@ -72,7 +72,13 @@ class FileControllerSpec
   val envelopeId = EnvelopeId()
   val fileId = FileId()
   val refId = FileRefId("someTextNotUuidFormat")
-  val file = File(fileId, refId, FileStatusAvailable, name = Some("myfile.txt"), length = Some(100))
+  val file = File(
+    fileId,
+    refId,
+    FileStatusAvailable,
+    name   = Some(FileName("myfile.txt")),
+    length = Some(100)
+  )
   val envelope = Support.envelope.copy(files = Some(Seq(file))).copy(_id = envelopeId)
   val source = Source.empty[ByteString]
   val authHeaders = HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword"))

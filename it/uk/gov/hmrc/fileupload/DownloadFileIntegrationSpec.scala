@@ -57,8 +57,17 @@ class DownloadFileIntegrationSpec
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      val filename = "test–.pdf" // contains a non-ascii char which needs escaping
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, filename, "pdf", Some(123L), Json.obj()))
+      val filename = FileName("test–.pdf") // contains a non-ascii char which needs escaping
+      sendCommandQuarantineFile(QuarantineFile(
+        envelopeId,
+        fileId,
+        fileRefId,
+        0,
+        filename,
+        "pdf",
+        Some(123L),
+        Json.obj()
+      ))
 
       And("File was scanned and no virus was found")
       sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileId, fileRefId))
@@ -110,8 +119,17 @@ class DownloadFileIntegrationSpec
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      val newFileName = "new-file-name.pdf"
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, newFileName, "pdf", Some(123L), Json.obj()))
+      val newFileName = FileName("new-file-name.pdf")
+      sendCommandQuarantineFile(QuarantineFile(
+        envelopeId,
+        fileId,
+        fileRefId,
+        0,
+        newFileName,
+        "pdf",
+        Some(123L),
+        Json.obj()
+      ))
 
       And("a file has previously been uploaded to the transient store after it's marked clean")
       val file = new RandomAccessFile("t", "rw")
@@ -142,7 +160,7 @@ class DownloadFileIntegrationSpec
       val storedDigest = md.digest()
 
       And("the filename within the metadata has been applied")
-      getFileResponse.header("Content-Disposition") shouldBe Some(s"""attachment; filename=\"$newFileName"""")
+      getFileResponse.header("Content-Disposition") shouldBe Some(s"""attachment; filename=\"${newFileName.value}"""")
 
       And("the downloaded file is identical to the original file")
       sourceDigest shouldEqual storedDigest

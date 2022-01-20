@@ -22,7 +22,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
 import uk.gov.hmrc.fileupload.read.envelope.{SizeReads, SizeWrites}
 import uk.gov.hmrc.fileupload.write.infrastructure._
-import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
+import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileName, FileRefId}
 
 // commands
 
@@ -45,7 +45,7 @@ case class QuarantineFile(
   fileId         : FileId,
   fileRefId      : FileRefId,
   created        : Long,
-  name           : String,
+  fileName       : FileName,
   contentType    : String,
   length         : Option[Long],
   metadata       : JsObject
@@ -120,7 +120,7 @@ case class FileQuarantined(
   fileId         : FileId,
   fileRefId      : FileRefId,
   created        : Long,
-  name           : String,
+  fileName       : FileName,
   contentType    : String,
   length         : Option[Long] = None,
   metadata       : JsObject
@@ -185,6 +185,7 @@ case class EnvelopeArchived(
 object Formatters {
   import play.api.libs.functional.syntax._
 
+  private implicit val fnf = FileName.apiFormat
   implicit val unsealEnvelopeFormat: Format[UnsealEnvelope] = Json.format[UnsealEnvelope]
   implicit val storeFileFormat: OFormat[StoreFile] = Json.format[StoreFile]
   implicit val quarantineFileFormat: OFormat[QuarantineFile] = Json.format[QuarantineFile]

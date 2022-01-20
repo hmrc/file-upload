@@ -89,14 +89,28 @@ class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       val fileRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileId, fileRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(
+        envelopeId,
+        fileId,
+        fileRefId,
+        0,
+        FileName("test.pdf"),
+        "pdf",
+        Some(123L),
+        Json.obj()
+      ))
 
       And("File was scanned and virus was found")
       sendFileScanned(FileScanned(envelopeId, fileId, fileRefId, true))
 
       Then("File should in the progress files list")
       eventually {
-        val listShouldBe = Json.obj("_id" -> fileRefId.value, "envelopeId" -> envelopeId.value, "fileId" -> fileId.value, "startedAt" -> 0)
+        val listShouldBe = Json.obj(
+          "_id"        -> fileRefId.value,
+          "envelopeId" -> envelopeId.value,
+          "fileId"     -> fileId.value,
+          "startedAt"  -> 0
+        )
         getInProgressFiles().body shouldBe s"[$listShouldBe]"
       }
 

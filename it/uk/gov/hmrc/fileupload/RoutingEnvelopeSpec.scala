@@ -43,8 +43,26 @@ class RoutingEnvelopeSpec extends IntegrationSpec with EnvelopeActions with File
       val fileTwoRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileOneId, fileOneRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileTwoId, fileTwoRefId, 0, "test.pdf", "pdf", Some(123L), Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(
+        envelopeId,
+        fileOneId,
+        fileOneRefId,
+        0,
+        FileName("test.pdf"),
+        "pdf",
+        Some(123L),
+        Json.obj()
+      ))
+      sendCommandQuarantineFile(QuarantineFile(
+        envelopeId,
+        fileTwoId,
+        fileTwoRefId,
+        0,
+        FileName("test.pdf"),
+        "pdf",
+        Some(123L),
+        Json.obj()
+      ))
 
       And("FileScanned")
       sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileOneId, fileOneRefId))
@@ -96,8 +114,26 @@ class RoutingEnvelopeSpec extends IntegrationSpec with EnvelopeActions with File
       val fileTwoRefId = FileRefId(s"fileRefId-${nextId()}")
 
       And("FileInQuarantineStored")
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileOneId, fileOneRefId, 0, "test.pdf", "pdf", Some(1024 * 1024), Json.obj()))
-      sendCommandQuarantineFile(QuarantineFile(envelopeId, fileTwoId, fileTwoRefId, 0, "test.pdf", "pdf", Some(1024 * 1024), Json.obj()))
+      sendCommandQuarantineFile(QuarantineFile(
+        envelopeId,
+        fileOneId,
+        fileOneRefId,
+        0,
+        FileName("test.pdf"),
+        "pdf",
+        Some(1024 * 1024),
+        Json.obj()
+      ))
+      sendCommandQuarantineFile(QuarantineFile(
+        envelopeId,
+        fileTwoId,
+        fileTwoRefId,
+        0,
+        FileName("test.pdf"),
+        "pdf",
+        Some(1024 * 1024),
+        Json.obj()
+      ))
 
       And("FileScanned")
       sendCommandMarkFileAsClean(MarkFileAsClean(envelopeId, fileOneId, fileOneRefId))
