@@ -29,7 +29,7 @@ lazy val microservice = Project(appName, file("."))
   .settings(scoverageSettings: _*)
   .settings(SbtDistributablesPlugin.publishingSettings: _*)
   .settings(
-    scalaVersion := "2.12.14",
+    scalaVersion := "2.12.15",
     libraryDependencies ++= AppDependencies.libraryDependencies,
     parallelExecution in Test := false,
     retrieveManaged := true,
