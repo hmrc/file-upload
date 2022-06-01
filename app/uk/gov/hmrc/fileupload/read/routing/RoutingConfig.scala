@@ -28,7 +28,8 @@ case class RoutingConfig(
   clientId         : String,
   recipientOrSender: String,
   pushUrl          : String,
-  destinations     : List[String]
+  destinations     : List[String],
+  informationType  : String
 )
 
 object RoutingConfig {
@@ -42,7 +43,8 @@ object RoutingConfig {
       clientId          = config.get[String]("routing.clientId"),
       recipientOrSender = config.get[String]("routing.recipientOrSender"),
       pushUrl           = config.get[String]("routing.pushUrl"),
-      destinations      = getStringList("routing.destinations")
+      destinations      = getStringList("routing.destinations"),
+      informationType   = config.get[String]("routing.informationType"),
     )
   }
 }

@@ -105,7 +105,7 @@ object RoutingRepository {
     )
 
     FileTransferNotification(
-      informationType = envelope.destination.getOrElse("unknown"), // destination should be defined at this point
+      informationType = routingConfig.informationType,
       file            = file,
       audit           = Audit(correlationId = envelope._id.value)
     )
