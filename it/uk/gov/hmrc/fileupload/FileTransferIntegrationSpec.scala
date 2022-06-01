@@ -179,7 +179,7 @@ class FileTransferIntegrationSpec
 
       And("The push notification was successful")
       verifyPushNotification(FileTransferNotification(
-        informationType = destination,
+        informationType = "UNDEFINED",
         file            = FileTransferFile(
                             recipientOrSender = "fileUpload",
                             name              = zipData.name,
