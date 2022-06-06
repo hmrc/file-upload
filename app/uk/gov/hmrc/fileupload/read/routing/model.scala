@@ -46,7 +46,7 @@ object Algorithm {
 case class FileTransferFile(
   recipientOrSender: String,
   name             : String,
-  location         : Option[String],
+  location         : Option[DownloadUrl],
   checksum         : Checksum,
   size             : Int,
   properties       : List[Property]
@@ -78,10 +78,14 @@ object FileTransferNotification {
     implicit val auditFormat =
       (__ \ "correlationID").format[String].inmap(Audit.apply, unlift(Audit.unapply))
 
+    implicit val downloadUrlFormat =
+      (__ \ "value").format[String].inmap(DownloadUrl.apply, unlift(DownloadUrl.unapply))
+
+
     implicit val fileFormat =
       ( (__ \ "recipientOrSender").format[String]
       ~ (__ \ "name"             ).format[String]
-      ~ (__ \ "location"         ).formatNullable[String]
+      ~ (__ \ "location"         ).formatNullable[DownloadUrl]
       ~ (__ \ "checksum"         ).format[Checksum]
       ~ (__ \ "size"             ).format[Int]
       ~ (__ \ "properties"       ).format[List[Property]]
@@ -93,3 +97,11 @@ object FileTransferNotification {
     )(FileTransferNotification.apply, unlift(FileTransferNotification.unapply))
   }
 }
+
+case class DownloadUrl(value: String) extends AnyVal {
+  override def toString(): String = {
+    //Do not log value
+    "DownloadUrl(...)"
+  }
+}
+

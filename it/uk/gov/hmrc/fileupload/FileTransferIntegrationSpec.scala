@@ -17,11 +17,10 @@
 package uk.gov.hmrc.fileupload
 
 import java.net.URL
-
 import org.scalatest.concurrent.IntegrationPatience
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.fileupload.read.routing.{Algorithm, Audit, Checksum, FileTransferFile, FileTransferNotification, Property, RoutingRepository, ZipData}
-import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FakePushService, FakeFrontendService, IntegrationSpec}
+import uk.gov.hmrc.fileupload.read.routing.{Algorithm, Audit, Checksum, DownloadUrl, FileTransferFile, FileTransferNotification, Property, RoutingRepository, ZipData}
+import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FakeFrontendService, FakePushService, IntegrationSpec}
 
 class FileTransferIntegrationSpec
   extends IntegrationSpec
@@ -161,7 +160,7 @@ class FileTransferIntegrationSpec
           name        = "filename",
           size        = 1L,
           md5Checksum = "4vB/MVHSuPg92a8yDf5IiA==",
-          url         = new URL("http://downloadhere")
+          url         = DownloadUrl("http://downloadhere")
         )
       stubZipEndpoint(envelopeId, Right(zipData))
 
@@ -183,7 +182,7 @@ class FileTransferIntegrationSpec
         file            = FileTransferFile(
                             recipientOrSender = "fileUpload",
                             name              = zipData.name,
-                            location          = Some(zipData.url.toString),
+                            location          = Some(zipData.url),
                             checksum          = Checksum(Algorithm.Md5, RoutingRepository.base64ToHex(zipData.md5Checksum)),
                             size              = zipData.size.toInt,
                             properties        = List.empty[Property]
