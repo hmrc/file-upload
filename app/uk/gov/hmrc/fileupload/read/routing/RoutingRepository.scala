@@ -98,7 +98,7 @@ object RoutingRepository {
     val file = FileTransferFile(
       recipientOrSender = routingConfig.recipientOrSender,
       name              = zipData.name,
-      location          = Some(zipData.url.toString),
+      location          = Some(zipData.url),
       checksum          = Checksum(Algorithm.Md5, base64ToHex(zipData.md5Checksum)),
       size              = zipData.size.toInt,
       properties        = List.empty[Property]
@@ -132,7 +132,7 @@ case class ZipData(
   name       : String,
   size       : Long,
   md5Checksum: String,
-  url        : URL
+  url        : DownloadUrl
 )
 object ZipData {
   import play.api.libs.functional.syntax._
@@ -140,6 +140,6 @@ object ZipData {
     ( (__ \ "name"       ).format[String]
     ~ (__ \ "size"       ).format[Long]
     ~ (__ \ "md5Checksum").format[String]
-    ~ (__ \ "url"        ).format[String].inmap[URL](s => new URL(s), _.toString)
+    ~ (__ \ "url"        ).format[String].inmap(DownloadUrl.apply, unlift(DownloadUrl.unapply))
     )(ZipData.apply _, unlift(ZipData.unapply))
 }
