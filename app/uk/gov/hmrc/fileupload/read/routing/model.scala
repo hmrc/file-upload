@@ -78,9 +78,7 @@ object FileTransferNotification {
     implicit val auditFormat =
       (__ \ "correlationID").format[String].inmap(Audit.apply, unlift(Audit.unapply))
 
-    implicit val downloadUrlFormat =
-      (__ \ "value").format[String].inmap(DownloadUrl.apply, unlift(DownloadUrl.unapply))
-
+    implicit val downloadUrlFormat = implicitly[Format[String]].inmap[DownloadUrl](DownloadUrl.apply, _.value)
 
     implicit val fileFormat =
       ( (__ \ "recipientOrSender").format[String]
