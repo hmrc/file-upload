@@ -29,14 +29,18 @@ case class RoutingConfig(
   recipientOrSender: String,
   pushUrl          : String,
   destinations     : List[String],
-  informationType  : String
+  informationType  : String,
+  throttleElements : Int,
+  throttlePer      : FiniteDuration
 )
 
 object RoutingConfig {
 
   def apply(config: Configuration): RoutingConfig = {
-    def getStringList(key: String) =
+
+    def getStringList(key: String): List[String] =
       config.underlying.getStringList(key).asScala.toList
+
     RoutingConfig(
       initialDelay      = config.get[FiniteDuration]("routing.initialDelay"),
       interval          = config.get[FiniteDuration]("routing.interval"),
@@ -45,6 +49,8 @@ object RoutingConfig {
       pushUrl           = config.get[String]("routing.pushUrl"),
       destinations      = getStringList("routing.destinations"),
       informationType   = config.get[String]("routing.informationType"),
+      throttleElements  = config.get[Int]("routing.throttleElements"),
+      throttlePer       = config.get[FiniteDuration]("routing.throttlePer")
     )
   }
 }
