@@ -69,6 +69,8 @@ class RoutingActor(
         case Some(lock) =>
           logger.info(s"aquired lock - pushing any waiting messages")
           getEnvelopesByStatus(List(EnvelopeStatusRouteRequested), true)
+            .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
+            .throttle(config.throttleElements, config.throttlePer)
             .mapAsync(parallelism = 1)(envelope =>
               routeEnvelope(envelope)
               .recover {
