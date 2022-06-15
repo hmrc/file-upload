@@ -194,13 +194,13 @@ class ApplicationModule @Inject()(
 
   actorSystem.actorOf(
     RoutingActor.props(
-      config            = routingConfig,
-      buildNotification = buildFileTransferNotification,
+      config                  = routingConfig,
+      buildNotification       = buildFileTransferNotification,
       findEnvelope,
-      getEnvelopesByStatus,
-      pushNotification  = pushFileTransferNotification,
-      handleCommand     = envelopeCommandHandler,
-      lockRepository    = lockRepository
+      getEnvelopesByStatusDMS = envelopeRepository.getByStatusDMS _,
+      pushNotification        = pushFileTransferNotification,
+      handleCommand           = envelopeCommandHandler,
+      lockRepository          = lockRepository
     ),
     "routingActor")
 

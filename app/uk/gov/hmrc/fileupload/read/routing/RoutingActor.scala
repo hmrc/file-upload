@@ -17,10 +17,10 @@
 package uk.gov.hmrc.fileupload.read.routing
 
 import akka.actor.{Actor, Cancellable, Props}
-import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.scaladsl.{Concat, Sink, Source}
 import play.api.Logger
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusRouteRequested}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusClosed, EnvelopeStatusRouteRequested}
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
 import uk.gov.hmrc.fileupload.write.envelope.{ArchiveEnvelope, EnvelopeCommand, MarkEnvelopeAsRouted}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
@@ -33,13 +33,13 @@ import scala.concurrent.duration.DurationLong
   * It checks periodically for files needing routing - this will retry any that previously failed to be delivered.
   */
 class RoutingActor(
-   config              :                                    RoutingConfig,
-   buildNotification   : Envelope                        => Future[RoutingRepository.BuildNotificationResult],
-   findEnvelope        : EnvelopeId                      => Future[FindResult],
-   getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
-   pushNotification    : FileTransferNotification        => Future[RoutingRepository.PushResult],
-   handleCommand       : EnvelopeCommand                 => Future[Either[CommandNotAccepted, CommandAccepted.type]],
-   lockRepository      :                                    LockRepository
+   config                  :                                    RoutingConfig,
+   buildNotification       : Envelope                        => Future[RoutingRepository.BuildNotificationResult],
+   findEnvelope            : EnvelopeId                      => Future[FindResult],
+   getEnvelopesByStatusDMS : (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
+   pushNotification        : FileTransferNotification        => Future[RoutingRepository.PushResult],
+   handleCommand           : EnvelopeCommand                 => Future[Either[CommandNotAccepted, CommandAccepted.type]],
+   lockRepository          :                                    LockRepository
  )(implicit executionContext: ExecutionContext
  ) extends Actor {
 
@@ -68,9 +68,14 @@ class RoutingActor(
           Future.successful(logger.info(s"no lock aquired"))
         case Some(lock) =>
           logger.info(s"aquired lock - pushing any waiting messages")
-          getEnvelopesByStatus(List(EnvelopeStatusRouteRequested), true)
-            .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
-            .throttle(config.throttleElements, config.throttlePer)
+          Source.combine[Envelope, Envelope](
+            first  = getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ false),
+            second = if (config.pushDMS)
+                       getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested/*, EnvelopeStatusClosed*/), /*isDMS = */ true)
+                         .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
+                         .throttle(config.throttleElements, config.throttlePer)
+                     else Source.empty[Envelope]
+          )(Concat(_))
             .mapAsync(parallelism = 1)(envelope =>
               routeEnvelope(envelope)
               .recover {
@@ -137,23 +142,23 @@ object RoutingActor {
   case object PushIfWaiting
 
   def props(
-    config              :                                    RoutingConfig,
-    buildNotification   : Envelope                        => Future[RoutingRepository.BuildNotificationResult],
-    findEnvelope        : EnvelopeId                      => Future[FindResult],
-    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
-    pushNotification    : FileTransferNotification        => Future[RoutingRepository.PushResult],
-    handleCommand       : EnvelopeCommand                 => Future[Either[CommandNotAccepted, CommandAccepted.type]],
-    lockRepository      :                                    LockRepository
+    config                 :                                    RoutingConfig,
+    buildNotification      : Envelope                        => Future[RoutingRepository.BuildNotificationResult],
+    findEnvelope           : EnvelopeId                      => Future[FindResult],
+    getEnvelopesByStatusDMS: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
+    pushNotification       : FileTransferNotification        => Future[RoutingRepository.PushResult],
+    handleCommand          : EnvelopeCommand                 => Future[Either[CommandNotAccepted, CommandAccepted.type]],
+    lockRepository         :                                    LockRepository
   )(implicit executionContext: ExecutionContext
   ) =
     Props(new RoutingActor(
-      config               = config,
-      buildNotification    = buildNotification,
-      findEnvelope         = findEnvelope,
-      getEnvelopesByStatus = getEnvelopesByStatus,
-      pushNotification     = pushNotification,
-      handleCommand        = handleCommand,
-      lockRepository       = lockRepository
+      config                  = config,
+      buildNotification       = buildNotification,
+      findEnvelope            = findEnvelope,
+      getEnvelopesByStatusDMS = getEnvelopesByStatusDMS,
+      pushNotification        = pushNotification,
+      handleCommand           = handleCommand,
+      lockRepository          = lockRepository
     ))
 }
 

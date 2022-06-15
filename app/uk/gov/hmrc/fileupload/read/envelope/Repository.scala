@@ -142,6 +142,14 @@ class Repository(
     Source.fromPublisher(collection.find(operator))
   }
 
+  def getByStatusDMS(status: List[EnvelopeStatus], isDMS: Boolean): Source[Envelope, akka.NotUsed] = {
+    val operator = and(
+      in("status", status.map(_.name): _*),
+      if (isDMS) equal("destination", "DMS") else notEqual("destination", "DMS")
+    )
+    Source.fromPublisher(collection.find(operator))
+  }
+
   def all()(implicit ec: ExecutionContext): Future[List[Envelope]] =
     collection
       .find()

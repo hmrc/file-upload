@@ -410,6 +410,9 @@ object RouteRequested extends State {
 object Routed extends State {
   import State._
 
+  override def canRoute: CanResult =
+    successResult
+
   override def canArchive: CanResult =
     successResult
 

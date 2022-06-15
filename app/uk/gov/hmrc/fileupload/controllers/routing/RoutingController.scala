@@ -40,7 +40,6 @@ class RoutingController @Inject()(
   val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
   val newId: () => String = appModule.newId
 
-
   def createRoutingRequest() = Action.async(parse.json) { implicit request =>
     withJsonBody[RouteEnvelopeRequest] { requestParams =>
       import requestParams._
