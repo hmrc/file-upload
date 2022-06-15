@@ -70,9 +70,11 @@ class RoutingActor(
           logger.info(s"aquired lock - pushing any waiting messages")
           Source.combine[Envelope, Envelope](
             first  = getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ false),
-            second = getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested, EnvelopeStatusClosed), /*isDMS = */ true)
-                       .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
-                       .throttle(config.throttleElements, config.throttlePer)
+            second = if (config.pushDMS)
+                       getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested/*, EnvelopeStatusClosed*/), /*isDMS = */ true)
+                         .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
+                         .throttle(config.throttleElements, config.throttlePer)
+                     else Source.empty[Envelope]
           )(Concat(_))
             .mapAsync(parallelism = 1)(envelope =>
               routeEnvelope(envelope)
