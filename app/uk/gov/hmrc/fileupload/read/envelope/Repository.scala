@@ -31,6 +31,7 @@ import org.mongodb.scala.model._
 import org.mongodb.scala.model.Filters._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
+import org.mongodb.scala.bson.BsonDocument
 
 object Repository {
 
@@ -142,10 +143,11 @@ class Repository(
     Source.fromPublisher(collection.find(operator))
   }
 
-  def getByStatusDMS(status: List[EnvelopeStatus], isDMS: Boolean): Source[Envelope, akka.NotUsed] = {
+  def getByStatusDMS(status: List[EnvelopeStatus], isDMS: Boolean, offsetId: Option[EnvelopeId]): Source[Envelope, akka.NotUsed] = {
     val operator = and(
       in("status", status.map(_.name): _*),
-      if (isDMS) equal("destination", "DMS") else notEqual("destination", "DMS")
+      if (isDMS) equal("destination", "DMS") else notEqual("destination", "DMS"),
+      offsetId.fold[Bson](BsonDocument())(id => gt("_id", id.value))
     )
     Source.fromPublisher(collection.find(operator))
   }
