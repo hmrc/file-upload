@@ -78,7 +78,7 @@ class RoutingActor(
           Source.combine[Envelope, Envelope](
             first  = getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ false),
             second = if (config.pushDMS)
-                       getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested/*, EnvelopeStatusClosed*/), /*isDMS = */ true)
+                       getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested, EnvelopeStatusClosed), /*isDMS = */ true)
                          .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
                          .throttle(config.throttleElements, config.throttlePer)
                      else Source.empty[Envelope]
