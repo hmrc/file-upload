@@ -19,6 +19,7 @@ package uk.gov.hmrc.fileupload.read.routing
 import akka.actor.{Actor, Cancellable, Props}
 import akka.stream.scaladsl.{Concat, Sink, Source}
 import play.api.Logger
+import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusClosed, EnvelopeStatusRouteRequested}
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
@@ -39,7 +40,8 @@ class RoutingActor(
    getEnvelopesByStatusDMS : (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
    pushNotification        : FileTransferNotification        => Future[RoutingRepository.PushResult],
    handleCommand           : EnvelopeCommand                 => Future[Either[CommandNotAccepted, CommandAccepted.type]],
-   lockRepository          :                                    LockRepository
+   lockRepository          :                                    LockRepository,
+   applicationLifecycle    :                                    ApplicationLifecycle
  )(implicit executionContext: ExecutionContext
  ) extends Actor {
 
@@ -59,6 +61,11 @@ class RoutingActor(
 
   override def postStop(): Unit =
     scheduler.cancel()
+
+  applicationLifecycle.addStopHook { () =>
+    logger.info("Releasing any taken lock")
+    Lock.releaseLock(lockRepository)
+  }
 
   def receive = {
     case PushIfWaiting =>
@@ -148,7 +155,8 @@ object RoutingActor {
     getEnvelopesByStatusDMS: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed],
     pushNotification       : FileTransferNotification        => Future[RoutingRepository.PushResult],
     handleCommand          : EnvelopeCommand                 => Future[Either[CommandNotAccepted, CommandAccepted.type]],
-    lockRepository         :                                    LockRepository
+    lockRepository         :                                    LockRepository,
+    applicationLifecycle   :                                    ApplicationLifecycle
   )(implicit executionContext: ExecutionContext
   ) =
     Props(new RoutingActor(
@@ -158,7 +166,8 @@ object RoutingActor {
       getEnvelopesByStatusDMS = getEnvelopesByStatusDMS,
       pushNotification        = pushNotification,
       handleCommand           = handleCommand,
-      lockRepository          = lockRepository
+      lockRepository          = lockRepository,
+      applicationLifecycle    = applicationLifecycle
     ))
 }
 
@@ -176,4 +185,7 @@ object Lock {
         else None
       }
   }
+
+  def releaseLock(lockRepository: LockRepository): Future[Unit] =
+    lockRepository.releaseLock(reqLockId, reqOwner)
 }

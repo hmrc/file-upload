@@ -200,7 +200,8 @@ class ApplicationModule @Inject()(
       getEnvelopesByStatusDMS = envelopeRepository.getByStatusDMS _,
       pushNotification        = pushFileTransferNotification,
       handleCommand           = envelopeCommandHandler,
-      lockRepository          = lockRepository
+      lockRepository          = lockRepository,
+      applicationLifecycle    = applicationLifecycle
     ),
     "routingActor")
 
