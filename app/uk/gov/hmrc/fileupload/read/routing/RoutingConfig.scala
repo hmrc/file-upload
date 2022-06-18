@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload.read.routing
 
-import play.api.Configuration
+import play.api.{Configuration, Logger}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.FiniteDuration
@@ -42,6 +42,8 @@ object RoutingConfig {
 
     def getStringList(key: String): List[String] =
       config.underlying.getStringList(key).asScala.toList
+
+    Logger(getClass).info(s"routing.markAsSeenStatuses: ${getStringList("routing.markAsSeenStatuses").toSet}")
 
     RoutingConfig(
       initialDelay      = config.get[FiniteDuration]("routing.initialDelay"),
