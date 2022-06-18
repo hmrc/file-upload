@@ -201,7 +201,8 @@ class ApplicationModule @Inject()(
       pushNotification        = pushFileTransferNotification,
       handleCommand           = envelopeCommandHandler,
       lockRepository          = lockRepository,
-      applicationLifecycle    = applicationLifecycle
+      applicationLifecycle    = applicationLifecycle,
+      markAsSeen              = envelopeRepository.markAsSeen
     ),
     "routingActor")
 
