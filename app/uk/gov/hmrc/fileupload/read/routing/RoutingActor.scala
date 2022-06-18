@@ -90,7 +90,7 @@ class RoutingActor(
               routeEnvelope(envelope)
               .recover {
                 case ex => // alerting is configured to trigger off this message
-                          logger.error(s"Failed to route envelope [${envelope._id}]: ${ex.getMessage}", ex)
+                           logger.error(s"Failed to route envelope [${envelope._id}]: ${ex.getMessage}", ex)
               }
             )
             .runWith(Sink.ignore)
@@ -125,6 +125,9 @@ class RoutingActor(
                                   case Right(notification) => for {
                                       _               <- Future.successful(logger.info(s"will push $notification for envelope [${envelope._id}]"))
                                       pushRes         <- pushNotification(notification)
+                                      _               <- if (config.markAsSeenStatuses.contains(envelope.status.name))
+                                                           markAsSeen(envelope._id)
+                                                         else Future.unit
                                       cmd             <- pushRes match {
                                                            case Right(())   => logger.info(s"Successfully pushed routing for envelope [${envelope._id}]")
                                                                                Future.successful(MarkEnvelopeAsRouted(envelope._id, isPushed = true))
@@ -132,9 +135,6 @@ class RoutingActor(
                                                          }
                                     } yield cmd
                                 }
-          _                  <- if (config.markAsSeenStatuses.contains(envelope.status.name))
-                                  markAsSeen(envelope._id)
-                                else Future.unit
         } yield cmd
     }.map(cmd =>
       handleCommand(cmd).map {
