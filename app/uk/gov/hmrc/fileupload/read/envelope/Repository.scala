@@ -156,7 +156,7 @@ class Repository(
 
   def markAsSeen(id: EnvelopeId): Future[Unit] =
     collection
-      .updateOne(equal("_id", id), set("seen", Instant.now()))
+      .updateOne(equal("_id", id.value), set("seen", Instant.now()))
       .toFuture()
       .map(_ => ())
 
