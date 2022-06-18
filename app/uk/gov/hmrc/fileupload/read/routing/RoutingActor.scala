@@ -39,12 +39,12 @@ class RoutingActor(
    findEnvelope            : EnvelopeId                      => Future[FindResult],
    getEnvelopesByStatusDMS : (List[EnvelopeStatus],
                               Boolean,
-                              Option[EnvelopeId])            => Source[Envelope, akka.NotUsed],
+                              Boolean)                       => Source[Envelope, akka.NotUsed],
    pushNotification        : FileTransferNotification        => Future[RoutingRepository.PushResult],
    handleCommand           : EnvelopeCommand                 => Future[Either[CommandNotAccepted, CommandAccepted.type]],
    lockRepository          :                                    LockRepository,
    applicationLifecycle    :                                    ApplicationLifecycle,
-   lastSeenRepository      :                                    LastSeenRepository
+   markAsSeen              : EnvelopeId                      => Future[Unit]
  )(implicit executionContext: ExecutionContext
  ) extends Actor {
 
@@ -78,30 +78,27 @@ class RoutingActor(
           Future.successful(logger.info(s"no lock aquired"))
         case Some(lock) =>
           logger.info(s"aquired lock - pushing any waiting messages")
-          lastSeenRepository.getLastSeen()
-            .map(previousId =>
-              Source.combine[Envelope, Envelope](
-                first  = getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ false, None),
-                second = if (config.pushDMS)
-                          getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested, EnvelopeStatusClosed), /*isDMS = */ true, previousId)
-                            .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
-                            .throttle(config.throttleElements, config.throttlePer)
-                        else Source.empty[Envelope]
-              )(Concat(_))
-                .mapAsync(parallelism = 1)(envelope =>
-                  routeEnvelope(envelope)
-                  .recover {
-                    case ex => // alerting is configured to trigger off this message
-                              logger.error(s"Failed to route envelope [${envelope._id}]: ${ex.getMessage}", ex)
-                  }
-                )
-                .runWith(Sink.ignore)
-                .andThen { case _ => lock.release() }
-                .recoverWith {
-                  case ex => logger.error(s"Failed to handle PushIfWaiting: ${ex.getMessage}", ex)
-                            Future.failed(ex)
-                }
+          Source.combine[Envelope, Envelope](
+            first  = getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ false, /*onlyUnseen = */ false),
+            second = if (config.pushDMS)
+                        getEnvelopesByStatusDMS(List(EnvelopeStatusClosed, EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ true)
+                        .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
+                        .throttle(config.throttleElements, config.throttlePer)
+                    else Source.empty[Envelope]
+          )(Concat(_))
+            .mapAsync(parallelism = 1)(envelope =>
+              routeEnvelope(envelope)
+              .recover {
+                case ex => // alerting is configured to trigger off this message
+                          logger.error(s"Failed to route envelope [${envelope._id}]: ${ex.getMessage}", ex)
+              }
             )
+            .runWith(Sink.ignore)
+            .andThen { case _ => lock.release() }
+            .recoverWith {
+              case ex => logger.error(s"Failed to handle PushIfWaiting: ${ex.getMessage}", ex)
+                        Future.failed(ex)
+            }
       }
   }
 
@@ -135,7 +132,7 @@ class RoutingActor(
                                                          }
                                     } yield cmd
                                 }
-          _                     <- lastSeenRepository.putLastSeen(envelope._id)
+          _                  <- markAsSeen(envelope._id)
         } yield cmd
     }.map(cmd =>
       handleCommand(cmd).map {
@@ -161,12 +158,12 @@ object RoutingActor {
     findEnvelope           : EnvelopeId                      => Future[FindResult],
     getEnvelopesByStatusDMS: (List[EnvelopeStatus],
                               Boolean,
-                              Option[EnvelopeId])            => Source[Envelope, akka.NotUsed],
+                              Boolean)                       => Source[Envelope, akka.NotUsed],
     pushNotification       : FileTransferNotification        => Future[RoutingRepository.PushResult],
     handleCommand          : EnvelopeCommand                 => Future[Either[CommandNotAccepted, CommandAccepted.type]],
     lockRepository         :                                    LockRepository,
     applicationLifecycle   :                                    ApplicationLifecycle,
-    lastSeenRepository     :                                    LastSeenRepository
+    markAsSeen             : EnvelopeId                      => Future[Unit]
   )(implicit executionContext: ExecutionContext
   ) =
     Props(new RoutingActor(
@@ -178,7 +175,7 @@ object RoutingActor {
       handleCommand           = handleCommand,
       lockRepository          = lockRepository,
       applicationLifecycle    = applicationLifecycle,
-      lastSeenRepository      = lastSeenRepository
+      markAsSeen              = markAsSeen
     ))
 }
 

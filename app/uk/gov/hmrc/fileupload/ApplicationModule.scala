@@ -30,7 +30,7 @@ import uk.gov.hmrc.fileupload.infrastructure._
 import uk.gov.hmrc.fileupload.read.envelope.{WithValidEnvelope, Service => EnvelopeService, _}
 import uk.gov.hmrc.fileupload.read.infrastructure.ReportHandler
 import uk.gov.hmrc.fileupload.read.notifier.{NotifierActor, NotifierRepository}
-import uk.gov.hmrc.fileupload.read.routing.{LastSeenRepository, RoutingActor, RoutingConfig, RoutingRepository}
+import uk.gov.hmrc.fileupload.read.routing.{RoutingActor, RoutingConfig, RoutingRepository}
 import uk.gov.hmrc.fileupload.read.stats.{Stats, StatsActor, StatsLogWriter, StatsLogger, StatsLoggingConfiguration, StatsLoggingScheduler, Repository => StatsRepository}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{Aggregate, Event, MongoEventStore, StreamId}
@@ -202,7 +202,7 @@ class ApplicationModule @Inject()(
       handleCommand           = envelopeCommandHandler,
       lockRepository          = lockRepository,
       applicationLifecycle    = applicationLifecycle,
-      lastSeenRepository      = new LastSeenRepository(mongoComponent)
+      markAsSeen              = envelopeRepository.markAsSeen
     ),
     "routingActor")
 

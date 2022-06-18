@@ -17,21 +17,23 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 import akka.stream.scaladsl.Source
-import play.api.libs.json.Json
-import play.api.mvc.{Result, Results}
-import uk.gov.hmrc.fileupload.EnvelopeId
-
-import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.language.postfixOps
 import com.mongodb.{MongoException, ReadPreference}
 import org.bson.conversions.Bson
 import org.mongodb.scala.{Document, WriteConcern}
 import org.mongodb.scala.model._
 import org.mongodb.scala.model.Filters._
+import org.mongodb.scala.model.Updates.set
+import play.api.libs.json.Json
+import play.api.mvc.{Result, Results}
+import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import org.mongodb.scala.bson.BsonDocument
+
+import java.time.Instant
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.language.postfixOps
 
 object Repository {
 
@@ -143,14 +145,20 @@ class Repository(
     Source.fromPublisher(collection.find(operator))
   }
 
-  def getByStatusDMS(status: List[EnvelopeStatus], isDMS: Boolean, offsetId: Option[EnvelopeId]): Source[Envelope, akka.NotUsed] = {
+  def getByStatusDMS(status: List[EnvelopeStatus], isDMS: Boolean, onlyUnSeen: Boolean): Source[Envelope, akka.NotUsed] = {
     val operator = and(
       in("status", status.map(_.name): _*),
       if (isDMS) equal("destination", "DMS") else notEqual("destination", "DMS"),
-      offsetId.fold[Bson](BsonDocument())(id => gt("_id", id.value))
+      if (onlyUnSeen) exists("seen", false) else BsonDocument()
     )
     Source.fromPublisher(collection.find(operator))
   }
+
+  def markAsSeen(id: EnvelopeId): Future[Unit] =
+    collection
+      .updateOne(equal("_id", id), set("seen", Instant.now()))
+      .toFuture()
+      .map(_ => ())
 
   def all()(implicit ec: ExecutionContext): Future[List[Envelope]] =
     collection
