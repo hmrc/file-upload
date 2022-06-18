@@ -32,7 +32,8 @@ case class RoutingConfig(
   informationType  : String,
   throttleElements : Int,
   throttlePer      : FiniteDuration,
-  pushDMS          : Boolean
+  pushDMS          : Boolean,
+  markAsSeenStatuses: Set[String]
 )
 
 object RoutingConfig {
@@ -53,6 +54,7 @@ object RoutingConfig {
       throttleElements  = config.get[Int]("routing.throttleElements"),
       throttlePer       = config.get[FiniteDuration]("routing.throttlePer"),
       pushDMS           = config.get[Boolean]("routing.pushDMS"),
+      markAsSeenStatuses = getStringList("routing.markAsSeenStatuses").toSet
     )
   }
 }

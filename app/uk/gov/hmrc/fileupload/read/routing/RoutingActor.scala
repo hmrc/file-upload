@@ -81,7 +81,7 @@ class RoutingActor(
           Source.combine[Envelope, Envelope](
             first  = getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ false, /*onlyUnseen = */ false),
             second = if (config.pushDMS)
-                        getEnvelopesByStatusDMS(List(EnvelopeStatusClosed, EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ true)
+                       getEnvelopesByStatusDMS(List(EnvelopeStatusClosed, EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ true)
                         .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
                         .throttle(config.throttleElements, config.throttlePer)
                     else Source.empty[Envelope]
@@ -97,7 +97,7 @@ class RoutingActor(
             .andThen { case _ => lock.release() }
             .recoverWith {
               case ex => logger.error(s"Failed to handle PushIfWaiting: ${ex.getMessage}", ex)
-                        Future.failed(ex)
+                         Future.failed(ex)
             }
       }
   }
@@ -132,7 +132,9 @@ class RoutingActor(
                                                          }
                                     } yield cmd
                                 }
-          _                  <- markAsSeen(envelope._id)
+          _                  <- if (config.markAsSeenStatuses.contains(envelope.status.name))
+                                  markAsSeen(envelope._id)
+                                else Future.unit
         } yield cmd
     }.map(cmd =>
       handleCommand(cmd).map {
