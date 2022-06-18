@@ -52,9 +52,8 @@ class SDESCallbackController @Inject()(
       // we have no retry mechanisms built that will retry if we're notified of an error here.
       val envelopeId = EnvelopeId(item.correlationId)
       item.notification match {
-        case FileProcessed |
-             FileAlreadyProcessed => tryDelete(envelopeId)
-        case _                    => Future.successful(Ok)
+        case FileProcessed => tryDelete(envelopeId)
+        case _             => Future.successful(Ok)
       }
     }
   }
@@ -156,10 +155,6 @@ case object FileProcessingFailure extends Notification {
 
 case object FileProcessed extends Notification {
   val value = "FileProcessed"
-}
-
-case object FileAlreadyProcessed extends Notification {
-  val value = "FileAlreadyProcessed"
 }
 
 object Notification {
