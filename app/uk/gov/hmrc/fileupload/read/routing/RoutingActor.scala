@@ -125,9 +125,10 @@ class RoutingActor(
                                   case Right(notification) => for {
                                       _               <- Future.successful(logger.info(s"will push $notification for envelope [${envelope._id}]"))
                                       pushRes         <- pushNotification(notification)
-                                      _               <- if (config.markAsSeenStatuses.contains(envelope.status.name))
-                                                           markAsSeen(envelope._id)
-                                                         else Future.unit
+                                      _               <- pushRes match {
+                                                           case Right(())   => markAsSeen(envelope._id)
+                                                           case Left(error) => Future.unit
+                                                         }
                                       cmd             <- pushRes match {
                                                            case Right(())   => logger.info(s"Successfully pushed routing for envelope [${envelope._id}]")
                                                                                Future.successful(MarkEnvelopeAsRouted(envelope._id, isPushed = true))

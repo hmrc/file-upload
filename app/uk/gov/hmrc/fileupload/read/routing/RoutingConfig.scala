@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload.read.routing
 
-import play.api.{Configuration, Logger}
+import play.api.Configuration
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.FiniteDuration
@@ -32,8 +32,7 @@ case class RoutingConfig(
   informationType  : String,
   throttleElements : Int,
   throttlePer      : FiniteDuration,
-  pushDMS          : Boolean,
-  markAsSeenStatuses: Set[String]
+  pushDMS          : Boolean
 )
 
 object RoutingConfig {
@@ -42,8 +41,6 @@ object RoutingConfig {
 
     def getStringList(key: String): List[String] =
       config.underlying.getStringList(key).asScala.toList
-
-    Logger(getClass).info(s"routing.markAsSeenStatuses: ${getStringList("routing.markAsSeenStatuses").toSet}")
 
     RoutingConfig(
       initialDelay      = config.get[FiniteDuration]("routing.initialDelay"),
@@ -55,8 +52,7 @@ object RoutingConfig {
       informationType   = config.get[String]("routing.informationType"),
       throttleElements  = config.get[Int]("routing.throttleElements"),
       throttlePer       = config.get[FiniteDuration]("routing.throttlePer"),
-      pushDMS           = config.get[Boolean]("routing.pushDMS"),
-      markAsSeenStatuses = getStringList("routing.markAsSeenStatuses").toSet
+      pushDMS           = config.get[Boolean]("routing.pushDMS")
     )
   }
 }
