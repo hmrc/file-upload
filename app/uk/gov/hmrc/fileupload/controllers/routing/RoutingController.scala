@@ -68,4 +68,12 @@ class RoutingController @Inject()(
   def routingStatus(id: String) = Action {
     ExceptionHandler(NOT_IMPLEMENTED, "Not implemented as part of MVP")
   }
+
+  def resendClosed() = Action.async {
+    appModule.envelopeRepository.clearSeen()
+      .map { updatedCount =>
+        logger.info(s"Resend Closed - updated $updatedCount")
+        Ok(s"Updated $updatedCount")
+      }
+  }
 }
