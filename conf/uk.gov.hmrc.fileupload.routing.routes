@@ -4,3 +4,5 @@ POST       /requests               uk.gov.hmrc.fileupload.controllers.routing.Ro
 GET        /requests/:id           uk.gov.hmrc.fileupload.controllers.routing.RoutingController.routingStatus(id: String)
 
 POST       /sdes-callback          uk.gov.hmrc.fileupload.controllers.routing.SDESCallbackController.callback()
+
+POST       /resend-closed          uk.gov.hmrc.fileupload.controllers.routing.RoutingController.resendClosed()

@@ -22,7 +22,7 @@ import org.bson.conversions.Bson
 import org.mongodb.scala.{Document, WriteConcern}
 import org.mongodb.scala.model._
 import org.mongodb.scala.model.Filters._
-import org.mongodb.scala.model.Updates.set
+import org.mongodb.scala.model.Updates.{set, unset}
 import play.api.libs.json.Json
 import play.api.mvc.{Result, Results}
 import uk.gov.hmrc.fileupload.EnvelopeId
@@ -159,6 +159,12 @@ class Repository(
       .updateOne(equal("_id", id.value), set("seen", Instant.now()))
       .toFuture()
       .map(_ => ())
+
+  def clearSeen(): Future[Long] =
+    collection
+      .updateMany(exists("seen", true), unset("seen"))
+      .toFuture()
+      .map(_.getModifiedCount)
 
   def all()(implicit ec: ExecutionContext): Future[List[Envelope]] =
     collection
