@@ -32,7 +32,8 @@ case class RoutingConfig(
   informationType  : String,
   throttleElements : Int,
   throttlePer      : FiniteDuration,
-  pushDMS          : Boolean
+  pushDMS          : Boolean,
+  pushRetryBackoff : FiniteDuration
 )
 
 object RoutingConfig {
@@ -52,7 +53,8 @@ object RoutingConfig {
       informationType   = config.get[String]("routing.informationType"),
       throttleElements  = config.get[Int]("routing.throttleElements"),
       throttlePer       = config.get[FiniteDuration]("routing.throttlePer"),
-      pushDMS           = config.get[Boolean]("routing.pushDMS")
+      pushDMS           = config.get[Boolean]("routing.pushDMS"),
+      pushRetryBackoff  = config.get[FiniteDuration]("routing.pushRetryBackoff")
     )
   }
 }

@@ -79,12 +79,14 @@ class RoutingActor(
           Future.successful(logger.info(s"no lock aquired"))
         case Some(lock) =>
           logger.info(s"aquired lock - pushing any waiting messages")
+          val now = DateTime.now()
           Source.combine[Envelope, Envelope](
             first  = getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ false, /*onlyUnseen = */ false),
             second = if (config.pushDMS)
                        getEnvelopesByStatusDMS(List(EnvelopeStatusClosed, EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ true)
-                        .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
-                        .throttle(config.throttleElements, config.throttlePer)
+                         .filterNot(_.lastPushed.exists(_.compareTo(now.minusMillis(config.pushRetryBackoff.toMillis.toInt)) > 0))
+                         .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
+                         .throttle(config.throttleElements, config.throttlePer)
                     else Source.empty[Envelope]
           )(Concat(_))
             .mapAsync(parallelism = 1)(envelope =>
