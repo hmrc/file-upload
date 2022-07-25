@@ -20,7 +20,7 @@ import akka.stream.scaladsl.Source
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
 import org.joda.time.DateTime
-import org.mockito.MockitoSugar
+import org.mockito.scalatest.MockitoSugar
 import org.scalatest.Inside
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers

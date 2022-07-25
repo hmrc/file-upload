@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.controllers.routing
 
 import java.time.Instant
 
-import org.mockito.MockitoSugar
+import org.mockito.scalatest.MockitoSugar
 import org.scalatest.concurrent.{ScalaFutures, IntegrationPatience}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
