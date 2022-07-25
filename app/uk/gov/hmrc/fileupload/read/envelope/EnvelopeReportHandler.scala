@@ -84,7 +84,8 @@ class EnvelopeReportHandler(
 
     case (s: Envelope, e: EnvelopeRouteRequested) =>
       Some(s.copy(
-        status = EnvelopeStatusRouteRequested
+        status     = EnvelopeStatusRouteRequested,
+        lastPushed = e.lastPushed
       ))
 
     case (s: Envelope, e: EnvelopeArchived) =>

@@ -18,12 +18,13 @@ package uk.gov.hmrc.fileupload.read.routing
 
 import akka.actor.{Actor, Cancellable, Props}
 import akka.stream.scaladsl.{Concat, Sink, Source}
+import org.joda.time.DateTime
 import play.api.Logger
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusClosed, EnvelopeStatusRouteRequested}
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
-import uk.gov.hmrc.fileupload.write.envelope.{ArchiveEnvelope, EnvelopeCommand, MarkEnvelopeAsRouted}
+import uk.gov.hmrc.fileupload.write.envelope.{ArchiveEnvelope, EnvelopeCommand, MarkEnvelopeAsRouteAttempted, MarkEnvelopeAsRouted}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.mongo.lock.LockRepository
 
@@ -131,7 +132,7 @@ class RoutingActor(
                                                          }
                                       cmd             <- pushRes match {
                                                            case Right(())   => logger.info(s"Successfully pushed routing for envelope [${envelope._id}]")
-                                                                               Future.successful(MarkEnvelopeAsRouted(envelope._id, isPushed = true))
+                                                                               Future.successful(MarkEnvelopeAsRouteAttempted(envelope._id, lastPushed = Some(DateTime.now())))
                                                            case Left(error) => fail(s"Failed to push routing for envelope [${envelope._id}]. Reason [${error.reason}]")
                                                          }
                                     } yield cmd

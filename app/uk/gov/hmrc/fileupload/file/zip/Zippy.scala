@@ -57,7 +57,7 @@ object Zippy {
     }
 
     getEnvelope(envelopeId) map {
-      case Right(envelopeWithFiles @ Envelope(_, _, EnvelopeStatusRouteRequested | EnvelopeStatusClosed, _, _, _, _, Some(files), _, _, _)) =>
+      case Right(envelopeWithFiles @ Envelope(_, _, EnvelopeStatusRouteRequested | EnvelopeStatusClosed, _, _, _, _, Some(files), _, _, _, _)) =>
         val zipFiles = files.collect {
           case f =>
             val fileName = f.name.getOrElse(FileName(UUID.randomUUID().toString))
@@ -71,7 +71,7 @@ object Zippy {
         }
         Right(ZipStreamEnumerator(zipFiles))
 
-      case Right(envelopeWithoutFiles @ Envelope(_, _, EnvelopeStatusRouteRequested | EnvelopeStatusClosed, _, _, _, _, None, _, _, _)) =>
+      case Right(envelopeWithoutFiles @ Envelope(_, _, EnvelopeStatusRouteRequested | EnvelopeStatusClosed, _, _, _, _, None, _, _, _, _)) =>
         logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope was empty - returning empty ZIP file.")
         Right(emptyZip())
 

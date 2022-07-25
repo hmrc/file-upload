@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.fileupload.read.routing
 
-import java.net.URL
 import java.util.Base64
 
 import play.api.http.Status

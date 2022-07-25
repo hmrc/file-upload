@@ -33,7 +33,9 @@ case class Envelope(
   files      : Option[Seq[File]]                = None,
   destination: Option[String]                   = None,
   application: Option[String]                   = None,
-  isPushed   : Option[Boolean]                  = None) {
+  isPushed   : Option[Boolean]                  = None,
+  lastPushed : Option[DateTime]                 = None
+) {
 
   def getFileById(fileId: FileId): Option[File] =
     files.flatMap(_.find(_.fileId == fileId))
