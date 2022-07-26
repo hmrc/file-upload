@@ -61,4 +61,7 @@ trait FakePushService extends BeforeAndAfterAll with ScalaFutures {
           Json.toJson(fileTransferNotification).toString
         })
     )
+
+  def clearPushNotifications(): Unit =
+    server.resetRequests()
 }

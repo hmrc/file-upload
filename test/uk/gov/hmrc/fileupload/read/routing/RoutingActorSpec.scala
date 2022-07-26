@@ -25,7 +25,7 @@ import org.scalatest.concurrent.{Eventually, IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.inject.ApplicationLifecycle
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, Service}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusRouteRequested, Service}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
 import uk.gov.hmrc.fileupload.EnvelopeId
@@ -62,7 +62,9 @@ class RoutingActorSpec
                                     buildNotificationCalled.set(true)
                                     Future.successful(Left(BuildNotificationError(envelopeId = envelope._id, reason = "failed", isTransient = false))),
                                   },
-        getEnvelopesByStatusDMS = (_, _, _) => Source.single(Envelope(destination = Some("dms")))
+        getEnvelopesByStatusDMS = (statuses, isDMS, onlyUnseen) => if (isDMS && statuses.contains(EnvelopeStatusRouteRequested))
+                                                                     Source.single(Envelope(destination = Some("dms")))
+                                                                   else Source.empty
       )
       boot.routingActor ! RoutingActor.PushIfWaiting
       eventually {
@@ -78,10 +80,12 @@ class RoutingActorSpec
                                     buildNotificationCalled.set(true)
                                     Future.successful(Left(BuildNotificationError(envelopeId = envelope._id, reason = "failed", isTransient = false))),
                                   },
-        getEnvelopesByStatusDMS = (_, _, _) => Source.single(Envelope(
-                                                 destination = Some("dms"),
-                                                 lastPushed  = Some(DateTime.now().minusMinutes(11)) // we've configured pushRetryBackoff to 10 mins
-                                               ))
+        getEnvelopesByStatusDMS = (statuses, isDMS, onlyUnseen) => if (isDMS && statuses.contains(EnvelopeStatusRouteRequested))
+                                                                     Source.single(Envelope(
+                                                                       destination = Some("dms"),
+                                                                       lastPushed  = Some(DateTime.now().minusMinutes(11)) // we've configured pushRetryBackoff to 10 mins
+                                                                     ))
+                                                                   else Source.empty
       )
       boot.routingActor ! RoutingActor.PushIfWaiting
       eventually {
