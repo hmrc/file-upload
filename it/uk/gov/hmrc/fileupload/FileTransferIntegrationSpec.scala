@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.fileupload
 
-import java.net.URL
 import org.scalatest.concurrent.IntegrationPatience
 import play.api.libs.json.{JsValue, Json}
+import uk.gov.hmrc.fileupload.controllers.routing.FileReceived
 import uk.gov.hmrc.fileupload.read.routing.{Algorithm, Audit, Checksum, DownloadUrl, FileTransferFile, FileTransferNotification, Property, RoutingRepository, ZipData}
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FakeFrontendService, FakePushService, IntegrationSpec}
 
@@ -170,25 +170,27 @@ class FileTransferIntegrationSpec
       And("I route an envelope")
       submitRoutingRequest(envelopeId, destination)
 
-      Then("There exist CLOSED envelopes that match it")
+      Then("There exist ROUTE_REQUESTED envelopes that match it")
       eventually {
-        val response = getEnvelopesForStatus(status = List("CLOSED"), inclusive = true)
+        val response = getEnvelopesForStatus(status = List("ROUTE_REQUESTED"), inclusive = true)
         response.body.isEmpty shouldBe false
       }
 
       And("The push notification was successful")
-      verifyPushNotification(FileTransferNotification(
-        informationType = "UNDEFINED",
-        file            = FileTransferFile(
-                            recipientOrSender = "fileUpload",
-                            name              = zipData.name,
-                            location          = Some(zipData.url),
-                            checksum          = Checksum(Algorithm.Md5, RoutingRepository.base64ToHex(zipData.md5Checksum)),
-                            size              = zipData.size.toInt,
-                            properties        = List.empty[Property]
-                          ),
-        audit           = Audit(correlationId = envelopeId.value)
-      ))
+      eventually {
+        verifyPushNotification(FileTransferNotification(
+          informationType = "UNDEFINED",
+          file            = FileTransferFile(
+                              recipientOrSender = "fileUpload",
+                              name              = zipData.name,
+                              location          = Some(zipData.url),
+                              checksum          = Checksum(Algorithm.Md5, RoutingRepository.base64ToHex(zipData.md5Checksum)),
+                              size              = zipData.size.toInt,
+                              properties        = List.empty[Property]
+                            ),
+          audit           = Audit(correlationId = envelopeId.value)
+        ))
+      }
 
       When(s"I invoke GET /file-transfer/envelopes?destination=$destination")
       val response = getEnvelopesForDestination(Some(destination))
@@ -199,6 +201,15 @@ class FileTransferIntegrationSpec
       And("It will not include the pushed envelope")
       val body = Json.parse(response.body)
       (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe 0
+
+      When(s"The service receives a FileReceived callback")
+      callCallback(FileReceived, envelopeId)
+
+      Then("There exist CLOSED envelopes that match it")
+      eventually {
+        val response = getEnvelopesForStatus(status = List("CLOSED"), inclusive = true)
+        response.body.isEmpty shouldBe false
+      }
     }
 
     Scenario("Mark envelopes as routed if cannot be zipped (410)") {
