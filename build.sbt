@@ -8,8 +8,6 @@ import uk.gov.hmrc.versioning.SbtGitVersioning
 import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
 import uk.gov.hmrc.DefaultBuildSettings
 
-val appName = "file-upload"
-
 lazy val scoverageSettings =
   Seq(
     // Semicolon-separated list of regexs matching classes to exclude
@@ -17,11 +15,10 @@ lazy val scoverageSettings =
     // Minimum is deliberately low to avoid failures initially - please increase as we add more coverage
     ScoverageKeys.coverageMinimum := 25,
     ScoverageKeys.coverageFailOnMinimum := false,
-    ScoverageKeys.coverageHighlighting := true,
-    parallelExecution in Test := false
+    ScoverageKeys.coverageHighlighting := true
   )
 
-lazy val microservice = Project(appName, file("."))
+lazy val microservice = Project("file-upload", file("."))
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin) //Required to prevent https://github.com/scalatest/scalatest/issues/1427
   .settings(majorVersion := 2)
@@ -29,11 +26,11 @@ lazy val microservice = Project(appName, file("."))
   .settings(scoverageSettings: _*)
   .settings(SbtDistributablesPlugin.publishingSettings: _*)
   .settings(
-    scalaVersion := "2.12.15",
+    scalaVersion := "2.12.16",
     libraryDependencies ++= AppDependencies.libraryDependencies,
-    parallelExecution in Test := false,
+    Test / parallelExecution := false,
     retrieveManaged := true,
-    evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
+    update / evictionWarningOptions := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
     routesGenerator := InjectedRoutesGenerator
   )
   .configs(IntegrationTest)
