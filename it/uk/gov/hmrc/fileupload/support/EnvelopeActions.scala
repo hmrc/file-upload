@@ -23,6 +23,8 @@ import play.api.http.HeaderNames
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.fileupload.EnvelopeId
+import uk.gov.hmrc.fileupload.controllers.routing.Notification
+import java.time.Instant
 
 trait EnvelopeActions extends ActionsSupport {
   this: TestSuite =>
@@ -93,13 +95,12 @@ trait EnvelopeActions extends ActionsSupport {
       )
       .futureValue
 
-  def getEnvelopesForDestination(destination: Option[String]): WSResponse = {
+  def getEnvelopesForDestination(destination: Option[String]): WSResponse =
     client
       .url(s"$fileTransferUrl/envelopes${destination.map(d => s"?destination=$d").getOrElse("")}")
       .withHttpHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
       .get()
       .futureValue
-  }
 
   def getEnvelopesForStatus(status: List[String], inclusive: Boolean) = {
     val statuses = status.map(n => s"status=$n").mkString("&")
@@ -121,4 +122,19 @@ trait EnvelopeActions extends ActionsSupport {
       .url(s"$url/files/inprogress")
       .get()
       .futureValue
+
+    def callCallback(notification: Notification, envelopeId: EnvelopeId): WSResponse =
+      client
+        .url(s"$fileRoutingUrl/sdes-callback")
+        .post(
+          Json.obj(
+           "notification"      -> notification.value,
+           "filename"          -> "filename",
+           "checksumAlgorithm" -> "SHA2",
+           "checksum"          -> "checksum",
+           "correlationID"     -> envelopeId.value,
+           "dateTime"          -> Instant.now().toString
+          )
+        )
+        .futureValue
 }

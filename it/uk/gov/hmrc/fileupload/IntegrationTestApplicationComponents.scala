@@ -24,11 +24,14 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.fileupload.support.ControlledAllEventsPublisher
 import uk.gov.hmrc.mongo.test.MongoSupport
 
+import scala.concurrent.duration.FiniteDuration
+
 trait IntegrationTestApplicationComponents extends GuiceOneServerPerSuite with MongoSupport {
   this: TestSuite =>
 
-  lazy val pushUrl: Option[String] = None
-  lazy val pushDestinations: Option[List[String]] = None
+  lazy val pushUrl         : Option[String]         = None
+  lazy val pushDestinations: Option[List[String]]   = None
+  lazy val pushRetryBackoff: Option[FiniteDuration] = None
 
   val conf =
     Seq(
@@ -44,7 +47,8 @@ trait IntegrationTestApplicationComponents extends GuiceOneServerPerSuite with M
       "microservice.services.file-upload-frontend.port" -> "8017"
     ) ++
     pushUrl.fold(Map.empty[String, String])(url => Map("routing.pushUrl" -> url)) ++
-    pushDestinations.fold(Map.empty[String, String])(_.zipWithIndex.map { case (destination, i) => s"routing.destinations.$i" -> destination }.toMap)
+    pushDestinations.fold(Map.empty[String, String])(_.zipWithIndex.map { case (destination, i) => s"routing.destinations.$i" -> destination }.toMap) ++
+    pushRetryBackoff.fold(Map.empty[String, String])(retryBackoff => Map("routing.pushRetryBackoff" -> retryBackoff.toString))
 
   val allEventsPublishControl: Stream[Boolean] = Stream.continually(true)
 

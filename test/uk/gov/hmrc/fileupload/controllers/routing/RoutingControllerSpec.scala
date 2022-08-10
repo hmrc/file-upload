@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload.controllers.routing
 
-import org.mockito.MockitoSugar
+import org.mockito.scalatest.MockitoSugar
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers

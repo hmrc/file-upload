@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload.controllers.transfer
 
-import org.mockito.MockitoSugar
+import org.mockito.scalatest.MockitoSugar
 import org.scalatest.concurrent.{ScalaFutures, IntegrationPatience}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -43,11 +43,12 @@ class TransferControllerSpec
 
   val failed = Future.failed(new Exception("not good"))
 
-  def newController(withBasicAuth: BasicAuth = AlwaysAuthorisedBasicAuth,
-                    getEnvelopesByDestination: Option[String] => Future[List[Envelope]] = _ => failed,
-                    handleCommand: EnvelopeCommand => Future[Either[CommandNotAccepted, CommandAccepted.type]] = _ => failed
+  def newController(
+    withBasicAuth            : BasicAuth = AlwaysAuthorisedBasicAuth,
+    getEnvelopesByDestination: Option[String] => Future[List[Envelope]]                                    = _ => failed,
+    handleCommand            : EnvelopeCommand => Future[Either[CommandNotAccepted, CommandAccepted.type]] = _ => failed
   ) = {
-    val appModule = mock[ApplicationModule]
+    val appModule = mock[ApplicationModule](withSettings.lenient)
     when(appModule.withBasicAuth).thenReturn(withBasicAuth)
     when(appModule.getEnvelopesByDestination).thenReturn(getEnvelopesByDestination)
     when(appModule.envelopeCommandHandler).thenReturn(handleCommand)

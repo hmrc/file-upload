@@ -87,7 +87,7 @@ class EnvelopeHandler(
         val fileStored = FileStored(command.id, command.fileId, command.fileRefId, command.length)
 
         if (withEvent(envelope, fileStored).canRequestRoute.isRight)
-          fileStored And EnvelopeRouteRequested(command.id)
+          fileStored And EnvelopeRouteRequested(command.id, lastPushed = None)
         else
           fileStored
       }
@@ -108,7 +108,7 @@ class EnvelopeHandler(
         )
 
         if (withEvent(envelope, envelopeSealed).canRequestRoute.isRight)
-          envelopeSealed And EnvelopeRouteRequested(command.id)
+          envelopeSealed And EnvelopeRouteRequested(command.id, lastPushed = None)
         else
           envelopeSealed
       }
@@ -116,7 +116,10 @@ class EnvelopeHandler(
     case (command: UnsealEnvelope, envelope: Envelope) =>
       envelope.canUnseal.map(_ => EnvelopeUnsealed(command.id))
 
-    case (command: MarkEnvelopeAsRouted, envelope: Envelope) =>
+    case (command: MarkEnvelopeAsRouteAttempted, envelope: Envelope) =>
+      envelope.canRoute.map(_ => EnvelopeRouteRequested(command.id, command.lastPushed))
+
+   case (command: MarkEnvelopeAsRouted, envelope: Envelope) =>
       envelope.canRoute.map(_ => EnvelopeRouted(command.id, command.isPushed))
 
     case (command: ArchiveEnvelope, envelope: Envelope) =>

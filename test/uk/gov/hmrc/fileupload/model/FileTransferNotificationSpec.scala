@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.model
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import play.api.libs.json.{JsError, Json}
+import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.read.routing.{Algorithm, Audit, Checksum, DownloadUrl, FileTransferFile, FileTransferNotification, Property}
 
 class FileTransferNotificationSpec extends AnyFlatSpec with Matchers {

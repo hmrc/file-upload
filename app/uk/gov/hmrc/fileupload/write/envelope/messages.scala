@@ -90,6 +90,11 @@ case class UnsealEnvelope(
   override val id: EnvelopeId
 ) extends EnvelopeCommand
 
+case class MarkEnvelopeAsRouteAttempted(
+  override val id: EnvelopeId,
+  lastPushed : Option[DateTime]
+) extends EnvelopeCommand
+
 case class MarkEnvelopeAsRouted(
   override val id: EnvelopeId,
   isPushed   : Boolean
@@ -166,7 +171,8 @@ case class EnvelopeUnsealed(
 ) extends EnvelopeEvent
 
 case class EnvelopeRouteRequested(
-  override val id: EnvelopeId
+  override val id: EnvelopeId,
+  lastPushed     : Option[DateTime]
 ) extends EnvelopeEvent
 
 case class EnvelopePushNotNeeded(
@@ -209,7 +215,12 @@ object Formatters {
   implicit val envelopeDeletedFormat: Format[EnvelopeDeleted] = Json.format[EnvelopeDeleted]
   implicit val envelopeSealedFormat: Format[EnvelopeSealed] = Json.format[EnvelopeSealed]
   implicit val envelopeUnsealedFormat: Format[EnvelopeUnsealed] = Json.format[EnvelopeUnsealed]
-  implicit val envelopeRouteRequestedFormat: Format[EnvelopeRouteRequested] = Json.format[EnvelopeRouteRequested]
+  implicit val envelopeRouteRequestedFormat: Format[EnvelopeRouteRequested] = {
+    // formats used for both API and storing in Mongo
+    implicit val dateReads: Reads[DateTime] = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    implicit val dateWrites: Writes[DateTime] = JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    Json.format[EnvelopeRouteRequested]
+  }
 
   // for backward compatibility; isPushed may not be present.
   implicit val envelopeRoutedFormat: Format[EnvelopeRouted] =

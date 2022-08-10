@@ -25,7 +25,7 @@ import play.api.libs.json._
 import play.api.mvc.{ControllerComponents, Request, Result}
 import uk.gov.hmrc.fileupload.{ApplicationModule, EnvelopeId}
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
-import uk.gov.hmrc.fileupload.write.envelope.{ArchiveEnvelope, EnvelopeArchivedError, EnvelopeCommand, EnvelopeNotFoundError}
+import uk.gov.hmrc.fileupload.write.envelope.{ArchiveEnvelope, EnvelopeArchivedError, EnvelopeAlreadyRoutedError, EnvelopeCommand, EnvelopeNotFoundError, MarkEnvelopeAsRouted}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -47,26 +47,36 @@ class SDESCallbackController @Inject()(
   def callback() = Action.async(parse.json) { implicit request =>
     withJsonBody[NotificationItem] { item =>
       logger.info(s"Received SDES callback: $item")
-
-      // we only action items that are 'FileProcessed'; we delete the corresponding envelopes.
-      // we have no retry mechanisms built that will retry if we're notified of an error here.
       val envelopeId = EnvelopeId(item.correlationId)
       item.notification match {
+        case FileReceived  => tryMarkAsRouted(envelopeId) // we will stop any push retries
         case FileProcessed => tryDelete(envelopeId)
-        case _             => Future.successful(Ok)
+        case _             => // we have no retry mechanisms built that will retry if we're notified of an error here.
+                              Future.successful(Ok)
       }
     }
   }
+
+  private def tryMarkAsRouted(envelopeId: EnvelopeId) =
+    handleCommand(MarkEnvelopeAsRouted(envelopeId, isPushed = true)).map {
+      case Right(_) => Ok
+      case Left(EnvelopeAlreadyRoutedError) =>
+        logger.info(s"Received another request to route envelope [$envelopeId]. It was previously routed.")
+        Ok
+      case Left(EnvelopeNotFoundError) => ExceptionHandler(BAD_REQUEST, s"CorrelationId $envelopeId not found")
+      case Left(CommandError(m))       => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Left(_)                     => ExceptionHandler(INTERNAL_SERVER_ERROR, s"Envelope with id: $envelopeId locked")
+    }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
 
   private def tryDelete(envelopeId: EnvelopeId) =
     handleCommand(ArchiveEnvelope(envelopeId)).map {
       case Right(_) => Ok
       case Left(EnvelopeArchivedError) =>
-        logger.info(s"Received another request to delete envelope [$envelopeId]. It was previously deleted")
+        logger.info(s"Received another request to delete envelope [$envelopeId]. It was previously deleted.")
         Ok
-      case Left(EnvelopeNotFoundError) => ExceptionHandler(BAD_REQUEST, s"CorrelationId $envelopeId not found")
-      case Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Left(_) => ExceptionHandler(INTERNAL_SERVER_ERROR, s"Envelope with id: $envelopeId locked")
+      case Left(EnvelopeNotFoundError) => ExceptionHandler(BAD_REQUEST          , s"CorrelationId $envelopeId not found")
+      case Left(CommandError(m))       => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Left(_)                     => ExceptionHandler(INTERNAL_SERVER_ERROR, s"Envelope with id: $envelopeId locked")
     }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
 
   /**

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.read.envelope.stats
 
 import java.time.{LocalDateTime, ZoneId}
-import org.mockito.MockitoSugar
+import org.mockito.scalatest.MockitoSugar
 import org.scalatest.concurrent.{Eventually, IntegrationPatience}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike

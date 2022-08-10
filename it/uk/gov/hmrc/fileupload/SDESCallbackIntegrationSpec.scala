@@ -19,14 +19,14 @@ package uk.gov.hmrc.fileupload
 import java.time.Instant
 
 import play.api.libs.json.Json
-import uk.gov.hmrc.fileupload.controllers.routing.{FileReceived, MD5, Notification, NotificationItem}
+import uk.gov.hmrc.fileupload.controllers.routing.{FileReady, MD5, Notification, NotificationItem}
 import uk.gov.hmrc.fileupload.support.{ActionsSupport, IntegrationSpec}
 
 class SDESCallbackIntegrationSpec extends IntegrationSpec with ActionsSupport {
 
   Feature("SDES Callbacks") {
     Scenario("handle SDES callbacks and return OK") {
-      val item = notificationItem(FileReceived)
+      val item = notificationItem(FileReady)
       val response =
         client
           .url(s"$fileRoutingUrl/sdes-callback")
