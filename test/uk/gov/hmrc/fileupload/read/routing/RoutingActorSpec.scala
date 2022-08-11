@@ -126,11 +126,8 @@ class RoutingActorSpec
       informationType   = "informationType",
       throttleElements  = 10,
       throttlePer       = 1.minute,
-      pushDMS           = true,
       pushRetryBackoff  = 10.minutes
     )
-
-
 
     val lockRepository = mock[LockRepository](withSettings.lenient)
     when(lockRepository.takeLock(any, any, any))
