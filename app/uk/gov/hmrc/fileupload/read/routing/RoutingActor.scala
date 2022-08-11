@@ -83,11 +83,15 @@ class RoutingActor(
           Source.combine[Envelope, Envelope](
             first  = getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ false, /*onlyUnseen = */ false),
             second = if (config.pushDMS)
-                        Source.combine[Envelope, Envelope](
+                        /*Source.combine[Envelope, Envelope](
                           first  = getEnvelopesByStatusDMS(List(EnvelopeStatusClosed), /*isDMS = */ true, /*onlyUnseen = */ true),
-                          second = getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
-                                     .filterNot(_.lastPushed.exists(_.compareTo(now.minusMillis(config.pushRetryBackoff.toMillis.toInt)) > 0))
-                        )(Concat(_))
+                          second =*/ getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
+                                     .filterNot { e =>
+                                       val filter = e.lastPushed.exists(_.compareTo(now.minusMillis(config.pushRetryBackoff.toMillis.toInt)) > 0)
+                                       logger.info(s"Include in push? ${!filter}")
+                                       filter
+                                     }
+                        //)(Concat(_))
                          .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
                          .throttle(config.throttleElements, config.throttlePer)
                     else Source.empty[Envelope]
