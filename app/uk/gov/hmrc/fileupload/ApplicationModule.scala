@@ -203,7 +203,7 @@ class ApplicationModule @Inject()(
       lockRepository          = lockRepository,
       applicationLifecycle    = applicationLifecycle,
       markAsSeen              = envelopeRepository.markAsSeen
-    ),
+    )(actorSystem.dispatchers.lookup("scheduler-dispatcher")),
     "routingActor")
 
   lazy val getFileFromS3 = new RetrieveFile(wsClient, fileUploadFrontendBaseUrl).download _
