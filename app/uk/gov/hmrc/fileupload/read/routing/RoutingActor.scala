@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.read.routing
 
 import akka.actor.{Actor, Cancellable, Props}
+import akka.stream.{ActorMaterializer, ActorMaterializerSettings}
 import akka.stream.scaladsl.{Concat, Sink, Source}
 import org.joda.time.DateTime
 import play.api.Logger
@@ -49,11 +50,15 @@ class RoutingActor(
  )(implicit executionContext: ExecutionContext
  ) extends Actor {
 
+
   import RoutingActor._
 
   val logger = Logger(getClass)
 
   implicit val as = context.system
+
+  implicit val materializer =
+    ActorMaterializer(ActorMaterializerSettings(as).withDispatcher("scheduler-dispatcher"))
 
   private val scheduler: Cancellable =
     context.system.scheduler.scheduleAtFixedRate(config.initialDelay, config.interval, self, PushIfWaiting)
