@@ -74,6 +74,9 @@ class ApplicationModule @Inject()(
 
   private val logger = Logger(getClass)
 
+  logger.warn("Java Version: " + System.getProperty("java.version") + ", availableProcessors: " + Runtime.getRuntime.availableProcessors)
+  System.getProperty("java.version")
+
   val envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration =
     EnvelopeConstraintsConfiguration.getEnvelopeConstraintsConfiguration(configuration) match {
       case Right(envelopeConstraints) => envelopeConstraints
