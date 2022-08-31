@@ -57,9 +57,6 @@ class RoutingActor(
 
   implicit val as = context.system
 
-  implicit val materializer =
-    ActorMaterializer(ActorMaterializerSettings(as).withDispatcher("scheduler-dispatcher"))
-
   private val scheduler: Cancellable =
     context.system.scheduler.scheduleAtFixedRate(config.initialDelay, config.interval, self, PushIfWaiting)
 
