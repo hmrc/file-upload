@@ -123,7 +123,7 @@ class EnvelopeHandler(
       envelope.canRoute.map(_ => EnvelopeRouted(command.id, command.isPushed))
 
     case (command: ArchiveEnvelope, envelope: Envelope) =>
-      envelope.canArchive.map(_ => EnvelopeArchived(command.id))
+      envelope.canArchive.map(_ => EnvelopeArchived(command.id, command.reason))
   }
 
   override def on: PartialFunction[(Envelope, EventData), Envelope] = {

@@ -101,7 +101,8 @@ case class MarkEnvelopeAsRouted(
 ) extends EnvelopeCommand
 
 case class ArchiveEnvelope(
-  override val id: EnvelopeId
+  override val id: EnvelopeId,
+  reason         : Option[String] = None
 ) extends EnvelopeCommand
 
 // events
@@ -185,7 +186,8 @@ case class EnvelopeRouted(
 ) extends EnvelopeEvent
 
 case class EnvelopeArchived(
-  override val id: EnvelopeId
+  override val id: EnvelopeId,
+  reason         : Option[String]
 ) extends EnvelopeEvent
 
 object Formatters {

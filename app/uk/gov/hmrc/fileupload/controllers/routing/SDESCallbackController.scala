@@ -49,10 +49,11 @@ class SDESCallbackController @Inject()(
       logger.info(s"Received SDES callback: $item")
       val envelopeId = EnvelopeId(item.correlationId)
       item.notification match {
-        case FileReceived  => tryMarkAsRouted(envelopeId) // we will stop any push retries
-        case FileProcessed => tryDelete(envelopeId)
-        case _             => // we have no retry mechanisms built that will retry if we're notified of an error here.
-                              Future.successful(Ok)
+        case FileReceived          => tryMarkAsRouted(envelopeId) // we will stop any push retries
+        case FileProcessed         => tryArchive(envelopeId)
+        case FileProcessingFailure => tryArchive(envelopeId, reason = Some("downstream_processing_failure"))
+        case _                     => // we have no retry mechanisms built that will retry if we're notified of an error here.
+                                      Future.successful(Ok)
       }
     }
   }
@@ -68,8 +69,8 @@ class SDESCallbackController @Inject()(
       case Left(_)                     => ExceptionHandler(INTERNAL_SERVER_ERROR, s"Envelope with id: $envelopeId locked")
     }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
 
-  private def tryDelete(envelopeId: EnvelopeId) =
-    handleCommand(ArchiveEnvelope(envelopeId)).map {
+  private def tryArchive(envelopeId: EnvelopeId, reason: Option[String] = None) =
+    handleCommand(ArchiveEnvelope(envelopeId, reason)).map {
       case Right(_) => Ok
       case Left(EnvelopeArchivedError) =>
         logger.info(s"Received another request to delete envelope [$envelopeId]. It was previously deleted.")

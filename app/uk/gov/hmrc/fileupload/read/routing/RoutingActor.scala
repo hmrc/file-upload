@@ -120,7 +120,7 @@ class RoutingActor(
                                     Future.successful(Right(notification))
                                   case Left(error) if !error.isTransient =>
                                     fail(s"Failed to build notification. Reason [${error.reason}]. Will archive envelope ${envelope._id}")
-                                    Future.successful(Left(ArchiveEnvelope(envelope._id)))
+                                    Future.successful(Left(ArchiveEnvelope(envelope._id, reason = Some("expired"))))
                                   case Left(error) =>
                                     fail(s"Failed to build notification. Reason [${error.reason}]")
                                 }

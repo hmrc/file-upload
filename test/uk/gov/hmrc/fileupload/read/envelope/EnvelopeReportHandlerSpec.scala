@@ -209,7 +209,7 @@ class EnvelopeReportHandlerSpec extends AnyWordSpecLike with Matchers {
       assert(deleteFunctionWasCalled)
     }
     "archive envelope (soft delete for transfer)" in new UpdateEnvelopeFixture {
-      val event = EnvelopeArchived(envelopeId)
+      val event = EnvelopeArchived(envelopeId, reason = None)
 
       sendEvent(event)
 
