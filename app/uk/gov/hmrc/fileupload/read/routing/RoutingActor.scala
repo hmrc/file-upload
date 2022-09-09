@@ -83,9 +83,9 @@ class RoutingActor(
           Source.combine[Envelope, Envelope](
             first  = getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ false, /*onlyUnseen = */ false),
             second = Source.combine[Envelope, Envelope](
-                       first  = getEnvelopesByStatusDMS(List(EnvelopeStatusClosed), /*isDMS = */ true, /*onlyUnseen = */ true),
-                       second = getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
-                                  .filterNot(_.lastPushed.exists(_.compareTo(cutoff) > 0))
+                       first  = getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
+                                  .filterNot(_.lastPushed.exists(_.compareTo(cutoff) > 0)),
+                       second = getEnvelopesByStatusDMS(List(EnvelopeStatusClosed), /*isDMS = */ true, /*onlyUnseen = */ true)
                      )(Concat(_))
                       .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
                       .throttle(config.throttleElements, config.throttlePer)
