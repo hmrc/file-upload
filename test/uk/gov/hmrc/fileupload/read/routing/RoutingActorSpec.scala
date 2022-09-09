@@ -117,7 +117,7 @@ class RoutingActorSpec
   ) {
 
     val routingConfig = RoutingConfig(
-      initialDelay      = 0.seconds,
+      initialDelay      = 10.minutes, // we'll request it
       interval          = 10.minutes,
       clientId          = "clientId",
       recipientOrSender = "recipientOrSender",

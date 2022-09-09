@@ -81,11 +81,17 @@ class RoutingActor(
           logger.info(s"aquired lock - pushing any waiting messages")
           val cutoff = DateTime.now().minusMillis(config.pushRetryBackoff.toMillis.toInt)
           Source.combine[Envelope, Envelope](
-            first  = getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ false, /*onlyUnseen = */ false),
+            first  = // nonDMS should go through without any throttling
+                     getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ false, /*onlyUnseen = */ false),
             second = Source.combine[Envelope, Envelope](
-                       first  = getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
-                                  .filterNot(_.lastPushed.exists(_.compareTo(cutoff) > 0)),
-                       second = getEnvelopesByStatusDMS(List(EnvelopeStatusClosed), /*isDMS = */ true, /*onlyUnseen = */ true)
+                       // first time RouteRequested take precedence
+                       getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
+                         .filter(_.lastPushed.isEmpty),
+                       // then RouteRequested retries
+                       getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
+                         .filter(_.lastPushed.forall(_.compareTo(cutoff) < 0)),
+                       // and finally any CLOSED that we have explicitly requested to be retried (by clearing the lastSeen flag)
+                       getEnvelopesByStatusDMS(List(EnvelopeStatusClosed), /*isDMS = */ true, /*onlyUnseen = */ true)
                      )(Concat(_))
                       .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
                       .throttle(config.throttleElements, config.throttlePer)
