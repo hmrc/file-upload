@@ -51,7 +51,7 @@ class SDESCallbackController @Inject()(
       item.notification match {
         case FileReceived          => tryMarkAsRouted(envelopeId) // we will stop any push retries
         case FileProcessed         => tryArchive(envelopeId)
-        case FileProcessingFailure => tryArchive(envelopeId, reason = Some("downstream_processing_failure"))
+        case FileProcessingFailure => tryArchive(envelopeId, reason = Some("downstream_processing_failure" + item.failureReason.fold("")(": " + _)))
         case _                     => // we have no retry mechanisms built that will retry if we're notified of an error here.
                                       Future.successful(Ok)
       }
