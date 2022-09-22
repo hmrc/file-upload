@@ -123,18 +123,18 @@ trait EnvelopeActions extends ActionsSupport {
       .get()
       .futureValue
 
-    def callCallback(notification: Notification, envelopeId: EnvelopeId): WSResponse =
-      client
-        .url(s"$fileRoutingUrl/sdes-callback")
-        .post(
-          Json.obj(
-           "notification"      -> notification.value,
-           "filename"          -> "filename",
-           "checksumAlgorithm" -> "SHA2",
-           "checksum"          -> "checksum",
-           "correlationID"     -> envelopeId.value,
-           "dateTime"          -> Instant.now().toString
-          )
+  def callCallback(notification: Notification, envelopeId: EnvelopeId): WSResponse =
+    client
+      .url(s"$fileRoutingUrl/sdes-callback")
+      .post(
+        Json.obj(
+          "notification"      -> notification.value,
+          "filename"          -> "filename",
+          "checksumAlgorithm" -> "SHA2",
+          "checksum"          -> "checksum",
+          "correlationID"     -> envelopeId.value,
+          "dateTime"          -> Instant.now().toString
         )
-        .futureValue
+      )
+      .futureValue
 }

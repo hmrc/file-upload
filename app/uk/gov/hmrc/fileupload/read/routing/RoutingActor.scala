@@ -79,18 +79,22 @@ class RoutingActor(
           Future.successful(logger.info(s"no lock aquired"))
         case Some(lock) =>
           logger.info(s"aquired lock - pushing any waiting messages")
-          val now = DateTime.now()
+          val cutoff = DateTime.now().minusMillis(config.pushRetryBackoff.toMillis.toInt)
           Source.combine[Envelope, Envelope](
-            first  = getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ false, /*onlyUnseen = */ false),
-            second = if (config.pushDMS)
-                        Source.combine[Envelope, Envelope](
-                          first  = getEnvelopesByStatusDMS(List(EnvelopeStatusClosed), /*isDMS = */ true, /*onlyUnseen = */ true),
-                          second = getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
-                                     .filterNot(_.lastPushed.exists(_.compareTo(now.minusMillis(config.pushRetryBackoff.toMillis.toInt)) > 0))
-                        )(Concat(_))
-                         .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
-                         .throttle(config.throttleElements, config.throttlePer)
-                    else Source.empty[Envelope]
+            first  = // nonDMS should go through without any throttling
+                     getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ false, /*onlyUnseen = */ false),
+            second = Source.combine[Envelope, Envelope](
+                       // first time RouteRequested take precedence
+                       getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
+                         .filter(_.lastPushed.isEmpty),
+                       // then RouteRequested retries
+                       getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
+                         .filter(_.lastPushed.forall(_.compareTo(cutoff) < 0)),
+                       // and finally any CLOSED that we have explicitly requested to be retried (by clearing the lastSeen flag)
+                       getEnvelopesByStatusDMS(List(EnvelopeStatusClosed), /*isDMS = */ true, /*onlyUnseen = */ true)
+                     )(Concat(_))
+                      .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
+                      .throttle(config.throttleElements, config.throttlePer)
           )(Concat(_))
             .mapAsync(parallelism = 1)(envelope =>
               routeEnvelope(envelope)
@@ -122,7 +126,7 @@ class RoutingActor(
                                     Future.successful(Right(notification))
                                   case Left(error) if !error.isTransient =>
                                     fail(s"Failed to build notification. Reason [${error.reason}]. Will archive envelope ${envelope._id}")
-                                    Future.successful(Left(ArchiveEnvelope(envelope._id)))
+                                    Future.successful(Left(ArchiveEnvelope(envelope._id, reason = Some("expired"))))
                                   case Left(error) =>
                                     fail(s"Failed to build notification. Reason [${error.reason}]")
                                 }

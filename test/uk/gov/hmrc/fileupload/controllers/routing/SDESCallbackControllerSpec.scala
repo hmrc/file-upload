@@ -53,7 +53,7 @@ class SDESCallbackControllerSpec
 
   "callback" should {
 
-    val notificationTypesJustReturn200s = Seq(FileReady, FileProcessingFailure)
+    val notificationTypesJustReturn200s = Seq(FileReady)
 
     notificationTypesJustReturn200s.foreach { notification =>
       s"return response with 200 if notification is ${notification.value}" in {
@@ -66,9 +66,13 @@ class SDESCallbackControllerSpec
       }
     }
 
-    val notificationTypesToBeProcessed = Seq(FileReceived, FileProcessed)
+    val notificationTypesToBeProcessed = Seq(
+      FileReceived          -> EnvelopeAlreadyRoutedError,
+      FileProcessed         -> EnvelopeArchivedError,
+      FileProcessingFailure -> EnvelopeArchivedError
+    )
 
-    notificationTypesToBeProcessed.foreach { notification =>
+    notificationTypesToBeProcessed.foreach { case (notification, duplicateError) =>
       s"return response with 500 if handler returns error for ${notification.value}" in {
         val request = FakeRequest().withBody(Json.toJson(notificationItem(notification)))
 
@@ -95,24 +99,15 @@ class SDESCallbackControllerSpec
 
         result.header.status shouldBe Status.SERVICE_UNAVAILABLE
       }
-    }
 
-    "return 200 response if handling duplicate request for FileProcessed" in {
-      val request = FakeRequest().withBody(Json.toJson(notificationItem(FileProcessed)))
+      s"return 200 response if handling duplicate request for ${notification.value}" in {
+        val request = FakeRequest().withBody(Json.toJson(notificationItem(notification)))
 
-      val controller = newController(handleCommand = _ => Future.successful(Left(EnvelopeArchivedError)))
-      val result = controller.callback()(request).futureValue
+        val controller = newController(handleCommand = _ => Future.successful(Left(duplicateError)))
+        val result = controller.callback()(request).futureValue
 
-      result.header.status shouldBe Status.OK
-    }
-
-    "return 200 response if handling duplicate request for FileReceived" in {
-      val request = FakeRequest().withBody(Json.toJson(notificationItem(FileReceived)))
-
-      val controller = newController(handleCommand = _ => Future.successful(Left(EnvelopeAlreadyRoutedError)))
-      val result = controller.callback()(request).futureValue
-
-      result.header.status shouldBe Status.OK
+        result.header.status shouldBe Status.OK
+      }
     }
   }
 
