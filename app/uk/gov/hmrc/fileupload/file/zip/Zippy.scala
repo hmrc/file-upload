@@ -29,7 +29,7 @@ import play.api.libs.iteratee.streams.IterateeStreams
 import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
 import uk.gov.hmrc.fileupload.file.zip.ZipStream.{ZipFileInfo, ZipStreamEnumerator}
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindEnvelopeNotFoundError, FindResult, FindServiceError}
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatusClosed, EnvelopeStatusRouteRequested}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, File, EnvelopeStatusClosed, EnvelopeStatusRouteRequested}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileName}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -56,8 +56,17 @@ object Zippy {
       )
     }
 
-    getEnvelope(envelopeId) map {
-      case Right(envelopeWithFiles @ Envelope(_, _, EnvelopeStatusRouteRequested | EnvelopeStatusClosed, _, _, _, _, Some(files), _, _, _, _)) =>
+    object FilesForZip {
+      def unapply(envelope: Envelope): Option[Option[Seq[File]]] =
+        envelope.status match {
+          case EnvelopeStatusRouteRequested | EnvelopeStatusClosed
+                 => Some(envelope.files)
+          case _ => None
+        }
+    }
+
+    getEnvelope(envelopeId).map {
+      case Right(envelopeWithFiles @ FilesForZip(Some(files))) =>
         val zipFiles = files.collect {
           case f =>
             val fileName = f.name.getOrElse(FileName(UUID.randomUUID().toString))
@@ -71,7 +80,7 @@ object Zippy {
         }
         Right(ZipStreamEnumerator(zipFiles))
 
-      case Right(envelopeWithoutFiles @ Envelope(_, _, EnvelopeStatusRouteRequested | EnvelopeStatusClosed, _, _, _, _, None, _, _, _, _)) =>
+      case Right(envelopeWithoutFiles @ FilesForZip(None)) =>
         logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope was empty - returning empty ZIP file.")
         Right(emptyZip())
 
