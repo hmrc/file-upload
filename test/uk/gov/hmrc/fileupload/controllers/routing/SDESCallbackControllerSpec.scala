@@ -67,9 +67,9 @@ class SDESCallbackControllerSpec
     }
 
     val notificationTypesToBeProcessed = Seq(
-      FileReceived          -> EnvelopeAlreadyRoutedError,
-      FileProcessed         -> EnvelopeArchivedError,
-      FileProcessingFailure -> EnvelopeArchivedError
+      FileReceived          -> Some(EnvelopeAlreadyRoutedError),
+      FileProcessed         -> Some(EnvelopeArchivedError),
+      FileProcessingFailure -> None
     )
 
     notificationTypesToBeProcessed.foreach { case (notification, duplicateError) =>
@@ -100,13 +100,15 @@ class SDESCallbackControllerSpec
         result.header.status shouldBe Status.SERVICE_UNAVAILABLE
       }
 
-      s"return 200 response if handling duplicate request for ${notification.value}" in {
-        val request = FakeRequest().withBody(Json.toJson(notificationItem(notification)))
+      duplicateError.foreach { duplicateError =>
+        s"return 200 response if handling duplicate request for ${notification.value}" in {
+          val request = FakeRequest().withBody(Json.toJson(notificationItem(notification)))
 
-        val controller = newController(handleCommand = _ => Future.successful(Left(duplicateError)))
-        val result = controller.callback()(request).futureValue
+          val controller = newController(handleCommand = _ => Future.successful(Left(duplicateError)))
+          val result = controller.callback()(request).futureValue
 
-        result.header.status shouldBe Status.OK
+          result.header.status shouldBe Status.OK
+        }
       }
     }
   }

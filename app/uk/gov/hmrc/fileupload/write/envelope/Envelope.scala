@@ -120,7 +120,7 @@ class EnvelopeHandler(
       envelope.canRoute.map(_ => EnvelopeRouteRequested(command.id, command.lastPushed))
 
    case (command: MarkEnvelopeAsRouted, envelope: Envelope) =>
-      envelope.canRoute.map(_ => EnvelopeRouted(command.id, command.isPushed))
+      envelope.canRoute.map(_ => EnvelopeRouted(command.id, command.isPushed, command.reason))
 
     case (command: ArchiveEnvelope, envelope: Envelope) =>
       envelope.canArchive.map(_ => EnvelopeArchived(command.id, command.reason))

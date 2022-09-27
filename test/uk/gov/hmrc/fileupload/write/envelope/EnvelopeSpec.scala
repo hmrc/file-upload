@@ -75,7 +75,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with Tes
   val envelopeSealed         = EnvelopeSealed(envelopeId, "testRoutingRequestId", "DMS", "testApplication")
   val envelopeUnsealed       = EnvelopeUnsealed(envelopeId)
   val envelopeRouteRequested = EnvelopeRouteRequested(envelopeId, lastPushed = None)
-  val envelopeRouted         = EnvelopeRouted(envelopeId, isPushed = true)
+  val envelopeRouted         = EnvelopeRouted(envelopeId, isPushed = true, reason = None)
   val envelopeArchived       = EnvelopeArchived(envelopeId, reason = None)
 
   def defaultFileRefId = FileRefId(UUID.randomUUID().toString)

@@ -190,7 +190,7 @@ class EnvelopeReportHandlerSpec extends AnyWordSpecLike with Matchers {
       modifiedEnvelope shouldBe expectedEnvelope
     }
     "route envelope" in new UpdateEnvelopeFixture {
-      val event = EnvelopeRouted(initialState._id, isPushed = false)
+      val event = EnvelopeRouted(initialState._id, isPushed = false, reason = None)
 
       sendEvent(event)
 
