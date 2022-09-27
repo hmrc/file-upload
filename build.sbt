@@ -26,7 +26,7 @@ lazy val microservice = Project("file-upload", file("."))
   .settings(scoverageSettings: _*)
   .settings(SbtDistributablesPlugin.publishingSettings: _*)
   .settings(
-    scalaVersion := "2.12.16",
+    scalaVersion := "2.12.17",
     libraryDependencies ++= AppDependencies.libraryDependencies,
     Test / parallelExecution := false,
     retrieveManaged := true,

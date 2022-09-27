@@ -90,13 +90,15 @@ class EnvelopeReportHandler(
 
     case (s: Envelope, e: EnvelopeArchived) =>
       Some(s.copy(
-        status = EnvelopeStatusDeleted
+        status = EnvelopeStatusDeleted,
+        reason = e.reason
       ))
 
     case (s: Envelope, e: EnvelopeRouted) =>
       Some(s.copy(
         status   = EnvelopeStatusClosed,
-        isPushed = Some(e.isPushed)
+        isPushed = Some(e.isPushed),
+        reason   = e.reason
       ))
 
     case (s: Envelope, e: FileDeleted) =>

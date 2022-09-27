@@ -34,7 +34,8 @@ case class Envelope(
   destination: Option[String]                   = None,
   application: Option[String]                   = None,
   isPushed   : Option[Boolean]                  = None,
-  lastPushed : Option[DateTime]                 = None
+  lastPushed : Option[DateTime]                 = None,
+  reason     : Option[String]                   = None
 ) {
 
   def getFileById(fileId: FileId): Option[File] =

@@ -97,7 +97,8 @@ case class MarkEnvelopeAsRouteAttempted(
 
 case class MarkEnvelopeAsRouted(
   override val id: EnvelopeId,
-  isPushed   : Boolean
+  isPushed   : Boolean,
+  reason     : Option[String] = None
 ) extends EnvelopeCommand
 
 case class ArchiveEnvelope(
@@ -182,7 +183,8 @@ case class EnvelopePushNotNeeded(
 
 case class EnvelopeRouted(
   override val id: EnvelopeId,
-  isPushed       : Boolean
+  isPushed       : Boolean,
+  reason         : Option[String]
 ) extends EnvelopeEvent
 
 case class EnvelopeArchived(
@@ -228,6 +230,7 @@ object Formatters {
   implicit val envelopeRoutedFormat: Format[EnvelopeRouted] =
     ( (__ \ "id"      ).format[EnvelopeId]
     ~ (__ \ "isPushed").formatNullable[Boolean].inmap(_.getOrElse(false), Some.apply[Boolean]) // formatWithDefault not available for this version of play-json
+    ~ (__ \ "reason"  ).formatNullable[String]
     )(EnvelopeRouted.apply, unlift(EnvelopeRouted.unapply))
 
   implicit val envelopeArchivedFormat: Format[EnvelopeArchived] = Json.format[EnvelopeArchived]

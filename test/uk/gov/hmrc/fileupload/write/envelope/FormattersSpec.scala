@@ -27,11 +27,11 @@ class FormattersSpec extends AnyWordSpecLike with Matchers {
 
   "Formatters" should {
     "read current representation of EnvelopeRouted" in {
-	  Json.parse("""{"id": "1", "isPushed": true}""").as[EnvelopeRouted] shouldBe EnvelopeRouted(id = EnvelopeId("1"), isPushed = true)
+	    Json.parse("""{"id": "1", "isPushed": true}""").as[EnvelopeRouted] shouldBe EnvelopeRouted(id = EnvelopeId("1"), isPushed = true, reason = None)
     }
 
     "read previous representations of EnvelopeRouted" in {
-      Json.parse("""{"id": "1"}""").as[EnvelopeRouted] shouldBe EnvelopeRouted(id = EnvelopeId("1"), isPushed = false)
+      Json.parse("""{"id": "1"}""").as[EnvelopeRouted] shouldBe EnvelopeRouted(id = EnvelopeId("1"), isPushed = false, reason = None)
     }
   }
 }

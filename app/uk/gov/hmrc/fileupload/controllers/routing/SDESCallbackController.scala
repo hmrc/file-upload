@@ -50,16 +50,16 @@ class SDESCallbackController @Inject()(
       val envelopeId = EnvelopeId(item.correlationId)
       item.notification match {
         case FileReceived          => tryMarkAsRouted(envelopeId) // we will stop any push retries
+        case FileProcessingFailure => tryMarkAsRouted(envelopeId, reason = Some("downstream_processing_failure" + item.failureReason.fold("")(": " + _)))
         case FileProcessed         => tryArchive(envelopeId)
-        case FileProcessingFailure => tryArchive(envelopeId, reason = Some("downstream_processing_failure" + item.failureReason.fold("")(": " + _)))
         case _                     => // we have no retry mechanisms built that will retry if we're notified of an error here.
                                       Future.successful(Ok)
       }
     }
   }
 
-  private def tryMarkAsRouted(envelopeId: EnvelopeId) =
-    handleCommand(MarkEnvelopeAsRouted(envelopeId, isPushed = true)).map {
+  private def tryMarkAsRouted(envelopeId: EnvelopeId, reason: Option[String] = None) =
+    handleCommand(MarkEnvelopeAsRouted(envelopeId, isPushed = true, reason = reason)).map {
       case Right(_) => Ok
       case Left(EnvelopeAlreadyRoutedError) =>
         logger.info(s"Received another request to route envelope [$envelopeId]. It was previously routed.")
@@ -69,8 +69,8 @@ class SDESCallbackController @Inject()(
       case Left(_)                     => ExceptionHandler(INTERNAL_SERVER_ERROR, s"Envelope with id: $envelopeId locked")
     }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
 
-  private def tryArchive(envelopeId: EnvelopeId, reason: Option[String] = None) =
-    handleCommand(ArchiveEnvelope(envelopeId, reason)).map {
+  private def tryArchive(envelopeId: EnvelopeId) =
+    handleCommand(ArchiveEnvelope(envelopeId)).map {
       case Right(_) => Ok
       case Left(EnvelopeArchivedError) =>
         logger.info(s"Received another request to delete envelope [$envelopeId]. It was previously deleted.")
