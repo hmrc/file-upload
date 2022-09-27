@@ -2,12 +2,10 @@
 
 **This service is now deprecated. If you need to use the functions this service delivers, please use [Upscan service](https://confluence.tools.tax.service.gov.uk/pages/viewpage.action?pageId=101663507) or speak to the owners of Upscan service**
 
-[ ![Download](https://api.bintray.com/packages/hmrc/releases/file-upload/images/download.svg) ](https://bintray.com/hmrc/releases/file-upload/_latestVersion)
-
 This API provides a mechanism whereby a client microservice can define and manage an envelope which can later be filled with files and then optionally routed to another system. The envelope resources are exposed on the /file-upload/envelopes endpoint. Please <i>**DO NOT USE**</i> Test-Only endpoints because they are not available in production and the Internal endpoints specified <i>**WITHOUT PERMISSION.**</i>
 
 ## Software Requirements
-*   MongoDB 3.2 (3.4 will not work currently)
+*   MongoDB 4.2
 
 ## Run the application locally
 
