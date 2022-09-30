@@ -89,7 +89,7 @@ class RoutingActor(
                          .filter(_.lastPushed.isEmpty),
                        // then RouteRequested retries
                        getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
-                         .filter(_.lastPushed.forall(_.compareTo(cutoff) < 0)),
+                         .filter(_.lastPushed.exists(_.compareTo(cutoff) < 0)),
                        // and finally any CLOSED that we have explicitly requested to be retried (by clearing the lastSeen flag)
                        getEnvelopesByStatusDMS(List(EnvelopeStatusClosed), /*isDMS = */ true, /*onlyUnseen = */ true)
                      )(Concat(_))
