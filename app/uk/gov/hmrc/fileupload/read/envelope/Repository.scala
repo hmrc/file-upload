@@ -162,7 +162,10 @@ class Repository(
 
   def clearSeen(): Future[Long] =
     collection
-      .updateMany(exists("seen", true), unset("seen"))
+      .updateMany(
+        and(equal("status", EnvelopeStatusClosed.name), exists("seen", true)),
+        unset("seen")
+      )
       .toFuture()
       .map(_.getModifiedCount)
 
