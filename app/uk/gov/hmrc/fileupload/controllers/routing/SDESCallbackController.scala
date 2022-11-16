@@ -64,6 +64,9 @@ class SDESCallbackController @Inject()(
       case Left(EnvelopeAlreadyRoutedError) =>
         logger.info(s"Received another request to route envelope [$envelopeId]. It was previously routed.")
         Ok
+      case Left(EnvelopeArchivedError) =>
+        logger.info(s"Received a request to route envelope [$envelopeId]. It was previously archived.")
+        Ok
       case Left(EnvelopeNotFoundError) => ExceptionHandler(BAD_REQUEST, s"CorrelationId $envelopeId not found")
       case Left(CommandError(m))       => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
       case Left(_)                     => ExceptionHandler(INTERNAL_SERVER_ERROR, s"Envelope with id: $envelopeId locked")
