@@ -1,11 +1,6 @@
-import play.routes.compiler.InjectedRoutesGenerator
 import play.sbt.PlayImport.PlayKeys
-import play.sbt.routes.RoutesKeys.routesGenerator
-import sbt.Tests.{Group, SubProcess}
 import scoverage.ScoverageKeys
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
-import uk.gov.hmrc.versioning.SbtGitVersioning
-import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
 import uk.gov.hmrc.DefaultBuildSettings
 
 lazy val scoverageSettings =
@@ -29,12 +24,7 @@ lazy val microservice = Project("file-upload", file("."))
     scalaVersion := "2.12.17",
     libraryDependencies ++= AppDependencies.libraryDependencies,
     Test / parallelExecution := false,
-    retrieveManaged := true,
-    update / evictionWarningOptions := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
-    routesGenerator := InjectedRoutesGenerator
+    scalacOptions += "-Wconf:src=routes/.*:s"
   )
   .configs(IntegrationTest)
   .settings(DefaultBuildSettings.integrationTestSettings())
-  .settings(
-    resolvers += Resolver.jcenterRepo // for metrics-play
-  )

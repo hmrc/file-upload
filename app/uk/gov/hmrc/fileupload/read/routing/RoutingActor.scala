@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.read.routing
 
 import akka.actor.{Actor, Cancellable, Props}
-import akka.stream.scaladsl.{Concat, Sink, Source}
+import akka.stream.scaladsl.{Concat, Merge, Sink, Source}
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.inject.ApplicationLifecycle
@@ -95,7 +95,7 @@ class RoutingActor(
                      )(Concat(_))
                       .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
                       .throttle(config.throttleElements, config.throttlePer)
-          )(Concat(_))
+          )(Merge(_))
             .mapAsync(parallelism = 1)(envelope =>
               routeEnvelope(envelope)
               .recover {

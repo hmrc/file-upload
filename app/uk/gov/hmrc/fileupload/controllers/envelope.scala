@@ -33,7 +33,8 @@ case class EnvelopeReport(
   status     : Option[String]                     = None,
   destination: Option[String]                     = None,
   application: Option[String]                     = None,
-  files      : Option[Seq[GetFileMetadataReport]] = None
+  files      : Option[Seq[GetFileMetadataReport]] = None,
+  reason     : Option[String]                     = None
 )
 
 object EnvelopeReport {
@@ -60,7 +61,8 @@ object EnvelopeReport {
       constraints = envelope.constraints,
       destination = envelope.destination,
       application = envelope.application,
-      files       = envelope.files.map(_.map(file => GetFileMetadataReport.fromFile(envelope._id, file)))
+      files       = envelope.files.map(_.map(file => GetFileMetadataReport.fromFile(envelope._id, file))),
+      reason      = envelope.reason
     )
   }
 
