@@ -52,7 +52,6 @@ class SDESCallbackControllerSpec
   }
 
   "callback" should {
-
     val notificationTypesJustReturn200s = Seq(FileReady)
 
     notificationTypesJustReturn200s.foreach { notification =>
