@@ -16,11 +16,10 @@
 
 package uk.gov.hmrc.fileupload.read.stats
 
-import java.time.{Instant, Duration => JDuration}
-
 import akka.actor.{ActorSystem, Cancellable}
 import play.api.{Configuration, Logger}
 
+import java.time.Instant
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -66,7 +65,7 @@ class StatsLogger(
         statsLogger.logRepoSize(added, timePeriod)
 
   private def countAddedOverTimePeriod(duration: Duration): Future[Long] =
-    statsRepository.statsAddedSince(Instant.now.minus(JDuration.ofMillis(duration.toMillis)))
+    statsRepository.statsAddedSince(Instant.now().minusMillis(duration.toMillis))
 }
 
 class StatsLogWriter {

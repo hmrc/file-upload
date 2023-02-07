@@ -179,6 +179,10 @@ class Repository(
     Await.result(ensureIndexes, 5.seconds)
   }
 
+  def purge(envelopeIds: Seq[EnvelopeId]): Future[Unit] =
+    if (envelopeIds.nonEmpty)
+      collection.bulkWrite(envelopeIds.map(id => DeleteOneModel(equal("_id", id.value)))).toFuture().map(_ => ())
+    else Future.unit
 }
 
 class WithValidEnvelope(getEnvelope: EnvelopeId => Future[Option[Envelope]]) {

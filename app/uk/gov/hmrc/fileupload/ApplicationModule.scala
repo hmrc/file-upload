@@ -16,11 +16,9 @@
 
 package uk.gov.hmrc.fileupload
 
-import java.util.UUID
 import akka.actor.ActorRef
 import com.google.inject.ImplementedBy
 import com.kenshoo.play.metrics.MetricsImpl
-
 import javax.inject.{Inject, Singleton}
 import play.api._
 import play.api.libs.ws.ahc.AhcWSComponents
@@ -39,6 +37,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.mongo.{CurrentTimestampSupport, MongoComponent}
 
+import java.util.UUID
 
 /**
   * This trait is added to control publishing the events in the tests
@@ -211,7 +210,10 @@ class ApplicationModule @Inject()(
   val getEnvelopesByDestination = envelopeRepository.getByDestination _
   val zipEnvelope = Zippy.zipEnvelope(findEnvelope, getFileFromS3) _
 
-  val recreateCollections: List[() => Unit] = List(eventStore.recreate, envelopeRepository.recreate, statsRepository.recreate)
+  val recreateCollections: List[() => Unit] =
+    List(eventStore.recreate, envelopeRepository.recreate, statsRepository.recreate)
 
   val newId: () => String = () => UUID.randomUUID().toString
+
+  new OldDataPurger(configuration, eventStore, envelopeRepository)(executionContext, actorSystem).purge()
 }
