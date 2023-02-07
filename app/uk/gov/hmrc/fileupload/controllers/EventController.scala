@@ -40,7 +40,7 @@ class EventController @Inject()(
   implicit val eventWrites = EventSerializer.eventWrite
 
   def get(streamId: StreamId) = Action.async {
-    unitOfWorks(streamId) map {
+    unitOfWorks(streamId).map {
       case Right(r) =>
         Ok(Json.toJson(r.flatMap(_.events)))
       case Left(e) =>

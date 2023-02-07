@@ -16,19 +16,18 @@
 
 package uk.gov.hmrc.fileupload.write.infrastructure
 
-import java.util.concurrent.TimeUnit
 import com.codahale.metrics.MetricRegistry
-import play.api.Logger
-import uk.gov.hmrc.fileupload.write.infrastructure.EventStore._
-
-import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.concurrent.duration._
-import scala.language.postfixOps
 import com.mongodb.{MongoException, WriteConcern}
 import org.mongodb.scala.model._
 import org.mongodb.scala.model.Filters._
+import play.api.Logger
+import uk.gov.hmrc.fileupload.write.infrastructure.EventStore._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+
+import java.util.concurrent.TimeUnit
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration.{DurationLong, FiniteDuration}
 
 object EventStore {
   type SaveResult = Either[SaveError, SaveSuccess.type]
@@ -131,5 +130,5 @@ class MongoEventStore(
   }
 
   override def recreate(): Unit =
-    Await.result(collection.drop().toFuture, 5 seconds)
+    Await.result(collection.drop().toFuture, 5.seconds)
 }

@@ -54,7 +54,7 @@ class TransferController @Inject()(
   }
 
   def download(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId) = Action.async {
-    zipEnvelope(envelopeId) map {
+    zipEnvelope(envelopeId).map {
       case Right(stream) =>
         val keepOnlyNonEmptyArrays = Enumeratee.filter[Array[Byte]] { _.length > 0 }
         val source = Source.fromPublisher(IterateeStreams.enumeratorToPublisher(stream.through(keepOnlyNonEmptyArrays)))

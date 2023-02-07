@@ -186,7 +186,7 @@ object ZipStream {
 
     def apply(files: Seq[ZipFileInfo])(implicit executionContext: ExecutionContext): Enumerator[Bytes] = {
       val (filesEn, infosSizeF) = files.foldLeft((Enumerator[Bytes](), Future.successful((Seq[ZipInfo](), 0)))) { case ((totalEn, infosSizeF), file) =>
-        val nextF = infosSizeF map { case (infos, offset) =>
+        val nextF = infosSizeF.map { case (infos, offset) =>
           val inf = ZipInfo.apply(file.name.value, file.modified, file.isDir)
 
           if (file.isDir) {
