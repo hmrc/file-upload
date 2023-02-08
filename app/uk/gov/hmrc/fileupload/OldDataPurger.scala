@@ -31,7 +31,8 @@ import scala.concurrent.duration.Duration
 class OldDataPurger(
   configuration     : Configuration,
   eventStore        : MongoEventStore,
-  envelopeRepository: Repository
+  envelopeRepository: Repository,
+  now               : () => Instant
 )(implicit
   ec           : ExecutionContext,
   as           : ActorSystem
@@ -41,9 +42,9 @@ class OldDataPurger(
   private val purgeEnabled = configuration.get[Boolean]("purge.enabled")
   private val purgeCutoff  = configuration.get[Duration]("purge.cutoff")
 
-  def purge(): Unit =
+  def purge(): Future[Unit] =
     (for {
-       cutoff <- Future.successful(Instant.now().minusMillis(purgeCutoff.toMillis))
+       cutoff <- Future.successful(now().minusMillis(purgeCutoff.toMillis))
        count  <- eventStore.countOlder(cutoff)
        _      =  logger.info(s"Found $count purgable entries (older than $purgeCutoff i.e. since $cutoff)")
        _      <- if (!purgeEnabled) {
@@ -54,19 +55,19 @@ class OldDataPurger(
                    val start = System.currentTimeMillis()
                    eventStore.streamOlder(cutoff)
                      .grouped(1000)
-                     .mapAsync(parallelism = 1){ streamIds =>
+                     .mapAsync(parallelism = 1)(streamIds =>
                        for {
                          _ <- envelopeRepository.purge(streamIds.map(id => EnvelopeId(id.toString)))
                          _ <- eventStore.purge(streamIds)
                        } yield streamIds.size
-                     }
+                     )
                      .runWith(Sink.fold(0)(_ + _))
                      .andThen { case count => logger.info(s"Finished purging old envelopes. Cleaned up $count in ${System.currentTimeMillis() - start} ms") }
                  } else
                    Future.unit
      } yield ()
-    ).failed
-     .foreach {
-       case ex => logger.error(s"Failed to purge old data: ${ex.getMessage}", ex)
-     }
+    ).recoverWith {
+      case ex: Throwable => logger.error(s"Failed to purge old data: ${ex.getMessage}", ex)
+                            Future.failed(ex)
+    }
 }

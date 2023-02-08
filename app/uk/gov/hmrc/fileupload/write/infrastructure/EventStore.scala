@@ -19,6 +19,8 @@ package uk.gov.hmrc.fileupload.write.infrastructure
 import akka.stream.scaladsl.Source
 import com.codahale.metrics.MetricRegistry
 import com.mongodb.{MongoException, WriteConcern}
+import org.bson.BsonInt32
+import org.mongodb.scala.bson.{BsonDocument, BsonString}
 import org.mongodb.scala.model._
 import org.mongodb.scala.model.Filters._
 import play.api.Logger
@@ -30,9 +32,6 @@ import java.util.concurrent.TimeUnit
 import java.time.Instant
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.{DurationLong, FiniteDuration}
-import org.mongodb.scala.bson.BsonDocument
-import org.bson.BsonInt32
-import org.mongodb.scala.bson.BsonString
 
 object EventStore {
   type SaveResult = Either[SaveError, SaveSuccess.type]
@@ -137,13 +136,6 @@ class MongoEventStore(
   override def recreate(): Unit =
     Await.result(collection.drop().toFuture, 5.seconds)
 
-    /*
-    db.getCollection('events').aggregate([
-  {$group: {_id: "$streamId", created: {$max: "$created"}}},
-  {$match: {"created": {$lt: 1658759159679}}},
-  { $project: { _id: 1 }},
-  {$count: "count"}
-])*/
   def countOlder(cutoff: Instant): Future[Int] =
     mongoComponent.database.getCollection("events")
       .aggregate(Seq(

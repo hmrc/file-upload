@@ -66,7 +66,6 @@ class Repository(
                      IndexModel(Indexes.ascending("status", "destination"), IndexOptions().background(true))
                    )
 ) {
-
   import Repository._
 
   def update(

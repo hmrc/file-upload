@@ -215,5 +215,5 @@ class ApplicationModule @Inject()(
 
   val newId: () => String = () => UUID.randomUUID().toString
 
-  new OldDataPurger(configuration, eventStore, envelopeRepository)(executionContext, actorSystem).purge()
+  new OldDataPurger(configuration, eventStore, envelopeRepository, java.time.Instant.now)(executionContext, actorSystem).purge()
 }
