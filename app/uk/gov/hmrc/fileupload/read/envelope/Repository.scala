@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import akka.stream.scaladsl.Source
 import com.mongodb.{MongoException, ReadPreference}
 import org.bson.conversions.Bson
 import org.mongodb.scala.{Document, WriteConcern}
+import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.model._
 import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.model.Updates.{set, unset}
@@ -28,12 +29,10 @@ import play.api.mvc.{Result, Results}
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
-import org.mongodb.scala.bson.BsonDocument
 
 import java.time.Instant
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.language.postfixOps
 
 object Repository {
 
@@ -67,7 +66,6 @@ class Repository(
                      IndexModel(Indexes.ascending("status", "destination"), IndexOptions().background(true))
                    )
 ) {
-
   import Repository._
 
   def update(
@@ -176,10 +174,14 @@ class Repository(
       .map(_.toList)
 
   def recreate(): Unit = {
-    Await.result(collection.drop().toFuture(), 5 seconds)
-    Await.result(ensureIndexes, 5 seconds)
+    Await.result(collection.drop().toFuture(), 5.seconds)
+    Await.result(ensureIndexes, 5.seconds)
   }
 
+  def purge(envelopeIds: Seq[EnvelopeId]): Future[Unit] =
+    if (envelopeIds.nonEmpty)
+      collection.bulkWrite(envelopeIds.map(id => DeleteOneModel(equal("_id", id.value)))).toFuture().map(_ => ())
+    else Future.unit
 }
 
 class WithValidEnvelope(getEnvelope: EnvelopeId => Future[Option[Envelope]]) {

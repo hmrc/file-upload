@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,19 +16,22 @@
 
 package uk.gov.hmrc.fileupload.write.infrastructure
 
-import java.util.concurrent.TimeUnit
+import akka.stream.scaladsl.Source
 import com.codahale.metrics.MetricRegistry
-import play.api.Logger
-import uk.gov.hmrc.fileupload.write.infrastructure.EventStore._
-
-import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.concurrent.duration._
-import scala.language.postfixOps
 import com.mongodb.{MongoException, WriteConcern}
+import org.bson.BsonInt32
+import org.mongodb.scala.bson.{BsonDocument, BsonString}
 import org.mongodb.scala.model._
 import org.mongodb.scala.model.Filters._
+import play.api.Logger
+import uk.gov.hmrc.fileupload.write.infrastructure.EventStore._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+
+import java.util.concurrent.TimeUnit
+import java.time.Instant
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration.{DurationLong, FiniteDuration}
 
 object EventStore {
   type SaveResult = Either[SaveError, SaveSuccess.type]
@@ -131,5 +134,32 @@ class MongoEventStore(
   }
 
   override def recreate(): Unit =
-    Await.result(collection.drop().toFuture, 5 seconds)
+    Await.result(collection.drop().toFuture, 5.seconds)
+
+  def countOlder(cutoff: Instant): Future[Int] =
+    mongoComponent.database.getCollection("events")
+      .aggregate(Seq(
+        Aggregates.group("$streamId", Accumulators.max("created", "$created")),
+        Aggregates.`match`(Filters.lt("created", cutoff.toEpochMilli)),
+        Aggregates.project(BsonDocument("_id" -> 1)),
+        Aggregates.count("count")
+      ))
+      .headOption()
+      .map(_.flatMap(_.get[BsonInt32]("count")).fold(0)(_.getValue))
+
+  def streamOlder(cutoff: Instant): Source[StreamId, akka.NotUsed] =
+    Source.fromPublisher(
+      mongoComponent.database.getCollection("events")
+        .aggregate(Seq(
+          Aggregates.group("$streamId", Accumulators.max("created", "$created")),
+          Aggregates.`match`(Filters.lt("created", cutoff.toEpochMilli)),
+          Aggregates.project(BsonDocument("_id" -> 1))
+        ))
+        .map(_.get[BsonString]("_id").map(s => StreamId(s.getValue)))
+    ).collect { case Some(s) => s }
+
+  def purge(streamIds: Seq[StreamId]): Future[Unit] =
+    if (streamIds.nonEmpty)
+      collection.bulkWrite(streamIds.map(id => DeleteManyModel(equal("streamId", id.value)))).toFuture().map(_ => ())
+    else Future.unit
 }

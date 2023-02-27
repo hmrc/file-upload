@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@ import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import java.time.Instant
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.language.postfixOps
 
 object InProgressFile {
   implicit val format: Format[InProgressFile] = Json.format[InProgressFile]
@@ -61,13 +60,15 @@ class Repository(
     collection.insertOne(inProgressFile).toFuture.map(_.wasAcknowledged())
 
   def delete(envelopeId: EnvelopeId, fileId: FileId): Future[Boolean] =
-    collection.deleteMany(filter = Filters.and(Filters.equal("envelopeId", envelopeId.value), Filters.equal("fileId", fileId.value))).toFuture map toBoolean
+    collection
+      .deleteMany(filter = Filters.and(Filters.equal("envelopeId", envelopeId.value), Filters.equal("fileId", fileId.value)))
+      .toFuture.map(toBoolean)
 
   def deleteAllInAnEnvelop(envelopeId: EnvelopeId): Future[Boolean] =
-    collection.deleteMany(filter = Filters.equal("envelopeId", envelopeId.value)).toFuture map toBoolean
+    collection.deleteMany(filter = Filters.equal("envelopeId", envelopeId.value)).toFuture.map(toBoolean)
 
   def deleteByFileRefId(fileRefId: FileRefId)(implicit ec: ExecutionContext): Future[Boolean] =
-    collection.deleteMany(filter = Filters.equal("_id", fileRefId.value)).toFuture map toBoolean
+    collection.deleteMany(filter = Filters.equal("_id", fileRefId.value)).toFuture.map(toBoolean)
 
   def toBoolean(wr: DeleteResult): Boolean =
     wr.wasAcknowledged() && wr.getDeletedCount > 0
@@ -86,5 +87,5 @@ class Repository(
     collection.find(filter = Filters.equal("envelopeId", envelopeId.value)).toFuture.map(_.toList)
 
   def recreate()(implicit ec: ExecutionContext): Unit =
-    Await.result(collection.drop().toFuture.map(_ => true)(ec), 5 seconds)
+    Await.result(collection.drop().toFuture.map(_ => true)(ec), 5.seconds)
 }

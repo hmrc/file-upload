@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,13 +21,13 @@ import play.api.http.HttpErrorHandler
 import play.api.mvc.{RequestHeader, Result}
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 @Singleton
 class GlobalErrorHandler @Inject() extends HttpErrorHandler {
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] =
-    Future(ExceptionHandler(statusCode, message))(ExecutionContext.global)
+    Future.successful(ExceptionHandler(statusCode, message))
 
   override def onServerError(request: RequestHeader, exception: Throwable): Future[Result] =
-    Future(ExceptionHandler(exception))(ExecutionContext.global)
+    Future.successful(ExceptionHandler(exception))
 }

@@ -4,7 +4,7 @@ import sbt._
 
 private object AppDependencies {
 
-  private val bootstrapPlayVersion = "7.12.0"
+  private val bootstrapPlayVersion = "7.13.0"
   private val mongoVersion         = "0.74.0"
 
   val compile = Seq(
