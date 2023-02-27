@@ -23,6 +23,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
+import uk.gov.hmrc.mongo.lock.LockRepository
 import uk.gov.hmrc.fileupload.write.infrastructure.{MongoEventStore, StreamId}
 import uk.gov.hmrc.fileupload.read.envelope.Repository
 
@@ -48,13 +49,21 @@ class OldDataPurgerSpec
 
     lazy val mockEventStore         = mock[MongoEventStore]
     lazy val mockEnvelopeRepository = mock[Repository]
+    lazy val mockLockRepository     = mock[LockRepository]
+
+    when(mockLockRepository.takeLock(any, any, any))
+      .thenReturn(Future.successful(true))
+
+    when(mockLockRepository.releaseLock(any, any))
+      .thenReturn(Future.unit)
 
     lazy val now = {
       val now = Instant.now()
       () => now
     }
 
-    lazy val oldDataPurger      = new OldDataPurger(configuration, mockEventStore, mockEnvelopeRepository, now)
+    lazy val oldDataPurger =
+      new OldDataPurger(configuration, mockEventStore, mockEnvelopeRepository, mockLockRepository, now)
   }
 
   "OldDataPurger.purge" should {
