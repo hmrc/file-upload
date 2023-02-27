@@ -23,15 +23,17 @@ import akka.stream.scaladsl.Sink
 import play.api.Logger
 import uk.gov.hmrc.fileupload.write.infrastructure.MongoEventStore
 import uk.gov.hmrc.fileupload.read.envelope.Repository
+import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
 
 import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, DurationInt}
 
 class OldDataPurger(
   configuration     : Configuration,
   eventStore        : MongoEventStore,
   envelopeRepository: Repository,
+  lockRepository    : LockRepository,
   now               : () => Instant
 )(implicit
   ec           : ExecutionContext,
@@ -42,31 +44,35 @@ class OldDataPurger(
   private val purgeEnabled = configuration.get[Boolean]("purge.enabled")
   private val purgeCutoff  = configuration.get[Duration]("purge.cutoff")
 
+  private val lock = LockService(lockRepository, "purger", 1.hour)
+
   def purge(): Future[Unit] =
-    (for {
-       cutoff <- Future.successful(now().minusMillis(purgeCutoff.toMillis))
-       count  <- eventStore.countOlder(cutoff)
-       _      =  logger.info(s"Found $count purgable entries (older than $purgeCutoff i.e. since $cutoff)")
-       _      <- if (!purgeEnabled) {
-                   logger.info(s"Purge disabled")
-                   Future.unit
-                 } else if (count > 0) {
-                   logger.info(s"Purging old data")
-                   val start = System.currentTimeMillis()
-                   eventStore.streamOlder(cutoff)
-                     .grouped(1000)
-                     .mapAsync(parallelism = 1)(streamIds =>
-                       for {
-                         _ <- envelopeRepository.purge(streamIds.map(id => EnvelopeId(id.toString)))
-                         _ <- eventStore.purge(streamIds)
-                       } yield streamIds.size
-                     )
-                     .runWith(Sink.fold(0)(_ + _))
-                     .andThen { case count => logger.info(s"Finished purging old envelopes. Cleaned up $count in ${System.currentTimeMillis() - start} ms") }
-                 } else
-                   Future.unit
-     } yield ()
-    ).recoverWith {
+    lock.withLock(
+      for {
+        cutoff <- Future.successful(now().minusMillis(purgeCutoff.toMillis))
+        count  <- eventStore.countOlder(cutoff)
+        _      =  logger.info(s"Found $count purgable entries (older than $purgeCutoff i.e. since $cutoff)")
+        _      <- if (!purgeEnabled) {
+                    logger.info(s"Purge disabled")
+                    Future.unit
+                  } else if (count > 0) {
+                    logger.info(s"Purging old data")
+                    val start = System.currentTimeMillis()
+                    eventStore.streamOlder(cutoff)
+                      .grouped(1000)
+                      .mapAsync(parallelism = 1)(streamIds =>
+                        for {
+                          _ <- envelopeRepository.purge(streamIds.map(id => EnvelopeId(id.toString)))
+                          _ <- eventStore.purge(streamIds)
+                        } yield streamIds.size
+                      )
+                      .runWith(Sink.fold(0)(_ + _))
+                      .andThen { case count => logger.info(s"Finished purging old envelopes. Cleaned up $count envelopes in ${System.currentTimeMillis() - start} ms") }
+                  } else
+                    Future.unit
+      } yield ()
+    ).map(_ => ())
+     .recoverWith {
       case ex: Throwable => logger.error(s"Failed to purge old data: ${ex.getMessage}", ex)
                             Future.failed(ex)
     }
