@@ -144,6 +144,7 @@ class MongoEventStore(
         Aggregates.project(BsonDocument("_id" -> 1)),
         Aggregates.count("count")
       ))
+      .allowDiskUse(true)
       .headOption()
       .map(_.flatMap(_.get[BsonInt32]("count")).fold(0)(_.getValue))
 
