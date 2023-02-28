@@ -50,6 +50,7 @@ class OldDataPurger(
     lock.withLock(
       for {
         cutoff <- Future.successful(now().minusMillis(purgeCutoff.toMillis))
+        _      =  logger.info(s"Discovering purgable entries (older than $purgeCutoff i.e. since $cutoff)")
         count  <- eventStore.countOlder(cutoff)
         _      =  logger.info(s"Found $count purgable entries (older than $purgeCutoff i.e. since $cutoff)")
         _      <- if (!purgeEnabled) {

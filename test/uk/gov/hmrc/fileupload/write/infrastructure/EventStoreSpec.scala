@@ -42,7 +42,7 @@ class MongoMetricRepositorySpec
   private implicit val as = ActorSystem()
 
   "MongoEventStore.countOlder" should {
-    "only count streamIds where all events are before the cutoff" in {
+    "only count streamIds where the first event is before the cutoff" in {
       val cutoff = Instant.now()
       // all events before the cutoff
       val streamId1 = StreamId(UUID.randomUUID().toString)
@@ -66,13 +66,13 @@ class MongoMetricRepositorySpec
          _   <- repository.collection.insertOne(uow5).toFuture()
          _   <- repository.collection.insertOne(uow6).toFuture()
          res <- repository.countOlder(cutoff)
-       } yield res shouldBe 1
+       } yield res shouldBe 2
       ).futureValue
     }
   }
 
   "MongoEventStore.streamOlder" should {
-    "only return streamIds where all events are before the cutoff" in {
+    "only return streamIds where the first event is before the cutoff" in {
       val cutoff = Instant.now()
       // all events before the cutoff
       val streamId1 = StreamId(UUID.randomUUID().toString)
@@ -96,7 +96,7 @@ class MongoMetricRepositorySpec
          _   <- repository.collection.insertOne(uow5).toFuture()
          _   <- repository.collection.insertOne(uow6).toFuture()
          res <- repository.streamOlder(cutoff).runWith(Sink.seq)
-       } yield res shouldBe Seq(streamId1)
+       } yield res should contain allOf (streamId1, streamId2)
       ).futureValue
     }
   }

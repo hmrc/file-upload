@@ -139,7 +139,7 @@ class MongoEventStore(
   def countOlder(cutoff: Instant): Future[Int] =
     mongoComponent.database.getCollection("events")
       .aggregate(Seq(
-        Aggregates.group("$streamId", Accumulators.max("created", "$created")),
+        Aggregates.group("$streamId", Accumulators.first("created", "$created")),
         Aggregates.`match`(Filters.lt("created", cutoff.toEpochMilli)),
         Aggregates.project(BsonDocument("_id" -> 1)),
         Aggregates.count("count")
@@ -152,7 +152,9 @@ class MongoEventStore(
     Source.fromPublisher(
       mongoComponent.database.getCollection("events")
         .aggregate(Seq(
-          Aggregates.group("$streamId", Accumulators.max("created", "$created")),
+          // we consider just the first rather than max since this is more efficient,
+          // and we're not overally concerned with envelopes interacted with after the cutoff
+          Aggregates.group("$streamId", Accumulators.first("created", "$created")),
           Aggregates.`match`(Filters.lt("created", cutoff.toEpochMilli)),
           Aggregates.project(BsonDocument("_id" -> 1))
         ))
