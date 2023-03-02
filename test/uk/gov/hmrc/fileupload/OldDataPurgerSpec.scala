@@ -67,26 +67,12 @@ class OldDataPurgerSpec
   }
 
   "OldDataPurger.purge" should {
-    "not purge if no data to purge is found" in new Setup {
-      when(mockEventStore.countOlder(any))
-        .thenReturn(Future.successful(0))
-
-      oldDataPurger.purge().futureValue
-
-      verify(mockEventStore).countOlder(now().minusMillis(10.days.toMillis))
-      verify(mockEnvelopeRepository, never).purge(any)
-      verify(mockEventStore, never).purge(any)
-    }
-
     "not purge if disabled" in new Setup {
       override lazy val configuration =
         Configuration(
           "purge.enabled" -> false,
           "purge.cutoff" -> "10.days"
         )
-
-      when(mockEventStore.countOlder(any))
-        .thenReturn(Future.successful(10))
 
       oldDataPurger.purge().futureValue
 
@@ -96,9 +82,6 @@ class OldDataPurgerSpec
 
     "purge if data to purge is found" in new Setup {
       val envelopeIds = Seq("e1", "e2", "e3", "e4")
-
-      when(mockEventStore.countOlder(any))
-        .thenReturn(Future.successful(envelopeIds.size))
 
       when(mockEventStore.streamOlder(any))
         .thenReturn(Source.fromIterator(() => envelopeIds.map(StreamId.apply).toIterator))
@@ -111,7 +94,6 @@ class OldDataPurgerSpec
 
       oldDataPurger.purge().futureValue
 
-      verify(mockEventStore).countOlder(now().minusMillis(10.days.toMillis))
       verify(mockEventStore).streamOlder(now().minusMillis(10.days.toMillis))
       verify(mockEnvelopeRepository).purge(envelopeIds.map(EnvelopeId.apply))
       verify(mockEventStore).purge(envelopeIds.map(StreamId.apply))
