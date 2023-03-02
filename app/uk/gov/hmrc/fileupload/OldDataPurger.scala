@@ -50,14 +50,11 @@ class OldDataPurger(
     lock.withLock(
       for {
         cutoff <- Future.successful(now().minusMillis(purgeCutoff.toMillis))
-        _      =  logger.info(s"Discovering purgable entries (older than $purgeCutoff i.e. since $cutoff)")
-        count  <- eventStore.countOlder(cutoff)
-        _      =  logger.info(s"Found $count purgable entries (older than $purgeCutoff i.e. since $cutoff)")
         _      <- if (!purgeEnabled) {
                     logger.info(s"Purge disabled")
                     Future.unit
-                  } else if (count > 0) {
-                    logger.info(s"Purging old data")
+                  } else {
+                    logger.info(s"Purging old data (older than $purgeCutoff i.e. since $cutoff)")
                     val start = System.currentTimeMillis()
                     eventStore.streamOlder(cutoff)
                       .grouped(1000)
@@ -69,8 +66,7 @@ class OldDataPurger(
                       )
                       .runWith(Sink.fold(0)(_ + _))
                       .andThen { case count => logger.info(s"Finished purging old envelopes. Cleaned up $count envelopes in ${System.currentTimeMillis() - start} ms") }
-                  } else
-                    Future.unit
+                  }
       } yield ()
     ).map(_ => ())
      .recoverWith {

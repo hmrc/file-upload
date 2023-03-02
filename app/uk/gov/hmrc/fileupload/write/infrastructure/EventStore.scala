@@ -136,25 +136,11 @@ class MongoEventStore(
   override def recreate(): Unit =
     Await.result(collection.drop().toFuture, 5.seconds)
 
-  def countOlder(cutoff: Instant): Future[Int] =
-    mongoComponent.database.getCollection("events")
-      .aggregate(Seq(
-        Aggregates.group("$streamId", Accumulators.first("created", "$created")),
-        Aggregates.`match`(Filters.lt("created", cutoff.toEpochMilli)),
-        Aggregates.project(BsonDocument("_id" -> 1)),
-        Aggregates.count("count")
-      ))
-      .allowDiskUse(true)
-      .headOption()
-      .map(_.flatMap(_.get[BsonInt32]("count")).fold(0)(_.getValue))
-
   def streamOlder(cutoff: Instant): Source[StreamId, akka.NotUsed] =
     Source.fromPublisher(
       mongoComponent.database.getCollection("events")
         .aggregate(Seq(
-          // we consider just the first rather than max since this is more efficient,
-          // and we're not overally concerned with envelopes interacted with after the cutoff
-          Aggregates.group("$streamId", Accumulators.first("created", "$created")),
+          Aggregates.group("$streamId", Accumulators.max("created", "$created")),
           Aggregates.`match`(Filters.lt("created", cutoff.toEpochMilli)),
           Aggregates.project(BsonDocument("_id" -> 1))
         ))
