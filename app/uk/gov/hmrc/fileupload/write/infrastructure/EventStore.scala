@@ -19,7 +19,6 @@ package uk.gov.hmrc.fileupload.write.infrastructure
 import akka.stream.scaladsl.Source
 import com.codahale.metrics.MetricRegistry
 import com.mongodb.{MongoException, WriteConcern}
-import org.bson.BsonInt32
 import org.mongodb.scala.bson.{BsonDocument, BsonString}
 import org.mongodb.scala.model._
 import org.mongodb.scala.model.Filters._
@@ -67,6 +66,9 @@ class MongoEventStore(
   domainFormat   = UnitOfWorkSerializer.format,
   indexes        = Seq(IndexModel(Indexes.hashed("streamId"), IndexOptions().background(true)))
 ) with EventStore {
+
+  // OldDataPurger cleans up old data
+  override lazy val requiresTtlIndex = false
 
   private val logger = Logger(getClass)
 

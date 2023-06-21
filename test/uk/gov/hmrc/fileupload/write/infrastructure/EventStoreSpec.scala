@@ -29,7 +29,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import akka.stream.scaladsl.Sink
 import akka.actor.ActorSystem
 
-class MongoMetricRepositorySpec
+class EventStoreSpec
   extends AnyWordSpec
      with Matchers
      with ScalaFutures
