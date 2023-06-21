@@ -68,6 +68,9 @@ class Repository(
 ) {
   import Repository._
 
+  // OldDataPurger cleans up old data
+  override lazy val requiresTtlIndex = false
+
   def update(
     writeConcern: WriteConcern = WriteConcern.MAJORITY
   )(
