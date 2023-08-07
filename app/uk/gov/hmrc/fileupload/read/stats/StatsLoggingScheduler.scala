@@ -82,16 +82,12 @@ class StatsLogWriter {
 }
 
 object StatsLoggingConfiguration {
-  private def getDuration(configuration: Configuration, key: String): FiniteDuration =
-    configuration.getOptional[FiniteDuration](key)
-      .getOrElse(throw new RuntimeException(s"Missing configuration value for StatsLoggingConfiguration: $key"))
-
-  def apply(runModeConfiguration: Configuration): StatsLoggingConfiguration =
+  def apply(configuration: Configuration): StatsLoggingConfiguration =
     StatsLoggingConfiguration(
-      initialDelay           = getDuration(runModeConfiguration, "stats.inprogressfiles.initialdelay"),
-      interval               = getDuration(runModeConfiguration, "stats.inprogressfiles.interval"),
-      timePeriod             = getDuration(runModeConfiguration, "stats.inprogressfiles.timeperiod"),
-      maximumInProgressFiles = runModeConfiguration.getOptional[Int]("stats.inprogressfiles.maximum")
+      initialDelay           = configuration.get[FiniteDuration]("stats.inprogressfiles.initialdelay"),
+      interval               = configuration.get[FiniteDuration]("stats.inprogressfiles.interval"),
+      timePeriod             = configuration.get[FiniteDuration]("stats.inprogressfiles.timeperiod"),
+      maximumInProgressFiles = configuration.getOptional[Int]("stats.inprogressfiles.maximum")
     )
 }
 

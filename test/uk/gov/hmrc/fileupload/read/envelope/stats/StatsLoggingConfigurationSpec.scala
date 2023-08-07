@@ -59,7 +59,7 @@ class StatsLoggingConfigurationSpec extends AnyWordSpecLike with Matchers {
           StatsLoggingConfiguration(runModeConfiguration)
         }
       assert(configurationError.getMessage.contains(
-        "Missing configuration value for StatsLoggingConfiguration: stats.inprogressfiles.initialdelay"))
+        "No configuration setting found for key"))
     }
   }
 
