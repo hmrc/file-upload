@@ -30,7 +30,6 @@ import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindError, FindMetadataError}
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, File, FileStatusQuarantined}
 import uk.gov.hmrc.fileupload.read.stats.Stats._
@@ -57,17 +56,16 @@ class EnvelopeControllerSpec
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
   }
 
-  def newController(withBasicAuth: BasicAuth = AlwaysAuthorisedBasicAuth,
-                    nextId: () => EnvelopeId = () => EnvelopeId("abc-def"),
-                    handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
-                    findEnvelope: EnvelopeId => Future[Either[FindError, Envelope]] = _ => failed,
-                    findMetadata: (EnvelopeId, FileId) => Future[Either[FindMetadataError, read.envelope.File]] = (_, _) => failed,
-                    findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed,
-                    deleteInProgressFile: FileRefId => Future[Boolean] = _ => failed,
-                    getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed] = (_, _) => Source.failed(new Exception("not good"))
+  def newController(
+    nextId               : () => EnvelopeId = () => EnvelopeId("abc-def"),
+    handleCommand        : (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
+    findEnvelope         : EnvelopeId => Future[Either[FindError, Envelope]] = _ => failed,
+    findMetadata         : (EnvelopeId, FileId) => Future[Either[FindMetadataError, read.envelope.File]] = (_, _) => failed,
+    findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed,
+    deleteInProgressFile : FileRefId => Future[Boolean] = _ => failed,
+    getEnvelopesByStatus : (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed] = (_, _) => Source.failed(new Exception("not good"))
   ) = {
     val appModule = mock[ApplicationModule]
-    when(appModule.withBasicAuth).thenReturn(withBasicAuth)
     when(appModule.nextId).thenReturn(nextId)
     when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
     when(appModule.findEnvelope).thenReturn(findEnvelope)

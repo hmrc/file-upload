@@ -24,7 +24,6 @@ import play.api.mvc.{ControllerComponents, Results}
 import uk.gov.hmrc.fileupload.{ApplicationModule, EnvelopeId}
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.file.zip.Zippy._
-import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, OutputForTransfer}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
@@ -39,17 +38,14 @@ class TransferController @Inject()(
 )(implicit executionContext: ExecutionContext
 ) extends BackendController(cc) {
 
-  val withBasicAuth: BasicAuth = appModule.withBasicAuth
   val getEnvelopesByDestination: Option[String] => Future[List[Envelope]] = appModule.getEnvelopesByDestination
   val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
   val zipEnvelope: EnvelopeId => Future[ZipResult] = appModule.zipEnvelope
 
   def list() = Action.async { implicit request =>
-    withBasicAuth {
-      val maybeDestination = request.getQueryString("destination")
-      getEnvelopesByDestination(maybeDestination).map { envelopes =>
-        Ok(OutputForTransfer(envelopes))
-      }
+    val maybeDestination = request.getQueryString("destination")
+    getEnvelopesByDestination(maybeDestination).map { envelopes =>
+      Ok(OutputForTransfer(envelopes))
     }
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,21 +30,7 @@ import uk.gov.hmrc.fileupload.write.envelope.QuarantineFile
 class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions with EventsActions {
 
   Feature("Delete Envelope") {
-
-    Scenario("Delete Envelope - with wrong Auth") {
-      Given("I have a valid envelope id")
-      val createResponse = createEnvelope("{}")
-      createResponse.status should equal(CREATED)
-      val envelopeId = envelopeIdFromHeader(createResponse)
-
-      When("I call DELETE but with wrong auth /file-upload/envelopes/:envelope-id")
-      val envelopeResponse = deleteEnvelopWithWrongAuth(envelopeId)
-
-      Then("I will receive a 403 OK response")
-      envelopeResponse.status shouldBe FORBIDDEN
-    }
-
-    Scenario("Delete Envelope - valid with auth") {
+    Scenario("Delete Envelope - valid ID") {
       Given("I have a valid envelope id")
       val createResponse = createEnvelope("{}")
       createResponse.status should equal(CREATED)
@@ -66,7 +52,7 @@ class DeleteEnvelopeIntegrationSpec extends IntegrationSpec with EnvelopeActions
       checkEnvelopeDeleted.status shouldBe NOT_FOUND
     }
 
-    Scenario("Delete Envelope - invalid ID with auth") {
+    Scenario("Delete Envelope - invalid ID") {
       Given("I have an invalid envelope id")
       val invalidEnvelopeId = EnvelopeId()
 

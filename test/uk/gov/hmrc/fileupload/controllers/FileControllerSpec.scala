@@ -30,7 +30,6 @@ import play.api.mvc._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
 import uk.gov.hmrc.fileupload.read.envelope.{File, FileStatusAvailable, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeCommand
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
@@ -55,13 +54,12 @@ class FileControllerSpec
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
   }
 
-  def newController(withBasicAuth:BasicAuth = AlwaysAuthorisedBasicAuth,
-                    retrieveFile: (EnvelopeId, FileId) => Future[Source[ByteString, _]] = (_, _) => failed,
-                    withValidEnvelope: WithValidEnvelope = new WithValidEnvelope(_ => Future.successful(Some(Support.envelope))),
-                    handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = _ => failed
+  def newController(
+    retrieveFile     : (EnvelopeId, FileId) => Future[Source[ByteString, _]] = (_, _) => failed,
+    withValidEnvelope: WithValidEnvelope = new WithValidEnvelope(_ => Future.successful(Some(Support.envelope))),
+    handleCommand    : EnvelopeCommand => Future[Either[CommandNotAccepted, CommandAccepted.type]] = _ => failed
   ) = {
     val appModule = mock[ApplicationModule]
-    when(appModule.withBasicAuth).thenReturn(withBasicAuth)
     when(appModule.getFileFromS3).thenReturn(retrieveFile)
     when(appModule.withValidEnvelope).thenReturn(withValidEnvelope)
     when(appModule.envelopeCommandHandler).thenReturn(handleCommand)

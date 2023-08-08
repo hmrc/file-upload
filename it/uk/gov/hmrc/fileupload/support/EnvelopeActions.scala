@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,14 +72,6 @@ trait EnvelopeActions extends ActionsSupport {
   def deleteEnvelopFor(id: EnvelopeId): WSResponse =
     client
       .url(s"$url/envelopes/$id")
-      .withHttpHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
-      .delete()
-      .futureValue
-
-  def deleteEnvelopWithWrongAuth(id: EnvelopeId): WSResponse =
-    client
-      .url(s"$url/envelopes/$id")
-      .withHttpHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yua:yaunspassword")))
       .delete()
       .futureValue
 
