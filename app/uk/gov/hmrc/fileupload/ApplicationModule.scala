@@ -83,30 +83,9 @@ class ApplicationModule @Inject()(
 
   val subscribe: (ActorRef, Class[_]) => Boolean = actorSystem.eventStream.subscribe
   val publish: (AnyRef) => Unit = actorSystem.eventStream.publish
-  val withBasicAuth: BasicAuth = BasicAuth(basicAuthConfiguration(configuration))
 
   val eventStore = new MongoEventStore(mongoComponent, metrics.defaultRegistry)
   val updateEnvelope = envelopeRepository.update() _
-
-  def basicAuthConfiguration(config: Configuration): BasicAuthConfiguration = {
-    def getUsers(config: Configuration): List[User] = {
-      config.getOptional[String]("basicAuth.authorizedUsers").map { s =>
-        s.split(";").flatMap(
-          user => {
-            user.split(":") match {
-              case Array(username, password) => Some(User(username, password))
-              case _ => None
-            }
-          }
-        ).toList
-      }.getOrElse(List.empty)
-    }
-
-    config.getOptional[Boolean]("feature.basicAuthEnabled").getOrElse(false) match {
-      case true => BasicAuthEnabled(getUsers(config))
-      case false => BasicAuthDisabled
-    }
-  }
 
   lazy val auditedHttpExecute = PlayHttp.execute(auditConnector,
     "file-upload", Some(t => logger.warn(t.getMessage, t))) _

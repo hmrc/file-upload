@@ -24,7 +24,7 @@ import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
-import uk.gov.hmrc.fileupload.infrastructure.{BasicAuth, EnvelopeConstraintsConfiguration}
+import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraintsConfiguration
 import uk.gov.hmrc.fileupload.read.envelope.Service._
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.stats.Stats.GetInProgressFileResult
@@ -46,7 +46,6 @@ class EnvelopeController @Inject()(
 
   private val logger = Logger(getClass)
 
-  val withBasicAuth: BasicAuth = appModule.withBasicAuth
   val nextId: () => EnvelopeId = appModule.nextId
   val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
   val findEnvelope: EnvelopeId => Future[Either[FindError, Envelope]] = appModule.findEnvelope
@@ -127,17 +126,15 @@ class EnvelopeController @Inject()(
     }.recover { case e => ExceptionHandler(e) }
   }
 
-  def delete(id: EnvelopeId) = Action.async { implicit request =>
+  def delete(id: EnvelopeId) = Action.async {
     logger.debug(s"delete: EnvelopeId=$id")
 
-    withBasicAuth {
-      handleCommand(DeleteEnvelope(id)).map {
-        case Right(_) => Ok
-        case Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
-        case Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-        case Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not deleted")
-      }.recover { case e => ExceptionHandler(e) }
-    }
+    handleCommand(DeleteEnvelope(id)).map {
+      case Right(_) => Ok
+      case Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $id not found")
+      case Left(CommandError(m)) => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+      case Left(_) => ExceptionHandler(BAD_REQUEST, "Envelope not deleted")
+    }.recover { case e => ExceptionHandler(e) }
   }
 
   def deleteFile(id: EnvelopeId, fileId: FileId) = Action.async { request =>

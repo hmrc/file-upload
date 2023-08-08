@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,6 @@ trait IntegrationTestApplicationComponents extends GuiceOneServerPerSuite with M
       "metrics.jvm" -> false,
       "mongodb.uri" -> s"mongodb://localhost:27017/$databaseName",
       "auditing.enabled" -> "false",
-      "feature.basicAuthEnabled" -> "true",
       "constraints.enforceHttps" -> "false",
       "routing.initialDelay" -> "1.second",
       "routing.interval" -> "1.second",

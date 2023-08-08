@@ -24,7 +24,6 @@ import play.api.http.Status
 import play.api.mvc.ControllerComponents
 import play.api.test.FakeRequest
 import uk.gov.hmrc.fileupload.{ApplicationModule, Support, TestApplicationComponents}
-import uk.gov.hmrc.fileupload.infrastructure.{AlwaysAuthorisedBasicAuth, BasicAuth}
 import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
@@ -44,12 +43,10 @@ class TransferControllerSpec
   val failed = Future.failed(new Exception("not good"))
 
   def newController(
-    withBasicAuth            : BasicAuth = AlwaysAuthorisedBasicAuth,
     getEnvelopesByDestination: Option[String] => Future[List[Envelope]]                                    = _ => failed,
     handleCommand            : EnvelopeCommand => Future[Either[CommandNotAccepted, CommandAccepted.type]] = _ => failed
   ) = {
     val appModule = mock[ApplicationModule](withSettings.lenient)
-    when(appModule.withBasicAuth).thenReturn(withBasicAuth)
     when(appModule.getEnvelopesByDestination).thenReturn(getEnvelopesByDestination)
     when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
     new TransferController(appModule, app.injector.instanceOf[ControllerComponents])

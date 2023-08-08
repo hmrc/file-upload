@@ -23,7 +23,6 @@ import play.api.Logger
 import play.api.libs.ws.WSClient
 import play.api.mvc._
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.infrastructure.BasicAuth
 import uk.gov.hmrc.fileupload.read.envelope.{FileStatusAvailable, WithValidEnvelope}
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeCommand
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
@@ -61,7 +60,6 @@ class FileController @Inject()(
 
   private val logger = Logger(getClass)
 
-  val withBasicAuth: BasicAuth = appModule.withBasicAuth
   val retrieveFileS3: (EnvelopeId, FileId) => Future[Source[ByteString, _]] = appModule.getFileFromS3
   val withValidEnvelope: WithValidEnvelope = appModule.withValidEnvelope
   val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
@@ -69,27 +67,25 @@ class FileController @Inject()(
   def downloadFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { implicit request =>
     logger.info(s"downloadFile: envelopeId=$envelopeId fileId=$fileId")
 
-    withBasicAuth {
-      withValidEnvelope(envelopeId) { envelope =>
-        val foundFile = envelope.getFileById(fileId)
-        if (foundFile.map(_.status).exists(_ != FileStatusAvailable))
-          Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId in envelope: $envelopeId is not ready for download."))
-        else
-          foundFile.map { f =>
-            if (f.length.isEmpty)
-              logger.error(s"No file length detected for: envelopeId=$envelopeId fileId=$fileId. Trying to download it without length set.")
+    withValidEnvelope(envelopeId) { envelope =>
+      val foundFile = envelope.getFileById(fileId)
+      if (foundFile.map(_.status).exists(_ != FileStatusAvailable))
+        Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId in envelope: $envelopeId is not ready for download."))
+      else
+        foundFile.map { f =>
+          if (f.length.isEmpty)
+            logger.error(s"No file length detected for: envelopeId=$envelopeId fileId=$fileId. Trying to download it without length set.")
 
-            retrieveFileS3(envelopeId, fileId).map { source =>
-              Ok.streamed(source, f.length, Some("application/octet-stream"))
-                .withHeaders(Results.contentDispositionHeader(
-                  inline = false,
-                  name   = f.name.map(_.value).orElse(Some("data"))).toList: _*
-                )
-            }
-          }.getOrElse {
-            Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId"))
+          retrieveFileS3(envelopeId, fileId).map { source =>
+            Ok.streamed(source, f.length, Some("application/octet-stream"))
+              .withHeaders(Results.contentDispositionHeader(
+                inline = false,
+                name   = f.name.map(_.value).orElse(Some("data"))).toList: _*
+              )
           }
-      }
+        }.getOrElse {
+          Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId"))
+        }
     }
   }
 }
