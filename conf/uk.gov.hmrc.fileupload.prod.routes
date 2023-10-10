@@ -1,6 +1,0 @@
-# Add all the application routes to the app.routes file
-->         /file-upload              uk.gov.hmrc.fileupload.app.Routes
-->         /file-transfer            uk.gov.hmrc.fileupload.transfer.Routes
-->         /file-routing             uk.gov.hmrc.fileupload.routing.Routes
-->         /                         health.Routes
-GET        /admin/metrics            @com.kenshoo.play.metrics.MetricsController.metrics
