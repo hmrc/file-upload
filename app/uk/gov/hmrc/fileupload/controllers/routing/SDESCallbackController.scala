@@ -46,17 +46,26 @@ class SDESCallbackController @Inject()(
 
   def callback() = Action.async(parse.json) { implicit request =>
     withJsonBody[NotificationItem] { item =>
-      logger.info(s"Received SDES callback: $item")
       val envelopeId = EnvelopeId(item.correlationId)
       item.notification match {
-        case FileReceived          => tryMarkAsRouted(envelopeId) // we will stop any push retries
-        case FileProcessingFailure => tryMarkAsRouted(envelopeId, reason = Some("downstream_processing_failure" + item.failureReason.fold("")(": " + _)))
-        case FileProcessed         => tryArchive(envelopeId)
-        case _                     => // we have no retry mechanisms built that will retry if we're notified of an error here.
-                                      Future.successful(Ok)
+        case Notification.FileReceived          => logger.info(s"Received FileReceived SDES callback: $item")
+                                                   tryMarkAsRouted(envelopeId) // we will stop any push retries
+        case Notification.FileProcessingFailure => val reason = item.failureReason.map(santiseReason)
+                                                   logger.info(s"Received FileProcessingFailure SDES callback: ${item.copy(failureReason = None)}${reason.fold("")(", reason: " + _)}")
+                                                   tryMarkAsRouted(envelopeId, reason = Some("downstream_processing_failure" + reason.fold("")(": " + _)))
+        case Notification.FileProcessed         => logger.info(s"Received FileProcessed SDES callback: $item")
+                                                   tryArchive(envelopeId)
+        case _                                  => // we have no retry mechanisms built that will retry if we're notified of an error here.
+                                                   logger.info(s"Received SDES callback: $item")
+                                                   Future.successful(Ok)
       }
     }
   }
+
+  private val urlRegex = "https?:[^\\s'\"]*".r
+
+  private def santiseReason(reason: String): String =
+    urlRegex.replaceAllIn(reason, "{SUPPRESSED_URL}")
 
   private def tryMarkAsRouted(envelopeId: EnvelopeId, reason: Option[String] = None) =
     handleCommand(MarkEnvelopeAsRouted(envelopeId, isPushed = true, reason = reason)).map {
@@ -155,23 +164,12 @@ sealed trait Notification {
   val value: String
 }
 
-case object FileReady extends Notification {
-  val value = "FileReady"
-}
-
-case object FileReceived extends Notification {
-  val value = "FileReceived"
-}
-
-case object FileProcessingFailure extends Notification {
-  val value = "FileProcessingFailure"
-}
-
-case object FileProcessed extends Notification {
-  val value = "FileProcessed"
-}
-
 object Notification {
+  case object FileReady             extends Notification { override val value = "FileReady"             }
+  case object FileReceived          extends Notification { override val value = "FileReceived"          }
+  case object FileProcessingFailure extends Notification { override val value = "FileProcessingFailure" }
+  case object FileProcessed         extends Notification { override val value = "FileProcessed"         }
+
   private val values = List(FileReady, FileReceived, FileProcessingFailure, FileProcessed)
 
   def parse(s: String): Either[String, Notification] =
@@ -184,19 +182,11 @@ sealed trait ChecksumAlgorithm {
   val value: String
 }
 
-case object MD5 extends ChecksumAlgorithm {
-  val value = "md5"
-}
-
-case object SHA1 extends ChecksumAlgorithm {
-  val value = "SHA1"
-}
-
-case object SHA2 extends ChecksumAlgorithm {
-  val value = "SHA2"
-}
-
 object ChecksumAlgorithm {
+  case object MD5  extends ChecksumAlgorithm { override val value = "md5" }
+  case object SHA1 extends ChecksumAlgorithm { override val value = "SHA1" }
+  case object SHA2 extends ChecksumAlgorithm { override val value = "SHA2" }
+
   private val values = List(MD5, SHA1, SHA2)
 
   def parse(s: String): Either[String, ChecksumAlgorithm] =

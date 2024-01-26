@@ -102,4 +102,3 @@ case class DownloadUrl(value: String) extends AnyVal {
     "DownloadUrl(...)"
   }
 }
-

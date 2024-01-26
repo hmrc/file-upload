@@ -5,7 +5,7 @@
 This API provides a mechanism whereby a client microservice can define and manage an envelope which can later be filled with files and then optionally routed to another system. The envelope resources are exposed on the /file-upload/envelopes endpoint. Please <i>**DO NOT USE**</i> Test-Only endpoints because they are not available in production and the Internal endpoints specified <i>**WITHOUT PERMISSION.**</i>
 
 ## Software Requirements
-*   MongoDB 4.2
+*   MongoDB 5.0
 
 ## Run the application locally
 

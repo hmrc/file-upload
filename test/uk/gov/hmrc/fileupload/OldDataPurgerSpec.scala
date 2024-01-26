@@ -23,9 +23,9 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
-import uk.gov.hmrc.mongo.lock.LockRepository
 import uk.gov.hmrc.fileupload.write.infrastructure.{MongoEventStore, StreamId}
 import uk.gov.hmrc.fileupload.read.envelope.Repository
+import uk.gov.hmrc.mongo.lock.{Lock, LockRepository}
 
 import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
@@ -52,7 +52,7 @@ class OldDataPurgerSpec
     lazy val mockLockRepository     = mock[LockRepository]
 
     when(mockLockRepository.takeLock(any, any, any))
-      .thenReturn(Future.successful(true))
+      .thenReturn(Future.successful(Some(mock[Lock])))
 
     when(mockLockRepository.releaseLock(any, any))
       .thenReturn(Future.unit)
