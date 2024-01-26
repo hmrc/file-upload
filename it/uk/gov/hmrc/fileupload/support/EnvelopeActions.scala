@@ -29,11 +29,11 @@ import java.time.Instant
 trait EnvelopeActions extends ActionsSupport {
   this: TestSuite =>
 
-  def basic64(s: String): String = {
+  def basic64(s: String): String =
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
-  }
 
-  def createEnvelope(data: String): WSResponse = createEnvelope(data.getBytes())
+  def createEnvelope(data: String): WSResponse =
+    createEnvelope(data.getBytes())
 
   def createEnvelope(data: Array[Byte]): WSResponse =
     client
@@ -42,7 +42,8 @@ trait EnvelopeActions extends ActionsSupport {
       .post(data)
       .futureValue
 
-  def createEnvelopeWithId(id: String, data: String): WSResponse = createEnvelopeWithId(id, data.getBytes())
+  def createEnvelopeWithId(id: String, data: String): WSResponse =
+    createEnvelopeWithId(id, data.getBytes())
 
   def createEnvelopeWithId(id: String, data: Array[Byte]): WSResponse =
     client

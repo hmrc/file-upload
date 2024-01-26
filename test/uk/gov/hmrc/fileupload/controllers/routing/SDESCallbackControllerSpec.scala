@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.fileupload.controllers.routing
 
-import java.time.Instant
-
 import org.mockito.scalatest.MockitoSugar
 import org.scalatest.concurrent.{ScalaFutures, IntegrationPatience}
 import org.scalatest.matchers.should.Matchers
@@ -30,6 +28,8 @@ import uk.gov.hmrc.fileupload.{ApplicationModule, TestApplicationComponents}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
 
+import java.time.Instant
+import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.{ExecutionContext, Future}
 
 class SDESCallbackControllerSpec
@@ -52,7 +52,7 @@ class SDESCallbackControllerSpec
   }
 
   "callback" should {
-    val notificationTypesJustReturn200s = Seq(FileReady)
+    val notificationTypesJustReturn200s = Seq(Notification.FileReady)
 
     notificationTypesJustReturn200s.foreach { notification =>
       s"return response with 200 if notification is ${notification.value}" in {
@@ -66,9 +66,9 @@ class SDESCallbackControllerSpec
     }
 
     val notificationTypesToBeProcessed = Seq(
-      FileReceived          -> Some(EnvelopeAlreadyRoutedError),
-      FileProcessed         -> Some(EnvelopeArchivedError),
-      FileProcessingFailure -> None
+      Notification.FileReceived          -> Some(EnvelopeAlreadyRoutedError),
+      Notification.FileProcessed         -> Some(EnvelopeArchivedError),
+      Notification.FileProcessingFailure -> None
     )
 
     notificationTypesToBeProcessed.foreach { case (notification, duplicateError) =>
@@ -110,6 +110,27 @@ class SDESCallbackControllerSpec
         }
       }
     }
+
+    "suppress urls in reason field" in {
+      val notification =
+        notificationItem(Notification.FileProcessingFailure)
+          .copy(failureReason = Some("Could not download https://localhost:8080/asd"))
+      val request = FakeRequest().withBody(Json.toJson(notification))
+
+      val res = new AtomicReference[String]()
+      val controller = newController(handleCommand = command => {
+        command match {
+          case MarkEnvelopeAsRouted(_, _, Some(reason)) => res.set(reason)
+          case _ =>
+          }
+        Future.successful(Right(CommandAccepted))
+      })
+
+      val result = controller.callback()(request).futureValue
+      result.header.status shouldBe Status.OK
+
+      Option(res.get) shouldBe Some("downstream_processing_failure: Could not download {SUPPRESSED_URL}")
+    }
   }
 
   private def notificationItem(notification: Notification) =
@@ -117,7 +138,7 @@ class SDESCallbackControllerSpec
       notification      = notification,
       informationType   = Some("S18"),
       filename          = "ourref.xyz.doc",
-      checksumAlgorithm = MD5,
+      checksumAlgorithm = ChecksumAlgorithm.MD5,
       checksum          = "83HQWQ93D909Q0QWIJQE39831312EUIUQIWOEU398931293DHDAHBAS",
       correlationId     = "d1800c47-29b0-440a-9e2e-9d7362795e10",
       availableUntil    = Some(Instant.now()),
