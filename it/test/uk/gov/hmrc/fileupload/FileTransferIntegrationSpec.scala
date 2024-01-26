@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload
 
 import org.scalatest.concurrent.IntegrationPatience
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.fileupload.controllers.routing.FileReceived
+import uk.gov.hmrc.fileupload.controllers.routing.Notification
 import uk.gov.hmrc.fileupload.read.routing.{Algorithm, Audit, Checksum, DownloadUrl, FileTransferFile, FileTransferNotification, Property, RoutingRepository, ZipData}
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, FakeFrontendService, FakePushService, IntegrationSpec}
 
@@ -207,7 +207,7 @@ class FileTransferIntegrationSpec
       (body \ "_embedded" \ "envelopes").as[Seq[JsValue]].size shouldBe 0
 
       When(s"The service receives a FileReceived callback")
-      callCallback(FileReceived, envelopeId)
+      callCallback(Notification.FileReceived, envelopeId)
 
       Then("There exist CLOSED envelopes that match it")
       eventually {

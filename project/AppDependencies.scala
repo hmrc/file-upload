@@ -17,11 +17,13 @@ private object AppDependencies {
   )
 
   val test = Seq(
-    "uk.gov.hmrc"            %% "bootstrap-test-play-28"      % bootstrapPlayVersion    % "test,it",
-    "uk.gov.hmrc.mongo"      %% "hmrc-mongo-test-play-28"     % mongoVersion            % "test,it",
-    "org.mockito"            %% "mockito-scala-scalatest"     % "1.16.46"               % "test,it",
-    "com.typesafe.akka"      %% "akka-testkit"                % PlayVersion.akkaVersion % "test"
+    "uk.gov.hmrc"            %% "bootstrap-test-play-28"      % bootstrapPlayVersion    % Test,
+    "uk.gov.hmrc.mongo"      %% "hmrc-mongo-test-play-28"     % mongoVersion            % Test,
+    "org.mockito"            %% "mockito-scala-scalatest"     % "1.16.46"               % Test,
+    "com.typesafe.akka"      %% "akka-testkit"                % PlayVersion.akkaVersion % Test
   )
 
   val libraryDependencies = compile ++ test
+
+  val it = Seq.empty
 }
