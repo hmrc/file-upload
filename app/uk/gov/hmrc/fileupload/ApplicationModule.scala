@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload
 
 import akka.actor.ActorRef
 import com.google.inject.ImplementedBy
-import com.kenshoo.play.metrics.MetricsImpl
+import com.codahale.metrics.MetricRegistry
 import javax.inject.{Inject, Singleton}
 import play.api._
 import play.api.libs.ws.ahc.AhcWSComponents
@@ -61,7 +61,7 @@ class ApplicationModule @Inject()(
   mongoComponent    : MongoComponent,
   allEventsPublisher: AllEventsPublisher,
   auditConnector    : AuditConnector,
-  metrics           : MetricsImpl,
+  metricRegistry    : MetricRegistry,
   override val applicationLifecycle: play.api.inject.ApplicationLifecycle,
   override val configuration: play.api.Configuration,
   override val environment: play.api.Environment,
@@ -84,7 +84,7 @@ class ApplicationModule @Inject()(
   val subscribe: (ActorRef, Class[_]) => Boolean = actorSystem.eventStream.subscribe
   val publish: (AnyRef) => Unit = actorSystem.eventStream.publish
 
-  val eventStore = new MongoEventStore(mongoComponent, metrics.defaultRegistry)
+  val eventStore = new MongoEventStore(mongoComponent, metricRegistry)
   val updateEnvelope = envelopeRepository.update() _
 
   lazy val auditedHttpExecute = PlayHttp.execute(auditConnector,

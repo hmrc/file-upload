@@ -64,7 +64,7 @@ class FileController @Inject()(
   val withValidEnvelope: WithValidEnvelope = appModule.withValidEnvelope
   val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
 
-  def downloadFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async { implicit request =>
+  def downloadFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async {
     logger.info(s"downloadFile: envelopeId=$envelopeId fileId=$fileId")
 
     withValidEnvelope(envelopeId) { envelope =>

@@ -131,7 +131,7 @@ class RoutingActorSpec
 
     val lockRepository = mock[LockRepository](withSettings.lenient)
     when(lockRepository.takeLock(any, any, any))
-      .thenReturn(Future.successful(true))
+      .thenReturn(Future.successful(Some(mock[uk.gov.hmrc.mongo.lock.Lock])))
     when(lockRepository.releaseLock(any, any))
       .thenReturn(Future.unit)
 

@@ -199,13 +199,12 @@ object Lock {
   private val reqOwner = java.util.UUID.randomUUID().toString
   private val forceReleaseAfter = 1.hour
 
-  def takeLock(lockRepository: LockRepository)(implicit ec: ExecutionContext): Future[Option[Lock]] = {
-    lockRepository.takeLock(reqLockId, reqOwner, ttl = forceReleaseAfter)
+  def takeLock(lockRepository: LockRepository)(implicit ec: ExecutionContext): Future[Option[Lock]] =
+    lockRepository.takeLock(reqLockId, reqOwner, ttl = forceReleaseAfter).map(_.isDefined)
       .map { taken =>
         if (taken) Some(Lock(() => lockRepository.releaseLock(reqLockId, reqOwner)))
         else None
       }
-  }
 
   def releaseLock(lockRepository: LockRepository): Future[Unit] =
     lockRepository.releaseLock(reqLockId, reqOwner)
