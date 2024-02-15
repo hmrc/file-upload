@@ -83,18 +83,21 @@ class RoutingActor(
           Source.combine[Envelope, Envelope](
             first  = // nonDMS should go through without any throttling
                      getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ false, /*onlyUnseen = */ false),
-            second = Source.combine[Envelope, Envelope](
-                       // first time RouteRequested take precedence
+            second = if (config.destinations.contains("DMS"))
+                       Source.combine[Envelope, Envelope](
+                         // first time RouteRequested take precedence
+                         getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
+                           .filter(_.lastPushed.isEmpty),
+                         // then RouteRequested retries
+                         getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
+                           .filter(_.lastPushed.exists(_.compareTo(cutoff) < 0)),
+                         // and finally any CLOSED that we have explicitly requested to be retried (by clearing the lastSeen flag)
+                         getEnvelopesByStatusDMS(List(EnvelopeStatusClosed), /*isDMS = */ true, /*onlyUnseen = */ true)
+                       )(Concat(_))
+                        .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
+                        .throttle(config.throttleElements, config.throttlePer)
+                     else
                        getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
-                         .filter(_.lastPushed.isEmpty),
-                       // then RouteRequested retries
-                       getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
-                         .filter(_.lastPushed.exists(_.compareTo(cutoff) < 0)),
-                       // and finally any CLOSED that we have explicitly requested to be retried (by clearing the lastSeen flag)
-                       getEnvelopesByStatusDMS(List(EnvelopeStatusClosed), /*isDMS = */ true, /*onlyUnseen = */ true)
-                     )(Concat(_))
-                      .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
-                      .throttle(config.throttleElements, config.throttlePer)
           )(Concat(_))
             .mapAsync(parallelism = 1)(envelope =>
               routeEnvelope(envelope)
