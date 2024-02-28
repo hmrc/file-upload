@@ -34,6 +34,14 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileName}
 
 import scala.concurrent.{ExecutionContext, Future}
 
+/* In order to move off play-iteratees (and Play 2.8), we can replace this manual zipping with a
+ * call to file-upload-frontend (/internal-file-upload/zip/envelopes/:envelopeId) which
+ * will return a pre-signed URL to the zipped file - this can then be streamed back.
+ *
+ * The difference however is that the zip returned from the frontend is compressed, where
+ * as this implementation is not. So we would have to check that no clients would have
+ * an issue with this.
+*/
 object Zippy {
 
   private val logger = Logger(getClass)

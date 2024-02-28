@@ -17,7 +17,6 @@
 package uk.gov.hmrc.fileupload.read.stats
 
 import play.api.Logger
-import play.api.libs.iteratee.Enumerator
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
@@ -28,11 +27,7 @@ object Stats {
   private val logger = Logger(getClass)
 
   type GetInProgressFileResult = Either[GetInProgressFileError, List[InProgressFile]]
-  case class FileFound(
-    name  : Option[String] = None,
-    length: Long,
-    data  : Enumerator[Array[Byte]]
-)
+
   sealed trait GetInProgressFileError
   object GetInProgressFileGenericError extends GetInProgressFileError
 
