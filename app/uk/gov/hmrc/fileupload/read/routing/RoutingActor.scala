@@ -91,7 +91,7 @@ class RoutingActor(
                          // then RouteRequested retries
                          getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
                            .filter(_.lastPushed.exists(_.compareTo(cutoff) < 0)),
-                         // and finally any CLOSED that we have explicitly requested to be retried (by clearing the lastSeen flag)
+                         // and finally any CLOSED that we have explicitly requested to be retried (by clearing the seen flag)
                          getEnvelopesByStatusDMS(List(EnvelopeStatusClosed), /*isDMS = */ true, /*onlyUnseen = */ true)
                        )(Concat(_))
                         .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
