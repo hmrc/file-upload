@@ -16,24 +16,25 @@
 
 package uk.gov.hmrc.fileupload.file.zip
 
+import play.api.libs.iteratee._
 import uk.gov.hmrc.fileupload.FileName
 
+import scala.concurrent.{ExecutionContext, Future, Promise}
+
 object ZipStream {
-  import scala.concurrent.{ExecutionContext, Future, Promise}
   import java.util.Date
   import java.util.Calendar
   import java.util.zip.CRC32
   import java.nio.charset.Charset
-  import play.api.libs.iteratee._
   import Utils._
 
   case class ZipInfo(
-    filename      : Bytes,
+    filename      : Array[Byte],
     date          : Int,
     time          : Int,
     compressType  : Int,
-    comment       : Bytes,
-    extra         : Bytes,
+    comment       : Array[Byte],
+    extra         : Array[Byte],
     createSystem  : Int,
     createVersion : Int,
     extractVersion: Int,
@@ -47,8 +48,7 @@ object ZipStream {
     compressSize  : Int,
     fileSize      : Int
 ) {
-
-    def header: Array[Byte] = {
+    def header: Array[Byte] =
       Array[Byte](0x50, 0x4b, 0x03, 0x04) ++
         extractVersion.littleByte ++
         reserved.littleByte ++
@@ -63,18 +63,16 @@ object ZipStream {
         extra.length.littleShort ++
         filename ++
         extra
-    }
 
-    def footer = {
+    def footer =
       crc.littleInt ++
         fileSize.littleInt ++
         compressSize.littleInt
-    }
 
     def centDir = {
       val diskNumber = 0
 
-      val centDir = Array[Byte](0x50, 0x4b, 0x01, 0x02) ++
+      Array[Byte](0x50, 0x4b, 0x01, 0x02) ++
         createVersion.littleByte ++
         createSystem.littleByte ++
         extractVersion.littleByte ++
@@ -96,8 +94,6 @@ object ZipStream {
         filename ++
         extra ++
         comment
-
-      centDir
     }
 
   }
@@ -110,9 +106,14 @@ object ZipStream {
       val cal = Calendar.getInstance()
       cal.setTime(modified)
 
-      val dt = Seq(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1,
-        cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.HOUR_OF_DAY),
-        cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND))
+      val dt = Seq(
+        cal.get(Calendar.YEAR),
+        cal.get(Calendar.MONTH) + 1,
+        cal.get(Calendar.DAY_OF_MONTH),
+        cal.get(Calendar.HOUR_OF_DAY),
+        cal.get(Calendar.MINUTE),
+        cal.get(Calendar.SECOND)
+      )
 
       val date = (dt(0) - 1980) << 9 | dt(1) << 5 | dt(2)
       val time = dt(3) << 11 | dt(4) << 5 | (dt(5) / 2)
@@ -141,14 +142,14 @@ object ZipStream {
   }
 
   case class ZipEnd(
-    diskNumber: Int,
-    centDirDisk: Int,
-    centDirDiskCount: Int,
+    diskNumber       : Int,
+    centDirDisk      : Int,
+    centDirDiskCount : Int,
     centDirTotalCount: Int,
-    centDirSize: Int,
-    centDirOffset: Int,
-    comment: Bytes) {
-
+    centDirSize      : Int,
+    centDirOffset    : Int,
+    comment          : Array[Byte]
+  ) {
     def bytes: Array[Byte] =
       Array[Byte](0x50, 0x4b, 0x05, 0x06) ++
         diskNumber.littleShort ++
@@ -179,13 +180,13 @@ object ZipStream {
     name      : FileName,
     isDir     : Boolean,
     modified  : Date,
-    getContent: Option[() => Future[Enumerator[Bytes]]]
+    getContent: Option[() => Future[Enumerator[Array[Byte]]]]
   )
 
   object ZipStreamEnumerator {
 
-    def apply(files: Seq[ZipFileInfo])(implicit executionContext: ExecutionContext): Enumerator[Bytes] = {
-      val (filesEn, infosSizeF) = files.foldLeft((Enumerator[Bytes](), Future.successful((Seq[ZipInfo](), 0)))) { case ((totalEn, infosSizeF), file) =>
+    def apply(files: Seq[ZipFileInfo])(implicit ec: ExecutionContext): Enumerator[Array[Byte]] = {
+      val (filesEn, infosSizeF) = files.foldLeft((Enumerator[Array[Byte]](), Future.successful((Seq[ZipInfo](), 0)))) { case ((totalEn, infosSizeF), file) =>
         val nextF = infosSizeF.map { case (infos, offset) =>
           val inf = ZipInfo.apply(file.name.value, file.modified, file.isDir)
 
@@ -241,7 +242,7 @@ object ZipStream {
       }
 
       val centDirsWithEndEnF = infosSizeF map { case (infos, filesSize) =>
-        val (centDirsEn, centDirsSize) = infos.foldLeft((Enumerator[Bytes](), 0)) { case ((centDirsEn, totalSize), info) =>
+        val (centDirsEn, centDirsSize) = infos.foldLeft((Enumerator[Array[Byte]](), 0)) { case ((centDirsEn, totalSize), info) =>
           val centDir = info.centDir
           val size = centDir.length
 
@@ -260,4 +261,50 @@ object ZipStream {
       filesEn >>> centDirsWithEndEn >>> Enumerator.eof
     }
   }
+}
+
+object Utils {
+  implicit class LittleInt(i: Int) {
+    def littleInt = Array[Byte](
+      (i & 0xff).asInstanceOf[Byte],
+      (i >> 8 & 0xff).asInstanceOf[Byte],
+      (i >> 16 & 0xff).asInstanceOf[Byte],
+      (i >> 24 & 0xff).asInstanceOf[Byte]
+    )
+
+    def littleShort = Array[Byte](
+      (i & 0xff).asInstanceOf[Byte],
+      (i >> 8 & 0xff).asInstanceOf[Byte]
+    )
+
+    def littleByte = Array[Byte]((i & 0xff).asInstanceOf[Byte])
+  }
+
+  implicit class EnumeratorUtils[E](en: Enumerator[E]) {
+    def fold[S](state: S)(f: (S, E) => S)(implicit ec: ExecutionContext): (Enumerator[E], Future[S]) = {
+      var st = state
+
+      val folder = Enumeratee.map[E] { data =>
+        st = f(st, data)
+        data
+      }
+
+      val endStateP = Promise[S]()
+
+      val onEof = Enumeratee.onEOF[E] { () =>
+        endStateP.success(st)
+      }
+
+      (en &> folder &> onEof, endStateP.future)
+    }
+
+    def foldAndThen[S](state: S)(f: (S, E) => S)(endF: S => Enumerator[E])(implicit ec: ExecutionContext): Enumerator[E] = {
+      val (foldedEn, endStateF) = fold(state)(f)
+
+      val endEn = Enumerator.flatten(endStateF.map(endF))
+
+      foldedEn >>> endEn
+    }
+  }
+
 }

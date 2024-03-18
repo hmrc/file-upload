@@ -16,22 +16,21 @@
 
 package uk.gov.hmrc.fileupload.file.zip
 
-import java.io.{BufferedOutputStream, ByteArrayOutputStream}
-import java.util.UUID
-import java.util.zip.ZipOutputStream
-
+import akka.NotUsed
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.util.ByteString
 import play.api.Logger
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.iteratee.streams.IterateeStreams
-import uk.gov.hmrc.fileupload.file.zip.Utils.Bytes
 import uk.gov.hmrc.fileupload.file.zip.ZipStream.{ZipFileInfo, ZipStreamEnumerator}
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindEnvelopeNotFoundError, FindResult, FindServiceError}
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, File, EnvelopeStatusClosed, EnvelopeStatusRouteRequested}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileName}
 
+import java.io.{BufferedOutputStream, ByteArrayOutputStream}
+import java.util.UUID
+import java.util.zip.ZipOutputStream
 import scala.concurrent.{ExecutionContext, Future}
 
 /* In order to move off play-iteratees (and Play 2.8), we can replace this manual zipping with a
@@ -46,33 +45,28 @@ object Zippy {
 
   private val logger = Logger(getClass)
 
-  type ZipResult = Either[ZipEnvelopeError, Enumerator[Bytes]]
   sealed trait ZipEnvelopeError
   case object ZipEnvelopeNotFoundError extends ZipEnvelopeError
   case object EnvelopeNotRoutedYet extends ZipEnvelopeError
   case class ZipProcessingError(message: String) extends ZipEnvelopeError
 
-  def zipEnvelope(getEnvelope: (EnvelopeId) => Future[FindResult],
-                  retrieveS3File: (EnvelopeId, FileId) => Future[Source[ByteString, _]])
-                 (envelopeId: EnvelopeId)
-                 (implicit ec: ExecutionContext, mat: Materializer): Future[ZipResult] = {
+  private object FilesForZip {
+    def unapply(envelope: Envelope): Option[Option[Seq[File]]] =
+      envelope.status match {
+        case EnvelopeStatusRouteRequested | EnvelopeStatusClosed
+               => Some(envelope.files)
+        case _ => None
+      }
+  }
 
-    def sourceToEnumerator(source: Source[ByteString, _]) = {
-      val byteStringToArrayOfBytes = Flow[ByteString].map(_.toArray)
-      IterateeStreams.publisherToEnumerator(
-        source.via(byteStringToArrayOfBytes).runWith(Sink.asPublisher(fanout = false))
-      )
-    }
-
-    object FilesForZip {
-      def unapply(envelope: Envelope): Option[Option[Seq[File]]] =
-        envelope.status match {
-          case EnvelopeStatusRouteRequested | EnvelopeStatusClosed
-                 => Some(envelope.files)
-          case _ => None
-        }
-    }
-
+  def zipEnvelopeLegacy(
+    getEnvelope   : EnvelopeId => Future[FindResult],
+    retrieveS3File: (EnvelopeId, FileId) => Future[Source[ByteString, _]]
+  )(envelopeId    : EnvelopeId
+  )(implicit
+    ec: ExecutionContext,
+    mat: Materializer
+  ): Future[Either[ZipEnvelopeError, Enumerator[Array[Byte]]]] =
     getEnvelope(envelopeId).map {
       case Right(envelopeWithFiles @ FilesForZip(Some(files))) =>
         val zipFiles = files.collect {
@@ -83,7 +77,16 @@ object Zippy {
               fileName,
               isDir = false,
               new java.util.Date(),
-              Some(() => retrieveS3File(envelopeWithFiles._id, f.fileId).map { sourceToEnumerator })
+              Some(() =>
+                retrieveS3File(envelopeWithFiles._id, f.fileId)
+                  .map { source =>
+                    IterateeStreams.publisherToEnumerator(
+                      source
+                        .via(Flow[ByteString].map(_.toArray))
+                        .runWith(Sink.asPublisher(fanout = false))
+                    )
+                 }
+              )
             )
         }
         Right(ZipStreamEnumerator(zipFiles))
@@ -104,12 +107,42 @@ object Zippy {
         logger.warn(s"Retrieving zipped envelope [$envelopeId]. Other error [$message]")
         Left(ZipProcessingError(message))
     }
-  }
 
-  def emptyZip(): Enumerator[Array[Byte]] = {
+  private def emptyZip(): Enumerator[Array[Byte]] = {
     val baos = new ByteArrayOutputStream()
     val out =  new ZipOutputStream(new BufferedOutputStream(baos))
     out.close()
     Enumerator(baos.toByteArray)
   }
+
+  def zipEnvelope(
+    getEnvelope: EnvelopeId => Future[FindResult],
+    downloadZip: Envelope   => Future[Source[ByteString, NotUsed]]
+  )(
+    envelopeId: EnvelopeId
+  )(implicit
+    ec: ExecutionContext
+  ): Future[Either[ZipEnvelopeError, Source[ByteString, NotUsed]]] =
+    getEnvelope(envelopeId).flatMap {
+      case Right(envelopeWithFiles @ FilesForZip(Some(_))) =>
+        downloadZip(envelopeWithFiles)
+          .map(Right.apply)
+          .recover { case ex => Left(ZipProcessingError(ex.getMessage)) }
+
+      case Right(envelopeWithoutFiles @ FilesForZip(None)) =>
+        logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope was empty - returning empty ZIP file.")
+        Future.successful(Right(Source.empty))
+
+      case Right(envelopeWithWrongStatus: Envelope) =>
+        logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope has wrong status [${envelopeWithWrongStatus.status}], returned error")
+        Future.successful(Left(EnvelopeNotRoutedYet))
+
+      case Left(FindEnvelopeNotFoundError) =>
+        logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope not found, returned error")
+        Future.successful(Left(ZipEnvelopeNotFoundError))
+
+      case Left(FindServiceError(message)) =>
+        logger.warn(s"Retrieving zipped envelope [$envelopeId]. Other error [$message]")
+        Future.successful(Left(ZipProcessingError(message)))
+    }
 }

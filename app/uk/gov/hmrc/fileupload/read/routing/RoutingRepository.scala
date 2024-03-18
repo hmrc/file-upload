@@ -16,18 +16,19 @@
 
 package uk.gov.hmrc.fileupload.read.routing
 
-import java.util.Base64
-
+import play.api.Logger
 import play.api.http.Status
-import play.api.libs.json.{__, Json, JsObject, JsSuccess, JsError, Writes}
+import play.api.libs.json.{__, Json, JsObject, Writes}
 import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 import uk.gov.hmrc.fileupload.infrastructure.PlayHttp.PlayHttpError
 import uk.gov.hmrc.fileupload.read.envelope.Envelope
 
+import java.util.Base64
 import scala.concurrent.{ExecutionContext, Future}
 
 object RoutingRepository {
+  private val logger = Logger(getClass)
 
   type PushResult = Either[PushError, Unit]
   case class PushError(correlationId: String, reason: String)
@@ -44,7 +45,8 @@ object RoutingRepository {
     wSClient     : WSClient,
     routingConfig: RoutingConfig
   )(fileTransferNotification: FileTransferNotification
-  )(implicit executionContext: ExecutionContext
+  )(implicit
+    ec          : ExecutionContext
   ): Future[PushResult] =
     httpCall(
       wSClient
@@ -64,29 +66,19 @@ object RoutingRepository {
     }
 
   def buildFileTransferNotification(
-    httpCall       : WSRequest => Future[Either[PlayHttpError, WSResponse]],
-    wSClient       : WSClient,
-    routingConfig  : RoutingConfig,
-    frontendBaseUrl: String
-  )(envelope: Envelope
-  )(implicit executionContext: ExecutionContext
+    getZipData   : Envelope => Future[Option[ZipData]],
+    routingConfig: RoutingConfig
+  )(envelope     : Envelope
+  )(implicit
+    ec           : ExecutionContext
   ): Future[BuildNotificationResult] =
-    httpCall(
-      wSClient
-        .url(s"$frontendBaseUrl/internal-file-upload/zip/envelopes/${envelope._id}")
-        .withHttpHeaders("User-Agent" -> "file-upload")
-        .withBody(Json.toJson(ZipRequest(files = envelope.files.toList.flatten.map(f => f.fileId -> f.name.map(_.value)))))
-        .withMethod("POST")
-    ).map {
-      case Left(error) => Left(BuildNotificationError(envelope._id, error.message, isTransient = true))
-      case Right(response) => response.status match {
-          case Status.OK => response.json.validate[ZipData] match {
-              case JsSuccess(zipData, _) => Right(createNotification(envelope, zipData, routingConfig))
-              case JsError(errors) => Left(BuildNotificationError(envelope._id, s"Could not parse result $errors", isTransient = true))
-            }
-          case Status.GONE => Left(BuildNotificationError(envelope._id, "Files to zip are no-longer available", isTransient = false))
-          case _ => Left(BuildNotificationError(envelope._id, s"Unexpected response: ${response.status} ${response.body}", isTransient = true))
-        }
+    getZipData(envelope).map {
+      case Some(zipData) => Right(createNotification(envelope, zipData, routingConfig))
+      case None          => Left(BuildNotificationError(envelope._id, "Files to zip are no-longer available", isTransient = false))
+    }
+    .recover {
+      case ex            => logger.error(s"Could not build file transfer notification: ${ex.getMessage}", ex)
+                            Left(BuildNotificationError(envelope._id, ex.getMessage, isTransient = true))
     }
 
   def createNotification(

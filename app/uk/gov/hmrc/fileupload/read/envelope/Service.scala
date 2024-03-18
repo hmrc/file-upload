@@ -40,7 +40,7 @@ object Service {
   )(
     id: EnvelopeId
   )(implicit
-    ex: ExecutionContext
+    ec: ExecutionContext
   ): Future[FindResult] =
     get(id).map {
       case Some(e) => Right(e)
@@ -52,7 +52,7 @@ object Service {
   )(id    : EnvelopeId,
     fileId: FileId
   )(implicit
-    ex: ExecutionContext
+    ec: ExecutionContext
   ): Future[FindMetadataResult] =
     find(id).map {
       case Right(envelope) =>

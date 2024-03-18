@@ -36,7 +36,7 @@ import scala.util.{Failure, Success, Try}
 class SDESCallbackController @Inject()(
   appModule: ApplicationModule,
   cc: ControllerComponents
-)(implicit executionContext: ExecutionContext
+)(implicit ec: ExecutionContext
 ) extends BackendController(cc) {
 
   private val logger = Logger(getClass)

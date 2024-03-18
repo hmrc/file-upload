@@ -327,6 +327,26 @@ Request (GET): localhost:8898/file-transfer/envelopes/0b215e97-11d4-4006-91db-c0
 
 Response: Binary file contains the zipped files.
 
+#### Download Zip v2
+
+Downloads a zip file which is the envelope and its contents.
+```
+GET     /file-transfer/v2/envelopes/{envelope-id}
+```
+| Responses    | Status    | Description |
+| --------|---------|-------|
+| Ok  | 200   | Successfully download zip. |
+| Not Found | 404   |  Envelope not found. |
+
+This zip is also compressed, which we are currently unsure whether affects clients.
+
+#### Example
+Request (GET): localhost:8898/file-transfer/v2/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
+
+Response: Binary file contains the zipped files.
+
+
+
 #### Soft Delete an Envelope
 Changes status of an envelope to DELETED which prevents any service or user from using this envelope.
 ```

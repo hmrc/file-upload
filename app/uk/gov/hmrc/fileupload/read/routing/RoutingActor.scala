@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.fileupload.read.routing
 
+import akka.NotUsed
 import akka.actor.{Actor, Cancellable, Props}
 import akka.stream.scaladsl.{Concat, Sink, Source}
 import org.joda.time.DateTime
@@ -40,13 +41,13 @@ class RoutingActor(
    findEnvelope            : EnvelopeId                      => Future[FindResult],
    getEnvelopesByStatusDMS : (List[EnvelopeStatus],
                               Boolean,
-                              Boolean)                       => Source[Envelope, akka.NotUsed],
+                              Boolean)                       => Source[Envelope, NotUsed],
    pushNotification        : FileTransferNotification        => Future[RoutingRepository.PushResult],
    handleCommand           : EnvelopeCommand                 => Future[Either[CommandNotAccepted, CommandAccepted.type]],
    lockRepository          :                                    LockRepository,
    applicationLifecycle    :                                    ApplicationLifecycle,
    markAsSeen              : EnvelopeId                      => Future[Unit]
- )(implicit executionContext: ExecutionContext
+ )(implicit ec: ExecutionContext
  ) extends Actor {
 
   import RoutingActor._
@@ -174,13 +175,13 @@ object RoutingActor {
     findEnvelope           : EnvelopeId                      => Future[FindResult],
     getEnvelopesByStatusDMS: (List[EnvelopeStatus],
                               Boolean,
-                              Boolean)                       => Source[Envelope, akka.NotUsed],
+                              Boolean)                       => Source[Envelope, NotUsed],
     pushNotification       : FileTransferNotification        => Future[RoutingRepository.PushResult],
     handleCommand          : EnvelopeCommand                 => Future[Either[CommandNotAccepted, CommandAccepted.type]],
     lockRepository         :                                    LockRepository,
     applicationLifecycle   :                                    ApplicationLifecycle,
     markAsSeen             : EnvelopeId                      => Future[Unit]
-  )(implicit executionContext: ExecutionContext
+  )(implicit ec: ExecutionContext
   ) =
     Props(new RoutingActor(
       config                  = config,
