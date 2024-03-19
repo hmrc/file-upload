@@ -32,7 +32,7 @@ class Aggregate[C <: Command, S](
   toCreated       : () => Created       = () => Created(System.currentTimeMillis())
 )(implicit
   eventStore: EventStore,
-  executionContext: ExecutionContext
+  ec        : ExecutionContext
 ) {
 
   type CommandResult = Either[CommandNotAccepted, CommandAccepted.type]

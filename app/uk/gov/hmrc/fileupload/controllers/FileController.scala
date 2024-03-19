@@ -16,14 +16,19 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import akka.NotUsed
+import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
+import play.api.http.Status
+import play.api.libs.json.{Json, JsError, JsSuccess}
 import play.api.libs.ws.WSClient
 import play.api.mvc._
 import uk.gov.hmrc.fileupload._
-import uk.gov.hmrc.fileupload.read.envelope.{FileStatusAvailable, WithValidEnvelope}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, FileStatusAvailable, WithValidEnvelope}
+import uk.gov.hmrc.fileupload.read.routing.{ZipData, ZipRequest}
 import uk.gov.hmrc.fileupload.write.envelope.EnvelopeCommand
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -34,28 +39,89 @@ class RetrieveFile(wsClient: WSClient, baseUrl: String) {
 
   private val logger = Logger(getClass)
 
-  def download(envelopeId: EnvelopeId, fileId: FileId)(implicit ec: ExecutionContext): Future[Source[ByteString, _]] = {
+  def download(
+    envelopeId: EnvelopeId,
+    fileId    : FileId
+  )(implicit
+    ec : ExecutionContext,
+    mat: Materializer
+  ): Future[Source[ByteString, NotUsed]] = {
     val encodedFileId = implicitly[PathBindable[uk.gov.hmrc.fileupload.FileId]].unbind("fileId", fileId)
     val downloadUrl = s"$baseUrl/internal-file-upload/download/envelopes/$envelopeId/files/$encodedFileId"
     logger.debug(s"Downloading $downloadUrl")
-    val t1 = System.nanoTime()
-    val data = wsClient.url(downloadUrl)
+    val start = System.currentTimeMillis()
+    wsClient.url(downloadUrl)
       .withHttpHeaders("User-Agent" -> "FU-backend")
       .stream()
-      .map(_.bodyAsSource)
-    data.foreach { _ =>
-      val lapse = (System.nanoTime() - t1) / (1000 * 1000)
-      logger.info(s"Downloading file: url=$downloadUrl time=$lapse ms")
-    }
-    data
+      .flatMap { res =>
+        if (res.status != Status.OK)
+          res.bodyAsSource.runFold("")(_ + _.utf8String)
+            .flatMap(body => Future.failed(new RuntimeException(s"Failed to download file: $body")))
+        else
+          Future.successful(
+            res
+              .bodyAsSource
+              .mapMaterializedValue { _ =>
+                logger.info(s"Downloading file: url=$downloadUrl time=${System.currentTimeMillis() - start} ms")
+                NotUsed
+              }
+          )
+      }
   }
+
+  def getZipData(
+    envelope: Envelope
+  )(implicit
+    ec : ExecutionContext,
+    mat: Materializer
+  ): Future[Option[ZipData]] = {
+    implicit val zrw = ZipRequest.writes
+    implicit val zdf = ZipData.format
+    wsClient
+      .url(s"$baseUrl/internal-file-upload/zip/envelopes/${envelope._id}")
+      .withHttpHeaders("User-Agent" -> "file-upload")
+      .withBody(Json.toJson(ZipRequest(files = envelope.files.toList.flatten.map(f => f.fileId -> f.name.map(_.value)))))
+      .withMethod("POST")
+      .execute()
+      .flatMap { res =>
+        res.status match {
+          case Status.OK => res.json.validate[ZipData] match {
+                              case JsSuccess(zipData, _) => Future.successful(Some(zipData))
+                              case JsError(errors)       => Future.failed(new RuntimeException(s"Failed to download file: $errors"))
+                            }
+          case Status.GONE => Future.successful(None)
+          case other       => res.bodyAsSource.runFold("")(_ + _.utf8String)
+                                .flatMap(body => Future.failed(new RuntimeException(s"Failed to download file. status: $other: $body")))
+        }
+      }
+  }
+
+  def downloadZip(
+    envelope: Envelope
+  )(implicit
+    ec : ExecutionContext,
+    mat: Materializer
+  ): Future[Source[ByteString, NotUsed]] =
+    for {
+      zipData <- getZipData(envelope).flatMap(_.fold(Future.failed[ZipData](new RuntimeException(s"Failed to download file: not found")))(Future.successful))
+      res     <- wsClient.url(zipData.url.value).stream()
+      stream  <- if (res.status != 200)
+                    res.bodyAsSource.runFold("")(_ + _.utf8String)
+                      .flatMap(body => Future.failed(new RuntimeException(s"Failed to download file: $body")))
+                  else
+                    Future.successful(
+                      res
+                        .bodyAsSource
+                        .mapMaterializedValue(_ => NotUsed)
+                    )
+    } yield stream
 }
 
 @Singleton
 class FileController @Inject()(
   appModule: ApplicationModule,
-  cc: ControllerComponents
-)(implicit executionContext: ExecutionContext
+  cc       : ControllerComponents
+)(implicit ec: ExecutionContext
 ) extends BackendController(cc) {
 
   private val logger = Logger(getClass)

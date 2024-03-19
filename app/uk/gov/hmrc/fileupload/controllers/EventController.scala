@@ -30,8 +30,8 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class EventController @Inject()(
   appModule: ApplicationModule,
-  cc: ControllerComponents
-)(implicit executionContext: ExecutionContext
+  cc       : ControllerComponents
+)(implicit ec: ExecutionContext
 ) extends BackendController(cc) {
 
   val unitOfWorks: StreamId => Future[GetResult] = appModule.unitOfWorks

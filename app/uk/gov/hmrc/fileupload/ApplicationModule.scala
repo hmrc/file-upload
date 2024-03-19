@@ -162,11 +162,17 @@ class ApplicationModule @Inject()(
 
   lazy val fileUploadFrontendBaseUrl = servicesConfig.baseUrl("file-upload-frontend")
 
+  lazy val getFileFromS3 = new RetrieveFile(wsClient, fileUploadFrontendBaseUrl).download _
+  lazy val getZipData    = new RetrieveFile(wsClient, fileUploadFrontendBaseUrl).getZipData _
+  lazy val downloadZip   = new RetrieveFile(wsClient, fileUploadFrontendBaseUrl).downloadZip _
+
   lazy val routingConfig = RoutingConfig(configuration)
 
-  lazy val buildFileTransferNotification = RoutingRepository.buildFileTransferNotification(auditedHttpExecute, wsClient, routingConfig, fileUploadFrontendBaseUrl) _
+  lazy val buildFileTransferNotification =
+    RoutingRepository.buildFileTransferNotification(getZipData, routingConfig) _
 
-  lazy val pushFileTransferNotification = RoutingRepository.pushFileTransferNotification(auditedHttpExecute, wsClient, routingConfig) _
+  lazy val pushFileTransferNotification =
+    RoutingRepository.pushFileTransferNotification(auditedHttpExecute, wsClient, routingConfig) _
 
   lazy val lockRepository = new MongoLockRepository(mongoComponent, new CurrentTimestampSupport())
 
@@ -184,10 +190,9 @@ class ApplicationModule @Inject()(
     ),
     "routingActor")
 
-  lazy val getFileFromS3 = new RetrieveFile(wsClient, fileUploadFrontendBaseUrl).download _
-
   val getEnvelopesByDestination = envelopeRepository.getByDestination _
-  val zipEnvelope = Zippy.zipEnvelope(findEnvelope, getFileFromS3) _
+  val zipEnvelopeLegacy = Zippy.zipEnvelopeLegacy(findEnvelope, getFileFromS3) _
+  val zipEnvelope       = Zippy.zipEnvelope(findEnvelope, downloadZip) _
 
   val recreateCollections: List[() => Unit] =
     List(eventStore.recreate, envelopeRepository.recreate, statsRepository.recreate)

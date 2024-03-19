@@ -31,8 +31,8 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class RoutingController @Inject()(
   appModule: ApplicationModule,
-  cc: ControllerComponents
-)(implicit executionContext: ExecutionContext
+  cc       : ControllerComponents
+)(implicit ec: ExecutionContext
 ) extends BackendController(cc) {
 
   private val logger = Logger(getClass)

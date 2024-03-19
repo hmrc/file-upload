@@ -70,13 +70,13 @@ class OutputForTransferSpec extends AnyWordSpecLike with Matchers with TestAppli
 
     "keep keys for [name, contentType, length, created] even if values are not available" in {
       val f = File(
-        fileId = FileId(),
-        fileRefId = fileRefId(),
-        status = FileStatusAvailable,
-        name = None,
+        fileId      = FileId(),
+        fileRefId   = fileRefId(),
+        status      = FileStatusAvailable,
+        name        = None,
         contentType = None,
-        length = None,
-        uploadDate = None
+        length      = None,
+        uploadDate  = None
       )
       val envelope = Support.envelope.copy(files = Some(Seq(f)))
 
@@ -182,7 +182,7 @@ class OutputForTransferSpec extends AnyWordSpecLike with Matchers with TestAppli
      """
       }
 
-      val actualJson = Json.toJson(OutputForTransfer(Seq(envelope)))
+      val actualJson = Json.toJson(OutputForTransfer.generateJson(Seq(envelope)))
 
       withClue("actualJson = " + Json.prettyPrint(actualJson)){
         actualJson.toString shouldBe expectedJson

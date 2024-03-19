@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.fileupload.read.envelope
 
+import akka.NotUsed
 import akka.stream.scaladsl.Source
 import com.mongodb.{MongoException, ReadPreference}
 import org.bson.conversions.Bson
@@ -141,12 +142,12 @@ class Repository(
       .toFuture.map(_.toList)
   }
 
-  def getByStatus(status: List[EnvelopeStatus], inclusive: Boolean): Source[Envelope, akka.NotUsed] = {
+  def getByStatus(status: List[EnvelopeStatus], inclusive: Boolean): Source[Envelope, NotUsed] = {
     val operator = if (inclusive) in("status", status.map(_.name): _*) else nin("status", status.map(_.name): _*)
     Source.fromPublisher(collection.find(operator))
   }
 
-  def getByStatusDMS(status: List[EnvelopeStatus], isDMS: Boolean, onlyUnSeen: Boolean): Source[Envelope, akka.NotUsed] = {
+  def getByStatusDMS(status: List[EnvelopeStatus], isDMS: Boolean, onlyUnSeen: Boolean): Source[Envelope, NotUsed] = {
     val operator = and(
       in("status", status.map(_.name): _*),
       if (isDMS) equal("destination", "DMS") else notEqual("destination", "DMS"),

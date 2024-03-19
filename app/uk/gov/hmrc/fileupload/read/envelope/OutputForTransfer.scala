@@ -23,7 +23,7 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 import uk.gov.hmrc.fileupload.controllers
 
 object OutputForTransfer {
-  def apply(envelopes: Seq[Envelope])(implicit rh: RequestHeader): JsValue = {
+  def generateJson(envelopes: Seq[Envelope])(implicit rh: RequestHeader): JsValue = {
     Json.obj(
       _links -> Json.obj(
         self -> Json.obj(
@@ -82,9 +82,9 @@ object OutputForTransfer {
       controllers.transfer.routes.TransferController.list().absoluteURL(rh.secure) + destination
     }
 
-
+    // TODO are clients using these HATEOAS urls or can they try out the non-legacy endpoint without publishing them?
     def fileTransferEnvelope(envelopeId: EnvelopeId): String =
-      controllers.transfer.routes.TransferController.download(envelopeId).url
+      controllers.transfer.routes.TransferController.downloadLegacy(envelopeId).url
 
     def fileDownloadContent(envelopeId: EnvelopeId, fileId: FileId): String =
        controllers.routes.FileController.downloadFile(envelopeId, fileId).url

@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
+import akka.NotUsed
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.google.common.base.Charsets
@@ -50,13 +51,12 @@ class FileControllerSpec
 
   val failed = Future.failed(new Exception("not good"))
 
-  def basic64(s:String): String = {
+  def basic64(s:String): String =
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
-  }
 
   def newController(
-    retrieveFile     : (EnvelopeId, FileId) => Future[Source[ByteString, _]] = (_, _) => failed,
-    withValidEnvelope: WithValidEnvelope = new WithValidEnvelope(_ => Future.successful(Some(Support.envelope))),
+    retrieveFile     : (EnvelopeId, FileId) => Future[Source[ByteString, NotUsed]]                 = (_, _) => failed,
+    withValidEnvelope: WithValidEnvelope                                                           = new WithValidEnvelope(_ => Future.successful(Some(Support.envelope))),
     handleCommand    : EnvelopeCommand => Future[Either[CommandNotAccepted, CommandAccepted.type]] = _ => failed
   ) = {
     val appModule = mock[ApplicationModule]
@@ -65,7 +65,6 @@ class FileControllerSpec
     when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
     new FileController(appModule, app.injector.instanceOf[ControllerComponents])
   }
-
 
   val envelopeId = EnvelopeId()
   val fileId = FileId()
