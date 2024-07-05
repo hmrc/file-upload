@@ -16,10 +16,8 @@
 
 package uk.gov.hmrc.fileupload.controllers.transfer
 
-import akka.NotUsed
 import akka.stream.scaladsl.Source
-import akka.util.ByteString
-import play.api.libs.iteratee.{Enumeratee, Enumerator}
+import play.api.libs.iteratee.Enumeratee
 import play.api.libs.iteratee.streams.IterateeStreams
 import play.api.mvc.{ControllerComponents, Results}
 import uk.gov.hmrc.fileupload.{ApplicationModule, EnvelopeId}
@@ -43,55 +41,53 @@ class TransferController @Inject()(
   val getEnvelopesByDestination: Option[String] => Future[List[Envelope]] =
     appModule.getEnvelopesByDestination
 
- val zipEnvelopeLegacy: EnvelopeId => Future[Either[Zippy.ZipEnvelopeError, Enumerator[Array[Byte]]]] =
-    appModule.zipEnvelopeLegacy
-
- val zipEnvelope: EnvelopeId => Future[Either[Zippy.ZipEnvelopeError, Source[ByteString, NotUsed]]] =
-    appModule.zipEnvelope
-
   val handleCommand: EnvelopeCommand => Future[Either[CommandNotAccepted, CommandAccepted.type]] =
     appModule.envelopeCommandHandler
 
-  def list() = Action.async { implicit request =>
-    val maybeDestination = request.getQueryString("destination")
-    getEnvelopesByDestination(maybeDestination).map { envelopes =>
-      Ok(OutputForTransfer.generateJson(envelopes))
+  val list =
+    Action.async { implicit request =>
+      val maybeDestination = request.getQueryString("destination")
+      getEnvelopesByDestination(maybeDestination).map { envelopes =>
+        Ok(OutputForTransfer.generateJson(envelopes))
+      }
     }
-  }
 
-  def downloadLegacy(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId) = Action.async {
-    appModule.zipEnvelopeLegacy(envelopeId).map {
-      case Right(stream) =>
-        val keepOnlyNonEmptyArrays = Enumeratee.filter[Array[Byte]] { _.length > 0 }
-        val source = Source.fromPublisher(IterateeStreams.enumeratorToPublisher(stream.through(keepOnlyNonEmptyArrays)))
-        Ok.chunked(source).as("application/zip")
-          .withHeaders(Results.contentDispositionHeader(inline = false, name = Some(s"$envelopeId.zip")).toList: _*)
-      case Left(Zippy.ZipEnvelopeNotFoundError | Zippy.EnvelopeNotRoutedYet) =>
-        ExceptionHandler(404, s"Envelope with id: $envelopeId not found")
-      case Left(Zippy.ZipProcessingError(message)) =>
-        ExceptionHandler(INTERNAL_SERVER_ERROR, message)
+  def downloadLegacy(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId) =
+    Action.async {
+      appModule.zipEnvelopeLegacy(envelopeId).map {
+        case Right(stream) =>
+          val keepOnlyNonEmptyArrays = Enumeratee.filter[Array[Byte]] { _.length > 0 }
+          val source = Source.fromPublisher(IterateeStreams.enumeratorToPublisher(stream.through(keepOnlyNonEmptyArrays)))
+          Ok.chunked(source).as("application/zip")
+            .withHeaders(Results.contentDispositionHeader(inline = false, name = Some(s"$envelopeId.zip")).toList: _*)
+        case Left(Zippy.ZipEnvelopeNotFoundError | Zippy.EnvelopeNotRoutedYet) =>
+          ExceptionHandler(404, s"Envelope with id: $envelopeId not found")
+        case Left(Zippy.ZipProcessingError(message)) =>
+          ExceptionHandler(INTERNAL_SERVER_ERROR, message)
+      }
     }
-  }
 
-  def download(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId) = Action.async {
-    appModule.zipEnvelope(envelopeId).map {
-      case Right(source) =>
-        Ok.chunked(source).as("application/zip")
-          .withHeaders(Results.contentDispositionHeader(inline = false, name = Some(s"$envelopeId.zip")).toList: _*)
-      case Left(Zippy.ZipEnvelopeNotFoundError | Zippy.EnvelopeNotRoutedYet) =>
-        ExceptionHandler(404, s"Envelope with id: $envelopeId not found")
-      case Left(Zippy.ZipProcessingError(message)) =>
-        ExceptionHandler(INTERNAL_SERVER_ERROR, message)
+  def download(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId) =
+    Action.async {
+      appModule.zipEnvelope(envelopeId).map {
+        case Right(source) =>
+          Ok.chunked(source).as("application/zip")
+            .withHeaders(Results.contentDispositionHeader(inline = false, name = Some(s"$envelopeId.zip")).toList: _*)
+        case Left(Zippy.ZipEnvelopeNotFoundError | Zippy.EnvelopeNotRoutedYet) =>
+          ExceptionHandler(404, s"Envelope with id: $envelopeId not found")
+        case Left(Zippy.ZipProcessingError(message)) =>
+          ExceptionHandler(INTERNAL_SERVER_ERROR, message)
+      }
     }
-  }
 
-  def delete(envelopeId: EnvelopeId) = Action.async {
-    handleCommand(ArchiveEnvelope(envelopeId)).map {
-      case Right(_)                    => Ok
-      case Left(CommandError(m))       => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
-      case Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $envelopeId not found")
-      case Left(EnvelopeArchivedError) => ExceptionHandler(GONE, s"Envelope with id: $envelopeId already deleted")
-      case Left(_)                     => ExceptionHandler(LOCKED, s"Envelope with id: $envelopeId locked")
-    }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
-  }
+  def delete(envelopeId: EnvelopeId) =
+    Action.async {
+      handleCommand(ArchiveEnvelope(envelopeId)).map {
+        case Right(_)                    => Ok
+        case Left(CommandError(m))       => ExceptionHandler(INTERNAL_SERVER_ERROR, m)
+        case Left(EnvelopeNotFoundError) => ExceptionHandler(NOT_FOUND, s"Envelope with id: $envelopeId not found")
+        case Left(EnvelopeArchivedError) => ExceptionHandler(GONE, s"Envelope with id: $envelopeId already deleted")
+        case Left(_)                     => ExceptionHandler(LOCKED, s"Envelope with id: $envelopeId locked")
+      }.recover { case e => ExceptionHandler(SERVICE_UNAVAILABLE, e.getMessage) }
+    }
 }

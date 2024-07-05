@@ -79,7 +79,7 @@ object OutputForTransfer {
   object URLs {
     def envelopesPerDestination(implicit rh: RequestHeader): String = {
       val destination = rh.getQueryString("destination").map(d => s"?destination=$d").getOrElse("")
-      controllers.transfer.routes.TransferController.list().absoluteURL(rh.secure) + destination
+      controllers.transfer.routes.TransferController.list.absoluteURL(rh.secure) + destination
     }
 
     // TODO are clients using these HATEOAS urls or can they try out the non-legacy endpoint without publishing them?
