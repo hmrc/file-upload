@@ -20,6 +20,7 @@ import org.mockito.scalatest.MockitoSugar
 import org.scalatest.concurrent.{ScalaFutures, IntegrationPatience}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import play.api.Configuration
 import play.api.http.Status
 import play.api.mvc.ControllerComponents
 import play.api.test.FakeRequest
@@ -49,7 +50,7 @@ class TransferControllerSpec
     val appModule = mock[ApplicationModule](withSettings.lenient)
     when(appModule.getEnvelopesByDestination).thenReturn(getEnvelopesByDestination)
     when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
-    new TransferController(appModule, app.injector.instanceOf[ControllerComponents])
+    new TransferController(appModule, app.injector.instanceOf[ControllerComponents], app.injector.instanceOf[Configuration])
   }
 
 
