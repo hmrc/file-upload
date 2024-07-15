@@ -2,6 +2,8 @@
 
 **This service is now deprecated. If you need to use the functions this service delivers, please use [Upscan service](https://confluence.tools.tax.service.gov.uk/pages/viewpage.action?pageId=101663507) or speak to the owners of Upscan service**
 
+**If your services needs to submit to DMS, please use [dms-submission](https://github.com/hmrc/dms-submission)**
+
 This API provides a mechanism whereby a client microservice can define and manage an envelope which can later be filled with files and then optionally routed to another system. The envelope resources are exposed on the /file-upload/envelopes endpoint. Please <i>**DO NOT USE**</i> Test-Only endpoints because they are not available in production and the Internal endpoints specified <i>**WITHOUT PERMISSION.**</i>
 
 ## Software Requirements
