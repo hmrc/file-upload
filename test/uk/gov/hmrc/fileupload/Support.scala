@@ -30,7 +30,7 @@ import scala.concurrent.duration._
 object Support {
 
   object StreamImplicits {
-    implicit val system = ActorSystem()
+    implicit val system: ActorSystem = ActorSystem()
   }
 
   def consume(data: HttpEntity) = {

@@ -44,7 +44,7 @@ class EnvelopeFilesConstraintsSpec extends AnyWordSpecLike with Matchers with Te
         )
 
       validFormats.foreach { f =>
-        result.contains(Size(f).right.get.inBytes) shouldBe true
+        result.contains(Size(f).value.inBytes) shouldBe true
       }
     }
 
@@ -61,16 +61,16 @@ class EnvelopeFilesConstraintsSpec extends AnyWordSpecLike with Matchers with Te
         )
 
       invalidFormats.foreach { c =>
-          Size(c).left.get.message shouldBe "input did not match supported size format, 'KB' and 'MB' are supported, e.g. 10MB"
+        Size(c).left.value.message shouldBe "input did not match supported size format, 'KB' and 'MB' are supported, e.g. 10MB"
       }
     }
   }
 
   "translateToByte " should {
     "parse a constraint in MB or KB to Long" in {
-      Size("10MB").right.get.inBytes shouldBe (10 * 1024 * 1024)
+      Size("10MB").value.inBytes shouldBe (10 * 1024 * 1024)
 
-      Size("100KB").right.get.inBytes shouldBe (100 * 1024)
+      Size("100KB").value.inBytes shouldBe (100 * 1024)
     }
   }
 
@@ -87,7 +87,7 @@ class EnvelopeFilesConstraintsSpec extends AnyWordSpecLike with Matchers with Te
     "return defined constraints, but no content type constraints" in {
       val envelopeWithConstraints = EnvelopeConstraintsUserSetting(Some(10),Some("30MB"),Some("8MB"),Some(List("applicaiton/pdf")), Some(false))
       val createEnvelopeWithConstraints = EnvelopeConstraintsConfiguration.validateEnvelopeFilesConstraints(envelopeWithConstraints, envelopeConstraintsConfigure)
-      val expectedEnvelopeConstraints = Right(EnvelopeFilesConstraints(10,Size("30MB").right.get,Size("8MB").right.get, Some(false)))
+      val expectedEnvelopeConstraints = Right(EnvelopeFilesConstraints(10,Size("30MB").value,Size("8MB").value, Some(false)))
       createEnvelopeWithConstraints shouldBe expectedEnvelopeConstraints
     }
   }

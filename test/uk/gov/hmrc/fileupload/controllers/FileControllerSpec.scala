@@ -47,7 +47,7 @@ class FileControllerSpec
      with IntegrationPatience {
 
   import uk.gov.hmrc.fileupload.Support.StreamImplicits.system
-  implicit val ec = ExecutionContext.global
+  implicit val ec: ExecutionContext = ExecutionContext.global
 
   val failed = Future.failed(new Exception("not good"))
 

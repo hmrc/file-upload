@@ -38,7 +38,7 @@ class OldDataPurgerSpec
      with MockitoSugar {
 
   import ExecutionContext.Implicits.global
-  implicit val as = ActorSystem()
+  implicit val as: ActorSystem = ActorSystem()
 
   trait Setup {
     lazy val configuration =
@@ -84,7 +84,7 @@ class OldDataPurgerSpec
       val envelopeIds = Seq("e1", "e2", "e3", "e4")
 
       when(mockEventStore.streamOlder(any))
-        .thenReturn(Source.fromIterator(() => envelopeIds.map(StreamId.apply).toIterator))
+        .thenReturn(Source.fromIterator(() => envelopeIds.map(StreamId.apply).iterator))
 
       when(mockEnvelopeRepository.purge(any))
         .thenReturn(Future.unit)

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload.controllers.routing
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.fileupload.EnvelopeId
 
 case class RouteEnvelopeRequest(
@@ -26,5 +26,5 @@ case class RouteEnvelopeRequest(
 )
 
 object RouteEnvelopeRequest {
-  implicit val format = Json.format[RouteEnvelopeRequest]
+  implicit val format: Format[RouteEnvelopeRequest] = Json.format[RouteEnvelopeRequest]
 }

@@ -195,7 +195,7 @@ case class EnvelopeArchived(
 object Formatters {
   import play.api.libs.functional.syntax._
 
-  private implicit val fnf = FileName.apiFormat
+  private implicit val fnf: Format[FileName] = FileName.apiFormat
   implicit val unsealEnvelopeFormat: Format[UnsealEnvelope] = Json.format[UnsealEnvelope]
   implicit val storeFileFormat: OFormat[StoreFile] = Json.format[StoreFile]
   implicit val quarantineFileFormat: OFormat[QuarantineFile] = Json.format[QuarantineFile]
@@ -301,7 +301,7 @@ object EventSerializer {
       case e: EnvelopeArchived       => Json.toJson(e)
     }
 
-  val eventWrite = new Writes[Event] {
+  val eventWrite: Writes[Event] = new Writes[Event] {
     def writes(event: Event) = Json.obj(
       "eventId"   -> event.eventId.value,
       "streamId"  -> event.streamId.value,

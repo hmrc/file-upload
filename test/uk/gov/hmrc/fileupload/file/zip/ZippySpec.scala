@@ -41,7 +41,7 @@ class ZippySpec
   import scala.concurrent.ExecutionContext.Implicits.global
 
   private val downloadZip: Envelope => Future[Source[ByteString, NotUsed]] =
-    _ => Future.successful(Source.fromIterator(() => List(ByteString("one"), ByteString("two")).toIterator))
+    _ => Future.successful(Source.fromIterator(() => List(ByteString("one"), ByteString("two")).iterator))
 
   "Zippy" should {
     "provide a zip file containing an envelope including its files in S3" in {
@@ -49,7 +49,7 @@ class ZippySpec
       val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Right(envelope))
       val zipResult = Zippy.zipEnvelope(getEnvelope, downloadZip)(envelopeId = EnvelopeId("myid")).futureValue
 
-      zipResult.right.value.runFold(ByteString.empty)(_ concat _).futureValue.size shouldNot be(0)
+      zipResult.value.runFold(ByteString.empty)(_ concat _).futureValue.size shouldNot be(0)
     }
 
     "fail if envelope is not in Closed status" in {
@@ -89,7 +89,7 @@ class ZippySpec
       val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Right(envelopeWithNoFiles))
       val zipResult = Zippy.zipEnvelope(getEnvelope, downloadZip)(envelopeId = EnvelopeId("myid")).futureValue
 
-      zipResult.right.value.runFold(ByteString.empty)(_ concat _).futureValue.size shouldBe 0
+      zipResult.value.runFold(ByteString.empty)(_ concat _).futureValue.size shouldBe 0
     }
   }
 }

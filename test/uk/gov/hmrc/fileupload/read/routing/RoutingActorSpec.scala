@@ -49,9 +49,8 @@ class RoutingActorSpec
      with BeforeAndAfterAll {
   import RoutingRepository._
 
-  override def afterAll {
+  override def afterAll(): Unit =
     TestKit.shutdownActorSystem(system)
-  }
 
   "RoutingActor" should {
     "buildNotification for envelopes for push" in {
@@ -129,7 +128,7 @@ class RoutingActorSpec
       pushRetryBackoff  = 10.minutes
     )
 
-    val lockRepository = mock[LockRepository](withSettings.lenient)
+    val lockRepository = mock[LockRepository]
     when(lockRepository.takeLock(any, any, any))
       .thenReturn(Future.successful(Some(mock[uk.gov.hmrc.mongo.lock.Lock])))
     when(lockRepository.releaseLock(any, any))
@@ -150,7 +149,7 @@ class RoutingActorSpec
         applicationLifecycle    = applicationLifecycle,
         markAsSeen              = markAsSeen
       ),
-      s"routingTestActor${scala.util.Random.nextInt}"
+      s"routingTestActor${scala.util.Random.nextInt()}"
     )
   }
 }

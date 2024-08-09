@@ -136,7 +136,7 @@ class MongoEventStore(
   }
 
   override def recreate(): Unit =
-    Await.result(collection.drop().toFuture, 5.seconds)
+    Await.result(collection.drop().toFuture(), 5.seconds)
 
   def streamOlder(cutoff: Instant): Source[StreamId, org.apache.pekko.NotUsed] =
     Source.fromPublisher(

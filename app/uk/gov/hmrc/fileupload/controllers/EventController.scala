@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.controllers
 
 import javax.inject.{Inject, Singleton}
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, Writes}
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.ApplicationModule
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -37,7 +37,7 @@ class EventController @Inject()(
   val unitOfWorks: StreamId => Future[GetResult] = appModule.unitOfWorks
   val publishAllEvents: Seq[DomainEvent] => Unit = appModule.publishAllEventsWithReplay
 
-  implicit val eventWrites = EventSerializer.eventWrite
+  implicit val eventWrites: Writes[DomainEvent] = EventSerializer.eventWrite
 
   def get(streamId: StreamId) = Action.async {
     unitOfWorks(streamId).map {

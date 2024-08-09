@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.read.routing
 
 import org.apache.pekko.NotUsed
-import org.apache.pekko.actor.{Actor, Cancellable, Props}
+import org.apache.pekko.actor.{Actor, ActorSystem, Cancellable, Props}
 import org.apache.pekko.stream.scaladsl.{Concat, Sink, Source}
 import org.joda.time.DateTime
 import play.api.Logger
@@ -54,7 +54,7 @@ class RoutingActor(
 
   val logger = Logger(getClass)
 
-  implicit val as = context.system
+  implicit val as: ActorSystem = context.system
 
   private val scheduler: Cancellable =
     context.system.scheduler.scheduleAtFixedRate(config.initialDelay, config.interval, self, PushIfWaiting)

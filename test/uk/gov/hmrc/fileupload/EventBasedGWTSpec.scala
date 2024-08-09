@@ -32,11 +32,11 @@ trait EventBasedGWTSpec[C <: Command, S] extends AnyFeatureSpec with Matchers {
 
   case class Then(result: Either[CommandNotAccepted, List[EventData]])
 
-  def givenWhenThen(given: Given, when: When, expected: Then): Unit = {
-    info(given.toString)
+  def givenWhenThen(`given`: Given, when: When, expected: Then): Unit = {
+    info(`given`.toString)
     info(when.toString)
     info(expected.toString)
-    val result = handler.handle.apply((when.command, given.events.foldLeft(defaultStatus) { (state, event) =>
+    val result = handler.handle.apply((when.command, `given`.events.foldLeft(defaultStatus) { (state, event) =>
       handler.on.apply((state, event))
     }))
     result shouldBe expected.result

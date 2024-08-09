@@ -51,22 +51,22 @@ class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeComm
 
   val createEnvelopeRequestWithoutMaxNoFilesConstraints: Option[EnvelopeFilesConstraints] = {
     Some(EnvelopeConstraintsConfiguration.validateEnvelopeFilesConstraints(EnvelopeConstraintsUserSetting(None, Some("25MB"),
-      Some("10MB")), envelopeConstraintsConfigure).right.get)
+      Some("10MB")), envelopeConstraintsConfigure).value)
   }
 
   val createEnvelopeRequestWithoutMaxSizeConstraints: Option[EnvelopeFilesConstraints] = {
     Some(EnvelopeConstraintsConfiguration.validateEnvelopeFilesConstraints(EnvelopeConstraintsUserSetting(Some(100), None,
-      Some("10MB")), envelopeConstraintsConfigure).right.get)
+      Some("10MB")), envelopeConstraintsConfigure).value)
   }
 
   val createEnvelopeRequestWithoutMaxSizePerItemConstraints: Option[EnvelopeFilesConstraints] = {
     Some(EnvelopeConstraintsConfiguration.validateEnvelopeFilesConstraints(EnvelopeConstraintsUserSetting(Some(100), Some("25MB"),
-      allowZeroLengthFiles = Some(true)), envelopeConstraintsConfigure).right.get)
+      allowZeroLengthFiles = Some(true)), envelopeConstraintsConfigure).value)
   }
 
   val createEnvelopeRequestWithoutTypeConstraints: Option[EnvelopeFilesConstraints] = {
     Some(EnvelopeConstraintsConfiguration.validateEnvelopeFilesConstraints(EnvelopeConstraintsUserSetting(Some(100), Some("25MB"),
-      Some("10MB"), allowZeroLengthFiles = Some(true)), envelopeConstraintsConfigure).right.get)
+      Some("10MB"), allowZeroLengthFiles = Some(true)), envelopeConstraintsConfigure).value)
   }
 
   Feature("CreateEnvelope with constraints") {

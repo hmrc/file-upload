@@ -61,10 +61,10 @@ class EnvelopeController @Inject()(
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
 
     val result = for {
-      envelopeConstraints <- validatedEnvelopeFilesConstraints(request).right
+      envelopeConstraints <- validatedEnvelopeFilesConstraints(request)
       expiryTimes         =  durationsToDateTime(envelopeConstraintsConfigure.defaultExpirationDuration, envelopeConstraintsConfigure.maxExpirationDuration)
       userExpiryDate      =  request.body.expiryDate.orElse(Some(expiryTimes.default))
-      _                   <- validateExpiryDate(expiryTimes.now, expiryTimes.max, userExpiryDate.get).right
+      _                   <- validateExpiryDate(expiryTimes.now, expiryTimes.max, userExpiryDate.get)
       _                   <- validateCallbackUrl(request, envelopeConstraintsConfigure)
     } yield {
       val command = CreateEnvelope(nextId(), request.body.callbackUrl, userExpiryDate, request.body.metadata, Some(envelopeConstraints))

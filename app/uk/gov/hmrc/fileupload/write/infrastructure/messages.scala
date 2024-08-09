@@ -57,15 +57,15 @@ case class Version(value: Int) extends AnyVal {
 }
 
 object Version {
-  implicit val writes = new Writes[Version] {
-    def writes(id: Version): JsValue = JsNumber(id.value)
-  }
-  implicit val reads = new Reads[Version] {
-    def reads(json: JsValue): JsResult[Version] = json match {
-      case JsNumber(value) => JsSuccess(Version(value.toInt))
-      case _               => JsError("invalid envelopeId")
-    }
-  }
+  implicit val writes: Writes[Version] =
+    (id: Version) => JsNumber(id.value)
+
+  implicit val reads: Reads[Version] =
+    (json: JsValue) =>
+      json match {
+        case JsNumber(value) => JsSuccess(Version(value.toInt))
+        case _               => JsError("invalid envelopeId")
+      }
 }
 
 case class Created(value: Long) extends AnyVal {

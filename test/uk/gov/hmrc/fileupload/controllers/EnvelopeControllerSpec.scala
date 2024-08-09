@@ -48,7 +48,7 @@ class EnvelopeControllerSpec
 
   import Support._
 
-  implicit val ec = ExecutionContext.global
+  implicit val ec: ExecutionContext = ExecutionContext.global
 
   val failed = Future.failed(new Exception("not good"))
 
@@ -200,7 +200,7 @@ class EnvelopeControllerSpec
 
       val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest())
 
-      val eventPromise = Promise[EnvelopeCommand]
+      val eventPromise = Promise[EnvelopeCommand]()
 
       val controller = newController(handleCommand = command => {
         eventPromise.success(command)
@@ -227,7 +227,7 @@ class EnvelopeControllerSpec
         body = CreateEnvelopeRequest(constraints =
           Some(EnvelopeConstraintsUserSetting(allowZeroLengthFiles = Some(false)))))
 
-      val eventPromise = Promise[EnvelopeCommand]
+      val eventPromise = Promise[EnvelopeCommand]()
 
       val controller = newController(handleCommand = command => {
         eventPromise.success(command)

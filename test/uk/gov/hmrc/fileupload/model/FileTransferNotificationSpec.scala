@@ -18,11 +18,11 @@ package uk.gov.hmrc.fileupload.model
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import play.api.libs.json.Json
+import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.fileupload.read.routing.{Algorithm, Audit, Checksum, DownloadUrl, FileTransferFile, FileTransferNotification, Property}
 
 class FileTransferNotificationSpec extends AnyFlatSpec with Matchers {
-  implicit val ftnf = FileTransferNotification.format
+  implicit val ftnf: Format[FileTransferNotification] = FileTransferNotification.format
 
   "Given correctly formatted JSON, creating a FileTransferNotification" should "return the expected Notification" in {
     val json = Json.parse(

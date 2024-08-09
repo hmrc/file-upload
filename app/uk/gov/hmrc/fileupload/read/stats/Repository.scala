@@ -57,18 +57,18 @@ class Repository(
 ) {
 
   def insert(inProgressFile: InProgressFile): Future[Boolean] =
-    collection.insertOne(inProgressFile).toFuture.map(_.wasAcknowledged())
+    collection.insertOne(inProgressFile).toFuture().map(_.wasAcknowledged())
 
   def delete(envelopeId: EnvelopeId, fileId: FileId): Future[Boolean] =
     collection
       .deleteMany(filter = Filters.and(Filters.equal("envelopeId", envelopeId.value), Filters.equal("fileId", fileId.value)))
-      .toFuture.map(toBoolean)
+      .toFuture().map(toBoolean)
 
   def deleteAllInAnEnvelop(envelopeId: EnvelopeId): Future[Boolean] =
-    collection.deleteMany(filter = Filters.equal("envelopeId", envelopeId.value)).toFuture.map(toBoolean)
+    collection.deleteMany(filter = Filters.equal("envelopeId", envelopeId.value)).toFuture().map(toBoolean)
 
   def deleteByFileRefId(fileRefId: FileRefId)(implicit ec: ExecutionContext): Future[Boolean] =
-    collection.deleteMany(filter = Filters.equal("_id", fileRefId.value)).toFuture.map(toBoolean)
+    collection.deleteMany(filter = Filters.equal("_id", fileRefId.value)).toFuture().map(toBoolean)
 
   def toBoolean(wr: DeleteResult): Boolean =
     wr.wasAcknowledged() && wr.getDeletedCount > 0
@@ -84,8 +84,8 @@ class Repository(
     collection.countDocuments(Filters.gt("startedAt", start.toEpochMilli)).toFuture()
 
   def findByEnvelopeId(envelopeId: EnvelopeId): Future[List[InProgressFile]] =
-    collection.find(filter = Filters.equal("envelopeId", envelopeId.value)).toFuture.map(_.toList)
+    collection.find(filter = Filters.equal("envelopeId", envelopeId.value)).toFuture().map(_.toList)
 
   def recreate()(implicit ec: ExecutionContext): Unit =
-    Await.result(collection.drop().toFuture.map(_ => true)(ec), 5.seconds)
+    Await.result(collection.drop().toFuture().map(_ => true)(ec), 5.seconds)
 }

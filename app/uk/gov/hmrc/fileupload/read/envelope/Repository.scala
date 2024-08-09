@@ -111,13 +111,13 @@ class Repository(
   def get(id: EnvelopeId)(implicit ec: ExecutionContext): Future[Option[Envelope]] =
     collection
       .find(filter = equal("_id", id.value))
-      .toFuture
+      .toFuture()
       .map(_.headOption)
 
   def delete(id: EnvelopeId)(implicit ec: ExecutionContext): Future[DeleteResult] =
     collection
       .deleteMany(filter = equal("_id", id.value))
-      .toFuture
+      .toFuture()
       .map { r =>
         if (r.wasAcknowledged() && r.getDeletedCount > 0)
           deleteSuccess
@@ -139,7 +139,8 @@ class Repository(
     collection
       .withReadPreference(ReadPreference.secondaryPreferred())
       .find(and(filters: _*))
-      .toFuture.map(_.toList)
+      .toFuture()
+      .map(_.toList)
   }
 
   def getByStatus(status: List[EnvelopeStatus], inclusive: Boolean): Source[Envelope, NotUsed] = {
@@ -174,12 +175,12 @@ class Repository(
   def all()(implicit ec: ExecutionContext): Future[List[Envelope]] =
     collection
       .find()
-      .toFuture
+      .toFuture()
       .map(_.toList)
 
   def recreate(): Unit = {
     Await.result(collection.drop().toFuture(), 5.seconds)
-    Await.result(ensureIndexes, 5.seconds)
+    Await.result(ensureIndexes(), 5.seconds)
   }
 
   def purge(envelopeIds: Seq[EnvelopeId]): Future[Unit] =

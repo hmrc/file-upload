@@ -135,7 +135,7 @@ object GetEnvelopesByStatus {
   implicit def getEnvelopesByStatusQueryStringBindable(implicit
     booleanBinder: QueryStringBindable[Boolean],
     listBinder   : QueryStringBindable[List[String]]
-  ) =
+  ): QueryStringBindable[GetEnvelopesByStatus] =
     new QueryStringBindable[GetEnvelopesByStatus] {
       override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, GetEnvelopesByStatus]] =
         for {

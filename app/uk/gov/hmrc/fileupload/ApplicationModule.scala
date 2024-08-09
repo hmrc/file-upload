@@ -126,12 +126,12 @@ class ApplicationModule @Inject()(
   lazy val findMetadata = EnvelopeService.findMetadata(findEnvelope) _
 
   lazy val statsLoggingConfiguration = StatsLoggingConfiguration(configuration)
-  lazy val statsRepository = StatsRepository.apply(mongoComponent)
-  lazy val saveFileQuarantinedStat = Stats.save(statsRepository.insert) _
-  lazy val deleteFileStoredStat = Stats.deleteFileStored(statsRepository.delete) _
-  lazy val deleteVirusDetectedStat = Stats.deleteVirusDetected(statsRepository.delete) _
-  lazy val deleteFiles = Stats.deleteEnvelopeFiles(statsRepository.deleteAllInAnEnvelop) _
-  lazy val allInProgressFile = Stats.all(statsRepository.all) _
+  lazy val statsRepository           = StatsRepository.apply(mongoComponent)
+  lazy val saveFileQuarantinedStat   = Stats.save(statsRepository.insert) _
+  lazy val deleteFileStoredStat      = Stats.deleteFileStored(statsRepository.delete) _
+  lazy val deleteVirusDetectedStat   = Stats.deleteVirusDetected(statsRepository.delete) _
+  lazy val deleteFiles               = Stats.deleteEnvelopeFiles(statsRepository.deleteAllInAnEnvelop) _
+  lazy val allInProgressFile         = Stats.all(statsRepository.all _) _
 
   // envelope read model
   lazy val reportHandler = new EnvelopeReportHandler(
@@ -194,7 +194,7 @@ class ApplicationModule @Inject()(
   val zipEnvelope       = Zippy.zipEnvelope(findEnvelope, downloadZip) _
 
   val recreateCollections: List[() => Unit] =
-    List(eventStore.recreate, envelopeRepository.recreate, statsRepository.recreate)
+    List(eventStore.recreate _, envelopeRepository.recreate _, statsRepository.recreate _)
 
   val newId: () => String = () => UUID.randomUUID().toString
 
@@ -203,7 +203,7 @@ class ApplicationModule @Inject()(
     eventStore,
     envelopeRepository,
     lockRepository,
-    java.time.Instant.now
+    java.time.Instant.now _
   )(executionContext,
     actorSystem
   ).purge()

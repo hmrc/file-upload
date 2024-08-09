@@ -39,7 +39,7 @@ class EventStoreSpec
   lazy val metrisMock = mock[MetricRegistry]
   override lazy val repository = new MongoEventStore(mongoComponent, metrisMock)
 
-  private implicit val as = ActorSystem()
+  private implicit val as: ActorSystem = ActorSystem()
 
   "MongoEventStore.streamOlder" should {
     "only return streamIds where all events are before the cutoff" in {

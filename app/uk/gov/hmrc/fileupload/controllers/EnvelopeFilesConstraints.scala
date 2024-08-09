@@ -33,14 +33,13 @@ case object KB extends SizeUnit
 case object MB extends SizeUnit
 
 case class Size(value: Long, unit: SizeUnit) {
-  override def toString: String = value + unit.toString
+  override def toString: String = s"$value${unit.toString}"
 
-  def inBytes: Long = {
+  def inBytes: Long =
     unit match {
       case KB => value * 1024
       case MB => value * 1024 * 1024
     }
-  }
 }
 
 object Size {

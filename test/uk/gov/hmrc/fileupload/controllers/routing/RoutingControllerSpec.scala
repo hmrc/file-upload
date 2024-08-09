@@ -40,7 +40,7 @@ class RoutingControllerSpec
      with ScalaFutures
      with OptionValues {
 
-  implicit val ec = ExecutionContext.global
+  implicit val ec: ExecutionContext = ExecutionContext.global
   import uk.gov.hmrc.fileupload.Support.StreamImplicits.system
 
   val failed = Future.failed(new Exception("not good"))

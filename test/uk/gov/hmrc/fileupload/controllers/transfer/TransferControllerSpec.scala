@@ -39,7 +39,7 @@ class TransferControllerSpec
      with ScalaFutures
      with IntegrationPatience {
 
-  implicit val ec = ExecutionContext.global
+  implicit val ec: ExecutionContext = ExecutionContext.global
 
   val failed = Future.failed(new Exception("not good"))
 
@@ -47,7 +47,7 @@ class TransferControllerSpec
     getEnvelopesByDestination: Option[String] => Future[List[Envelope]]                                    = _ => failed,
     handleCommand            : EnvelopeCommand => Future[Either[CommandNotAccepted, CommandAccepted.type]] = _ => failed
   ) = {
-    val appModule = mock[ApplicationModule](withSettings.lenient)
+    val appModule = mock[ApplicationModule]
     when(appModule.getEnvelopesByDestination).thenReturn(getEnvelopesByDestination)
     when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
     new TransferController(appModule, app.injector.instanceOf[ControllerComponents], app.injector.instanceOf[Configuration])
