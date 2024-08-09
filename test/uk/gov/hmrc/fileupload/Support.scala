@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import org.joda.time.DateTime
 import play.api.http.HttpEntity
 import play.api.libs.json.Json

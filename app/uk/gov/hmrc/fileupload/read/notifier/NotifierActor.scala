@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload.read.notifier
 
-import akka.actor.{Actor, ActorRef, Props}
+import org.apache.pekko.actor.{Actor, ActorRef, Props}
 import play.api.Logger
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult

@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.fileupload.read.routing
 
-import akka.actor.ActorSystem
-import akka.stream.scaladsl.Source
-import akka.testkit.TestKit
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.scaladsl.Source
+import org.apache.pekko.testkit.TestKit
 import org.mockito.scalatest.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, OptionValues}
 import org.scalatest.concurrent.{Eventually, IntegrationPatience, ScalaFutures}
@@ -60,7 +60,7 @@ class RoutingActorSpec
       val boot = Boot(
         buildNotification       = envelope => {
                                     buildNotificationCalled.set(true)
-                                    Future.successful(Left(BuildNotificationError(envelopeId = envelope._id, reason = "failed", isTransient = false))),
+                                    Future.successful(Left(BuildNotificationError(envelopeId = envelope._id, reason = "failed", isTransient = false)))
                                   },
         getEnvelopesByStatusDMS = (statuses, isDMS, onlyUnseen) => if (isDMS && statuses.contains(EnvelopeStatusRouteRequested))
                                                                      Source.single(Envelope(destination = Some("dms")))
@@ -78,7 +78,7 @@ class RoutingActorSpec
       val boot = Boot(
         buildNotification       = envelope => {
                                     buildNotificationCalled.set(true)
-                                    Future.successful(Left(BuildNotificationError(envelopeId = envelope._id, reason = "failed", isTransient = false))),
+                                    Future.successful(Left(BuildNotificationError(envelopeId = envelope._id, reason = "failed", isTransient = false)))
                                   },
         getEnvelopesByStatusDMS = (statuses, isDMS, onlyUnseen) => if (isDMS && statuses.contains(EnvelopeStatusRouteRequested))
                                                                      Source.single(Envelope(
@@ -103,7 +103,7 @@ class RoutingActorSpec
 
     getEnvelopesByStatusDMS : (List[EnvelopeStatus],
                                 Boolean,
-                                Boolean)                       => Source[Envelope, akka.NotUsed] =
+                                Boolean)                       => Source[Envelope, org.apache.pekko.NotUsed] =
       (evelopeStatuses, isDMS, onlyUnseen) => Source.single(Envelope()),
 
     pushNotification        : FileTransferNotification        => Future[PushResult] =

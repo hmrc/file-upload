@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import akka.stream.scaladsl.Source
+import org.apache.pekko.stream.scaladsl.Source
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
 import org.joda.time.DateTime
@@ -63,7 +63,7 @@ class EnvelopeControllerSpec
     findMetadata         : (EnvelopeId, FileId) => Future[Either[FindMetadataError, read.envelope.File]] = (_, _) => failed,
     findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed,
     deleteInProgressFile : FileRefId => Future[Boolean] = _ => failed,
-    getEnvelopesByStatus : (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed] = (_, _) => Source.failed(new Exception("not good"))
+    getEnvelopesByStatus : (List[EnvelopeStatus], Boolean) => Source[Envelope, org.apache.pekko.NotUsed] = (_, _) => Source.failed(new Exception("not good"))
   ) = {
     val appModule = mock[ApplicationModule]
     when(appModule.nextId).thenReturn(nextId)

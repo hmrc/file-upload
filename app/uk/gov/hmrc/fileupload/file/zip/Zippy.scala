@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.fileupload.file.zip
 
-import akka.NotUsed
-import akka.stream.scaladsl.Source
-import akka.util.ByteString
+import org.apache.pekko.NotUsed
+import org.apache.pekko.stream.scaladsl.Source
+import org.apache.pekko.util.ByteString
 import play.api.Logger
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, File, EnvelopeStatusClosed, EnvelopeStatusRouteRequested}

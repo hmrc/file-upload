@@ -16,10 +16,9 @@
 
 package uk.gov.hmrc.fileupload
 
-import akka.actor.ActorRef
 import com.google.inject.ImplementedBy
 import com.codahale.metrics.MetricRegistry
-import javax.inject.{Inject, Singleton}
+import org.apache.pekko.actor.ActorRef
 import play.api._
 import play.api.libs.ws.ahc.AhcWSComponents
 import uk.gov.hmrc.fileupload.controllers.RetrieveFile
@@ -38,6 +37,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.mongo.{CurrentTimestampSupport, MongoComponent}
 
 import java.util.UUID
+import javax.inject.{Inject, Singleton}
 
 /**
   * This trait is added to control publishing the events in the tests
@@ -65,10 +65,10 @@ class ApplicationModule @Inject()(
   override val applicationLifecycle: play.api.inject.ApplicationLifecycle,
   override val configuration: play.api.Configuration,
   override val environment: play.api.Environment,
-  actorSystem: akka.actor.ActorSystem
+  actorSystem: org.apache.pekko.actor.ActorSystem
 )(implicit
   override val executionContext: scala.concurrent.ExecutionContext,
-  override val materializer: akka.stream.Materializer
+  override val materializer: org.apache.pekko.stream.Materializer
 ) extends AhcWSComponents {
 
   private val logger = Logger(getClass)

@@ -19,7 +19,7 @@ package uk.gov.hmrc.fileupload.read.envelope
 import org.joda.time.{DateTime, DateTimeZone}
 import uk.gov.hmrc.fileupload.read.envelope.Repository.{DeleteResult, UpdateResult}
 import uk.gov.hmrc.fileupload.read.infrastructure.ReportHandler
-import uk.gov.hmrc.fileupload.write.envelope._
+import uk.gov.hmrc.fileupload.write.envelope.{Envelope => _, File => _, _}
 import uk.gov.hmrc.fileupload.write.infrastructure.{EventData, StreamId, Version}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 

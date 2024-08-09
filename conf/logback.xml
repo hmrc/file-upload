@@ -23,9 +23,9 @@
 
 
     <logger name="org.asynchttpclient" level="INFO"/>
+    <logger name="org.apache.pekko.actor" level="DEBUG"/>
 
     <logger name="uk.gov" level="INFO"/>
-    <logger name="akka.actor" level="DEBUG"/>
 
     <logger name="application" level="INFO"/>
 

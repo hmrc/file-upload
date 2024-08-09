@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload.read.stats
 
-import akka.actor.{Actor, ActorRef, Props}
+import org.apache.pekko.actor.{Actor, ActorRef, Props}
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
 import uk.gov.hmrc.fileupload.read.notifier.NotifierRepository.{Notification, NotifyResult}
@@ -44,7 +44,7 @@ class StatsActor(
         deleteVirusDetected(e)
       case e: FileStored =>
         deleteFileStored(e)
-      case e: EnvelopeDeleted ⇒
+      case e: EnvelopeDeleted =>
         deleteFiles(e)
       case _ =>
     }

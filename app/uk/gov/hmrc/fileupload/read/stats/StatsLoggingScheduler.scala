@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload.read.stats
 
-import akka.actor.{ActorSystem, Cancellable}
+import org.apache.pekko.actor.{ActorSystem, Cancellable}
 import play.api.{Configuration, Logger}
 
 import java.time.Instant

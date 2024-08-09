@@ -16,11 +16,10 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import akka.NotUsed
-import akka.stream.Materializer
-import akka.stream.scaladsl.Source
-import akka.util.ByteString
-import javax.inject.{Inject, Singleton}
+import org.apache.pekko.NotUsed
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.Source
+import org.apache.pekko.util.ByteString
 import play.api.Logger
 import play.api.http.Status
 import play.api.libs.json.{Json, JsError, JsSuccess}
@@ -33,6 +32,7 @@ import uk.gov.hmrc.fileupload.write.envelope.EnvelopeCommand
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 class RetrieveFile(wsClient: WSClient, baseUrl: String) {

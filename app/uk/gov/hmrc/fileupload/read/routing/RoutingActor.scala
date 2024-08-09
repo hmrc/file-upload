@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.fileupload.read.routing
 
-import akka.NotUsed
-import akka.actor.{Actor, Cancellable, Props}
-import akka.stream.scaladsl.{Concat, Sink, Source}
+import org.apache.pekko.NotUsed
+import org.apache.pekko.actor.{Actor, Cancellable, Props}
+import org.apache.pekko.stream.scaladsl.{Concat, Sink, Source}
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.inject.ApplicationLifecycle

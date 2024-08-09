@@ -29,10 +29,10 @@ object EnvelopeConstraintsConfiguration {
 
   def checkOptionIntValue(data: Option[Int], position: String): Int =
     data match {
-      case Some(num: Int) ⇒
+      case Some(num: Int) =>
         if (num < 1) throwRuntimeException(s"$position")
         else num
-      case _ ⇒ throwRuntimeException(s"$position")
+      case _ => throwRuntimeException(s"$position")
     }
 
   def getEnvelopeConstraintsConfiguration(runModeConfiguration: Configuration): Either[ConstraintsValidationFailure, EnvelopeConstraintsConfiguration] = {

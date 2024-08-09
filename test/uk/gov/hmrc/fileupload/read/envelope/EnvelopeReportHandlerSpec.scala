@@ -22,7 +22,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.Support.fileRefId
 import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
-import uk.gov.hmrc.fileupload.write.envelope._
+import uk.gov.hmrc.fileupload.write.envelope.{Envelope => _, File => _, _}
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileName}
 
