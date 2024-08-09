@@ -23,14 +23,11 @@ import org.scalatest.EitherValues
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-import play.api.libs.iteratee.Iteratee
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, Support}
 import uk.gov.hmrc.fileupload.file.zip.Zippy._
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatusClosed, EnvelopeStatusOpen}
 import uk.gov.hmrc.fileupload.read.envelope.Service._
 
-import java.io.ByteArrayInputStream
-import java.util.zip.ZipInputStream
 import scala.concurrent.Future
 
 class ZippySpec
@@ -43,72 +40,8 @@ class ZippySpec
   import uk.gov.hmrc.fileupload.Support.StreamImplicits.system
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  private val retrieveFileFormS3: (EnvelopeId, FileId) => Future[Source[ByteString, _]] = (_, _) =>
-    Future.successful(Source.fromIterator(() => List(ByteString("one"), ByteString("two")).toIterator))
-
   private val downloadZip: Envelope => Future[Source[ByteString, NotUsed]] =
     _ => Future.successful(Source.fromIterator(() => List(ByteString("one"), ByteString("two")).toIterator))
-
-  "Zippy legacy" should {
-    "provide a zip file containing an envelope including its files in S3" in {
-      val envelope = Support.envelopeWithAFile(FileId("myfile")).copy(status = EnvelopeStatusClosed)
-      val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Right(envelope))
-      val zipResult = Zippy.zipEnvelopeLegacy(getEnvelope, retrieveFileFormS3)(envelopeId = EnvelopeId("myid")).futureValue
-
-      zipResult.isRight shouldBe true
-      zipResult.map(zipStream => {
-        val eventualBytes: Future[List[Array[Byte]]] = zipStream.run(Iteratee.getChunks[Array[Byte]])
-        eventualBytes.futureValue.size shouldNot be(0)
-      })
-    }
-
-    "fail if envelope is not in Closed status" in {
-      val envelope = Support.envelopeWithAFile(FileId("myfile")).copy(status = EnvelopeStatusOpen)
-      val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Right(envelope))
-      val zipResult = Zippy.zipEnvelopeLegacy(getEnvelope, retrieveFileFormS3)(envelopeId = EnvelopeId("myid")).futureValue
-
-      zipResult.isLeft shouldBe true
-      zipResult.left.map {
-        case EnvelopeNotRoutedYet =>
-        case _ => fail("EnvelopeNotRoutedYet was expected")
-      }
-    }
-
-    "fail when no envelope is found" in {
-      val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Left(FindEnvelopeNotFoundError))
-      val zipResult = Zippy.zipEnvelopeLegacy(getEnvelope, retrieveFileFormS3)(envelopeId = EnvelopeId("myid")).futureValue
-
-      zipResult.isLeft shouldBe true
-      zipResult.left.map {
-        case ZipEnvelopeNotFoundError =>
-        case _ => fail("EnvelopeNotFound was expected")
-      }
-    }
-
-    "fail when no service error" in {
-      val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Left(FindServiceError("A service error")))
-      val zipResult = Zippy.zipEnvelopeLegacy(getEnvelope, retrieveFileFormS3)(envelopeId = EnvelopeId("myid")).futureValue
-
-      zipResult.isLeft shouldBe true
-      zipResult.left.map {
-        case ZipProcessingError("A service error") =>
-        case _ => fail("EnvelopeNotFound was expected")
-      }
-    }
-
-    "return empty zip when no file is found in the envelope" in {
-      val envelopeWithNoFiles = Support.envelope.copy(status = EnvelopeStatusClosed)
-      val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Right(envelopeWithNoFiles))
-      val zipResult = Zippy.zipEnvelopeLegacy(getEnvelope, retrieveFileFormS3)(envelopeId = EnvelopeId("myid")).futureValue
-
-      zipResult.isRight shouldBe true
-      zipResult.map { zipStream =>
-        val bytes: Array[Byte] = (zipStream |>>> Iteratee.consume[Array[Byte]]()).futureValue
-        val zip = new ZipInputStream(new ByteArrayInputStream(bytes))
-        zip.getNextEntry shouldBe null
-      }
-    }
-  }
 
   "Zippy" should {
     "provide a zip file containing an envelope including its files in S3" in {

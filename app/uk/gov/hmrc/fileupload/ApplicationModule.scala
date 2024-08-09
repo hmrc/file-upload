@@ -191,7 +191,6 @@ class ApplicationModule @Inject()(
     "routingActor")
 
   val getEnvelopesByDestination = envelopeRepository.getByDestination _
-  val zipEnvelopeLegacy = Zippy.zipEnvelopeLegacy(findEnvelope, getFileFromS3) _
   val zipEnvelope       = Zippy.zipEnvelope(findEnvelope, downloadZip) _
 
   val recreateCollections: List[() => Unit] =

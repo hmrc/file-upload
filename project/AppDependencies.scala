@@ -12,8 +12,7 @@ private object AppDependencies {
     PlayImport.ws,
     "uk.gov.hmrc"            %% "bootstrap-backend-play-28"   % bootstrapPlayVersion,
     "com.typesafe.play"      %% "play-json-joda"              % "2.8.1",
-    "com.typesafe.play"      %% "play-iteratees-reactive-streams" % "2.6.1", // not available for Scala 2.13
-    "org.typelevel"          %% "cats-core"                   % "2.10.0",
+    "org.typelevel"          %% "cats-core"                   % "2.10.0"
   )
 
   val test = Seq(
