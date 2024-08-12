@@ -27,6 +27,7 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotA
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.reflect.ClassTag
 
 @Singleton
 class CommandController @Inject()(
@@ -50,7 +51,7 @@ class CommandController @Inject()(
 
   def markFileAsInfected = process[MarkFileAsInfected]
 
-  def process[T <: EnvelopeCommand : Reads : Manifest] = Action.async(parse.json) { implicit req =>
+  def process[T <: EnvelopeCommand : Reads : ClassTag] = Action.async(parse.json) { implicit req =>
     bindCommandFromRequest[T] { command =>
       logger.info(s"Requested command: $command to be processed")
       handleCommand(command).map {
@@ -70,11 +71,11 @@ class CommandController @Inject()(
     f: EnvelopeCommand => Future[Result]
   )(implicit
     r  : Reads[T],
-    m  : Manifest[T],
+    ct : ClassTag[T],
     req: Request[JsValue]
   ) =
     Json.fromJson[T](req.body)
       .asOpt
       .map(f)
-      .getOrElse(Future.successful(ExceptionHandler(BAD_REQUEST, s"Unable to parse request as ${m.runtimeClass.getSimpleName}")))
+      .getOrElse(Future.successful(ExceptionHandler(BAD_REQUEST, s"Unable to parse request as ${ct.runtimeClass.getSimpleName}")))
 }

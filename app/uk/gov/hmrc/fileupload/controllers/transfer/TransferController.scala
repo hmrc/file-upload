@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.fileupload.controllers.transfer
 
-import play.api.Configuration
 import play.api.mvc.{ControllerComponents, Results}
 import uk.gov.hmrc.fileupload.{ApplicationModule, EnvelopeId}
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
@@ -32,8 +31,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class TransferController @Inject()(
   appModule    : ApplicationModule,
-  cc           : ControllerComponents,
-  configuration: Configuration
+  cc           : ControllerComponents
 )(implicit ec: ExecutionContext
 ) extends BackendController(cc) {
 

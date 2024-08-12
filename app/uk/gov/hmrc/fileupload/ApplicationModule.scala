@@ -104,7 +104,6 @@ class ApplicationModule @Inject()(
     StatsActor.props(
       subscribe,
       findEnvelope,
-      sendNotification,
       saveFileQuarantinedStat,
       deleteVirusDetectedStat,
       deleteFileStoredStat,
@@ -180,7 +179,6 @@ class ApplicationModule @Inject()(
     RoutingActor.props(
       config                  = routingConfig,
       buildNotification       = buildFileTransferNotification,
-      findEnvelope,
       getEnvelopesByStatusDMS = envelopeRepository.getByStatusDMS _,
       pushNotification        = pushFileTransferNotification,
       handleCommand           = envelopeCommandHandler,

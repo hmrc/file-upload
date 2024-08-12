@@ -19,7 +19,6 @@ package uk.gov.hmrc.fileupload.read.stats
 import org.apache.pekko.actor.{Actor, ActorRef, Props}
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
-import uk.gov.hmrc.fileupload.read.notifier.NotifierRepository.{Notification, NotifyResult}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.Event
 
@@ -27,7 +26,6 @@ import scala.concurrent.Future
 
 class StatsActor(
   subscribe          : (ActorRef, Class[_]) => Boolean,
-  notify             : (Notification, String) => Future[NotifyResult],
   save               : FileQuarantined => Unit,
   deleteVirusDetected: VirusDetected => Unit,
   deleteFileStored   : FileStored => Unit,
@@ -56,7 +54,6 @@ object StatsActor {
   def props(
     subscribe          : (ActorRef, Class[_]) => Boolean,
     findEnvelope       : EnvelopeId => Future[FindResult],
-    notify             : (Notification, String) => Future[NotifyResult],
     save               : FileQuarantined => Unit,
     deleteVirusDetected: VirusDetected => Unit,
     deleteFileStored   : FileStored => Unit,
@@ -64,7 +61,6 @@ object StatsActor {
   ) =
     Props(new StatsActor(
       subscribe           = subscribe,
-      notify              = notify,
       save                = save,
       deleteFileStored    = deleteFileStored,
       deleteVirusDetected = deleteVirusDetected,

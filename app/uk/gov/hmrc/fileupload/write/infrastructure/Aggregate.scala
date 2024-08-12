@@ -28,7 +28,6 @@ class Aggregate[C <: Command, S](
   defaultState    : () => S,
   publish         : AnyRef => Unit,
   publishAllEvents: Seq[Event] => Unit,
-  nextEventId     : () => EventId       = () => EventId(UUID.randomUUID().toString),
   toCreated       : () => Created       = () => Created(System.currentTimeMillis())
 )(implicit
   eventStore: EventStore,
@@ -104,9 +103,6 @@ class Aggregate[C <: Command, S](
 
                 case Left(NotSavedError(m)) =>
                   Left(CommandError(m))
-
-                case Left(e) =>
-                  Left(CommandError(e.toString))
               }.recover { case e => Left(CommandError(e.getMessage)) }
 
             } else {

@@ -27,7 +27,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.inject.ApplicationLifecycle
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusRouteRequested, Service}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusRouteRequested}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandError, CommandNotAccepted}
 import uk.gov.hmrc.fileupload.EnvelopeId
@@ -99,9 +99,6 @@ class RoutingActorSpec
     buildNotification       : Envelope                        => Future[BuildNotificationResult] =
       envelope => Future.successful(Left(BuildNotificationError(envelopeId = envelope._id, reason = "failed", isTransient = false))),
 
-    findEnvelope            : EnvelopeId                      => Future[Service.FindResult] =
-      envelope => Future.successful(Left(Service.FindEnvelopeNotFoundError)),
-
     getEnvelopesByStatusDMS : (List[EnvelopeStatus],
                                 Boolean,
                                 Boolean)                       => Source[Envelope, org.apache.pekko.NotUsed] =
@@ -143,7 +140,6 @@ class RoutingActorSpec
       RoutingActor.props(
         config                  = routingConfig,
         buildNotification       = buildNotification,
-        findEnvelope            = findEnvelope,
         getEnvelopesByStatusDMS = getEnvelopesByStatusDMS,
         pushNotification        = pushNotification,
         handleCommand           = handleCommand,

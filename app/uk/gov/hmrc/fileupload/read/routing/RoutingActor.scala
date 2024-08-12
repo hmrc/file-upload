@@ -24,7 +24,6 @@ import play.api.Logger
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusClosed, EnvelopeStatusRouteRequested}
-import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
 import uk.gov.hmrc.fileupload.write.envelope.{ArchiveEnvelope, EnvelopeCommand, MarkEnvelopeAsRouteAttempted, MarkEnvelopeAsRouted}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.mongo.lock.LockRepository
@@ -38,7 +37,6 @@ import scala.concurrent.duration.DurationLong
 class RoutingActor(
    config                  :                                    RoutingConfig,
    buildNotification       : Envelope                        => Future[RoutingRepository.BuildNotificationResult],
-   findEnvelope            : EnvelopeId                      => Future[FindResult],
    getEnvelopesByStatusDMS : (List[EnvelopeStatus],
                               Boolean,
                               Boolean)                       => Source[Envelope, NotUsed],
@@ -172,7 +170,6 @@ object RoutingActor {
   def props(
     config                 :                                    RoutingConfig,
     buildNotification      : Envelope                        => Future[RoutingRepository.BuildNotificationResult],
-    findEnvelope           : EnvelopeId                      => Future[FindResult],
     getEnvelopesByStatusDMS: (List[EnvelopeStatus],
                               Boolean,
                               Boolean)                       => Source[Envelope, NotUsed],
@@ -186,7 +183,6 @@ object RoutingActor {
     Props(new RoutingActor(
       config                  = config,
       buildNotification       = buildNotification,
-      findEnvelope            = findEnvelope,
       getEnvelopesByStatusDMS = getEnvelopesByStatusDMS,
       pushNotification        = pushNotification,
       handleCommand           = handleCommand,

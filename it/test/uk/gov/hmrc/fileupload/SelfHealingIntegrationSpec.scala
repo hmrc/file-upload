@@ -30,9 +30,9 @@ class SelfHealingIntegrationSpec
   private val publishEventsForCreateEnvelope = true
   private val publishEventsForRoutingRequest = true
   private val dontPublishEventsForArchive = false
-  private val publishAllEvents = Stream.continually(true)
+  private val publishAllEvents = LazyList.continually(true)
 
-  override val allEventsPublishControl = Stream(
+  override val allEventsPublishControl = LazyList(
     publishEventsForCreateEnvelope,
     publishEventsForRoutingRequest,
     dontPublishEventsForArchive
