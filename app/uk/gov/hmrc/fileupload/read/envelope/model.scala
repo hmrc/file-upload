@@ -157,7 +157,11 @@ object SizeWrites extends Writes[Size] {
 }
 
 object SizeReads extends Reads[Size] {
-  override def reads(value: JsValue) = JsSuccess(Size(value.as[String]).right.get)
+  override def reads(value: JsValue) =
+    Size(value.as[String]) match {
+      case Right(size)   => JsSuccess(size)
+      case Left(failure) => JsError(failure.message)
+    }
 }
 
 object FileStatusReads extends Reads[FileStatus] {

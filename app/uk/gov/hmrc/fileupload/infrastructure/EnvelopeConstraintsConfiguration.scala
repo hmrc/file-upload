@@ -29,10 +29,10 @@ object EnvelopeConstraintsConfiguration {
 
   def checkOptionIntValue(data: Option[Int], position: String): Int =
     data match {
-      case Some(num: Int) ⇒
+      case Some(num: Int) =>
         if (num < 1) throwRuntimeException(s"$position")
         else num
-      case _ ⇒ throwRuntimeException(s"$position")
+      case _ => throwRuntimeException(s"$position")
     }
 
   def getEnvelopeConstraintsConfiguration(runModeConfiguration: Configuration): Either[ConstraintsValidationFailure, EnvelopeConstraintsConfiguration] = {
@@ -54,8 +54,8 @@ object EnvelopeConstraintsConfiguration {
       val acceptedAllowZeroLengthFiles = runModeConfiguration.getOptional[Boolean](s"$keyPrefix.allowZeroLengthFiles")
 
       for {
-        acceptedMaxSize ← Size(acceptedMaxSize).right
-        acceptedMaxSizePerItem ← Size(acceptedMaxSizePerItem).right
+        acceptedMaxSize        <- Size(acceptedMaxSize)
+        acceptedMaxSizePerItem <- Size(acceptedMaxSizePerItem)
       } yield EnvelopeFilesConstraints(
         maxItems             = acceptedMaxItems,
         maxSize              = acceptedMaxSize,
@@ -75,8 +75,8 @@ object EnvelopeConstraintsConfiguration {
     validateExpiryDate(times.now, times.max, times.default) match {
       case Right(_) =>
         for {
-          accepted <- acceptedEnvelopeConstraints.right
-          default  <- defaultEnvelopeConstraints.right
+          accepted <- acceptedEnvelopeConstraints
+          default  <- defaultEnvelopeConstraints
         } yield EnvelopeConstraintsConfiguration(
           acceptedEnvelopeConstraints = accepted,
           defaultEnvelopeConstraints = default,
@@ -100,8 +100,8 @@ object EnvelopeConstraintsConfiguration {
 
     val userEnvelopeConstraints =
       for {
-        userMaxSize        <- Size(constraintsO.maxSize.getOrElse(defaultEnvelopeConstraints.maxSize.toString)).right
-        userMaxSizePerItem <- Size(constraintsO.maxSizePerItem.getOrElse(defaultEnvelopeConstraints.maxSizePerItem.toString)).right
+        userMaxSize        <- Size(constraintsO.maxSize.getOrElse(defaultEnvelopeConstraints.maxSize.toString))
+        userMaxSizePerItem <- Size(constraintsO.maxSizePerItem.getOrElse(defaultEnvelopeConstraints.maxSizePerItem.toString))
       } yield EnvelopeFilesConstraints(
         maxItems             = maxItems,
         maxSize              = userMaxSize,
@@ -110,7 +110,7 @@ object EnvelopeConstraintsConfiguration {
       )
 
     for {
-      useConstraints <- userEnvelopeConstraints.right
+      useConstraints <- userEnvelopeConstraints
     } {
       val maxSizeInBytes: Long = useConstraints.maxSizeInBytes
       val maxSizePerItemInBytes: Long = useConstraints.maxSizePerItemInBytes

@@ -16,10 +16,9 @@
 
 package uk.gov.hmrc.fileupload
 
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.scaladsl.Sink
 import play.api.Configuration
-
-import akka.actor.ActorSystem
-import akka.stream.scaladsl.Sink
 import play.api.Logger
 import uk.gov.hmrc.fileupload.write.infrastructure.MongoEventStore
 import uk.gov.hmrc.fileupload.read.envelope.Repository

@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import akka.stream.scaladsl.Source
-import akka.util.ByteString
 import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.databind.JsonMappingException
+import org.apache.pekko.stream.scaladsl.Source
+import org.apache.pekko.util.ByteString
 import play.api.Logger
 import play.api.http.HttpEntity
 import play.api.http.Status._

@@ -38,10 +38,25 @@ class DownloadEnvelopeIntegrationSpec
   Feature("Download Envelope with files") {
 
     Scenario("A client can download an envelope including its file ~containing random UTF-8 string") {
+      val zipContent = "sampleFileContent"
+
       val uidRegexPattern = "[a-z0-9-]*"
       mockFEServer.stubFor(
-        WireMock.get(urlPathMatching(s"/internal-file-upload/download/envelopes/($uidRegexPattern)/files/($uidRegexPattern)"))
-          .willReturn(WireMock.aResponse().withStatus(200).withBody("sampleFileContent".getBytes))
+        WireMock.post(urlPathMatching(s"/internal-file-upload/zip/envelopes/($uidRegexPattern)"))
+          .willReturn(WireMock.aResponse().withStatus(200).withBody(
+            s"""{
+              "name"       : "name.zip",
+              "size"       : ${zipContent.getBytes.length},
+              "md5Checksum": "ABC",
+              "url"        : "http://localhost:$mockFEServicePort/aws/download"
+              }
+            """
+          ))
+      )
+
+      mockFEServer.stubFor(
+        WireMock.get(urlPathMatching(s"/aws/download"))
+          .willReturn(WireMock.aResponse().withStatus(200).withBody(zipContent.getBytes))
       )
 
       Given("I have an envelope with files")
@@ -95,7 +110,7 @@ class DownloadEnvelopeIntegrationSpec
       response.header("Transfer-Encoding") shouldBe Some("chunked")
 
       And("response body should include file content")
-      response.body.contains("sampleFileContent") shouldBe true
+      response.body.contains(zipContent) shouldBe true
     }
   }
 }

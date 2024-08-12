@@ -18,7 +18,7 @@ package uk.gov.hmrc.fileupload.controllers
 
 import java.net.URL
 
-import akka.stream.scaladsl.Source
+import org.apache.pekko.stream.scaladsl.Source
 import cats.syntax.either._
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
@@ -52,7 +52,7 @@ class EnvelopeController @Inject()(
   val findMetadata: (EnvelopeId, FileId) => Future[Either[FindMetadataError, read.envelope.File]] = appModule.findMetadata
   val findAllInProgressFile: () => Future[GetInProgressFileResult] = appModule.allInProgressFile
   val deleteInProgressFile: (FileRefId) => Future[Boolean] = appModule.deleteInProgressFile
-  val getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed] = appModule.getEnvelopesByStatus
+  val getEnvelopesByStatus: (List[EnvelopeStatus], Boolean) => Source[Envelope, org.apache.pekko.NotUsed] = appModule.getEnvelopesByStatus
   val envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration = appModule.envelopeConstraintsConfigure
 
   import EnvelopeConstraintsConfiguration.{validateExpiryDate, durationsToDateTime}
@@ -61,11 +61,11 @@ class EnvelopeController @Inject()(
     def envelopeLocation = (id: EnvelopeId) => LOCATION -> s"${ request.host }${ uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(id) }"
 
     val result = for {
-      envelopeConstraints <- validatedEnvelopeFilesConstraints(request).right
-      expiryTimes = durationsToDateTime(envelopeConstraintsConfigure.defaultExpirationDuration, envelopeConstraintsConfigure.maxExpirationDuration)
-      userExpiryDate = request.body.expiryDate.orElse(Some(expiryTimes.default))
-      _ <- validateExpiryDate(expiryTimes.now, expiryTimes.max, userExpiryDate.get).right
-      _ <- validateCallbackUrl(request, envelopeConstraintsConfigure)
+      envelopeConstraints <- validatedEnvelopeFilesConstraints(request)
+      expiryTimes         =  durationsToDateTime(envelopeConstraintsConfigure.defaultExpirationDuration, envelopeConstraintsConfigure.maxExpirationDuration)
+      userExpiryDate      =  request.body.expiryDate.orElse(Some(expiryTimes.default))
+      _                   <- validateExpiryDate(expiryTimes.now, expiryTimes.max, userExpiryDate.get)
+      _                   <- validateCallbackUrl(request, envelopeConstraintsConfigure)
     } yield {
       val command = CreateEnvelope(nextId(), request.body.callbackUrl, userExpiryDate, request.body.metadata, Some(envelopeConstraints))
       val userAgent = request.headers.get("User-Agent").getOrElse("none")
@@ -94,7 +94,7 @@ class EnvelopeController @Inject()(
         case Some(url) =>
           for {
             parsedUrl <- Either.catchNonFatal(new URL(url)).left.map(_ => InvalidCallbackUrl(url))
-            _ <- if (allowedProtocols.contains(parsedUrl.getProtocol)) Right(()) else Left(InvalidCallbackUrl(url))
+            _         <- if (allowedProtocols.contains(parsedUrl.getProtocol)) Right(()) else Left(InvalidCallbackUrl(url))
           } yield ()
       }
     } else
@@ -106,12 +106,12 @@ class EnvelopeController @Inject()(
     val validatedUserEnvelopeConstraints = validatedEnvelopeFilesConstraints(request)
 
     validatedUserEnvelopeConstraints match {
-      case Right(envelopeConstraints: EnvelopeFilesConstraints) ⇒
+      case Right(envelopeConstraints: EnvelopeFilesConstraints) =>
         val command = CreateEnvelope(id, request.body.callbackUrl, request.body.expiryDate, request.body.metadata, Some(envelopeConstraints))
         val userAgent = request.headers.get("User-Agent").getOrElse("none")
         logger.info(s"""envelopeId=${command.id} User-Agent=$userAgent""")
         handleCreate(envelopeLocation, command)
-      case Left(failureReason: ConstraintsValidationFailure) ⇒
+      case Left(failureReason: ConstraintsValidationFailure) =>
         Future.successful(BadRequestHandler(new BadRequestException(s"${failureReason.message}")))
     }
   }

@@ -18,14 +18,17 @@ package uk.gov.hmrc.fileupload
 
 import java.time.Duration
 
-import org.scalatest.{BeforeAndAfterAll, TestSuite}
+import org.scalatest.{BeforeAndAfterAll, EitherValues, TestSuite}
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api._
 import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
 import uk.gov.hmrc.fileupload.infrastructure.EnvelopeConstraintsConfiguration
 
-trait TestApplicationComponents extends GuiceOneServerPerSuite with BeforeAndAfterAll {
+trait TestApplicationComponents
+  extends GuiceOneServerPerSuite
+     with BeforeAndAfterAll
+     with EitherValues {
   this: TestSuite =>
 
   // creates a new application and sets the components
@@ -35,13 +38,13 @@ trait TestApplicationComponents extends GuiceOneServerPerSuite with BeforeAndAft
       .build()
 
   val acceptedMaxItems: Int = 100
-  val acceptedMaxSize: Size = Size("250MB").right.get //250 * 1024 * 1024
-  val acceptedMaxSizePerItem: Size = Size("100MB").right.get //100 * 1024 * 1024
+  val acceptedMaxSize: Size = Size("250MB").value //250 * 1024 * 1024
+  val acceptedMaxSizePerItem: Size = Size("100MB").value //100 * 1024 * 1024
   val acceptedAllowZeroLengthFiles = false
 
   val defaultMaxItems: Int = 100
-  val defaultMaxSize: Size = Size("25MB").right.get //25 * 1024 * 1024
-  val defaultMaxSizePerItem: Size = Size("10MB").right.get //10 * 1024 * 1024
+  val defaultMaxSize: Size = Size("25MB").value //25 * 1024 * 1024
+  val defaultMaxSizePerItem: Size = Size("10MB").value //10 * 1024 * 1024
 
   val defaultConstraints =
     EnvelopeFilesConstraints(maxItems = defaultMaxItems,

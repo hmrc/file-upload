@@ -27,15 +27,16 @@ case class EnvelopeId(value: String = UUID.randomUUID().toString) extends AnyVal
 }
 
 object EnvelopeId {
-  implicit val writes = new Writes[EnvelopeId] {
-    def writes(id: EnvelopeId): JsValue = JsString(id.value)
-  }
-  implicit val reads = new Reads[EnvelopeId] {
-    def reads(json: JsValue): JsResult[EnvelopeId] = json match {
-      case JsString(value) => JsSuccess(EnvelopeId(value))
-      case _ => JsError("invalid envelopeId")
-    }
-  }
+  implicit val writes: Writes[EnvelopeId] =
+    (id: EnvelopeId) => JsString(id.value)
+
+  implicit val reads: Reads[EnvelopeId] =
+    (json: JsValue) =>
+      json match {
+        case JsString(value) => JsSuccess(EnvelopeId(value))
+        case _ => JsError("invalid envelopeId")
+      }
+
   implicit val binder: PathBindable[EnvelopeId] =
     new SimpleObjectBinder[EnvelopeId](EnvelopeId.apply, _.value)
 }
@@ -45,15 +46,15 @@ case class FileId(value: String = UUID.randomUUID().toString) extends AnyVal {
 }
 
 object FileId {
-  implicit val writes = new Writes[FileId] {
-    def writes(id: FileId): JsValue = JsString(id.value)
-  }
-  implicit val reads = new Reads[FileId] {
-    def reads(json: JsValue): JsResult[FileId] = json match {
-      case JsString(value) => JsSuccess(FileId(value))
-      case _ => JsError("invalid fileId")
-    }
-  }
+  implicit val writes: Writes[FileId] =
+    (id: FileId) => JsString(id.value)
+
+  implicit val reads: Reads[FileId] =
+    (json: JsValue) =>
+      json match {
+        case JsString(value) => JsSuccess(FileId(value))
+        case _ => JsError("invalid fileId")
+      }
 
   implicit val urlBinder: PathBindable[FileId] =
     new SimpleObjectBinder[FileId](
@@ -66,15 +67,16 @@ case class FileRefId(value: String) extends AnyVal {
 }
 
 object FileRefId {
-  implicit val writes = new Writes[FileRefId] {
-    def writes(id: FileRefId): JsValue = JsString(id.value)
-  }
-  implicit val reads = new Reads[FileRefId] {
-    def reads(json: JsValue): JsResult[FileRefId] = json match {
-      case JsString(value) => JsSuccess(FileRefId(value))
-      case _ => JsError("invalid fileId")
-    }
-  }
+  implicit val writes: Writes[FileRefId] =
+    (id: FileRefId) => JsString(id.value)
+
+  implicit val reads: Reads[FileRefId] =
+    (json: JsValue) =>
+      json match {
+        case JsString(value) => JsSuccess(FileRefId(value))
+        case _ => JsError("invalid fileId")
+      }
+
   implicit val binder: PathBindable[FileRefId] =
     new SimpleObjectBinder[FileRefId](FileRefId.apply, _.value)
 }

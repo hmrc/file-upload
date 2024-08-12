@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.fileupload.write.infrastructure
 
-import akka.stream.scaladsl.Source
 import com.codahale.metrics.MetricRegistry
 import com.mongodb.{MongoException, WriteConcern}
+import org.apache.pekko.stream.scaladsl.Source
 import org.mongodb.scala.bson.{BsonDocument, BsonString}
 import org.mongodb.scala.model._
 import org.mongodb.scala.model.Filters._
@@ -136,9 +136,9 @@ class MongoEventStore(
   }
 
   override def recreate(): Unit =
-    Await.result(collection.drop().toFuture, 5.seconds)
+    Await.result(collection.drop().toFuture(), 5.seconds)
 
-  def streamOlder(cutoff: Instant): Source[StreamId, akka.NotUsed] =
+  def streamOlder(cutoff: Instant): Source[StreamId, org.apache.pekko.NotUsed] =
     Source.fromPublisher(
       mongoComponent.database.getCollection("events")
         .aggregate(Seq(

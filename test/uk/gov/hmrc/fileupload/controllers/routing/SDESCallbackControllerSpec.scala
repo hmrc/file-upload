@@ -40,7 +40,7 @@ class SDESCallbackControllerSpec
      with ScalaFutures
      with IntegrationPatience {
 
-  implicit val ec = ExecutionContext.global
+  implicit val ec: ExecutionContext = ExecutionContext.global
 
   val failed = Future.failed(new Exception("not good"))
 

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import org.joda.time.DateTime
 import play.api.http.HttpEntity
 import play.api.libs.json.Json
@@ -30,7 +30,7 @@ import scala.concurrent.duration._
 object Support {
 
   object StreamImplicits {
-    implicit val system = ActorSystem()
+    implicit val system: ActorSystem = ActorSystem()
   }
 
   def consume(data: HttpEntity) = {

@@ -16,10 +16,9 @@
 
 package uk.gov.hmrc.fileupload
 
-import akka.actor.ActorRef
 import com.google.inject.ImplementedBy
 import com.codahale.metrics.MetricRegistry
-import javax.inject.{Inject, Singleton}
+import org.apache.pekko.actor.ActorRef
 import play.api._
 import play.api.libs.ws.ahc.AhcWSComponents
 import uk.gov.hmrc.fileupload.controllers.RetrieveFile
@@ -38,6 +37,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.mongo.{CurrentTimestampSupport, MongoComponent}
 
 import java.util.UUID
+import javax.inject.{Inject, Singleton}
 
 /**
   * This trait is added to control publishing the events in the tests
@@ -65,10 +65,10 @@ class ApplicationModule @Inject()(
   override val applicationLifecycle: play.api.inject.ApplicationLifecycle,
   override val configuration: play.api.Configuration,
   override val environment: play.api.Environment,
-  actorSystem: akka.actor.ActorSystem
+  actorSystem: org.apache.pekko.actor.ActorSystem
 )(implicit
   override val executionContext: scala.concurrent.ExecutionContext,
-  override val materializer: akka.stream.Materializer
+  override val materializer: org.apache.pekko.stream.Materializer
 ) extends AhcWSComponents {
 
   private val logger = Logger(getClass)
@@ -126,12 +126,12 @@ class ApplicationModule @Inject()(
   lazy val findMetadata = EnvelopeService.findMetadata(findEnvelope) _
 
   lazy val statsLoggingConfiguration = StatsLoggingConfiguration(configuration)
-  lazy val statsRepository = StatsRepository.apply(mongoComponent)
-  lazy val saveFileQuarantinedStat = Stats.save(statsRepository.insert) _
-  lazy val deleteFileStoredStat = Stats.deleteFileStored(statsRepository.delete) _
-  lazy val deleteVirusDetectedStat = Stats.deleteVirusDetected(statsRepository.delete) _
-  lazy val deleteFiles = Stats.deleteEnvelopeFiles(statsRepository.deleteAllInAnEnvelop) _
-  lazy val allInProgressFile = Stats.all(statsRepository.all) _
+  lazy val statsRepository           = StatsRepository.apply(mongoComponent)
+  lazy val saveFileQuarantinedStat   = Stats.save(statsRepository.insert) _
+  lazy val deleteFileStoredStat      = Stats.deleteFileStored(statsRepository.delete) _
+  lazy val deleteVirusDetectedStat   = Stats.deleteVirusDetected(statsRepository.delete) _
+  lazy val deleteFiles               = Stats.deleteEnvelopeFiles(statsRepository.deleteAllInAnEnvelop) _
+  lazy val allInProgressFile         = Stats.all(statsRepository.all _) _
 
   // envelope read model
   lazy val reportHandler = new EnvelopeReportHandler(
@@ -191,11 +191,10 @@ class ApplicationModule @Inject()(
     "routingActor")
 
   val getEnvelopesByDestination = envelopeRepository.getByDestination _
-  val zipEnvelopeLegacy = Zippy.zipEnvelopeLegacy(findEnvelope, getFileFromS3) _
   val zipEnvelope       = Zippy.zipEnvelope(findEnvelope, downloadZip) _
 
   val recreateCollections: List[() => Unit] =
-    List(eventStore.recreate, envelopeRepository.recreate, statsRepository.recreate)
+    List(eventStore.recreate _, envelopeRepository.recreate _, statsRepository.recreate _)
 
   val newId: () => String = () => UUID.randomUUID().toString
 
@@ -204,7 +203,7 @@ class ApplicationModule @Inject()(
     eventStore,
     envelopeRepository,
     lockRepository,
-    java.time.Instant.now
+    java.time.Instant.now _
   )(executionContext,
     actorSystem
   ).purge()

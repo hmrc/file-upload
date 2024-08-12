@@ -18,8 +18,8 @@ package uk.gov.hmrc.fileupload.read.routing
 
 import play.api.Configuration
 
-import scala.collection.JavaConverters._
 import scala.concurrent.duration.FiniteDuration
+import scala.jdk.CollectionConverters._
 
 
 case class RoutingConfig(

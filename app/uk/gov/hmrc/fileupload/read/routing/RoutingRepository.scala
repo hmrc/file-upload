@@ -36,9 +36,8 @@ object RoutingRepository {
   type BuildNotificationResult = Either[BuildNotificationError, FileTransferNotification]
   case class BuildNotificationError(envelopeId: EnvelopeId, reason: String, isTransient: Boolean)
 
-  implicit val ftnw = FileTransferNotification.format
-  implicit val zrw = ZipRequest.writes
-  implicit val zdf = ZipData.format
+  implicit val ftnw: Writes[FileTransferNotification] = FileTransferNotification.format
+  implicit val zrw : Writes[ZipRequest] = ZipRequest.writes
 
   def pushFileTransferNotification(
     httpCall     : WSRequest => Future[Either[PlayHttpError, WSResponse]],

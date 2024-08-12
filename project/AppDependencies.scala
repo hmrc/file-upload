@@ -4,23 +4,22 @@ import sbt._
 
 private object AppDependencies {
 
-  private val bootstrapPlayVersion = "8.6.0"
-  private val mongoVersion         = "1.9.0"
+  private val bootstrapPlayVersion = "9.2.0"
+  private val mongoVersion         = "2.2.0"
 
   val compile = Seq(
-    "uk.gov.hmrc.mongo"      %% "hmrc-mongo-play-28"          % mongoVersion,
+    "uk.gov.hmrc.mongo"      %% "hmrc-mongo-play-30"          % mongoVersion,
     PlayImport.ws,
-    "uk.gov.hmrc"            %% "bootstrap-backend-play-28"   % bootstrapPlayVersion,
-    "com.typesafe.play"      %% "play-json-joda"              % "2.8.1",
-    "com.typesafe.play"      %% "play-iteratees-reactive-streams" % "2.6.1", // not available for Scala 2.13
-    "org.typelevel"          %% "cats-core"                   % "2.10.0",
+    "uk.gov.hmrc"            %% "bootstrap-backend-play-30"   % bootstrapPlayVersion,
+    "org.playframework"      %% "play-json-joda"              % "3.0.4",
+    "org.typelevel"          %% "cats-core"                   % "2.12.0"
   )
 
   val test = Seq(
-    "uk.gov.hmrc"            %% "bootstrap-test-play-28"      % bootstrapPlayVersion    % Test,
-    "uk.gov.hmrc.mongo"      %% "hmrc-mongo-test-play-28"     % mongoVersion            % Test,
-    "org.mockito"            %% "mockito-scala-scalatest"     % "1.16.46"               % Test,
-    "com.typesafe.akka"      %% "akka-testkit"                % PlayVersion.akkaVersion % Test
+    "uk.gov.hmrc"            %% "bootstrap-test-play-30"      % bootstrapPlayVersion      % Test,
+    "uk.gov.hmrc.mongo"      %% "hmrc-mongo-test-play-30"     % mongoVersion              % Test,
+    "org.mockito"            %% "mockito-scala-scalatest"     % "1.17.37"                 % Test,
+    "org.apache.pekko"       %% "pekko-testkit"               % PlayVersion.pekkoVersion  % Test
   )
 
   val libraryDependencies = compile ++ test

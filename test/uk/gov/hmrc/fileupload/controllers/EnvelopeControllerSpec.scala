@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import akka.stream.scaladsl.Source
+import org.apache.pekko.stream.scaladsl.Source
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
 import org.joda.time.DateTime
@@ -48,7 +48,7 @@ class EnvelopeControllerSpec
 
   import Support._
 
-  implicit val ec = ExecutionContext.global
+  implicit val ec: ExecutionContext = ExecutionContext.global
 
   val failed = Future.failed(new Exception("not good"))
 
@@ -63,7 +63,7 @@ class EnvelopeControllerSpec
     findMetadata         : (EnvelopeId, FileId) => Future[Either[FindMetadataError, read.envelope.File]] = (_, _) => failed,
     findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed,
     deleteInProgressFile : FileRefId => Future[Boolean] = _ => failed,
-    getEnvelopesByStatus : (List[EnvelopeStatus], Boolean) => Source[Envelope, akka.NotUsed] = (_, _) => Source.failed(new Exception("not good"))
+    getEnvelopesByStatus : (List[EnvelopeStatus], Boolean) => Source[Envelope, org.apache.pekko.NotUsed] = (_, _) => Source.failed(new Exception("not good"))
   ) = {
     val appModule = mock[ApplicationModule]
     when(appModule.nextId).thenReturn(nextId)
@@ -200,7 +200,7 @@ class EnvelopeControllerSpec
 
       val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest())
 
-      val eventPromise = Promise[EnvelopeCommand]
+      val eventPromise = Promise[EnvelopeCommand]()
 
       val controller = newController(handleCommand = command => {
         eventPromise.success(command)
@@ -227,7 +227,7 @@ class EnvelopeControllerSpec
         body = CreateEnvelopeRequest(constraints =
           Some(EnvelopeConstraintsUserSetting(allowZeroLengthFiles = Some(false)))))
 
-      val eventPromise = Promise[EnvelopeCommand]
+      val eventPromise = Promise[EnvelopeCommand]()
 
       val controller = newController(handleCommand = command => {
         eventPromise.success(command)

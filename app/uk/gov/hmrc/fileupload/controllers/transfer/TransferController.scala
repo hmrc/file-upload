@@ -16,10 +16,7 @@
 
 package uk.gov.hmrc.fileupload.controllers.transfer
 
-import akka.stream.scaladsl.Source
 import play.api.Configuration
-import play.api.libs.iteratee.Enumeratee
-import play.api.libs.iteratee.streams.IterateeStreams
 import play.api.mvc.{ControllerComponents, Results}
 import uk.gov.hmrc.fileupload.{ApplicationModule, EnvelopeId}
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
@@ -53,26 +50,6 @@ class TransferController @Inject()(
         Ok(OutputForTransfer.generateJson(envelopes))
       }
     }
-
-  private val downloadLegacyDisabled = configuration.get[Boolean]("routing.pullZipUseV2")
-
-  def downloadLegacy(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId) =
-    if (downloadLegacyDisabled)
-      download(envelopeId)
-    else
-      Action.async {
-        appModule.zipEnvelopeLegacy(envelopeId).map {
-          case Right(stream) =>
-            val keepOnlyNonEmptyArrays = Enumeratee.filter[Array[Byte]] { _.length > 0 }
-            val source = Source.fromPublisher(IterateeStreams.enumeratorToPublisher(stream.through(keepOnlyNonEmptyArrays)))
-            Ok.chunked(source).as("application/zip")
-              .withHeaders(Results.contentDispositionHeader(inline = false, name = Some(s"$envelopeId.zip")).toList: _*)
-          case Left(Zippy.ZipEnvelopeNotFoundError | Zippy.EnvelopeNotRoutedYet) =>
-            ExceptionHandler(404, s"Envelope with id: $envelopeId not found")
-          case Left(Zippy.ZipProcessingError(message)) =>
-            ExceptionHandler(INTERNAL_SERVER_ERROR, message)
-        }
-      }
 
   def download(envelopeId: uk.gov.hmrc.fileupload.EnvelopeId) =
     Action.async {

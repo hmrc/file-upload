@@ -36,8 +36,8 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with Tes
   val envelopeFilesConstraints =
     EnvelopeFilesConstraints(
       maxItems             = 10,
-      maxSize              = Size("100MB").right.get,
-      maxSizePerItem       = Size("10MB").right.get,
+      maxSize              = Size("100MB").value,
+      maxSizePerItem       = Size("10MB").value,
       allowZeroLengthFiles = None
     )
   val envelopeCreated = EnvelopeCreated(
@@ -132,7 +132,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with Tes
           Some("http://www.callback-url.com"),
           Some(new DateTime(0)),
           Some(Json.obj("foo" -> "bar")),
-          Some(envelopeFilesConstraints.copy(maxSizePerItem = Size("101MB").right.get))
+          Some(envelopeFilesConstraints.copy(maxSizePerItem = Size("101MB").value))
         ),
         InvalidMaxSizePerItemConstraintError
       )
@@ -146,7 +146,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with Tes
           Some("http://www.callback-url.com"),
           Some(new DateTime(0)),
           Some(Json.obj("foo" -> "bar")),
-          Some(envelopeFilesConstraints.copy(maxSize = Size("251MB").right.get))
+          Some(envelopeFilesConstraints.copy(maxSize = Size("251MB").value))
         ),
         InvalidMaxSizeConstraintError
       )

@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.fileupload
 
-import akka.actor.ActorSystem
-import akka.stream.scaladsl.Source
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.scaladsl.Source
 import org.mockito.scalatest.MockitoSugar
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
@@ -38,7 +38,7 @@ class OldDataPurgerSpec
      with MockitoSugar {
 
   import ExecutionContext.Implicits.global
-  implicit val as = ActorSystem()
+  implicit val as: ActorSystem = ActorSystem()
 
   trait Setup {
     lazy val configuration =
@@ -84,7 +84,7 @@ class OldDataPurgerSpec
       val envelopeIds = Seq("e1", "e2", "e3", "e4")
 
       when(mockEventStore.streamOlder(any))
-        .thenReturn(Source.fromIterator(() => envelopeIds.map(StreamId.apply).toIterator))
+        .thenReturn(Source.fromIterator(() => envelopeIds.map(StreamId.apply).iterator))
 
       when(mockEnvelopeRepository.purge(any))
         .thenReturn(Future.unit)

@@ -27,7 +27,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ServiceSpec extends AnyWordSpecLike with Matchers with ScalaFutures {
 
-  implicit val ec = ExecutionContext.global
+  implicit val ec: ExecutionContext = ExecutionContext.global
 
   "find" should {
     "be successful" in {

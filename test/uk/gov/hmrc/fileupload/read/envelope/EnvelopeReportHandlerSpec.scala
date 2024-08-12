@@ -17,25 +17,31 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 import org.joda.time.{DateTime, DateTimeZone}
+import org.scalatest.EitherValues
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.Json
 import uk.gov.hmrc.fileupload.Support.fileRefId
 import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
-import uk.gov.hmrc.fileupload.write.envelope._
+import uk.gov.hmrc.fileupload.write.envelope.{Envelope => _, File => _, _}
 import uk.gov.hmrc.fileupload.write.infrastructure._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileName}
 
 import scala.concurrent.Future
 
-class EnvelopeReportHandlerSpec extends AnyWordSpecLike with Matchers {
+class EnvelopeReportHandlerSpec
+  extends AnyWordSpec
+     with Matchers
+     with EitherValues {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  val envelopeConstraints = Some(EnvelopeFilesConstraints(maxItems = 10,
-    maxSize = Size("100MB").right.get,
-    maxSizePerItem = Size("10MB").right.get,
-    allowZeroLengthFiles = None))
+  val envelopeConstraints = Some(EnvelopeFilesConstraints(
+    maxItems       = 10,
+    maxSize        = Size("100MB").value,
+    maxSizePerItem = Size("10MB").value,
+    allowZeroLengthFiles = None
+  ))
 
   "EnvelopeReportActor" should {
     "create a new envelope" in new UpdateEnvelopeFixture {

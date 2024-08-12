@@ -17,17 +17,17 @@
 package uk.gov.hmrc.fileupload.write.infrastructure
 
 import com.codahale.metrics.MetricRegistry
+import org.apache.pekko.stream.scaladsl.Sink
+import org.mockito.scalatest.MockitoSugar
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
-import org.mockito.scalatest.MockitoSugar
 
 import java.time.Instant
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
-import akka.stream.scaladsl.Sink
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 
 class EventStoreSpec
   extends AnyWordSpec
@@ -39,7 +39,7 @@ class EventStoreSpec
   lazy val metrisMock = mock[MetricRegistry]
   override lazy val repository = new MongoEventStore(mongoComponent, metrisMock)
 
-  private implicit val as = ActorSystem()
+  private implicit val as: ActorSystem = ActorSystem()
 
   "MongoEventStore.streamOlder" should {
     "only return streamIds where all events are before the cutoff" in {
