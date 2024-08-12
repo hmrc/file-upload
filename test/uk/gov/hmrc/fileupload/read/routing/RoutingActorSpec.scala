@@ -128,7 +128,7 @@ class RoutingActorSpec
       pushRetryBackoff  = 10.minutes
     )
 
-    val lockRepository = mock[LockRepository]
+    val lockRepository = mock[LockRepository](withSettings.lenient)
     when(lockRepository.takeLock(any, any, any))
       .thenReturn(Future.successful(Some(mock[uk.gov.hmrc.mongo.lock.Lock])))
     when(lockRepository.releaseLock(any, any))

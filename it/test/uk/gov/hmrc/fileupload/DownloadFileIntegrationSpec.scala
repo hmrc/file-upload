@@ -78,6 +78,8 @@ class DownloadFileIntegrationSpec
       mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/internal-file-upload/download/envelopes/$envelopeId/files/$fileId"))
         .willReturn(WireMock.aResponse().withStatus(200).withBody(data.getBytes)))
 
+      Thread.sleep(1000)
+
       When(s"I invoke GET envelope/$envelopeId/files/$fileId/content")
       val response: WSResponse = download(envelopeId, fileId)
 
@@ -146,6 +148,8 @@ class DownloadFileIntegrationSpec
 
       mockFEServer.stubFor(WireMock.get(urlPathMatching(s"/internal-file-upload/download/envelopes/$envelopeId/files/$fileId"))
         .willReturn(WireMock.aResponse().withStatus(200).withBody(data)))
+
+      Thread.sleep(1000)
 
       When("I call GET /internal-file-upload/envelopes/:envelope-id/files/:file-id/content")
       val getFileResponse: WSResponse = download(envelopeId, fileId)
