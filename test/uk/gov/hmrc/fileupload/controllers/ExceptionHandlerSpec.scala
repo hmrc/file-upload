@@ -30,7 +30,7 @@ class ExceptionHandlerSpec extends AnyWordSpecLike with Matchers {
 
   "exception handler" should {
     "handle an unknown exception as an internal server error" in {
-			object SomeException extends RuntimeException
+      object SomeException extends RuntimeException
 
       val result = Future.successful(ExceptionHandler(SomeException))
       status(result) shouldBe INTERNAL_SERVER_ERROR

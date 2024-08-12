@@ -18,10 +18,11 @@ package uk.gov.hmrc.fileupload.write.infrastructure
 
 import com.codahale.metrics.MetricRegistry
 import org.apache.pekko.stream.scaladsl.Sink
-import org.mockito.scalatest.MockitoSugar
+import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 
 import java.time.Instant
@@ -37,7 +38,8 @@ class EventStoreSpec
      with DefaultPlayMongoRepositorySupport[UnitOfWork] {
 
   lazy val metrisMock = mock[MetricRegistry]
-  override lazy val repository = new MongoEventStore(mongoComponent, metrisMock)
+  override val repository: MongoEventStore =
+    new MongoEventStore(mongoComponent, metrisMock)
 
   private implicit val as: ActorSystem = ActorSystem()
 

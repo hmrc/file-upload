@@ -64,35 +64,36 @@ case class FileTransferNotification(
 
 object FileTransferNotification {
 
-  val format = {
-    implicit val propertyFormat =
+  val format: Format[FileTransferNotification] = {
+    implicit val propertyFormat: Format[Property] =
       ( (__ \ "name" ).format[String]
       ~ (__ \ "value").format[String]
-      )(Property.apply, unlift(Property.unapply))
+      )(Property.apply, p => Tuple.fromProductTyped(p))
 
-    implicit val checksumFormat =
+    implicit val checksumFormat: Format[Checksum] =
       ( (__ \ "algorithm").format[String].inmap[Algorithm](unlift(Algorithm.apply), _.asString)
       ~ (__ \ "value"    ).format[String]
-      )(Checksum.apply, unlift(Checksum.unapply))
+      )(Checksum.apply, cf => Tuple.fromProductTyped(cf))
 
-    implicit val auditFormat =
-      (__ \ "correlationID").format[String].inmap(Audit.apply, unlift(Audit.unapply))
+    implicit val auditFormat: Format[Audit] =
+      (__ \ "correlationID").format[String].inmap(Audit.apply, _.correlationId)
 
-    implicit val downloadUrlFormat = implicitly[Format[String]].inmap[DownloadUrl](DownloadUrl.apply, _.value)
+    implicit val downloadUrlFormat: Format[DownloadUrl] =
+      implicitly[Format[String]].inmap[DownloadUrl](DownloadUrl.apply, _.value)
 
-    implicit val fileFormat =
+    implicit val fileFormat: Format[FileTransferFile] =
       ( (__ \ "recipientOrSender").format[String]
       ~ (__ \ "name"             ).format[String]
       ~ (__ \ "location"         ).formatNullable[DownloadUrl]
       ~ (__ \ "checksum"         ).format[Checksum]
       ~ (__ \ "size"             ).format[Int]
       ~ (__ \ "properties"       ).format[List[Property]]
-      )(FileTransferFile.apply, unlift(FileTransferFile.unapply))
+      )(FileTransferFile.apply, ftf => Tuple.fromProductTyped(ftf))
 
     ( (__ \ "informationType").format[String]
     ~ (__ \ "file"           ).format[FileTransferFile]
     ~ (__ \ "audit"          ).format[Audit]
-    )(FileTransferNotification.apply, unlift(FileTransferNotification.unapply))
+    )(FileTransferNotification.apply, ftn => Tuple.fromProductTyped(ftn))
   }
 }
 

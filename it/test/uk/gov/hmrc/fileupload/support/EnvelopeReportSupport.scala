@@ -28,7 +28,7 @@ object EnvelopeReportSupport {
           "anything": "the caller wants to add to the envelope"
         }
       }
-		""")
+    """)
 
   def requestBodyWithConstraints(args: Map[String, Any] = Map.empty) = s"""
        |{
@@ -41,7 +41,7 @@ object EnvelopeReportSupport {
        |    "anything" : "the caller wants to add to the envelope"
        |  }
        |}
-		 """.stripMargin
+     """.stripMargin
 
   def requestBodyWithLowConstraints(args: Map[String, Any] = Map.empty) = s"""
       |{
@@ -55,6 +55,6 @@ object EnvelopeReportSupport {
       |    "anything" : "the caller wants to add to the envelope"
       |  }
       |}
-		 """.stripMargin
+     """.stripMargin
 
 }

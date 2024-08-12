@@ -100,7 +100,7 @@ class Aggregate[C <: Command, S](
 
                 case Left(VersionConflictError) =>
                   logger.info(s"VersionConflict for version $nextVersion and $command")
-                  Left(VersionConflict(nextVersion, command))
+                  Left(VersionConflict(nextVersion, command): CommandNotAccepted)
 
                 case Left(NotSavedError(m)) =>
                   Left(CommandError(m))
@@ -113,7 +113,7 @@ class Aggregate[C <: Command, S](
               Future.successful(commandAcceptedResult)
             }
 
-          case Left(e: CommandNotAccepted with ConflictingCommand) =>
+          case Left(e: ConflictingCommand) =>
             publishAllEvents(historicalEvents)
             Future.successful(Left(e))
           case Left(e) => Future.successful(Left(e))

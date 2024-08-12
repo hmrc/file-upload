@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload
 
 import play.api.libs.json.Json
+import play.api.libs.ws.WSBodyReadables.readableAsString
 import uk.gov.hmrc.fileupload.controllers.FileScanned
 import uk.gov.hmrc.fileupload.support.{EnvelopeActions, EventsActions, IntegrationSpec}
 import uk.gov.hmrc.fileupload.write.envelope.QuarantineFile

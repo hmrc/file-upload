@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 import com.mongodb.{MongoException, ReadPreference}
+import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 import org.apache.pekko.NotUsed
 import org.apache.pekko.stream.scaladsl.Source
 import org.bson.conversions.Bson

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.fileupload.read.stats
 
 import com.mongodb.ReadPreference
-import org.mongodb.scala.model.Sorts._
+import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 import org.mongodb.scala.model._
 import org.mongodb.scala.result.DeleteResult
 import play.api.libs.json.{Format, Json}
@@ -77,7 +77,7 @@ class Repository(
     collection
       .withReadPreference(ReadPreference.primaryPreferred())
       .find()
-      .sort(descending("startedAt"))
+      .sort(Sorts.descending("startedAt"))
       .toFuture().map(_.toList)
 
   def statsAddedSince(start: Instant): Future[Long] =

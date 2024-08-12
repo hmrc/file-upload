@@ -20,11 +20,12 @@ import org.apache.pekko.stream.scaladsl.Source
 import com.google.common.base.Charsets
 import com.google.common.io.BaseEncoding
 import org.joda.time.DateTime
-import org.mockito.scalatest.MockitoSugar
+import org.mockito.Mockito.when
 import org.scalatest.Inside
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.{HeaderNames, Status}
 import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, Result}
@@ -79,16 +80,16 @@ class EnvelopeControllerSpec
 
   "Create envelope with a request" should {
     "return response with OK status and a Location header specifying the envelope endpoint" in {
-	    val host = "production.com:8000"
+      val host = "production.com:8000"
 
-	    val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest())
+      val fakeRequest = FakeRequest("POST", s"http://$host/envelopes", FakeHeaders(), body = CreateEnvelopeRequest())
 
       val controller = newController(handleCommand = _ => Future.successful(Right(CommandAccepted)))
       val result: Result = controller.create()(fakeRequest).futureValue
 
       result.header.status shouldBe Status.CREATED
-	    val location = result.header.headers("Location")
-	    location shouldBe s"$host${uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(EnvelopeId("abc-def")).url}"
+      val location = result.header.headers("Location")
+      location shouldBe s"$host${uk.gov.hmrc.fileupload.controllers.routes.EnvelopeController.show(EnvelopeId("abc-def")).url}"
     }
   }
 
@@ -246,45 +247,45 @@ class EnvelopeControllerSpec
     }
   }
 
-	"Delete Envelope" should {
-		"respond with 200 OK status" in {
-			val envelope = Support.envelope
-			val request = FakeRequest("DELETE", s"/envelopes/${envelope._id}").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
+  "Delete Envelope" should {
+    "respond with 200 OK status" in {
+      val envelope = Support.envelope
+      val request = FakeRequest("DELETE", s"/envelopes/${envelope._id}").withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
 
       val controller = newController(handleCommand = _ => Future.successful(Right(CommandAccepted)))
-			val result = controller.delete(envelope._id)(request).futureValue
+      val result = controller.delete(envelope._id)(request).futureValue
 
-			result.header.status shouldBe Status.OK
-		}
+      result.header.status shouldBe Status.OK
+    }
 
-		"respond with 404 NOT FOUND status" in {
-			val id = EnvelopeId()
-			val request = FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
+    "respond with 404 NOT FOUND status" in {
+      val id = EnvelopeId()
+      val request = FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
 
       val controller = newController(handleCommand = _ => Future.successful(Left(EnvelopeNotFoundError)))
-			val result = controller.delete(id)(request).futureValue
+      val result = controller.delete(id)(request).futureValue
 
-			val actualRespone = Json.parse(consume(result.body))
+      val actualRespone = Json.parse(consume(result.body))
       val expectedResponse = Json.parse(s"""{"error" : {"msg": "Envelope with id: $id not found" }}""")
 
-			result.header.status shouldBe Status.NOT_FOUND
-			actualRespone shouldBe expectedResponse
-		}
+      result.header.status shouldBe Status.NOT_FOUND
+      actualRespone shouldBe expectedResponse
+    }
 
-		"respond with 500 INTERNAL SERVER ERROR status" in {
-			val id = EnvelopeId()
-			val request = FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
+    "respond with 500 INTERNAL SERVER ERROR status" in {
+      val id = EnvelopeId()
+      val request = FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
 
       val controller = newController(handleCommand = _ => Future.failed(new Exception()))
       val result = controller.delete(id)(request).futureValue
 
-			val actualResponse = Json.parse(consume(result.body))
-			val expectedResponse = Json.parse("""{"error" : {"msg": "Internal Server Error" }}""")
+      val actualResponse = Json.parse(consume(result.body))
+      val expectedResponse = Json.parse("""{"error" : {"msg": "Internal Server Error" }}""")
 
-			result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
-			actualResponse shouldBe expectedResponse
-		}
-	}
+      result.header.status shouldBe Status.INTERNAL_SERVER_ERROR
+      actualResponse shouldBe expectedResponse
+    }
+  }
 
   "Get Envelope" should {
     "return an  envelope resource when request id is valid" in {

@@ -18,6 +18,7 @@ package uk.gov.hmrc.fileupload.write.infrastructure
 
 import com.codahale.metrics.MetricRegistry
 import com.mongodb.{MongoException, WriteConcern}
+import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 import org.apache.pekko.stream.scaladsl.Source
 import org.mongodb.scala.bson.{BsonDocument, BsonString}
 import org.mongodb.scala.model._

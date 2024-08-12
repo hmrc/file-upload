@@ -48,6 +48,7 @@ object NotifierRepository {
   )(implicit
     ec: ExecutionContext
   ): Future[NotifyResult] =
+    import play.api.libs.ws.writeableOf_JsValue
     httpCall(
       wSClient
         .url(s"$url")

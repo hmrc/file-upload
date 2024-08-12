@@ -35,8 +35,8 @@ class EnvelopeSpec extends AnyWordSpecLike with Matchers {
 
   "a json value" should {
     "be parsed to an envelope object" in {
-	    val formattedExpiryDate: String = formatter.print(today)
-	    val json = Json.parse(
+      val formattedExpiryDate: String = formatter.print(today)
+      val json = Json.parse(
         s"""
           |{
           |  "callbackUrl": "http://absolute.callback.url",
@@ -49,9 +49,9 @@ class EnvelopeSpec extends AnyWordSpecLike with Matchers {
           |}
         """.stripMargin)
 
-	    val id = EnvelopeId()
+      val id = EnvelopeId()
 
-	    val result: Envelope = Envelope.fromJson(json, id)
+      val result: Envelope = Envelope.fromJson(json, id)
 
       val expectedResult = Envelope(
         id,
@@ -92,5 +92,5 @@ class EnvelopeSpec extends AnyWordSpecLike with Matchers {
 
   def isWithinAMinute(maxExpiryDate: DateTime, expiryDate: Option[DateTime]): Boolean = {
     expiryDate.exists(d => abs(d.getMillis - maxExpiryDate.getMillis) < 60 * 1000)
-	}
+  }
 }

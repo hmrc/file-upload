@@ -20,13 +20,13 @@ Request (POST): localhost:8898/file-upload/events/FileQuarantineStored
 Body:
 ```json
 {
-	"envelopeId": "0b215e97-11d4-4006-91db-c067e74fc653",
-	"fileId": "file-id-1",
-	"fileRefId": "file-ref-1",
-	"created": 1477490659794,
-	"name": "myfile.txt",
-	"contentType": "pdf",
-	"metadata": {}
+  "envelopeId": "0b215e97-11d4-4006-91db-c067e74fc653",
+  "fileId": "file-id-1",
+  "fileRefId": "file-ref-1",
+  "created": 1477490659794,
+  "name": "myfile.txt",
+  "contentType": "pdf",
+  "metadata": {}
 }
 ```
 
@@ -38,10 +38,10 @@ Request (POST): localhost:8898/file-upload/events/FileScanned
 Body:
 ```json
 {
-	"envelopeId": "0b215e97-11d4-4006-91db-c067e74fc653",
-	"fileId": "file-id-1",
-	"fileRefId": "file-ref-1",
-	"hasVirus": false
+  "envelopeId": "0b215e97-11d4-4006-91db-c067e74fc653",
+  "fileId": "file-id-1",
+  "fileRefId": "file-ref-1",
+  "hasVirus": false
 }
 ```
 
@@ -62,9 +62,8 @@ PUT     /file-upload/envelopes/{envelope-Id}/files/{file-Id}/{file-Ref-Id}
 #### EXAMPLE
 Request (PUT): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653/files/file-id-1/file-ref-1
 
-Body: Binary File. 
+Body: Binary File.
 
 Response: 200
 
 [back to README](../README.md)
-

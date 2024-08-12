@@ -19,11 +19,13 @@ package uk.gov.hmrc.fileupload.read.routing
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.testkit.TestKit
-import org.mockito.scalatest.MockitoSugar
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{doNothing, when}
 import org.scalatest.{BeforeAndAfterAll, OptionValues}
 import org.scalatest.concurrent.{Eventually, IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusRouteRequested, Service}
 import uk.gov.hmrc.fileupload.write.envelope._
@@ -128,7 +130,7 @@ class RoutingActorSpec
       pushRetryBackoff  = 10.minutes
     )
 
-    val lockRepository = mock[LockRepository](withSettings.lenient)
+    val lockRepository = mock[LockRepository]
     when(lockRepository.takeLock(any, any, any))
       .thenReturn(Future.successful(Some(mock[uk.gov.hmrc.mongo.lock.Lock])))
     when(lockRepository.releaseLock(any, any))

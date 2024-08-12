@@ -77,6 +77,7 @@ class RetrieveFile(wsClient: WSClient, baseUrl: String) {
   ): Future[Option[ZipData]] = {
     implicit val zrw = ZipRequest.writes
     implicit val zdf = ZipData.format
+    import play.api.libs.ws.writeableOf_JsValue
     wsClient
       .url(s"$baseUrl/internal-file-upload/zip/envelopes/${envelope._id}")
       .withHttpHeaders("User-Agent" -> "file-upload")

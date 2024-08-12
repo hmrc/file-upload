@@ -47,6 +47,7 @@ object RoutingRepository {
   )(implicit
     ec          : ExecutionContext
   ): Future[PushResult] =
+    import play.api.libs.ws.writeableOf_JsValue
     httpCall(
       wSClient
         .url(routingConfig.pushUrl)
@@ -130,6 +131,6 @@ object ZipData {
     ( (__ \ "name"       ).format[String]
     ~ (__ \ "size"       ).format[Long]
     ~ (__ \ "md5Checksum").format[String]
-    ~ (__ \ "url"        ).format[String].inmap(DownloadUrl.apply, unlift(DownloadUrl.unapply))
-    )(ZipData.apply _, unlift(ZipData.unapply))
+    ~ (__ \ "url"        ).format[String].inmap(DownloadUrl.apply, _.value)
+    )(ZipData.apply, zd => Tuple.fromProductTyped(zd))
 }

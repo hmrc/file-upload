@@ -157,7 +157,7 @@ object NotificationItem {
     ~ (__ \ "availableUntil"   ).formatNullable[Instant]
     ~ (__ \ "failureReason"    ).formatNullable[String]
     ~ (__ \ "dateTime"         ).format[Instant]
-    )(NotificationItem.apply, unlift(NotificationItem.unapply))
+    )(NotificationItem.apply, ni => Tuple.fromProductTyped(ni))
 }
 
 sealed trait Notification {

@@ -231,7 +231,7 @@ object Formatters {
     ( (__ \ "id"      ).format[EnvelopeId]
     ~ (__ \ "isPushed").formatNullable[Boolean].inmap(_.getOrElse(false), Some.apply[Boolean]) // formatWithDefault not available for this version of play-json
     ~ (__ \ "reason"  ).formatNullable[String]
-    )(EnvelopeRouted.apply, unlift(EnvelopeRouted.unapply))
+    )(EnvelopeRouted.apply, er => Tuple.fromProductTyped(er))
 
   implicit val envelopeArchivedFormat: Format[EnvelopeArchived] = Json.format[EnvelopeArchived]
 }

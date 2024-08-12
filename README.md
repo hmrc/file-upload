@@ -37,7 +37,7 @@ The endpoints can then be accessed with the base url http://localhost:8898/
 #### Create an Envelope
 Creates an envelope and auto generates an Id. The body in the http request must be json. Successful response is provided in the Location Header which will have the link of the newly created envelope.
 ```
-POST   	/file-upload/envelopes
+POST     /file-upload/envelopes
 ```
 | Responses    | Status    | Description |
 | --------|---------|-------|
@@ -183,7 +183,7 @@ Response (in Body):
 Download a file from an envelope. To be used as a reaction on callback.
 Wherever possible please use routing + dowload the zip endpoints instead of this endpoint.
 ```
-GET   	/file-upload/envelopes/{envelope-id}/files/{file-id}/content
+GET     /file-upload/envelopes/{envelope-id}/files/{file-id}/content
 ```
 | Responses    | Status    | Description |
 | --------|---------|-------|
@@ -219,9 +219,9 @@ Request (POST): localhost:8898/file-routing/requests
 Body:
 ``` json
 {
-	"envelopeId":"0b215e97-11d4-4006-91db-c067e74fc653",
-	"application":"application/json",
-	"destination":"DMS"
+  "envelopeId":"0b215e97-11d4-4006-91db-c067e74fc653",
+  "application":"application/json",
+  "destination":"DMS"
 }
 ```
 

@@ -129,7 +129,7 @@ class OutputForTransferSpec extends AnyWordSpecLike with Matchers with TestAppli
       val destination = "DMS"
       val host = "tax.service.gov.uk"
 
-      implicit val req = FakeRequest("GET", s"/?destination=$destination").withHeaders(HeaderNames.HOST -> host)
+      implicit val req = FakeRequest("GET", s"/?destination=$destination").withHeaders((HeaderNames.HOST, host))
 
       val expectedJson = withRemovedWhitespace {
         s"""

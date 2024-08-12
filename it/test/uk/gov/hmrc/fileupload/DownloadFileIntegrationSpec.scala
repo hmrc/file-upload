@@ -87,7 +87,7 @@ class DownloadFileIntegrationSpec
       response.status shouldBe OK
 
       And("I will receive the file")
-      response.body shouldBe data
+      response.body[String] shouldBe data
 
       And("Header should include content length")
       response.header("Content-Length") shouldBe Some(s"${data.getBytes.length}")

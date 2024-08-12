@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.fileupload.read.envelope
 
+import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -29,7 +30,8 @@ class RepositorySpec
      with ScalaFutures
      with DefaultPlayMongoRepositorySupport[Envelope] {
 
-  override lazy val repository = new Repository(mongoComponent)
+  override val repository: Repository =
+    new Repository(mongoComponent)
 
   "Repository.purge" should {
     "delete the specified envelopes" in {

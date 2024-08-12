@@ -1,1646 +1,1646 @@
 {
-	"variables": [],
-	"info": {
-		"name": "File Upload Smoke Tests (DEV/QA/STAGING) copy",
-		"_postman_id": "deb893d2-5658-6651-7c5a-e167ab91ab65",
-		"description": "",
-		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
-	},
-	"item": [
-		{
-			"name": "E2E Smoke Test - Happy Path",
-			"description": "",
-			"item": [
-				{
-					"name": "Create envelope (test-only)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 201\"] = responseCode.code === 201;",
-									"tests[\"Status code name has Created\"] = responseCode.name.has(\"Created\");"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{be-url}}/file-upload/envelopes",
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json",
-								"description": ""
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": " {\n  \"constraints\" : {\n    \"contentTypes\" : [\n        \"application/pdf\",\n        \"image/jpeg\",\n        \"text/xml\",\n        \"text/csv\",\n        \"application/xml\",\n        \"application/vnd.ms-excel\",\n        \"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\"\n    ],\n    \"maxItems\" : 100,\n    \"maxSize\" : \"12MB\",\n    \"maxSizePerItem\" : \"10MB\"\n  },\n  \"processing\" : {\n    \"antiVirus\" : \"block\",\n    \"nonRepudiation\" : \"none\",\n    \"package\" : \"none\",\n    \"activeContent\": \"remove\"\n  },\n  \"callbackUrl\" : \"http://absolute.callback.url\",\n  \"expiryDate\": \"2016-04-07T13:15:30Z\",\n  \"metadata\" : {\n      \"anything\": \"the caller wants to add to the envelope\"\n  }\n}"
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Retrieve Envelope Information (test-only): Status = OPEN",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 200\"] = responseCode.code === 200;",
-									"",
-									"var jsonData = JSON.parse(responseBody);",
-									"tests[\"Check envelope ID returned\"] = jsonData.id === postman.getGlobalVariable(\"envelopeId\");",
-									"",
-									"tests[\"Check Status is OPEN\"] = jsonData.status === \"OPEN\"",
-									""
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/test-only/envelopes/{{envelopeId}} ",
-						"method": "GET",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
-						"description": ""
-					},
-					"response": [
-						{
-							"id": "3a741f3f-28c1-4e97-85c7-223e21533c91",
-							"name": "Success",
-							"originalRequest": {
-								"url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
-								"method": "GET",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": ""
-								},
-								"description": ""
-							},
-							"status": "OK",
-							"code": 200,
-							"_postman_previewlanguage": "javascript",
-							"_postman_previewtype": "html",
-							"header": [
-								{
-									"name": "Content-Length",
-									"key": "Content-Length",
-									"value": "464",
-									"description": "The length of the response body in octets (8-bit bytes)"
-								},
-								{
-									"name": "Content-Type",
-									"key": "Content-Type",
-									"value": "application/json; charset=utf-8",
-									"description": "The mime type of this content"
-								}
-							],
-							"cookie": [],
-							"responseTime": 30,
-							"body": "{\"_id\":\"0e17bd50-9993-45a3-9533-2a71f7a278a7\",\"constraints\":{\"contentTypes\":[\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"application/vnd.oasis.opendocument.spreadsheet\"],\"maxItems\":100,\"maxSize\":\"12GB\",\"maxSizePerItem\":\"10MB\"},\"callbackUrl\":\"http://absolute.callback.url\",\"expiryDate\":1467893730000,\"metadata\":{\"anything\":\"the caller wants to add to the envelope\"}}"
-						}
-					]
-				},
-				{
-					"name": "Upload File (front-end)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 200\"] = responseCode.code === 200;",
-									"tests[\"Status code name is Created\"] = responseCode.name.has(\"OK\");"
-								]
-							}
-						},
-						{
-							"listen": "prerequest",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"var timestamp = Date.now()",
-									"postman.setGlobalVariable(\"fileId\", timestamp);"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
-						"method": "POST",
-						"header": [
-							{
-								"key": "X-Requested-With",
-								"value": "Craig",
-								"description": ""
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "{{fileId}}",
-									"type": "file",
-									"src": "1473167513-1.pdf",
-									"value": ""
-								},
-								{
-									"key": "foo",
-									"value": "1",
-									"type": "text"
-								}
-							]
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Delete file",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 423\"] = responseCode.code === 200"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}",
-						"method": "DELETE",
-						"header": [],
-						"body": {},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Upload File (front-end)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 200\"] = responseCode.code === 200;",
-									"tests[\"Status code name is Created\"] = responseCode.name.has(\"OK\");"
-								]
-							}
-						},
-						{
-							"listen": "prerequest",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"var timestamp = Date.now()",
-									"postman.setGlobalVariable(\"fileId\", timestamp);"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
-						"method": "POST",
-						"header": [
-							{
-								"key": "X-Requested-With",
-								"value": "Craig",
-								"description": ""
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "{{fileId}}",
-									"type": "file",
-									"src": "1473167513-1.pdf",
-									"value": ""
-								},
-								{
-									"key": "foo",
-									"value": "1",
-									"type": "text"
-								}
-							]
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Retrieve Envelope details (test-only): File added and OPEN",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 200\"] = responseCode.code === 200;",
-									"",
-									"var jsonData = JSON.parse(responseBody);",
-									"tests[\"Check envelope ID returned\"] = jsonData.id === postman.getGlobalVariable(\"envelopeId\");",
-									"",
-									"tests[\"Check Env Status is OPEN\"] = jsonData.status === \"OPEN\"",
-									"tests[\"Check fileId is present\"] = jsonData.files[0].id === postman.getGlobalVariable(\"fileId\");",
-									"tests[\"Check File Status is AVAILABLE\"] = jsonData.files[0].status ===\"AVAILABLE\"",
-									"",
-									"var callbackUrl = jsonData.files[0].href",
-									"postman.setGlobalVariable(\"callbackUrl\", callbackUrl)",
-									"var expectedCallbackUrl = \"/file-upload/envelopes/\" + postman.getGlobalVariable(\"envelopeId\")+ \"/files/\" + postman.getGlobalVariable(\"fileId\") + \"/content\"",
-									"",
-									"tests[\"Check callback url correct\"] = callbackUrl === expectedCallbackUrl",
-									""
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/test-only/envelopes/{{envelopeId}} ",
-						"method": "GET",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
-						"description": ""
-					},
-					"response": [
-						{
-							"id": "3b29f9e1-0b0f-4d84-afbd-3b1a8352c0cd",
-							"name": "Success",
-							"originalRequest": {
-								"url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
-								"method": "GET",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": ""
-								},
-								"description": ""
-							},
-							"status": "OK",
-							"code": 200,
-							"_postman_previewlanguage": "javascript",
-							"_postman_previewtype": "html",
-							"header": [
-								{
-									"name": "Content-Length",
-									"key": "Content-Length",
-									"value": "464",
-									"description": "The length of the response body in octets (8-bit bytes)"
-								},
-								{
-									"name": "Content-Type",
-									"key": "Content-Type",
-									"value": "application/json; charset=utf-8",
-									"description": "The mime type of this content"
-								}
-							],
-							"cookie": [],
-							"responseTime": 30,
-							"body": "{\"_id\":\"0e17bd50-9993-45a3-9533-2a71f7a278a7\",\"constraints\":{\"contentTypes\":[\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"application/vnd.oasis.opendocument.spreadsheet\"],\"maxItems\":100,\"maxSize\":\"12GB\",\"maxSizePerItem\":\"10MB\"},\"callbackUrl\":\"http://absolute.callback.url\",\"expiryDate\":1467893730000,\"metadata\":{\"anything\":\"the caller wants to add to the envelope\"}}"
-						}
-					]
-				},
-				{
-					"name": "Submit Routing request (test-only)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 201\"] = responseCode.code === 201;",
-									"tests[\"Status code name is Created\"] = responseCode.name.has(\"Created\");"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/test-only/routing/requests",
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json",
-								"description": ""
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{ \"envelopeId\": \"{{envelopeId}}\", \"application\" : \"application:ABCD/1.2.33\", \"destination\": \"TEST\" }"
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Retrieve Envelope details (test-only): Envelope Closed",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 200\"] = responseCode.code === 200;",
-									"",
-									"var jsonData = JSON.parse(responseBody);",
-									"tests[\"Check envelope ID returned\"] = jsonData.id === postman.getGlobalVariable(\"envelopeId\");",
-									"",
-									"tests[\"Check Env Status is CLOSED\"] = jsonData.status === \"CLOSED\"",
-									"tests[\"Check Destination is DMS\"] = jsonData.destination === \"TEST\""
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/test-only/envelopes/{{envelopeId}} ",
-						"method": "GET",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
-						"description": ""
-					},
-					"response": [
-						{
-							"id": "798c27cc-3a82-4bb4-bf11-69b121fc1417",
-							"name": "Success",
-							"originalRequest": {
-								"url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
-								"method": "GET",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": ""
-								},
-								"description": ""
-							},
-							"status": "OK",
-							"code": 200,
-							"_postman_previewlanguage": "javascript",
-							"_postman_previewtype": "html",
-							"header": [
-								{
-									"name": "Content-Length",
-									"key": "Content-Length",
-									"value": "464",
-									"description": "The length of the response body in octets (8-bit bytes)"
-								},
-								{
-									"name": "Content-Type",
-									"key": "Content-Type",
-									"value": "application/json; charset=utf-8",
-									"description": "The mime type of this content"
-								}
-							],
-							"cookie": [],
-							"responseTime": 30,
-							"body": "{\"_id\":\"0e17bd50-9993-45a3-9533-2a71f7a278a7\",\"constraints\":{\"contentTypes\":[\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"application/vnd.oasis.opendocument.spreadsheet\"],\"maxItems\":100,\"maxSize\":\"12GB\",\"maxSizePerItem\":\"10MB\"},\"callbackUrl\":\"http://absolute.callback.url\",\"expiryDate\":1467893730000,\"metadata\":{\"anything\":\"the caller wants to add to the envelope\"}}"
-						}
-					]
-				},
-				{
-					"name": "Upload File (front-end): Check fails as env routed",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 423\"] = responseCode.code === 423;",
-									"tests[\"Status code name is Locked\"] = responseCode.name.has(\"Locked\")"
-								]
-							}
-						},
-						{
-							"listen": "prerequest",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"var timestamp = Date.now()",
-									"postman.setGlobalVariable(\"fileId2\", timestamp);"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId2}}",
-						"method": "POST",
-						"header": [
-							{
-								"key": "X-Requested-With",
-								"value": "Craig",
-								"description": ""
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "{{fileId}}",
-									"value": "",
-									"type": "file"
-								},
-								{
-									"key": "foo",
-									"value": "1",
-									"type": "text"
-								}
-							]
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "List Envelopes (test-only)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 200\"] = responseCode.code === 200;",
-									"",
-									"var envelopeId = postman.getGlobalVariable(\"envelopeId\");",
-									"tests[\"Check envelope ID present\"] = responseBody.has(envelopeId);",
-									"",
-									"var fileId = postman.getGlobalVariable(\"fileId\");",
-									"",
-									"var jsonData = JSON.parse(responseBody);",
-									"var noOfEnvelopes = jsonData._embedded.envelopes.length;",
-									"var x;",
-									"for(x=0; x<noOfEnvelopes; x++) {",
-									"    if (jsonData._embedded.envelopes[x].id === envelopeId) {",
-									"        break;",
-									"    }",
-									"}",
-									"",
-									"tests[\"Check envelopeId is present is available\"] = jsonData._embedded.envelopes[x].id === envelopeId",
-									"tests[\"Check Destination is DMS\"] = jsonData._embedded.envelopes[x].destination === \"TEST\"",
-									"tests[\"Check file size is not 0\"] = jsonData._embedded.envelopes[x]._embedded.files[0].length !== 0",
-									"",
-									"var callbackUrl = jsonData._embedded.envelopes[x]._links.package.href;",
-									"tests[\"Validate File Transfer Package callbackUrl\"] = callbackUrl === \"/file-transfer/envelopes/\" + envelopeId",
-									"postman.setGlobalVariable(\"callbackUrl\", callbackUrl);",
-									""
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/test-only/transfer/get-envelopes",
-						"method": "GET",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Download Envelope Contents as ZIP (test-only)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 200\"] = responseCode.code === 200;",
-									"tests[\"Status code description is OK\"] = responseCode.name.has(\"OK\");",
-									"",
-									"var contentHeader = postman.getResponseHeader(\"Content-Disposition\");",
-									"var fileName = contentHeader.substring(22, contentHeader.lastIndexOf('\"'))",
-									"",
-									"tests[\"Check filename is {envelopeId}.zip\"] = fileName === postman.getGlobalVariable(\"envelopeId\") + \".zip\""
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/test-only/transfer/download-envelope/{{envelopeId}}",
-						"method": "GET",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Download Specific File (test-only)",
-					"request": {
-						"url": "{{fe-url}}/file-upload/test-only/download-file/envelopes/{{envelopeId}}/files/{{fileId}}/content",
-						"method": "GET",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Get List of Events (test-only)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 200\"] = responseCode.code === 200;",
-									""
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/test-only/events/{{envelopeId}}",
-						"method": "GET",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Soft Delete Envelope (back-end)",
-					"request": {
-						"url": "{{be-url}}/file-transfer/envelopes/{{envelopeId}}",
-						"method": "DELETE",
-						"header": [],
-						"body": {},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Envelope-bad request as routed",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 200\"] = responseCode.code === 200;"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}",
-						"method": "DELETE",
-						"header": [],
-						"body": {},
-						"description": "Given I have a valid envelope id\nWhen I call DELETE /file-upload/envelopes/:envelope-id\nThen I should receive a 202 Accepted\nAnd The envelope should be deleted"
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "File Limit",
-			"description": "File-upload should accept only 1 file per reqeust",
-			"item": [
-				{
-					"name": "Create envelope (test-only) copy",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 201\"] = responseCode.code === 201;",
-									"tests[\"Status code name has Created\"] = responseCode.name.has(\"Created\");",
-									"",
-									"var envelopeId = JSON.parse(responseBody).envelopeId",
-									"",
-									"tests[\"Response body contains Envelope ID\"] = envelopeId !== null",
-									"postman.setGlobalVariable(\"envelopeId\", envelopeId);"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/test-only/create-envelope",
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json",
-								"description": ""
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{}"
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Upload File (front-end) - 2 files",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 400\"] = responseCode.code === 400;",
-									"tests[\"Status code name is Bad Request\"] = responseCode.name.has(\"Bad Request\");",
-									"",
-									"var jsonData = JSON.parse(responseBody);",
-									"tests[\"Error message\"] = jsonData.error.msg === \"Request must have exactly 1 file attached\";"
-								]
-							}
-						},
-						{
-							"listen": "prerequest",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"var timestamp = Date.now()",
-									"postman.setGlobalVariable(\"fileId\", timestamp);",
-									"var timestamp2 = Date.now() - 10",
-									"postman.setGlobalVariable(\"fileId2\", timestamp2);"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
-						"method": "POST",
-						"header": [
-							{
-								"key": "X-Requested-With",
-								"value": "Craig",
-								"description": ""
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "{{fileId}}",
-									"type": "file",
-									"src": "14731 67513.pdf",
-									"value": ""
-								},
-								{
-									"key": "foo",
-									"value": "1",
-									"type": "text"
-								},
-								{
-									"key": "{{fileId2}}",
-									"type": "file",
-									"src": "1473167513.pdf",
-									"value": ""
-								},
-								{
-									"key": "bar",
-									"value": "2",
-									"type": "text"
-								}
-							]
-						},
-						"description": ""
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "File Size Limit",
-			"description": "",
-			"item": [
-				{
-					"name": "Create envelope (test-only)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 201\"] = responseCode.code === 201;",
-									"tests[\"Status code name has Created\"] = responseCode.name.has(\"Created\");",
-									"",
-									"var envelopeId = JSON.parse(responseBody).envelopeId",
-									"",
-									"tests[\"Response body contains Envelope ID\"] = envelopeId !== null",
-									"postman.setGlobalVariable(\"envelopeId\", envelopeId);"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/test-only/create-envelope",
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json",
-								"description": ""
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{}"
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Upload File (front-end) (>11MB file)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 413\"] = responseCode.code === 413;",
-									"tests[\"Status code name is Entity Too Large\"] = responseCode.name.has(\"Entity Too Large\");"
-								]
-							}
-						},
-						{
-							"listen": "prerequest",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"var timestamp = Date.now()",
-									"postman.setGlobalVariable(\"fileId\", timestamp);"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
-						"method": "POST",
-						"header": [
-							{
-								"key": "X-Requested-With",
-								"value": "Craig",
-								"description": ""
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "{{fileId}}",
-									"value": "",
-									"type": "file"
-								},
-								{
-									"key": "foo",
-									"value": "1",
-									"type": "text"
-								}
-							]
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Upload File (front-end)  - 10MB file",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 201\"] = responseCode.code === 201;",
-									"tests[\"Status code name is Created\"] = responseCode.name.has(\"Created\");"
-								]
-							}
-						},
-						{
-							"listen": "prerequest",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"var timestamp = Date.now()",
-									"postman.setGlobalVariable(\"fileId\", timestamp);"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
-						"method": "POST",
-						"header": [
-							{
-								"key": "X-Requested-With",
-								"value": "Craig",
-								"description": ""
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "{{fileId}}",
-									"value": "",
-									"type": "file"
-								},
-								{
-									"key": "foo",
-									"value": "1",
-									"type": "text"
-								}
-							]
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Upload File (front-end)  - 11 MB file",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 201\"] = responseCode.code === 201;",
-									"tests[\"Status code name is Created\"] = responseCode.name.has(\"Created\");"
-								]
-							}
-						},
-						{
-							"listen": "prerequest",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"var timestamp = Date.now()",
-									"postman.setGlobalVariable(\"fileId\", timestamp);"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
-						"method": "POST",
-						"header": [
-							{
-								"key": "X-Requested-With",
-								"value": "Craig",
-								"description": ""
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "{{fileId}}",
-									"value": "",
-									"type": "file"
-								},
-								{
-									"key": "foo",
-									"value": "1",
-									"type": "text"
-								}
-							]
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Upload File (front-end)  - 2 files attached",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 400\"] = responseCode.code === 400;",
-									"tests[\"Status code name is Bad Request\"] = responseCode.name.has(\"Bad Request\");",
-									"",
-									"var jsonData = JSON.parse(responseBody);",
-									"tests[\"Check error message\"] = jsonData.err.message === \"Request must have exactly 1 file attached.\""
-								]
-							}
-						},
-						{
-							"listen": "prerequest",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"var timestamp = Date.now()",
-									"postman.setGlobalVariable(\"fileId\", timestamp);"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
-						"method": "POST",
-						"header": [
-							{
-								"key": "X-Requested-With",
-								"value": "Craig",
-								"description": ""
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "{{fileId}}",
-									"type": "file",
-									"src": "1473167513 copy 2.pdf",
-									"value": ""
-								},
-								{
-									"key": "foo",
-									"type": "file",
-									"src": "1473167513 copy 3.pdf",
-									"value": ""
-								}
-							]
-						},
-						"description": ""
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Virus found",
-			"description": "",
-			"item": [
-				{
-					"name": "Create envelope (test-only)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 201\"] = responseCode.code === 201;",
-									"tests[\"Status code name has Created\"] = responseCode.name.has(\"Created\");",
-									"",
-									"var envelopeId = JSON.parse(responseBody).envelopeId",
-									"",
-									"tests[\"Response body contains Envelope ID\"] = envelopeId !== null",
-									"postman.setGlobalVariable(\"envelopeId\", envelopeId);"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/test-only/create-envelope",
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json",
-								"description": ""
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{}"
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Upload File (front-end) copy",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 200\"] = responseCode.code === 200;",
-									"tests[\"Status code name is Created\"] = responseCode.name.has(\"OK\");"
-								]
-							}
-						},
-						{
-							"listen": "prerequest",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"var timestamp = Date.now()",
-									"postman.setGlobalVariable(\"fileId\", timestamp);"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
-						"method": "POST",
-						"header": [
-							{
-								"key": "X-Requested-With",
-								"value": "Craig",
-								"description": ""
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "{{fileId}}",
-									"value": "",
-									"type": "file"
-								},
-								{
-									"key": "foo",
-									"value": "1",
-									"type": "text"
-								}
-							]
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Retrieve Envelope Information (test-only): Status = OPEN copy",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 200\"] = responseCode.code === 200;",
-									"",
-									"var jsonData = JSON.parse(responseBody);",
-									"tests[\"Check envelope ID returned\"] = jsonData.id === postman.getGlobalVariable(\"envelopeId\");",
-									"",
-									"tests[\"Check Status is OPEN\"] = jsonData.status === \"OPEN\"",
-									""
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/test-only/envelopes/{{envelopeId}} ",
-						"method": "GET",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
-						"description": ""
-					},
-					"response": [
-						{
-							"id": "05ee21b4-fd6f-4bbe-8301-33a55b8fbfb5",
-							"name": "Success",
-							"originalRequest": {
-								"url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
-								"method": "GET",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": ""
-								},
-								"description": ""
-							},
-							"status": "OK",
-							"code": 200,
-							"_postman_previewlanguage": "javascript",
-							"_postman_previewtype": "html",
-							"header": [
-								{
-									"name": "Content-Length",
-									"key": "Content-Length",
-									"value": "464",
-									"description": "The length of the response body in octets (8-bit bytes)"
-								},
-								{
-									"name": "Content-Type",
-									"key": "Content-Type",
-									"value": "application/json; charset=utf-8",
-									"description": "The mime type of this content"
-								}
-							],
-							"cookie": [],
-							"responseTime": 30,
-							"body": "{\"_id\":\"0e17bd50-9993-45a3-9533-2a71f7a278a7\",\"constraints\":{\"contentTypes\":[\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"application/vnd.oasis.opendocument.spreadsheet\"],\"maxItems\":100,\"maxSize\":\"12GB\",\"maxSizePerItem\":\"10MB\"},\"callbackUrl\":\"http://absolute.callback.url\",\"expiryDate\":1467893730000,\"metadata\":{\"anything\":\"the caller wants to add to the envelope\"}}"
-						}
-					]
-				},
-				{
-					"name": "Retrieve Envelope details (test-only): File added and OPEN copy",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 200\"] = responseCode.code === 200;",
-									"",
-									"var jsonData = JSON.parse(responseBody);",
-									"tests[\"Check envelope ID returned\"] = jsonData.id === postman.getGlobalVariable(\"envelopeId\");",
-									"",
-									"tests[\"Check Env Status is OPEN\"] = jsonData.status === \"OPEN\"",
-									"tests[\"Check fileId is present\"] = jsonData.files[0].id === postman.getGlobalVariable(\"fileId\");",
-									"tests[\"Check File Status is AVAILABLE\"] = jsonData.files[0].status ===\"AVAILABLE\"",
-									"",
-									"var callbackUrl = jsonData.files[0].href",
-									"postman.setGlobalVariable(\"callbackUrl\", callbackUrl)",
-									"var expectedCallbackUrl = \"/file-upload/envelopes/\" + postman.getGlobalVariable(\"envelopeId\")+ \"/files/\" + postman.getGlobalVariable(\"fileId\") + \"/content\"",
-									"",
-									"tests[\"Check callback url correct\"] = callbackUrl === expectedCallbackUrl",
-									""
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/test-only/envelopes/{{envelopeId}} ",
-						"method": "GET",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
-						"description": ""
-					},
-					"response": [
-						{
-							"id": "eb81f652-8d00-4a5e-882c-5e871e24053a",
-							"name": "Success",
-							"originalRequest": {
-								"url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
-								"method": "GET",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": ""
-								},
-								"description": ""
-							},
-							"status": "OK",
-							"code": 200,
-							"_postman_previewlanguage": "javascript",
-							"_postman_previewtype": "html",
-							"header": [
-								{
-									"name": "Content-Length",
-									"key": "Content-Length",
-									"value": "464",
-									"description": "The length of the response body in octets (8-bit bytes)"
-								},
-								{
-									"name": "Content-Type",
-									"key": "Content-Type",
-									"value": "application/json; charset=utf-8",
-									"description": "The mime type of this content"
-								}
-							],
-							"cookie": [],
-							"responseTime": 30,
-							"body": "{\"_id\":\"0e17bd50-9993-45a3-9533-2a71f7a278a7\",\"constraints\":{\"contentTypes\":[\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"application/vnd.oasis.opendocument.spreadsheet\"],\"maxItems\":100,\"maxSize\":\"12GB\",\"maxSizePerItem\":\"10MB\"},\"callbackUrl\":\"http://absolute.callback.url\",\"expiryDate\":1467893730000,\"metadata\":{\"anything\":\"the caller wants to add to the envelope\"}}"
-						}
-					]
-				},
-				{
-					"name": "Get List of Events (test-only) copy",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 200\"] = responseCode.code === 200;",
-									""
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/test-only/events/{{envelopeId}}",
-						"method": "GET",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
-						"description": ""
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Cleanup",
-			"description": "",
-			"item": [
-				{
-					"name": "Create envelope (test-only)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 201\"] = responseCode.code === 201;",
-									"tests[\"Status code name has Created\"] = responseCode.name.has(\"Created\");",
-									"",
-									"var envelopeId = JSON.parse(responseBody).envelopeId",
-									"",
-									"tests[\"Response body contains Envelope ID\"] = envelopeId !== null",
-									"postman.setGlobalVariable(\"envelopeId\", envelopeId);"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/test-only/create-envelope",
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json",
-								"description": ""
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{}"
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Upload File (front-end)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 201\"] = responseCode.code === 200"
-								]
-							}
-						},
-						{
-							"listen": "prerequest",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"var timestamp = Date.now()",
-									"postman.setGlobalVariable(\"fileId\", timestamp);"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
-						"method": "POST",
-						"header": [
-							{
-								"key": "X-Requested-With",
-								"value": "Craig",
-								"description": ""
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "{{fileId}}",
-									"type": "file",
-									"src": "OrderDetails.csv"
-								}
-							]
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Delete file",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 423\"] = responseCode.code === 200"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}",
-						"method": "DELETE",
-						"header": [],
-						"body": {},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Upload File (front-end)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 201\"] = responseCode.code === 200"
-								]
-							}
-						},
-						{
-							"listen": "prerequest",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"var timestamp = Date.now()",
-									"postman.setGlobalVariable(\"fileId\", timestamp);"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
-						"method": "POST",
-						"header": [
-							{
-								"key": "X-Requested-With",
-								"value": "Craig",
-								"description": ""
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "{{fileId}}",
-									"type": "file",
-									"src": "OrderDetails.csv"
-								}
-							]
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Retrieve Envelope details (test-only): File added and OPEN",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 200\"] = responseCode.code === 200;",
-									"",
-									"var jsonData = JSON.parse(responseBody);",
-									"tests[\"Check envelope ID returned\"] = jsonData.id === postman.getGlobalVariable(\"envelopeId\");",
-									"",
-									"tests[\"Check Env Status is OPEN\"] = jsonData.status === \"OPEN\"",
-									"tests[\"Check fileId is present\"] = jsonData.files[0].id === postman.getGlobalVariable(\"fileId\");",
-									"tests[\"Check File Status is AVAILABLE\"] = jsonData.files[0].status ===\"AVAILABLE\"",
-									"",
-									"var callbackUrl = jsonData.files[0].href",
-									"postman.setGlobalVariable(\"callbackUrl\", callbackUrl)",
-									"var expectedCallbackUrl = \"/file-upload/envelopes/\" + postman.getGlobalVariable(\"envelopeId\")+ \"/files/\" + postman.getGlobalVariable(\"fileId\") + \"/content\"",
-									"",
-									"tests[\"Check callback url correct\"] = callbackUrl === expectedCallbackUrl",
-									""
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/test-only/envelopes/{{envelopeId}} ",
-						"method": "GET",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
-						"description": ""
-					},
-					"response": [
-						{
-							"id": "984ea502-b3cf-4f94-a2c4-fd98aec44256",
-							"name": "Success",
-							"originalRequest": {
-								"url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
-								"method": "GET",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": ""
-								},
-								"description": ""
-							},
-							"status": "OK",
-							"code": 200,
-							"_postman_previewlanguage": "javascript",
-							"_postman_previewtype": "html",
-							"header": [
-								{
-									"name": "Content-Length",
-									"key": "Content-Length",
-									"value": "464",
-									"description": "The length of the response body in octets (8-bit bytes)"
-								},
-								{
-									"name": "Content-Type",
-									"key": "Content-Type",
-									"value": "application/json; charset=utf-8",
-									"description": "The mime type of this content"
-								}
-							],
-							"cookie": [],
-							"responseTime": 30,
-							"body": "{\"_id\":\"0e17bd50-9993-45a3-9533-2a71f7a278a7\",\"constraints\":{\"contentTypes\":[\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"application/vnd.oasis.opendocument.spreadsheet\"],\"maxItems\":100,\"maxSize\":\"12GB\",\"maxSizePerItem\":\"10MB\"},\"callbackUrl\":\"http://absolute.callback.url\",\"expiryDate\":1467893730000,\"metadata\":{\"anything\":\"the caller wants to add to the envelope\"}}"
-						}
-					]
-				},
-				{
-					"name": "Recreate collections",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 200\"] = responseCode.code === 200"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/test-only/recreate-collections",
-						"method": "POST",
-						"header": [],
-						"body": {},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Retrieve Envelope details (test-only): File and envelope deleted",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 200\"] = responseCode.code === 200;",
-									"",
-									"var jsonData = JSON.parse(responseBody);",
-									"tests[\"Check envelope ID returned\"] = jsonData.id === postman.getGlobalVariable(\"envelopeId\");",
-									"",
-									"tests[\"Check Env Status is OPEN\"] = jsonData.status === \"OPEN\"",
-									"tests[\"Check fileId is present\"] = jsonData.files[0].id === postman.getGlobalVariable(\"fileId\");",
-									"tests[\"Check File Status is AVAILABLE\"] = jsonData.files[0].status ===\"AVAILABLE\"",
-									"",
-									"var callbackUrl = jsonData.files[0].href",
-									"postman.setGlobalVariable(\"callbackUrl\", callbackUrl)",
-									"var expectedCallbackUrl = \"/file-upload/envelopes/\" + postman.getGlobalVariable(\"envelopeId\")+ \"/files/\" + postman.getGlobalVariable(\"fileId\") + \"/content\"",
-									"",
-									"tests[\"Check callback url correct\"] = callbackUrl === expectedCallbackUrl",
-									""
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/test-only/envelopes/{{envelopeId}} ",
-						"method": "GET",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
-						"description": ""
-					},
-					"response": [
-						{
-							"id": "62dc0ca8-2180-4b20-bf23-d6a87ff6fcad",
-							"name": "Success",
-							"originalRequest": {
-								"url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
-								"method": "GET",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": ""
-								},
-								"description": ""
-							},
-							"status": "OK",
-							"code": 200,
-							"_postman_previewlanguage": "javascript",
-							"_postman_previewtype": "html",
-							"header": [
-								{
-									"name": "Content-Length",
-									"key": "Content-Length",
-									"value": "464",
-									"description": "The length of the response body in octets (8-bit bytes)"
-								},
-								{
-									"name": "Content-Type",
-									"key": "Content-Type",
-									"value": "application/json; charset=utf-8",
-									"description": "The mime type of this content"
-								}
-							],
-							"cookie": [],
-							"responseTime": 30,
-							"body": "{\"_id\":\"0e17bd50-9993-45a3-9533-2a71f7a278a7\",\"constraints\":{\"contentTypes\":[\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"application/vnd.oasis.opendocument.spreadsheet\"],\"maxItems\":100,\"maxSize\":\"12GB\",\"maxSizePerItem\":\"10MB\"},\"callbackUrl\":\"http://absolute.callback.url\",\"expiryDate\":1467893730000,\"metadata\":{\"anything\":\"the caller wants to add to the envelope\"}}"
-						}
-					]
-				},
-				{
-					"name": "Download Envelope Contents as ZIP (test-only)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 200\"] = responseCode.code === 200;",
-									"tests[\"Status code description is OK\"] = responseCode.name.has(\"OK\");",
-									"",
-									"var contentHeader = postman.getResponseHeader(\"Content-Disposition\");",
-									"var fileName = contentHeader.substring(22, contentHeader.lastIndexOf('\"'))",
-									"",
-									"tests[\"Check filename is {envelopeId}.zip\"] = fileName === postman.getGlobalVariable(\"envelopeId\") + \".zip\""
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{fe-url}}/file-upload/test-only/transfer/download-envelope/{{envelopeId}}",
-						"method": "GET",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
-						"description": ""
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Envelope",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"tests[\"Status code is 200\"] = responseCode.code === 200;"
-								]
-							}
-						}
-					],
-					"request": {
-						"url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}",
-						"method": "DELETE",
-						"header": [],
-						"body": {},
-						"description": "Given I have a valid envelope id\nWhen I call DELETE /file-upload/envelopes/:envelope-id\nThen I should receive a 202 Accepted\nAnd The envelope should be deleted"
-					},
-					"response": []
-				}
-			]
-		}
-	]
+  "variables": [],
+  "info": {
+    "name": "File Upload Smoke Tests (DEV/QA/STAGING) copy",
+    "_postman_id": "deb893d2-5658-6651-7c5a-e167ab91ab65",
+    "description": "",
+    "schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "E2E Smoke Test - Happy Path",
+      "description": "",
+      "item": [
+        {
+          "name": "Create envelope (test-only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 201\"] = responseCode.code === 201;",
+                  "tests[\"Status code name has Created\"] = responseCode.name.has(\"Created\");"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{be-url}}/file-upload/envelopes",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "description": ""
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": " {\n  \"constraints\" : {\n    \"contentTypes\" : [\n        \"application/pdf\",\n        \"image/jpeg\",\n        \"text/xml\",\n        \"text/csv\",\n        \"application/xml\",\n        \"application/vnd.ms-excel\",\n        \"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\"\n    ],\n    \"maxItems\" : 100,\n    \"maxSize\" : \"12MB\",\n    \"maxSizePerItem\" : \"10MB\"\n  },\n  \"processing\" : {\n    \"antiVirus\" : \"block\",\n    \"nonRepudiation\" : \"none\",\n    \"package\" : \"none\",\n    \"activeContent\": \"remove\"\n  },\n  \"callbackUrl\" : \"http://absolute.callback.url\",\n  \"expiryDate\": \"2016-04-07T13:15:30Z\",\n  \"metadata\" : {\n      \"anything\": \"the caller wants to add to the envelope\"\n  }\n}"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Retrieve Envelope Information (test-only): Status = OPEN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 200\"] = responseCode.code === 200;",
+                  "",
+                  "var jsonData = JSON.parse(responseBody);",
+                  "tests[\"Check envelope ID returned\"] = jsonData.id === postman.getGlobalVariable(\"envelopeId\");",
+                  "",
+                  "tests[\"Check Status is OPEN\"] = jsonData.status === \"OPEN\"",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/test-only/envelopes/{{envelopeId}} ",
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "id": "3a741f3f-28c1-4e97-85c7-223e21533c91",
+              "name": "Success",
+              "originalRequest": {
+                "url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "javascript",
+              "_postman_previewtype": "html",
+              "header": [
+                {
+                  "name": "Content-Length",
+                  "key": "Content-Length",
+                  "value": "464",
+                  "description": "The length of the response body in octets (8-bit bytes)"
+                },
+                {
+                  "name": "Content-Type",
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8",
+                  "description": "The mime type of this content"
+                }
+              ],
+              "cookie": [],
+              "responseTime": 30,
+              "body": "{\"_id\":\"0e17bd50-9993-45a3-9533-2a71f7a278a7\",\"constraints\":{\"contentTypes\":[\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"application/vnd.oasis.opendocument.spreadsheet\"],\"maxItems\":100,\"maxSize\":\"12GB\",\"maxSizePerItem\":\"10MB\"},\"callbackUrl\":\"http://absolute.callback.url\",\"expiryDate\":1467893730000,\"metadata\":{\"anything\":\"the caller wants to add to the envelope\"}}"
+            }
+          ]
+        },
+        {
+          "name": "Upload File (front-end)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 200\"] = responseCode.code === 200;",
+                  "tests[\"Status code name is Created\"] = responseCode.name.has(\"OK\");"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var timestamp = Date.now()",
+                  "postman.setGlobalVariable(\"fileId\", timestamp);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "Craig",
+                "description": ""
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "{{fileId}}",
+                  "type": "file",
+                  "src": "1473167513-1.pdf",
+                  "value": ""
+                },
+                {
+                  "key": "foo",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete file",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 423\"] = responseCode.code === 200"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}",
+            "method": "DELETE",
+            "header": [],
+            "body": {},
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Upload File (front-end)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 200\"] = responseCode.code === 200;",
+                  "tests[\"Status code name is Created\"] = responseCode.name.has(\"OK\");"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var timestamp = Date.now()",
+                  "postman.setGlobalVariable(\"fileId\", timestamp);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "Craig",
+                "description": ""
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "{{fileId}}",
+                  "type": "file",
+                  "src": "1473167513-1.pdf",
+                  "value": ""
+                },
+                {
+                  "key": "foo",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Retrieve Envelope details (test-only): File added and OPEN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 200\"] = responseCode.code === 200;",
+                  "",
+                  "var jsonData = JSON.parse(responseBody);",
+                  "tests[\"Check envelope ID returned\"] = jsonData.id === postman.getGlobalVariable(\"envelopeId\");",
+                  "",
+                  "tests[\"Check Env Status is OPEN\"] = jsonData.status === \"OPEN\"",
+                  "tests[\"Check fileId is present\"] = jsonData.files[0].id === postman.getGlobalVariable(\"fileId\");",
+                  "tests[\"Check File Status is AVAILABLE\"] = jsonData.files[0].status ===\"AVAILABLE\"",
+                  "",
+                  "var callbackUrl = jsonData.files[0].href",
+                  "postman.setGlobalVariable(\"callbackUrl\", callbackUrl)",
+                  "var expectedCallbackUrl = \"/file-upload/envelopes/\" + postman.getGlobalVariable(\"envelopeId\")+ \"/files/\" + postman.getGlobalVariable(\"fileId\") + \"/content\"",
+                  "",
+                  "tests[\"Check callback url correct\"] = callbackUrl === expectedCallbackUrl",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/test-only/envelopes/{{envelopeId}} ",
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "id": "3b29f9e1-0b0f-4d84-afbd-3b1a8352c0cd",
+              "name": "Success",
+              "originalRequest": {
+                "url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "javascript",
+              "_postman_previewtype": "html",
+              "header": [
+                {
+                  "name": "Content-Length",
+                  "key": "Content-Length",
+                  "value": "464",
+                  "description": "The length of the response body in octets (8-bit bytes)"
+                },
+                {
+                  "name": "Content-Type",
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8",
+                  "description": "The mime type of this content"
+                }
+              ],
+              "cookie": [],
+              "responseTime": 30,
+              "body": "{\"_id\":\"0e17bd50-9993-45a3-9533-2a71f7a278a7\",\"constraints\":{\"contentTypes\":[\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"application/vnd.oasis.opendocument.spreadsheet\"],\"maxItems\":100,\"maxSize\":\"12GB\",\"maxSizePerItem\":\"10MB\"},\"callbackUrl\":\"http://absolute.callback.url\",\"expiryDate\":1467893730000,\"metadata\":{\"anything\":\"the caller wants to add to the envelope\"}}"
+            }
+          ]
+        },
+        {
+          "name": "Submit Routing request (test-only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 201\"] = responseCode.code === 201;",
+                  "tests[\"Status code name is Created\"] = responseCode.name.has(\"Created\");"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/test-only/routing/requests",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "description": ""
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"envelopeId\": \"{{envelopeId}}\", \"application\" : \"application:ABCD/1.2.33\", \"destination\": \"TEST\" }"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Retrieve Envelope details (test-only): Envelope Closed",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 200\"] = responseCode.code === 200;",
+                  "",
+                  "var jsonData = JSON.parse(responseBody);",
+                  "tests[\"Check envelope ID returned\"] = jsonData.id === postman.getGlobalVariable(\"envelopeId\");",
+                  "",
+                  "tests[\"Check Env Status is CLOSED\"] = jsonData.status === \"CLOSED\"",
+                  "tests[\"Check Destination is DMS\"] = jsonData.destination === \"TEST\""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/test-only/envelopes/{{envelopeId}} ",
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "id": "798c27cc-3a82-4bb4-bf11-69b121fc1417",
+              "name": "Success",
+              "originalRequest": {
+                "url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "javascript",
+              "_postman_previewtype": "html",
+              "header": [
+                {
+                  "name": "Content-Length",
+                  "key": "Content-Length",
+                  "value": "464",
+                  "description": "The length of the response body in octets (8-bit bytes)"
+                },
+                {
+                  "name": "Content-Type",
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8",
+                  "description": "The mime type of this content"
+                }
+              ],
+              "cookie": [],
+              "responseTime": 30,
+              "body": "{\"_id\":\"0e17bd50-9993-45a3-9533-2a71f7a278a7\",\"constraints\":{\"contentTypes\":[\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"application/vnd.oasis.opendocument.spreadsheet\"],\"maxItems\":100,\"maxSize\":\"12GB\",\"maxSizePerItem\":\"10MB\"},\"callbackUrl\":\"http://absolute.callback.url\",\"expiryDate\":1467893730000,\"metadata\":{\"anything\":\"the caller wants to add to the envelope\"}}"
+            }
+          ]
+        },
+        {
+          "name": "Upload File (front-end): Check fails as env routed",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 423\"] = responseCode.code === 423;",
+                  "tests[\"Status code name is Locked\"] = responseCode.name.has(\"Locked\")"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var timestamp = Date.now()",
+                  "postman.setGlobalVariable(\"fileId2\", timestamp);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId2}}",
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "Craig",
+                "description": ""
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "{{fileId}}",
+                  "value": "",
+                  "type": "file"
+                },
+                {
+                  "key": "foo",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "List Envelopes (test-only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 200\"] = responseCode.code === 200;",
+                  "",
+                  "var envelopeId = postman.getGlobalVariable(\"envelopeId\");",
+                  "tests[\"Check envelope ID present\"] = responseBody.has(envelopeId);",
+                  "",
+                  "var fileId = postman.getGlobalVariable(\"fileId\");",
+                  "",
+                  "var jsonData = JSON.parse(responseBody);",
+                  "var noOfEnvelopes = jsonData._embedded.envelopes.length;",
+                  "var x;",
+                  "for(x=0; x<noOfEnvelopes; x++) {",
+                  "    if (jsonData._embedded.envelopes[x].id === envelopeId) {",
+                  "        break;",
+                  "    }",
+                  "}",
+                  "",
+                  "tests[\"Check envelopeId is present is available\"] = jsonData._embedded.envelopes[x].id === envelopeId",
+                  "tests[\"Check Destination is DMS\"] = jsonData._embedded.envelopes[x].destination === \"TEST\"",
+                  "tests[\"Check file size is not 0\"] = jsonData._embedded.envelopes[x]._embedded.files[0].length !== 0",
+                  "",
+                  "var callbackUrl = jsonData._embedded.envelopes[x]._links.package.href;",
+                  "tests[\"Validate File Transfer Package callbackUrl\"] = callbackUrl === \"/file-transfer/envelopes/\" + envelopeId",
+                  "postman.setGlobalVariable(\"callbackUrl\", callbackUrl);",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/test-only/transfer/get-envelopes",
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Download Envelope Contents as ZIP (test-only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 200\"] = responseCode.code === 200;",
+                  "tests[\"Status code description is OK\"] = responseCode.name.has(\"OK\");",
+                  "",
+                  "var contentHeader = postman.getResponseHeader(\"Content-Disposition\");",
+                  "var fileName = contentHeader.substring(22, contentHeader.lastIndexOf('\"'))",
+                  "",
+                  "tests[\"Check filename is {envelopeId}.zip\"] = fileName === postman.getGlobalVariable(\"envelopeId\") + \".zip\""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/test-only/transfer/download-envelope/{{envelopeId}}",
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Download Specific File (test-only)",
+          "request": {
+            "url": "{{fe-url}}/file-upload/test-only/download-file/envelopes/{{envelopeId}}/files/{{fileId}}/content",
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get List of Events (test-only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 200\"] = responseCode.code === 200;",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/test-only/events/{{envelopeId}}",
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Soft Delete Envelope (back-end)",
+          "request": {
+            "url": "{{be-url}}/file-transfer/envelopes/{{envelopeId}}",
+            "method": "DELETE",
+            "header": [],
+            "body": {},
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Envelope-bad request as routed",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 200\"] = responseCode.code === 200;"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}",
+            "method": "DELETE",
+            "header": [],
+            "body": {},
+            "description": "Given I have a valid envelope id\nWhen I call DELETE /file-upload/envelopes/:envelope-id\nThen I should receive a 202 Accepted\nAnd The envelope should be deleted"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "File Limit",
+      "description": "File-upload should accept only 1 file per reqeust",
+      "item": [
+        {
+          "name": "Create envelope (test-only) copy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 201\"] = responseCode.code === 201;",
+                  "tests[\"Status code name has Created\"] = responseCode.name.has(\"Created\");",
+                  "",
+                  "var envelopeId = JSON.parse(responseBody).envelopeId",
+                  "",
+                  "tests[\"Response body contains Envelope ID\"] = envelopeId !== null",
+                  "postman.setGlobalVariable(\"envelopeId\", envelopeId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/test-only/create-envelope",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "description": ""
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Upload File (front-end) - 2 files",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 400\"] = responseCode.code === 400;",
+                  "tests[\"Status code name is Bad Request\"] = responseCode.name.has(\"Bad Request\");",
+                  "",
+                  "var jsonData = JSON.parse(responseBody);",
+                  "tests[\"Error message\"] = jsonData.error.msg === \"Request must have exactly 1 file attached\";"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var timestamp = Date.now()",
+                  "postman.setGlobalVariable(\"fileId\", timestamp);",
+                  "var timestamp2 = Date.now() - 10",
+                  "postman.setGlobalVariable(\"fileId2\", timestamp2);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "Craig",
+                "description": ""
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "{{fileId}}",
+                  "type": "file",
+                  "src": "14731 67513.pdf",
+                  "value": ""
+                },
+                {
+                  "key": "foo",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "{{fileId2}}",
+                  "type": "file",
+                  "src": "1473167513.pdf",
+                  "value": ""
+                },
+                {
+                  "key": "bar",
+                  "value": "2",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "File Size Limit",
+      "description": "",
+      "item": [
+        {
+          "name": "Create envelope (test-only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 201\"] = responseCode.code === 201;",
+                  "tests[\"Status code name has Created\"] = responseCode.name.has(\"Created\");",
+                  "",
+                  "var envelopeId = JSON.parse(responseBody).envelopeId",
+                  "",
+                  "tests[\"Response body contains Envelope ID\"] = envelopeId !== null",
+                  "postman.setGlobalVariable(\"envelopeId\", envelopeId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/test-only/create-envelope",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "description": ""
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Upload File (front-end) (>11MB file)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 413\"] = responseCode.code === 413;",
+                  "tests[\"Status code name is Entity Too Large\"] = responseCode.name.has(\"Entity Too Large\");"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var timestamp = Date.now()",
+                  "postman.setGlobalVariable(\"fileId\", timestamp);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "Craig",
+                "description": ""
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "{{fileId}}",
+                  "value": "",
+                  "type": "file"
+                },
+                {
+                  "key": "foo",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Upload File (front-end)  - 10MB file",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 201\"] = responseCode.code === 201;",
+                  "tests[\"Status code name is Created\"] = responseCode.name.has(\"Created\");"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var timestamp = Date.now()",
+                  "postman.setGlobalVariable(\"fileId\", timestamp);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "Craig",
+                "description": ""
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "{{fileId}}",
+                  "value": "",
+                  "type": "file"
+                },
+                {
+                  "key": "foo",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Upload File (front-end)  - 11 MB file",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 201\"] = responseCode.code === 201;",
+                  "tests[\"Status code name is Created\"] = responseCode.name.has(\"Created\");"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var timestamp = Date.now()",
+                  "postman.setGlobalVariable(\"fileId\", timestamp);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "Craig",
+                "description": ""
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "{{fileId}}",
+                  "value": "",
+                  "type": "file"
+                },
+                {
+                  "key": "foo",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Upload File (front-end)  - 2 files attached",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 400\"] = responseCode.code === 400;",
+                  "tests[\"Status code name is Bad Request\"] = responseCode.name.has(\"Bad Request\");",
+                  "",
+                  "var jsonData = JSON.parse(responseBody);",
+                  "tests[\"Check error message\"] = jsonData.err.message === \"Request must have exactly 1 file attached.\""
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var timestamp = Date.now()",
+                  "postman.setGlobalVariable(\"fileId\", timestamp);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "Craig",
+                "description": ""
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "{{fileId}}",
+                  "type": "file",
+                  "src": "1473167513 copy 2.pdf",
+                  "value": ""
+                },
+                {
+                  "key": "foo",
+                  "type": "file",
+                  "src": "1473167513 copy 3.pdf",
+                  "value": ""
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Virus found",
+      "description": "",
+      "item": [
+        {
+          "name": "Create envelope (test-only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 201\"] = responseCode.code === 201;",
+                  "tests[\"Status code name has Created\"] = responseCode.name.has(\"Created\");",
+                  "",
+                  "var envelopeId = JSON.parse(responseBody).envelopeId",
+                  "",
+                  "tests[\"Response body contains Envelope ID\"] = envelopeId !== null",
+                  "postman.setGlobalVariable(\"envelopeId\", envelopeId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/test-only/create-envelope",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "description": ""
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Upload File (front-end) copy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 200\"] = responseCode.code === 200;",
+                  "tests[\"Status code name is Created\"] = responseCode.name.has(\"OK\");"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var timestamp = Date.now()",
+                  "postman.setGlobalVariable(\"fileId\", timestamp);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "Craig",
+                "description": ""
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "{{fileId}}",
+                  "value": "",
+                  "type": "file"
+                },
+                {
+                  "key": "foo",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Retrieve Envelope Information (test-only): Status = OPEN copy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 200\"] = responseCode.code === 200;",
+                  "",
+                  "var jsonData = JSON.parse(responseBody);",
+                  "tests[\"Check envelope ID returned\"] = jsonData.id === postman.getGlobalVariable(\"envelopeId\");",
+                  "",
+                  "tests[\"Check Status is OPEN\"] = jsonData.status === \"OPEN\"",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/test-only/envelopes/{{envelopeId}} ",
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "id": "05ee21b4-fd6f-4bbe-8301-33a55b8fbfb5",
+              "name": "Success",
+              "originalRequest": {
+                "url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "javascript",
+              "_postman_previewtype": "html",
+              "header": [
+                {
+                  "name": "Content-Length",
+                  "key": "Content-Length",
+                  "value": "464",
+                  "description": "The length of the response body in octets (8-bit bytes)"
+                },
+                {
+                  "name": "Content-Type",
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8",
+                  "description": "The mime type of this content"
+                }
+              ],
+              "cookie": [],
+              "responseTime": 30,
+              "body": "{\"_id\":\"0e17bd50-9993-45a3-9533-2a71f7a278a7\",\"constraints\":{\"contentTypes\":[\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"application/vnd.oasis.opendocument.spreadsheet\"],\"maxItems\":100,\"maxSize\":\"12GB\",\"maxSizePerItem\":\"10MB\"},\"callbackUrl\":\"http://absolute.callback.url\",\"expiryDate\":1467893730000,\"metadata\":{\"anything\":\"the caller wants to add to the envelope\"}}"
+            }
+          ]
+        },
+        {
+          "name": "Retrieve Envelope details (test-only): File added and OPEN copy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 200\"] = responseCode.code === 200;",
+                  "",
+                  "var jsonData = JSON.parse(responseBody);",
+                  "tests[\"Check envelope ID returned\"] = jsonData.id === postman.getGlobalVariable(\"envelopeId\");",
+                  "",
+                  "tests[\"Check Env Status is OPEN\"] = jsonData.status === \"OPEN\"",
+                  "tests[\"Check fileId is present\"] = jsonData.files[0].id === postman.getGlobalVariable(\"fileId\");",
+                  "tests[\"Check File Status is AVAILABLE\"] = jsonData.files[0].status ===\"AVAILABLE\"",
+                  "",
+                  "var callbackUrl = jsonData.files[0].href",
+                  "postman.setGlobalVariable(\"callbackUrl\", callbackUrl)",
+                  "var expectedCallbackUrl = \"/file-upload/envelopes/\" + postman.getGlobalVariable(\"envelopeId\")+ \"/files/\" + postman.getGlobalVariable(\"fileId\") + \"/content\"",
+                  "",
+                  "tests[\"Check callback url correct\"] = callbackUrl === expectedCallbackUrl",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/test-only/envelopes/{{envelopeId}} ",
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "id": "eb81f652-8d00-4a5e-882c-5e871e24053a",
+              "name": "Success",
+              "originalRequest": {
+                "url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "javascript",
+              "_postman_previewtype": "html",
+              "header": [
+                {
+                  "name": "Content-Length",
+                  "key": "Content-Length",
+                  "value": "464",
+                  "description": "The length of the response body in octets (8-bit bytes)"
+                },
+                {
+                  "name": "Content-Type",
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8",
+                  "description": "The mime type of this content"
+                }
+              ],
+              "cookie": [],
+              "responseTime": 30,
+              "body": "{\"_id\":\"0e17bd50-9993-45a3-9533-2a71f7a278a7\",\"constraints\":{\"contentTypes\":[\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"application/vnd.oasis.opendocument.spreadsheet\"],\"maxItems\":100,\"maxSize\":\"12GB\",\"maxSizePerItem\":\"10MB\"},\"callbackUrl\":\"http://absolute.callback.url\",\"expiryDate\":1467893730000,\"metadata\":{\"anything\":\"the caller wants to add to the envelope\"}}"
+            }
+          ]
+        },
+        {
+          "name": "Get List of Events (test-only) copy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 200\"] = responseCode.code === 200;",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/test-only/events/{{envelopeId}}",
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Cleanup",
+      "description": "",
+      "item": [
+        {
+          "name": "Create envelope (test-only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 201\"] = responseCode.code === 201;",
+                  "tests[\"Status code name has Created\"] = responseCode.name.has(\"Created\");",
+                  "",
+                  "var envelopeId = JSON.parse(responseBody).envelopeId",
+                  "",
+                  "tests[\"Response body contains Envelope ID\"] = envelopeId !== null",
+                  "postman.setGlobalVariable(\"envelopeId\", envelopeId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/test-only/create-envelope",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "description": ""
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Upload File (front-end)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 201\"] = responseCode.code === 200"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var timestamp = Date.now()",
+                  "postman.setGlobalVariable(\"fileId\", timestamp);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "Craig",
+                "description": ""
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "{{fileId}}",
+                  "type": "file",
+                  "src": "OrderDetails.csv"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete file",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 423\"] = responseCode.code === 200"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}/files/{{fileId}}",
+            "method": "DELETE",
+            "header": [],
+            "body": {},
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Upload File (front-end)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 201\"] = responseCode.code === 200"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var timestamp = Date.now()",
+                  "postman.setGlobalVariable(\"fileId\", timestamp);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/upload/envelopes/{{envelopeId}}/files/{{fileId}}",
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "Craig",
+                "description": ""
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "{{fileId}}",
+                  "type": "file",
+                  "src": "OrderDetails.csv"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Retrieve Envelope details (test-only): File added and OPEN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 200\"] = responseCode.code === 200;",
+                  "",
+                  "var jsonData = JSON.parse(responseBody);",
+                  "tests[\"Check envelope ID returned\"] = jsonData.id === postman.getGlobalVariable(\"envelopeId\");",
+                  "",
+                  "tests[\"Check Env Status is OPEN\"] = jsonData.status === \"OPEN\"",
+                  "tests[\"Check fileId is present\"] = jsonData.files[0].id === postman.getGlobalVariable(\"fileId\");",
+                  "tests[\"Check File Status is AVAILABLE\"] = jsonData.files[0].status ===\"AVAILABLE\"",
+                  "",
+                  "var callbackUrl = jsonData.files[0].href",
+                  "postman.setGlobalVariable(\"callbackUrl\", callbackUrl)",
+                  "var expectedCallbackUrl = \"/file-upload/envelopes/\" + postman.getGlobalVariable(\"envelopeId\")+ \"/files/\" + postman.getGlobalVariable(\"fileId\") + \"/content\"",
+                  "",
+                  "tests[\"Check callback url correct\"] = callbackUrl === expectedCallbackUrl",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/test-only/envelopes/{{envelopeId}} ",
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "id": "984ea502-b3cf-4f94-a2c4-fd98aec44256",
+              "name": "Success",
+              "originalRequest": {
+                "url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "javascript",
+              "_postman_previewtype": "html",
+              "header": [
+                {
+                  "name": "Content-Length",
+                  "key": "Content-Length",
+                  "value": "464",
+                  "description": "The length of the response body in octets (8-bit bytes)"
+                },
+                {
+                  "name": "Content-Type",
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8",
+                  "description": "The mime type of this content"
+                }
+              ],
+              "cookie": [],
+              "responseTime": 30,
+              "body": "{\"_id\":\"0e17bd50-9993-45a3-9533-2a71f7a278a7\",\"constraints\":{\"contentTypes\":[\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"application/vnd.oasis.opendocument.spreadsheet\"],\"maxItems\":100,\"maxSize\":\"12GB\",\"maxSizePerItem\":\"10MB\"},\"callbackUrl\":\"http://absolute.callback.url\",\"expiryDate\":1467893730000,\"metadata\":{\"anything\":\"the caller wants to add to the envelope\"}}"
+            }
+          ]
+        },
+        {
+          "name": "Recreate collections",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 200\"] = responseCode.code === 200"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/test-only/recreate-collections",
+            "method": "POST",
+            "header": [],
+            "body": {},
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Retrieve Envelope details (test-only): File and envelope deleted",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 200\"] = responseCode.code === 200;",
+                  "",
+                  "var jsonData = JSON.parse(responseBody);",
+                  "tests[\"Check envelope ID returned\"] = jsonData.id === postman.getGlobalVariable(\"envelopeId\");",
+                  "",
+                  "tests[\"Check Env Status is OPEN\"] = jsonData.status === \"OPEN\"",
+                  "tests[\"Check fileId is present\"] = jsonData.files[0].id === postman.getGlobalVariable(\"fileId\");",
+                  "tests[\"Check File Status is AVAILABLE\"] = jsonData.files[0].status ===\"AVAILABLE\"",
+                  "",
+                  "var callbackUrl = jsonData.files[0].href",
+                  "postman.setGlobalVariable(\"callbackUrl\", callbackUrl)",
+                  "var expectedCallbackUrl = \"/file-upload/envelopes/\" + postman.getGlobalVariable(\"envelopeId\")+ \"/files/\" + postman.getGlobalVariable(\"fileId\") + \"/content\"",
+                  "",
+                  "tests[\"Check callback url correct\"] = callbackUrl === expectedCallbackUrl",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/test-only/envelopes/{{envelopeId}} ",
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "id": "62dc0ca8-2180-4b20-bf23-d6a87ff6fcad",
+              "name": "Success",
+              "originalRequest": {
+                "url": "{{url}}/file-upload/envelopes/{{locationHeader}}",
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "javascript",
+              "_postman_previewtype": "html",
+              "header": [
+                {
+                  "name": "Content-Length",
+                  "key": "Content-Length",
+                  "value": "464",
+                  "description": "The length of the response body in octets (8-bit bytes)"
+                },
+                {
+                  "name": "Content-Type",
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8",
+                  "description": "The mime type of this content"
+                }
+              ],
+              "cookie": [],
+              "responseTime": 30,
+              "body": "{\"_id\":\"0e17bd50-9993-45a3-9533-2a71f7a278a7\",\"constraints\":{\"contentTypes\":[\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"application/vnd.oasis.opendocument.spreadsheet\"],\"maxItems\":100,\"maxSize\":\"12GB\",\"maxSizePerItem\":\"10MB\"},\"callbackUrl\":\"http://absolute.callback.url\",\"expiryDate\":1467893730000,\"metadata\":{\"anything\":\"the caller wants to add to the envelope\"}}"
+            }
+          ]
+        },
+        {
+          "name": "Download Envelope Contents as ZIP (test-only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 200\"] = responseCode.code === 200;",
+                  "tests[\"Status code description is OK\"] = responseCode.name.has(\"OK\");",
+                  "",
+                  "var contentHeader = postman.getResponseHeader(\"Content-Disposition\");",
+                  "var fileName = contentHeader.substring(22, contentHeader.lastIndexOf('\"'))",
+                  "",
+                  "tests[\"Check filename is {envelopeId}.zip\"] = fileName === postman.getGlobalVariable(\"envelopeId\") + \".zip\""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{fe-url}}/file-upload/test-only/transfer/download-envelope/{{envelopeId}}",
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Envelope",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "tests[\"Status code is 200\"] = responseCode.code === 200;"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "url": "{{be-url}}/file-upload/envelopes/{{envelopeId}}",
+            "method": "DELETE",
+            "header": [],
+            "body": {},
+            "description": "Given I have a valid envelope id\nWhen I call DELETE /file-upload/envelopes/:envelope-id\nThen I should receive a 202 Accepted\nAnd The envelope should be deleted"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
 }

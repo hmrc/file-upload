@@ -33,7 +33,7 @@ object EventsSupport {
         "fileLength": ${e.fileLength.get},
         "metadata": ${Json.stringify(e.metadata)}
       }
-		""")
+    """)
 
   def fileScannedRequestBodyAsJson(e: FileScanned): JsValue =
     Json.parse(s"""
@@ -43,5 +43,5 @@ object EventsSupport {
         "fileRefId": "${e.fileRefId}",
         "hasVirus": ${e.hasVirus}
       }
-		""")
+    """)
 }
