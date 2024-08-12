@@ -22,7 +22,7 @@ import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
 import play.api.Logger
 import play.api.http.Status
-import play.api.libs.json.{Json, JsError, JsSuccess}
+import play.api.libs.json.{Json, JsError, JsSuccess, Reads, Writes}
 import play.api.libs.ws.WSClient
 import play.api.mvc._
 import uk.gov.hmrc.fileupload._
@@ -35,48 +35,44 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
-class RetrieveFile(wsClient: WSClient, baseUrl: String) {
+class RetrieveFile(wsClient: WSClient, baseUrl: String):
 
   private val logger = Logger(getClass)
 
   def download(
     envelopeId: EnvelopeId,
     fileId    : FileId
-  )(implicit
-    ec : ExecutionContext,
-    mat: Materializer
-  ): Future[Source[ByteString, NotUsed]] = {
-    val encodedFileId = implicitly[PathBindable[uk.gov.hmrc.fileupload.FileId]].unbind("fileId", fileId)
+  )(using
+    ExecutionContext,
+    Materializer
+  ): Future[Source[ByteString, NotUsed]] =
+    val encodedFileId = summon[PathBindable[uk.gov.hmrc.fileupload.FileId]].unbind("fileId", fileId)
     val downloadUrl = s"$baseUrl/internal-file-upload/download/envelopes/$envelopeId/files/$encodedFileId"
     logger.debug(s"Downloading $downloadUrl")
     val start = System.currentTimeMillis()
     wsClient.url(downloadUrl)
       .withHttpHeaders("User-Agent" -> "FU-backend")
       .stream()
-      .flatMap { res =>
-        if (res.status != Status.OK)
+      .flatMap: res =>
+        if res.status != Status.OK then
           res.bodyAsSource.runFold("")(_ + _.utf8String)
-            .flatMap(body => Future.failed(new RuntimeException(s"Failed to download file: $body")))
+            .flatMap(body => Future.failed(RuntimeException(s"Failed to download file: $body")))
         else
-          Future.successful(
+          Future.successful:
             res
               .bodyAsSource
-              .mapMaterializedValue { _ =>
+              .mapMaterializedValue: _ =>
                 logger.info(s"Downloading file: url=$downloadUrl time=${System.currentTimeMillis() - start} ms")
                 NotUsed
-              }
-          )
-      }
-  }
 
   def getZipData(
     envelope: Envelope
-  )(implicit
-    ec : ExecutionContext,
-    mat: Materializer
-  ): Future[Option[ZipData]] = {
-    implicit val zrw = ZipRequest.writes
-    implicit val zdf = ZipData.format
+  )(using
+    ExecutionContext,
+    Materializer
+  ): Future[Option[ZipData]] =
+    given Writes[ZipRequest] = ZipRequest.writes
+    given Reads[ZipData]     = ZipData.format
     import play.api.libs.ws.writeableOf_JsValue
     wsClient
       .url(s"$baseUrl/internal-file-upload/zip/envelopes/${envelope._id}")
@@ -84,46 +80,44 @@ class RetrieveFile(wsClient: WSClient, baseUrl: String) {
       .withBody(Json.toJson(ZipRequest(files = envelope.files.toList.flatten.map(f => f.fileId -> f.name.map(_.value)))))
       .withMethod("POST")
       .execute()
-      .flatMap { res =>
-        res.status match {
-          case Status.OK => res.json.validate[ZipData] match {
+      .flatMap: res =>
+        res.status match
+          case Status.OK => res.json.validate[ZipData] match
                               case JsSuccess(zipData, _) => Future.successful(Some(zipData))
-                              case JsError(errors)       => Future.failed(new RuntimeException(s"Failed to download file: $errors"))
-                            }
+                              case JsError(errors)       => Future.failed(RuntimeException(s"Failed to download file: $errors"))
           case Status.GONE => Future.successful(None)
           case other       => res.bodyAsSource.runFold("")(_ + _.utf8String)
-                                .flatMap(body => Future.failed(new RuntimeException(s"Failed to download file. status: $other: $body")))
-        }
-      }
-  }
+                                .flatMap(body => Future.failed(RuntimeException(s"Failed to download file. status: $other: $body")))
 
   def downloadZip(
     envelope: Envelope
-  )(implicit
-    ec : ExecutionContext,
-    mat: Materializer
+  )(using
+    ExecutionContext,
+    Materializer
   ): Future[Source[ByteString, NotUsed]] =
-    for {
-      zipData <- getZipData(envelope).flatMap(_.fold(Future.failed[ZipData](new RuntimeException(s"Failed to download file: not found")))(Future.successful))
+    for
+      zipData <- getZipData(envelope).flatMap(_.fold(Future.failed[ZipData](RuntimeException(s"Failed to download file: not found")))(Future.successful))
       res     <- wsClient.url(zipData.url.value).stream()
-      stream  <- if (res.status != 200)
-                    res.bodyAsSource.runFold("")(_ + _.utf8String)
-                      .flatMap(body => Future.failed(new RuntimeException(s"Failed to download file: $body")))
-                  else
-                    Future.successful(
-                      res
-                        .bodyAsSource
-                        .mapMaterializedValue(_ => NotUsed)
-                    )
-    } yield stream
-}
+      stream  <-
+                 if res.status != 200 then
+                   res.bodyAsSource.runFold("")(_ + _.utf8String)
+                     .flatMap(body => Future.failed(RuntimeException(s"Failed to download file: $body")))
+                 else
+                   Future.successful(
+                     res
+                       .bodyAsSource
+                       .mapMaterializedValue(_ => NotUsed)
+                   )
+    yield stream
+
+end RetrieveFile
 
 @Singleton
 class FileController @Inject()(
   appModule: ApplicationModule,
   cc       : ControllerComponents
-)(implicit ec: ExecutionContext
-) extends BackendController(cc) {
+)(using ExecutionContext
+) extends BackendController(cc):
 
   private val logger = Logger(getClass)
 
@@ -131,28 +125,25 @@ class FileController @Inject()(
   val withValidEnvelope: WithValidEnvelope = appModule.withValidEnvelope
   val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
 
-  def downloadFile(envelopeId: EnvelopeId, fileId: FileId) = Action.async {
-    logger.info(s"downloadFile: envelopeId=$envelopeId fileId=$fileId")
+  def downloadFile(envelopeId: EnvelopeId, fileId: FileId) =
+    Action.async:
+      logger.info(s"downloadFile: envelopeId=$envelopeId fileId=$fileId")
 
-    withValidEnvelope(envelopeId) { envelope =>
-      val foundFile = envelope.getFileById(fileId)
-      if (foundFile.map(_.status).exists(_ != FileStatusAvailable))
-        Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId in envelope: $envelopeId is not ready for download."))
-      else
-        foundFile.map { f =>
-          if (f.length.isEmpty)
-            logger.error(s"No file length detected for: envelopeId=$envelopeId fileId=$fileId. Trying to download it without length set.")
+      withValidEnvelope(envelopeId): envelope =>
+        val foundFile = envelope.getFileById(fileId)
+        if foundFile.map(_.status).exists(_ != FileStatusAvailable) then
+          Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId in envelope: $envelopeId is not ready for download."))
+        else
+          foundFile
+            .map: f =>
+              if f.length.isEmpty then
+                logger.error(s"No file length detected for: envelopeId=$envelopeId fileId=$fileId. Trying to download it without length set.")
 
-          retrieveFileS3(envelopeId, fileId).map { source =>
-            Ok.streamed(source, f.length, Some("application/octet-stream"))
-              .withHeaders(Results.contentDispositionHeader(
-                inline = false,
-                name   = f.name.map(_.value).orElse(Some("data"))).toList: _*
-              )
-          }
-        }.getOrElse {
-          Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId"))
-        }
-    }
-  }
-}
+              retrieveFileS3(envelopeId, fileId).map: source =>
+                Ok.streamed(source, f.length, Some("application/octet-stream"))
+                  .withHeaders(Results.contentDispositionHeader(
+                    inline = false,
+                    name   = f.name.map(_.value).orElse(Some("data"))).toList: _*
+                  )
+            .getOrElse:
+              Future.successful(ExceptionHandler(NOT_FOUND, s"File with id: $fileId not found in envelope: $envelopeId"))

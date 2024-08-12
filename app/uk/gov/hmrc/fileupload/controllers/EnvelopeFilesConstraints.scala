@@ -23,44 +23,41 @@ case class EnvelopeFilesConstraints(
   maxSize             : Size,
   maxSizePerItem      : Size,
   allowZeroLengthFiles: Option[Boolean]
-) {
-  val maxSizeInBytes: Long = maxSize.inBytes
-  val maxSizePerItemInBytes: Long = maxSizePerItem.inBytes
-}
+):
+  val maxSizeInBytes: Long =
+    maxSize.inBytes
 
-sealed trait SizeUnit
-case object KB extends SizeUnit
-case object MB extends SizeUnit
+  val maxSizePerItemInBytes: Long =
+    maxSizePerItem.inBytes
 
-case class Size(value: Long, unit: SizeUnit) {
-  override def toString: String = s"$value${unit.toString}"
+enum SizeUnit:
+  case KB extends SizeUnit
+  case MB extends SizeUnit
+
+case class Size(value: Long, unit: SizeUnit):
+  override def toString: String =
+    s"$value${unit.toString}"
 
   def inBytes: Long =
-    unit match {
-      case KB => value * 1024
-      case MB => value * 1024 * 1024
-    }
-}
+    unit match
+      case SizeUnit.KB => value * 1024
+      case SizeUnit.MB => value * 1024 * 1024
 
 object Size {
 
   val sizeRegex: Regex = "([1-9][0-9]{0,3})([KB,MB]{2})".r
 
-  def apply(asString: String): Either[ConstraintsValidationFailure, Size]  = {
-    if (asString.isEmpty) Left(EmptyInput)
-    else {
-      asString.toUpperCase match {
+  def apply(asString: String): Either[ConstraintsValidationFailure, Size] =
+    if asString.isEmpty then
+      Left(EmptyInput)
+    else
+      asString.toUpperCase match
         case sizeRegex(num, unit) =>
-          unit match {
-            case "KB" => Right(Size(num.toInt, KB))
-            case "MB" => Right(Size(num.toInt, MB))
+          unit match
+            case "KB" => Right(Size(num.toInt, SizeUnit.KB))
+            case "MB" => Right(Size(num.toInt, SizeUnit.MB))
             case _    => Left(InvalidFormat)
-          }
         case _ => Left(InvalidFormat)
-      }
-    }
-  }
-
 }
 
 sealed trait ConstraintsValidationFailure {

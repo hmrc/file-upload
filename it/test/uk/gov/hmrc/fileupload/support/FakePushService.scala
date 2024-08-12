@@ -21,7 +21,7 @@ import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration._
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import org.scalatest.concurrent.ScalaFutures
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, Writes}
 import uk.gov.hmrc.fileupload.read.routing.FileTransferNotification
 
 
@@ -32,7 +32,7 @@ trait FakePushService extends BeforeAndAfterAll with ScalaFutures {
 
   private lazy val path = "/notification/fileready"
 
-  private lazy val server = new WireMockServer(wireMockConfig().port(pushServicePort))
+  private lazy val server = WireMockServer(wireMockConfig().port(pushServicePort))
 
   lazy val pushServiceUrl: String = s"http://localhost:$pushServicePort$path"
 
@@ -57,7 +57,7 @@ trait FakePushService extends BeforeAndAfterAll with ScalaFutures {
       postRequestedFor(urlEqualTo(path))
         .withHeader("Content-Type", containing("application/json"))
         .withRequestBody(equalToJson {
-          implicit val ftnf = FileTransferNotification.format
+          given Writes[FileTransferNotification] = FileTransferNotification.format
           Json.toJson(fileTransferNotification).toString
         })
     )

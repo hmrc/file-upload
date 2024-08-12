@@ -27,25 +27,32 @@ import uk.gov.hmrc.fileupload.read.envelope.Envelope
 import java.util.Base64
 import scala.concurrent.{ExecutionContext, Future}
 
-object RoutingRepository {
+object RoutingRepository:
   private val logger = Logger(getClass)
 
   type PushResult = Either[PushError, Unit]
-  case class PushError(correlationId: String, reason: String)
+  case class PushError(
+    correlationId: String,
+    reason       : String
+  )
 
   type BuildNotificationResult = Either[BuildNotificationError, FileTransferNotification]
-  case class BuildNotificationError(envelopeId: EnvelopeId, reason: String, isTransient: Boolean)
+  case class BuildNotificationError(
+    envelopeId : EnvelopeId,
+    reason     : String,
+    isTransient: Boolean
+  )
 
-  implicit val ftnw: Writes[FileTransferNotification] = FileTransferNotification.format
-  implicit val zrw : Writes[ZipRequest] = ZipRequest.writes
+  given Writes[FileTransferNotification] = FileTransferNotification.format
+  given Writes[ZipRequest]               = ZipRequest.writes
 
   def pushFileTransferNotification(
-    httpCall     : WSRequest => Future[Either[PlayHttpError, WSResponse]],
-    wSClient     : WSClient,
-    routingConfig: RoutingConfig
+    httpCall                : WSRequest => Future[Either[PlayHttpError, WSResponse]],
+    wSClient                : WSClient,
+    routingConfig           : RoutingConfig
   )(fileTransferNotification: FileTransferNotification
-  )(implicit
-    ec          : ExecutionContext
+  )(using
+    ExecutionContext
   ): Future[PushResult] =
     import play.api.libs.ws.writeableOf_JsValue
     httpCall(
@@ -57,35 +64,34 @@ object RoutingRepository {
          )
         .withBody(Json.toJson(fileTransferNotification))
         .withMethod("POST")
-    ).map {
-      case Left(error) => Left(PushError(fileTransferNotification.audit.correlationId, error.message))
-      case Right(response) => response.status match {
-        case Status.NO_CONTENT => Right(())
-        case _ => Left(PushError(fileTransferNotification.audit.correlationId, s"Unexpected response: ${response.status} ${response.body}"))
-      }
-    }
+    ).map:
+      case Left(error)     =>
+        Left(PushError(fileTransferNotification.audit.correlationId, error.message))
+      case Right(response) =>
+        response.status match
+          case Status.NO_CONTENT => Right(())
+          case _ => Left(PushError(fileTransferNotification.audit.correlationId, s"Unexpected response: ${response.status} ${response.body}"))
 
   def buildFileTransferNotification(
     getZipData   : Envelope => Future[Option[ZipData]],
     routingConfig: RoutingConfig
   )(envelope     : Envelope
-  )(implicit
-    ec           : ExecutionContext
+  )(using
+    ExecutionContext
   ): Future[BuildNotificationResult] =
-    getZipData(envelope).map {
-      case Some(zipData) => Right(createNotification(envelope, zipData, routingConfig))
-      case None          => Left(BuildNotificationError(envelope._id, "Files to zip are no-longer available", isTransient = false))
-    }
-    .recover {
-      case ex            => logger.error(s"Could not build file transfer notification: ${ex.getMessage}", ex)
-                            Left(BuildNotificationError(envelope._id, ex.getMessage, isTransient = true))
-    }
+    getZipData(envelope)
+      .map:
+        case Some(zipData) => Right(createNotification(envelope, zipData, routingConfig))
+        case None          => Left(BuildNotificationError(envelope._id, "Files to zip are no-longer available", isTransient = false))
+      .recover:
+        case ex            => logger.error(s"Could not build file transfer notification: ${ex.getMessage}", ex)
+                              Left(BuildNotificationError(envelope._id, ex.getMessage, isTransient = true))
 
   def createNotification(
     envelope     : Envelope,
     zipData      : ZipData,
     routingConfig: RoutingConfig
-  ): FileTransferNotification = {
+  ): FileTransferNotification =
     val file = FileTransferFile(
       recipientOrSender = routingConfig.recipientOrSender,
       name              = zipData.name,
@@ -100,23 +106,21 @@ object RoutingRepository {
       file            = file,
       audit           = Audit(correlationId = envelope._id.value)
     )
-  }
 
-  def base64ToHex(s: String): String = {
+  def base64ToHex(s: String): String =
     val bytes = Base64.getDecoder.decode(s)
-    java.lang.String.format("%032x", new java.math.BigInteger(1, bytes))
-  }
-}
+    java.lang.String.format("%032x", java.math.BigInteger(1, bytes))
+
+end RoutingRepository
 
 case class ZipRequest(
   files: List[(FileId, Option[String])]
 )
 
-object ZipRequest {
+object ZipRequest:
   val writes: Writes[ZipRequest] =
     Writes.at[JsObject](__ \ "files")
       .contramap[ZipRequest](zr => JsObject(zr.files.map { case (fi, optS) => fi.value -> Json.toJson(optS) }.toSeq))
-}
 
 
 case class ZipData(
@@ -125,7 +129,8 @@ case class ZipData(
   md5Checksum: String,
   url        : DownloadUrl
 )
-object ZipData {
+
+object ZipData:
   import play.api.libs.functional.syntax._
   val format =
     ( (__ \ "name"       ).format[String]
@@ -133,4 +138,3 @@ object ZipData {
     ~ (__ \ "md5Checksum").format[String]
     ~ (__ \ "url"        ).format[String].inmap(DownloadUrl.apply, _.value)
     )(ZipData.apply, zd => Tuple.fromProductTyped(zd))
-}

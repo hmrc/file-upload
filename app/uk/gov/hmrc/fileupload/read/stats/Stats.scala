@@ -22,7 +22,7 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-object Stats {
+object Stats:
 
   private val logger = Logger(getClass)
 
@@ -35,8 +35,8 @@ object Stats {
     insert: InProgressFile => Future[Boolean]
   )(
     fileQuarantined: FileQuarantined
-  )(implicit
-    ec: ExecutionContext
+  )(using
+    ExecutionContext
   ): Unit =
     Future {
       logger.info(s"Currently in progress for file: ${fileQuarantined.fileId}, at: ${fileQuarantined.fileRefId}, " +
@@ -49,61 +49,58 @@ object Stats {
           startedAt  = fileQuarantined.created
         )
       )
-    }.failed.foreach {
+    }.failed.foreach:
       case e => logger.warn(s"It was not possible to store an in progress file for ${fileQuarantined.id}" +
                             s" - ${fileQuarantined.fileId} - ${fileQuarantined.fileRefId}", e)
-    }
 
   def deleteVirusDetected(
     deleteInProgressFile: (EnvelopeId, FileId) => Future[Boolean]
   )(
     virusDetected: VirusDetected
-  )(implicit
-    ec: ExecutionContext
+  )(using
+    ExecutionContext
   ): Unit =
     Future {
       deleteInProgressFile(virusDetected.id, virusDetected.fileId)
-    }.failed.foreach {
+    }.failed.foreach:
       case e => logger.warn(s"It was not possible to delete the virus file for " +
                             s"${virusDetected.id} - ${virusDetected.fileId} - ${virusDetected.fileRefId}", e)
-    }
 
   def deleteFileStored(
     deleteInProgressFile: (EnvelopeId, FileId) => Future[Boolean]
   )(
     fileStored: FileStored
-  )(implicit
-    ec: ExecutionContext
+  )(using
+    ExecutionContext
   ): Unit =
     Future {
       deleteInProgressFile(fileStored.id, fileStored.fileId)
-    }.failed.foreach {
+    }.failed.foreach:
       case e => logger.warn(s"It was not possible to delete the file for ${fileStored.id} - ${fileStored.fileId} - ${fileStored.fileRefId}", e)
-    }
 
   def deleteEnvelopeFiles(
     deleteEnvelope: EnvelopeId => Future[Boolean]
   )(
     envelopeDeleted: EnvelopeDeleted
-  )(implicit
-    ec: ExecutionContext
+  )(using
+    ExecutionContext
   ): Unit =
     Future {
       deleteEnvelope(envelopeDeleted.id)
-    }.failed.foreach {
+    }.failed.foreach:
       case e => logger.warn(s"It was not possible to delete the envelope for ${envelopeDeleted.id}", e)
-    }
 
   def all(
     findAllInProgressFile: () => Future[List[InProgressFile]]
   )(
-  )(implicit
-    ec: ExecutionContext
+  )(using
+    ExecutionContext
   ): Future[GetInProgressFileResult] =
-    findAllInProgressFile().map(Right.apply)
-      .recover {
+    findAllInProgressFile()
+      .map(Right.apply)
+      .recover:
         case e =>
           logger.warn("It was not possible to retrieve in progress files", e)
           Left(GetInProgressFileGenericError)
-      }
-}
+
+end Stats

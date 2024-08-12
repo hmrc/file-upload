@@ -36,53 +36,50 @@ case class Event(
   eventData: EventData
 )
 
-case class EventId(value: String) extends AnyVal {
-  override def toString = value.toString
-}
+case class EventId(value: String) extends AnyVal:
+  override def toString: String =
+    value.toString
 
-case class StreamId(value: String) extends AnyVal {
-  override def toString = value.toString
-}
+case class StreamId(value: String) extends AnyVal:
+  override def toString: String =
+    value.toString
 
 object StreamId {
   implicit val binder: PathBindable[StreamId] =
-    new SimpleObjectBinder[StreamId](StreamId.apply, _.value)
+    SimpleObjectBinder[StreamId](StreamId.apply, _.value)
 }
 
-case class Version(value: Int) extends AnyVal {
-  override def toString = value.toString
+case class Version(value: Int) extends AnyVal:
+  override def toString: String =
+    value.toString
 
   def nextVersion() =
     Version(value + 1)
-}
 
 object Version {
-  implicit val writes: Writes[Version] =
+  given Writes[Version] =
     (id: Version) => JsNumber(id.value)
 
-  implicit val reads: Reads[Version] =
+  given Reads[Version] =
     (json: JsValue) =>
-      json match {
+      json match
         case JsNumber(value) => JsSuccess(Version(value.toInt))
         case _               => JsError("invalid envelopeId")
-      }
 }
 
-case class Created(value: Long) extends AnyVal {
-  override def toString = value.toString
-}
+case class Created(value: Long) extends AnyVal:
+  override def toString: String =
+    value.toString
 
-case class EventType(value: String) extends AnyVal {
-  override def toString = value
-}
+case class EventType(value: String) extends AnyVal:
+  override def toString: String =
+    value
 
-trait EventData {
+trait EventData:
   def streamId: StreamId
-}
 
-trait Command {
+trait Command:
   def streamId: StreamId
-}
 
 case object CommandAccepted
 

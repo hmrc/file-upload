@@ -53,12 +53,14 @@ trait IntegrationTestApplicationComponents extends GuiceOneServerPerSuite with M
 
   // creates a new application and sets the components
   implicit override lazy val app: Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .configure(conf: _*)
       .overrides(
-        bind[AllEventsPublisher].to(new DefaultAllEventsPublisher with ControlledAllEventsPublisher {
-          override val shouldPublish: LazyList[Boolean] = allEventsPublishControl
-        })
+        bind[AllEventsPublisher].to(
+          new DefaultAllEventsPublisher with ControlledAllEventsPublisher {
+            override val shouldPublish: LazyList[Boolean] = allEventsPublishControl
+          }
+        )
       )
       .build()
 }

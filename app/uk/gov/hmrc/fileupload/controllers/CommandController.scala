@@ -21,7 +21,6 @@ import play.api.Logger
 import play.api.libs.json.{JsValue, Json, Reads}
 import play.api.mvc._
 import uk.gov.hmrc.fileupload.ApplicationModule
-import uk.gov.hmrc.fileupload.write.envelope.Formatters._
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -33,43 +32,49 @@ import scala.reflect.ClassTag
 class CommandController @Inject()(
   appModule: ApplicationModule,
   cc       : ControllerComponents
-)(implicit ec: ExecutionContext
-) extends BackendController(cc) {
+)(using ExecutionContext
+) extends BackendController(cc):
+  import Formatters.given
 
   private val logger = Logger(getClass)
 
   val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] =
     appModule.envelopeCommandHandler
 
-  def unsealEnvelope = process[UnsealEnvelope]
+  def unsealEnvelope =
+    process[UnsealEnvelope]
 
-  def storeFile = process[StoreFile]
+  def storeFile =
+    process[StoreFile]
 
-  def quarantineFile = process[QuarantineFile]
+  def quarantineFile =
+    process[QuarantineFile]
 
-  def markFileAsClean = process[MarkFileAsClean]
+  def markFileAsClean =
+    process[MarkFileAsClean]
 
-  def markFileAsInfected = process[MarkFileAsInfected]
+  def markFileAsInfected =
+    process[MarkFileAsInfected]
 
-  def process[T <: EnvelopeCommand : Reads : ClassTag] = Action.async(parse.json) { implicit req =>
-    bindCommandFromRequest[T] { command =>
-      logger.info(s"Requested command: $command to be processed")
-      handleCommand(command).map {
-        case Right(_) => Ok
-        case Left(EnvelopeNotFoundError) =>
-          ExceptionHandler(NOT_FOUND, s"Envelope with id: ${command.id} not found")
-        case Left(FileAlreadyProcessed) =>
-          ExceptionHandler(BAD_REQUEST, s"File already processed, command was: $command")
-        case Left(EnvelopeRoutingAlreadyRequestedError | EnvelopeSealedError) =>
-          ExceptionHandler(LOCKED, s"Routing request already received for envelope: ${command.id}")
-        case Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
-      }
-    }
-  }
+  def process[T <: EnvelopeCommand : Reads : ClassTag] =
+    Action.async(parse.json): request =>
+      given Request[JsValue] = request
+      bindCommandFromRequest[T]: command =>
+        logger.info(s"Requested command: $command to be processed")
+        handleCommand(command)
+          .map:
+            case Right(_) => Ok
+            case Left(EnvelopeNotFoundError) =>
+              ExceptionHandler(NOT_FOUND, s"Envelope with id: ${command.id} not found")
+            case Left(FileAlreadyProcessed) =>
+              ExceptionHandler(BAD_REQUEST, s"File already processed, command was: $command")
+            case Left(EnvelopeRoutingAlreadyRequestedError | EnvelopeSealedError) =>
+              ExceptionHandler(LOCKED, s"Routing request already received for envelope: ${command.id}")
+            case Left(a) => ExceptionHandler(BAD_REQUEST, a.toString)
 
   def bindCommandFromRequest[T <: EnvelopeCommand](
     f: EnvelopeCommand => Future[Result]
-  )(implicit
+  )(using
     r  : Reads[T],
     ct : ClassTag[T],
     req: Request[JsValue]
@@ -78,4 +83,3 @@ class CommandController @Inject()(
       .asOpt
       .map(f)
       .getOrElse(Future.successful(ExceptionHandler(BAD_REQUEST, s"Unable to parse request as ${ct.runtimeClass.getSimpleName}")))
-}

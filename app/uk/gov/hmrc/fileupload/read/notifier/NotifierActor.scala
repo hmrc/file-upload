@@ -27,12 +27,12 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{Event, EventData}
 import scala.concurrent.{ExecutionContext, Future}
 
 class NotifierActor(
-  subscribe   : (ActorRef, Class[_]) => Boolean,
-  findEnvelope: (EnvelopeId) => Future[FindResult],
+  subscribe   : (ActorRef, Class[_])   => Boolean,
+  findEnvelope: EnvelopeId             => Future[FindResult],
   notify      : (Notification, String) => Future[NotifyResult]
-)(implicit
-  ec: ExecutionContext
-) extends Actor {
+)(using
+  ExecutionContext
+) extends Actor:
 
   private val logger = Logger(getClass)
 
@@ -40,7 +40,7 @@ class NotifierActor(
     subscribe(self, classOf[Event])
 
   def receive = {
-    case event: Event => event.eventData match {
+    case event: Event => event.eventData match
       case e: FileQuarantined =>
         logger.info(s"Quarantined event received for ${e.id} and ${e.fileId}")
         notifyEnvelopeCallback(Notification(e.id, e.fileId, "QUARANTINED", None))
@@ -55,40 +55,35 @@ class NotifierActor(
         notifyEnvelopeCallback(Notification(e.id, e.fileId, "AVAILABLE", None))
       case e: EventData =>
         logger.debug(s"Not notifying for ${e.getClass.getName}")
-    }
   }
 
   def notifyEnvelopeCallback(notification: Notification) = {
-    findEnvelope(notification.envelopeId).flatMap {
+    findEnvelope(notification.envelopeId).flatMap:
       case Right(envelope) =>
-        envelope.callbackUrl.map {
-          callbackUrl =>
-            notify(notification, callbackUrl).map {
+        envelope.callbackUrl
+          .map: callbackUrl =>
+            notify(notification, callbackUrl).map:
               case Right(envelopeId) => logger.info(s"Successfully sent notification [${notification.status}] for envelope [$envelopeId]")
-              case Left(error) => logger.warn(
-                s"Failed to send notification [${notification.status}] for envelope [${error.envelopeId}]. Reason [${error.reason}]"
-              )
-            }
-        }.getOrElse(Future.successful(()))
+              case Left(error)       => logger.warn(
+                                          s"Failed to send notification [${notification.status}] for envelope [${error.envelopeId}]. Reason [${error.reason}]"
+                                        )
+          .getOrElse(Future.successful(()))
       case Left(e) =>
         logger.warn(e.toString)
         Future.successful(())
-    }
   }
-}
+end NotifierActor
 
-object NotifierActor {
-
+object NotifierActor:
   def props(
-    subscribe   : (ActorRef, Class[_]) => Boolean,
-    findEnvelope: (EnvelopeId) => Future[FindResult],
+    subscribe   : (ActorRef, Class[_])   => Boolean,
+    findEnvelope: EnvelopeId             => Future[FindResult],
     notify      : (Notification, String) => Future[NotifyResult]
-  )(implicit
-    ec: ExecutionContext
+  )(using
+    ExecutionContext
   ) =
-    Props(new NotifierActor(
-      subscribe = subscribe,
+    Props(NotifierActor(
+      subscribe    = subscribe,
       findEnvelope = findEnvelope,
-      notify = notify
+      notify       = notify
     ))
-}

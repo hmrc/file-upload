@@ -26,44 +26,44 @@ import scala.concurrent.Future
 
 class StatsActor(
   subscribe          : (ActorRef, Class[_]) => Boolean,
-  save               : FileQuarantined => Unit,
-  deleteVirusDetected: VirusDetected => Unit,
-  deleteFileStored   : FileStored => Unit,
-  deleteFiles        : EnvelopeDeleted => Unit
-) extends Actor {
+  save               : FileQuarantined      => Unit,
+  deleteVirusDetected: VirusDetected        => Unit,
+  deleteFileStored   : FileStored           => Unit,
+  deleteFiles        : EnvelopeDeleted      => Unit
+) extends Actor:
 
   override def preStart(): Unit =
     subscribe(self, classOf[Event])
 
   def receive = {
-    case event: Event => event.eventData match {
-      case e: FileQuarantined =>
-        save(e)
-      case e: VirusDetected =>
-        deleteVirusDetected(e)
-      case e: FileStored =>
-        deleteFileStored(e)
-      case e: EnvelopeDeleted =>
-        deleteFiles(e)
-      case _ =>
-    }
+    case event: Event =>
+      event.eventData match
+        case e: FileQuarantined =>
+          save(e)
+        case e: VirusDetected =>
+          deleteVirusDetected(e)
+        case e: FileStored =>
+          deleteFileStored(e)
+        case e: EnvelopeDeleted =>
+          deleteFiles(e)
+        case _ =>
   }
-}
 
-object StatsActor {
+end StatsActor
+
+object StatsActor:
   def props(
     subscribe          : (ActorRef, Class[_]) => Boolean,
-    findEnvelope       : EnvelopeId => Future[FindResult],
-    save               : FileQuarantined => Unit,
-    deleteVirusDetected: VirusDetected => Unit,
-    deleteFileStored   : FileStored => Unit,
-    deleteFiles        : EnvelopeDeleted => Unit
+    findEnvelope       : EnvelopeId           => Future[FindResult],
+    save               : FileQuarantined      => Unit,
+    deleteVirusDetected: VirusDetected        => Unit,
+    deleteFileStored   : FileStored           => Unit,
+    deleteFiles        : EnvelopeDeleted      => Unit
   ) =
-    Props(new StatsActor(
+    Props(StatsActor(
       subscribe           = subscribe,
       save                = save,
       deleteFileStored    = deleteFileStored,
       deleteVirusDetected = deleteVirusDetected,
       deleteFiles         = deleteFiles
     ))
-}

@@ -25,11 +25,11 @@ import uk.gov.hmrc.fileupload.write.envelope._
 
 class EnvelopeFilesConstraintsRequestSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with TestApplicationComponents {
 
-  override val handler = new EnvelopeHandler(envelopeConstraintsConfigure)
+  override val handler = EnvelopeHandler(envelopeConstraintsConfigure)
 
   override val defaultStatus: Envelope = Envelope()
 
-  val fakeDateTime = new DateTime(0)
+  val fakeDateTime = DateTime(0)
   val fakeUrl = "http://www.callback-url.com"
   val fakeData: JsObject = Json.obj("foo" -> "bar")
 

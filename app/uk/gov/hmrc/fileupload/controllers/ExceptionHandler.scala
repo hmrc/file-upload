@@ -28,57 +28,49 @@ import play.api.mvc.{ResponseHeader, Result}
 import uk.gov.hmrc.fileupload.read.envelope.ValidationException
 import uk.gov.hmrc.http.BadRequestException
 
-object ExceptionHandler {
+object ExceptionHandler:
   private val logger = Logger(getClass)
 
-  def apply[T <: Throwable](exception: T): Result = exception match {
-    case e: ValidationException => IllegalArgumentHandler(e)
-    case e: NoSuchElementException => NoSuchElementHandler(e)
-    case e: BadRequestException => BadRequestHandler(e)
-    case e: JsonParseException => BadRequestHandler(new BadRequestException(s"Malformed json: ${e.getMessage}"))
-    case e: IllegalArgumentException => BadRequestHandler(new BadRequestException(s"${e.getMessage}"))
-    case e: JsonMappingException => BadRequestHandler(new BadRequestException(s"${e.getMessage}, i.e. these is not request body"))
-    case e: Throwable => DefaultExceptionHandler(e)
-  }
+  def apply[T <: Throwable](exception: T): Result =
+    exception match
+      case e: ValidationException      => IllegalArgumentHandler(e)
+      case e: NoSuchElementException   => NoSuchElementHandler(e)
+      case e: BadRequestException      => BadRequestHandler(e)
+      case e: JsonParseException       => BadRequestHandler(BadRequestException(s"Malformed json: ${e.getMessage}"))
+      case e: IllegalArgumentException => BadRequestHandler(BadRequestException(s"${e.getMessage}"))
+      case e: JsonMappingException     => BadRequestHandler(BadRequestException(s"${e.getMessage}, i.e. these is not request body"))
+      case e: Throwable                => DefaultExceptionHandler(e)
 
-  def apply(statusCode: Int, responseMessage: String): Result = {
+  def apply(statusCode: Int, responseMessage: String): Result =
     logger.warn(s"ExceptionHandler creating result with status [$statusCode] and message [$responseMessage]")
     val response: JsObject = JsObject(Seq("error" -> Json.obj("msg" -> responseMessage)))
     val source = Source.single(ByteString.fromArray(Json.stringify(response).getBytes))
     Result(ResponseHeader(statusCode), HttpEntity.Streamed(source, None, None))
-  }
-}
 
-sealed trait ExceptionHandler[T <: Throwable] {
+
+sealed trait ExceptionHandler[T <: Throwable]:
   def apply(exception: T): Result
-}
 
-object IllegalArgumentHandler extends ExceptionHandler[IllegalArgumentException] {
+object IllegalArgumentHandler extends ExceptionHandler[IllegalArgumentException]:
   def apply(exception: IllegalArgumentException): Result =
     ExceptionHandler(BAD_REQUEST, exception.getMessage)
-}
 
-object NoSuchElementHandler extends ExceptionHandler[NoSuchElementException] {
+object NoSuchElementHandler extends ExceptionHandler[NoSuchElementException]:
   private val logger = Logger(getClass)
 
-  def apply(exception: NoSuchElementException): Result = {
+  def apply(exception: NoSuchElementException): Result =
     val message = "Invalid json format"
     logger.warn(message, exception)
     ExceptionHandler(BAD_REQUEST, message)
-  }
-}
 
-object BadRequestHandler extends ExceptionHandler[BadRequestException] {
+object BadRequestHandler extends ExceptionHandler[BadRequestException]:
   override def apply(exception: BadRequestException): Result =
     ExceptionHandler(BAD_REQUEST, exception.getMessage)
-}
 
-object DefaultExceptionHandler extends ExceptionHandler[Throwable] {
+object DefaultExceptionHandler extends ExceptionHandler[Throwable]:
   private val logger = Logger(getClass)
 
-  override def apply(exception: Throwable): Result = {
+  override def apply(exception: Throwable): Result =
     val message = "Internal Server Error"
     logger.warn(message, exception)
     ExceptionHandler(INTERNAL_SERVER_ERROR, message)
-  }
-}

@@ -30,7 +30,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 
 object InProgressFile {
-  implicit val format: Format[InProgressFile] = Json.format[InProgressFile]
+  given format: Format[InProgressFile] = Json.format[InProgressFile]
 }
 
 case class InProgressFile(
@@ -40,15 +40,10 @@ case class InProgressFile(
   startedAt : Long
 )
 
-object Repository {
-  def apply(mongoComponent: MongoComponent)(implicit ec: ExecutionContext): Repository =
-    new Repository(mongoComponent)
-}
-
 class Repository(
   mongoComponent: MongoComponent
-)(implicit
-  ec: ExecutionContext
+)(using
+  ExecutionContext
 ) extends PlayMongoRepository[InProgressFile](
   collectionName = "inprogress-files",
   mongoComponent = mongoComponent,
@@ -67,11 +62,11 @@ class Repository(
   def deleteAllInAnEnvelop(envelopeId: EnvelopeId): Future[Boolean] =
     collection.deleteMany(filter = Filters.equal("envelopeId", envelopeId.value)).toFuture().map(toBoolean)
 
-  def deleteByFileRefId(fileRefId: FileRefId)(implicit ec: ExecutionContext): Future[Boolean] =
+  def deleteByFileRefId(fileRefId: FileRefId)(using ExecutionContext): Future[Boolean] =
     collection.deleteMany(filter = Filters.equal("_id", fileRefId.value)).toFuture().map(toBoolean)
 
-  def toBoolean(wr: DeleteResult): Boolean =
-    wr.wasAcknowledged() && wr.getDeletedCount > 0
+  private def toBoolean(wr: DeleteResult): Boolean =
+    wr.getDeletedCount > 0
 
   def all(): Future[List[InProgressFile]] =
     collection
@@ -86,6 +81,6 @@ class Repository(
   def findByEnvelopeId(envelopeId: EnvelopeId): Future[List[InProgressFile]] =
     collection.find(filter = Filters.equal("envelopeId", envelopeId.value)).toFuture().map(_.toList)
 
-  def recreate()(implicit ec: ExecutionContext): Unit =
+  def recreate()(using ec: ExecutionContext): Unit =
     Await.result(collection.drop().toFuture().map(_ => true)(ec), 5.seconds)
 }

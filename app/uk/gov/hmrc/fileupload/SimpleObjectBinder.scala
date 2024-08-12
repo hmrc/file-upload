@@ -22,12 +22,13 @@ import scala.reflect.ClassTag
 
 // This has been copied from hmrc/play-ui to prevent a direct dependency
 
-class SimpleObjectBinder[T](bind: String => T, unbind: T => String)(implicit ct: ClassTag[T]) extends PathBindable[T] {
-  override def bind(key: String, value: String): Either[String, T] = try {
-    Right(bind(value))
-  } catch {
-    case e: Throwable => Left(s"Cannot parse parameter '$key' with value '$value' as '${ct.runtimeClass.getSimpleName}'")
-  }
+class SimpleObjectBinder[T](bind: String => T, unbind: T => String)(implicit ct: ClassTag[T]) extends PathBindable[T]:
+  override def bind(key: String, value: String): Either[String, T] =
+    try {
+      Right(bind(value))
+    } catch {
+      case e: Throwable => Left(s"Cannot parse parameter '$key' with value '$value' as '${ct.runtimeClass.getSimpleName}'")
+    }
 
-  def unbind(key: String, value: T): String = unbind(value)
-}
+  def unbind(key: String, value: T): String =
+    unbind(value)

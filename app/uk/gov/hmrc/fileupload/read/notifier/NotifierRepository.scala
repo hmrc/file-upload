@@ -24,20 +24,25 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-object NotifierRepository {
+object NotifierRepository:
 
   type NotifyResult = Either[NotifyError, EnvelopeId]
 
   case class Notification(
     envelopeId: EnvelopeId,
-    fileId: FileId,
-    status: String,
-    reason: Option[String]
+    fileId    : FileId,
+    status    : String,
+    reason    : Option[String]
   )
 
-  implicit val notificationFormats: Format[Notification] = Json.format[Notification]
+  private given Format[Notification] =
+   Json.format[Notification]
 
-  case class NotifyError(envelopeId: EnvelopeId, fileId: FileId, reason: String)
+  case class NotifyError(
+    envelopeId: EnvelopeId,
+    fileId    : FileId,
+    reason    : String
+  )
 
   def notify(
     httpCall: WSRequest => Future[Either[PlayHttpError, WSResponse]],
@@ -45,8 +50,8 @@ object NotifierRepository {
   )(
     notification: Notification,
     url         : String
-  )(implicit
-    ec: ExecutionContext
+  )(using
+    ExecutionContext
   ): Future[NotifyResult] =
     import play.api.libs.ws.writeableOf_JsValue
     httpCall(
@@ -55,11 +60,12 @@ object NotifierRepository {
         .withHttpHeaders("User-Agent" -> "file-upload")
         .withBody(Json.toJson(notification))
         .withMethod("POST")
-    ).map {
-      case Left(error) => Left(NotifyError(notification.envelopeId, notification.fileId, error.message))
-      case Right(response) => response.status match {
-        case Status.OK => Right(notification.envelopeId)
-        case _ => Left(NotifyError(notification.envelopeId, notification.fileId, s"${response.status} ${response.body}"))
-      }
-    }
-}
+    ).map:
+      case Left(error)     =>
+        Left(NotifyError(notification.envelopeId, notification.fileId, error.message))
+      case Right(response) =>
+        response.status match
+          case Status.OK => Right(notification.envelopeId)
+          case _         => Left(NotifyError(notification.envelopeId, notification.fileId, s"${response.status} ${response.body}"))
+
+end NotifierRepository

@@ -31,7 +31,7 @@ import scala.util.Random
 class EnvelopeSpec extends AnyWordSpecLike with Matchers {
 
   val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  val today = new DateTime().plusMinutes(10)
+  val today     = DateTime().plusMinutes(10)
 
   "a json value" should {
     "be parsed to an envelope object" in {
@@ -56,7 +56,7 @@ class EnvelopeSpec extends AnyWordSpecLike with Matchers {
       val expectedResult = Envelope(
         id,
         Version(1),
-        EnvelopeStatusOpen,
+        EnvelopeStatus.EnvelopeStatusOpen,
         constraints = None,
         callbackUrl = Some("http://absolute.callback.url"),
         expiryDate  = Some(formatter.parseDateTime(formattedExpiryDate)),

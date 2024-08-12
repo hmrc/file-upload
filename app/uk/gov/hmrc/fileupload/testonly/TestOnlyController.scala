@@ -25,12 +25,12 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 class TestOnlyController @Inject()(
   appModule: ApplicationModule,
   cc: ControllerComponents
-) extends BackendController(cc) {
+) extends BackendController(cc):
 
-  val recreateCollections: List[() => Unit] = appModule.recreateCollections
+  val recreateCollections: List[() => Unit] =
+    appModule.recreateCollections
 
-  def recreate() = Action {
-    recreateCollections.foreach(_())
-    Ok
-  }
-}
+  def recreate() =
+    Action:
+      recreateCollections.foreach(_())
+      Ok

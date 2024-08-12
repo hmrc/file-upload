@@ -41,18 +41,19 @@ class RoutingControllerSpec
      with ScalaFutures
      with OptionValues {
 
-  implicit val ec: ExecutionContext = ExecutionContext.global
-  import uk.gov.hmrc.fileupload.Support.StreamImplicits.system
+  given ExecutionContext = ExecutionContext.global
+  import uk.gov.hmrc.fileupload.Support.StreamImplicits.given
 
-  val failed = Future.failed(new Exception("not good"))
+  val failed = Future.failed(Exception("not good"))
 
-  def newController(handleCommand: EnvelopeCommand => Future[Either[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
-                    newId: () => String = () => "testId"
+  def newController(
+    handleCommand: EnvelopeCommand => Future[Either[CommandNotAccepted, CommandAccepted.type]] = _ => failed,
+    newId        : () => String                                                                = () => "testId"
   ) = {
     val appModule = mock[ApplicationModule]
     when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
     when(appModule.newId).thenReturn(newId)
-    new RoutingController(appModule, app.injector.instanceOf[ControllerComponents])
+    RoutingController(appModule, app.injector.instanceOf[ControllerComponents])
   }
 
   val destination = "testDestination"
@@ -117,9 +118,12 @@ class RoutingControllerSpec
 
     "return 400 bad request if sealing was not possible for other reason" in {
       val errorMsg = "errorMsg"
-      val controller = newController(handleCommand = _ => Future.successful(
-        Left(new CommandNotAccepted {override def toString = errorMsg })
-      ))
+      val controller =
+        newController(handleCommand =
+           _ => Future.successful(
+                  Left(new CommandNotAccepted { override def toString = errorMsg })
+                )
+        )
 
       val result = controller.createRoutingRequest()(validRequest)
 

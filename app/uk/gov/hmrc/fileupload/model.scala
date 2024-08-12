@@ -22,76 +22,71 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import play.api.mvc.PathBindable
 
-case class EnvelopeId(value: String = UUID.randomUUID().toString) extends AnyVal {
-  override def toString: String = value
-}
+case class EnvelopeId(value: String = UUID.randomUUID().toString) extends AnyVal:
+  override def toString: String =
+    value
 
 object EnvelopeId {
-  implicit val writes: Writes[EnvelopeId] =
+  given Writes[EnvelopeId] =
     (id: EnvelopeId) => JsString(id.value)
 
-  implicit val reads: Reads[EnvelopeId] =
+  given Reads[EnvelopeId] =
     (json: JsValue) =>
-      json match {
+      json match
         case JsString(value) => JsSuccess(EnvelopeId(value))
-        case _ => JsError("invalid envelopeId")
-      }
+        case _               => JsError("invalid envelopeId")
 
   implicit val binder: PathBindable[EnvelopeId] =
-    new SimpleObjectBinder[EnvelopeId](EnvelopeId.apply, _.value)
+    SimpleObjectBinder[EnvelopeId](EnvelopeId.apply, _.value)
 }
 
-case class FileId(value: String = UUID.randomUUID().toString) extends AnyVal {
-  override def toString: String = value
-}
+case class FileId(value: String = UUID.randomUUID().toString) extends AnyVal:
+  override def toString: String =
+    value
 
 object FileId {
-  implicit val writes: Writes[FileId] =
+  given Writes[FileId] =
     (id: FileId) => JsString(id.value)
 
-  implicit val reads: Reads[FileId] =
+  given Reads[FileId] =
     (json: JsValue) =>
-      json match {
+      json match
         case JsString(value) => JsSuccess(FileId(value))
-        case _ => JsError("invalid fileId")
-      }
+        case _               => JsError("invalid fileId")
 
   implicit val urlBinder: PathBindable[FileId] =
-    new SimpleObjectBinder[FileId](
+    SimpleObjectBinder[FileId](
       FileId.apply, // decoding is not consistent, done by play for all endpoints parameters
-      _.value )
+      _.value
+    )
 }
 
-case class FileRefId(value: String) extends AnyVal {
-  override def toString: String = value
-}
+case class FileRefId(value: String) extends AnyVal:
+  override def toString: String =
+    value
 
 object FileRefId {
-  implicit val writes: Writes[FileRefId] =
+  given Writes[FileRefId] =
     (id: FileRefId) => JsString(id.value)
 
-  implicit val reads: Reads[FileRefId] =
+  given Reads[FileRefId] =
     (json: JsValue) =>
-      json match {
+      json match
         case JsString(value) => JsSuccess(FileRefId(value))
-        case _ => JsError("invalid fileId")
-      }
+        case _               => JsError("invalid fileId")
 
   implicit val binder: PathBindable[FileRefId] =
-    new SimpleObjectBinder[FileRefId](FileRefId.apply, _.value)
+    SimpleObjectBinder[FileRefId](FileRefId.apply, _.value)
 }
 
-case class EventType(value: String) extends AnyVal {
+case class EventType(value: String) extends AnyVal:
   override def toString: String = value
-}
 
-case class FileName(value: String) extends AnyVal {
+case class FileName(value: String) extends AnyVal:
   override def toString(): String =
     // do not log value
     "FileName(...)"
-}
 
-object FileName {
+object FileName:
   val apiFormat =
-    implicitly[Format[String]].inmap[FileName](FileName.apply, _.value)
-}
+    summon[Format[String]].inmap[FileName](FileName.apply, _.value)

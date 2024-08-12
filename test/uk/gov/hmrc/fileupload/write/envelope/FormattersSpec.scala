@@ -23,7 +23,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 
 class FormattersSpec extends AnyWordSpecLike with Matchers {
 
-  import Formatters._
+  import Formatters.given
 
   "Formatters" should {
     "read current representation of EnvelopeRouted" in {

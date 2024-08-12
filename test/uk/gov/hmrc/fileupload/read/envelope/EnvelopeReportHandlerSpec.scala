@@ -46,7 +46,7 @@ class EnvelopeReportHandlerSpec
   "EnvelopeReportActor" should {
     "create a new envelope" in new UpdateEnvelopeFixture {
       val callbackUrl = Some("callback-url")
-      val expiryDate = Some(new DateTime())
+      val expiryDate = Some(DateTime())
       val metadata = Some(Json.obj("key" -> "value"))
       val event = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, envelopeConstraints)
 
@@ -80,7 +80,7 @@ class EnvelopeReportHandlerSpec
           name        = Some(event.name),
           contentType = Some(event.contentType),
           length      = Some(123L),
-          uploadDate  = Some(new DateTime(event.created, DateTimeZone.UTC)),
+          uploadDate  = Some(DateTime(event.created, DateTimeZone.UTC)),
           revision    = None,
           metadata    = Some(event.metadata)
         ))))
@@ -89,7 +89,7 @@ class EnvelopeReportHandlerSpec
     }
     "create a new envelope and mark file as quarantined" in new UpdateEnvelopeFixture {
       val callbackUrl = Some("callback-url")
-      val expiryDate = Some(new DateTime())
+      val expiryDate = Some(DateTime())
       val metadata = Some(Json.obj("key" -> "value"))
       val envelopeCreated = EnvelopeCreated(envelopeId, callbackUrl, expiryDate, metadata, envelopeConstraints)
       val fileQuarantined = FileQuarantined(
@@ -120,7 +120,7 @@ class EnvelopeReportHandlerSpec
           name        = Some(fileQuarantined.name),
           contentType = Some(fileQuarantined.contentType),
           length      = Some(123L),
-          uploadDate  = Some(new DateTime(fileQuarantined.created, DateTimeZone.UTC)),
+          uploadDate  = Some(DateTime(fileQuarantined.created, DateTimeZone.UTC)),
           revision    = None,
           metadata    = Some(fileQuarantined.metadata)
         ))))
@@ -177,7 +177,7 @@ class EnvelopeReportHandlerSpec
 
       val expectedEnvelope = initialState.copy(
         version     = Version(1),
-        status      = EnvelopeStatusSealed,
+        status      = EnvelopeStatus.EnvelopeStatusSealed,
         destination = Some(event.destination),
         application = Some(event.application)
       )
@@ -191,7 +191,7 @@ class EnvelopeReportHandlerSpec
       sendEvent(event1)
 
       val expectedEnvelope = initialState.copy(
-        version = Version(1), status = EnvelopeStatusOpen, destination = None, application = None
+        version = Version(1), status = EnvelopeStatus.EnvelopeStatusOpen, destination = None, application = None
       )
       modifiedEnvelope shouldBe expectedEnvelope
     }
@@ -202,7 +202,7 @@ class EnvelopeReportHandlerSpec
 
       val expectedEnvelope = initialState.copy(
         version  = Version(1),
-        status   = EnvelopeStatusClosed,
+        status   = EnvelopeStatus.EnvelopeStatusClosed,
         isPushed = Some(event.isPushed)
       )
       modifiedEnvelope shouldBe expectedEnvelope
@@ -219,7 +219,7 @@ class EnvelopeReportHandlerSpec
 
       sendEvent(event)
 
-      val expectedEnvelope = initialState.copy(version = Version(1), status = EnvelopeStatusDeleted)
+      val expectedEnvelope = initialState.copy(version = Version(1), status = EnvelopeStatus.EnvelopeStatusDeleted)
       modifiedEnvelope shouldBe expectedEnvelope
     }
   }
@@ -244,7 +244,7 @@ class EnvelopeReportHandlerSpec
       name        = Some(FileName("name")),
       contentType = Some("contentType"),
       length      = None,
-      uploadDate  = Some(new DateTime(DateTimeZone.UTC)),
+      uploadDate  = Some(DateTime(DateTimeZone.UTC)),
       revision    = None,
       metadata    = None
     )
@@ -252,11 +252,13 @@ class EnvelopeReportHandlerSpec
     val initialState = Envelope(envelopeId)
     val newVersion = Version(1)
 
-    def handler = new EnvelopeReportHandler(
-      (streamId: StreamId) => EnvelopeId(streamId.value),
-      update = update,
-      delete = delete,
-      defaultState = _ => initialState)
+    def handler =
+      EnvelopeReportHandler(
+        (streamId: StreamId) => EnvelopeId(streamId.value),
+        update       = update,
+        delete       = delete,
+        defaultState = _ => initialState
+      )
 
     def wrappedEvent(e: EnvelopeEvent, version: Version = newVersion) = Event(EventId("randomId"), streamId = StreamId("randomId"),
       version = version, created = Created(1), eventType = EventType("eventType"), eventData = e)

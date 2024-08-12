@@ -39,9 +39,9 @@ class EventStoreSpec
 
   lazy val metrisMock = mock[MetricRegistry]
   override val repository: MongoEventStore =
-    new MongoEventStore(mongoComponent, metrisMock)
+    MongoEventStore(mongoComponent, metrisMock)
 
-  private implicit val as: ActorSystem = ActorSystem()
+  private given ActorSystem = ActorSystem()
 
   "MongoEventStore.streamOlder" should {
     "only return streamIds where all events are before the cutoff" in {
@@ -60,7 +60,7 @@ class EventStoreSpec
       val streamId3 = StreamId(UUID.randomUUID().toString)
       val uow5 = mkUnitOfWork(streamId = Some(streamId3), version = Some(Version(0)), created = Some(Created(cutoff.plusMillis(100).toEpochMilli)))
       val uow6 = mkUnitOfWork(streamId = Some(streamId3), version = Some(Version(1)), created = Some(Created(cutoff.plusMillis(200).toEpochMilli)))
-      (for {
+      (for
          _   <- repository.collection.insertOne(uow1).toFuture()
          _   <- repository.collection.insertOne(uow2).toFuture()
          _   <- repository.collection.insertOne(uow3).toFuture()
@@ -68,7 +68,7 @@ class EventStoreSpec
          _   <- repository.collection.insertOne(uow5).toFuture()
          _   <- repository.collection.insertOne(uow6).toFuture()
          res <- repository.streamOlder(cutoff).runWith(Sink.seq)
-       } yield res shouldBe Seq(streamId1)
+       yield res shouldBe Seq(streamId1)
       ).futureValue
     }
   }
@@ -79,14 +79,14 @@ class EventStoreSpec
       val uow2 = mkUnitOfWork(streamId = Some(uow1.streamId), version = Some(uow1.version.nextVersion()))
       val uow3 = mkUnitOfWork()
       val uow4 = mkUnitOfWork()
-      (for {
+      (for
          _   <- repository.collection.insertOne(uow1).toFuture()
          _   <- repository.collection.insertOne(uow2).toFuture()
          _   <- repository.collection.insertOne(uow3).toFuture()
          _   <- repository.collection.insertOne(uow4).toFuture()
          _   <- repository.purge(Seq(uow1.streamId, uow3.streamId))
          res <- repository.collection.find().toFuture()
-       } yield res shouldBe Seq(uow4)
+       yield res shouldBe Seq(uow4)
       ).futureValue
     }
   }

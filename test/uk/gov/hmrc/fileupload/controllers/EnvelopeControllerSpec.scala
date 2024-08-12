@@ -49,9 +49,9 @@ class EnvelopeControllerSpec
 
   import Support._
 
-  implicit val ec: ExecutionContext = ExecutionContext.global
+  given ExecutionContext = ExecutionContext.global
 
-  val failed = Future.failed(new Exception("not good"))
+  val failed = Future.failed(Exception("not good"))
 
   def basic64(s:String): String = {
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
@@ -64,7 +64,7 @@ class EnvelopeControllerSpec
     findMetadata         : (EnvelopeId, FileId) => Future[Either[FindMetadataError, read.envelope.File]] = (_, _) => failed,
     findAllInProgressFile: () => Future[GetInProgressFileResult] = () => failed,
     deleteInProgressFile : FileRefId => Future[Boolean] = _ => failed,
-    getEnvelopesByStatus : (List[EnvelopeStatus], Boolean) => Source[Envelope, org.apache.pekko.NotUsed] = (_, _) => Source.failed(new Exception("not good"))
+    getEnvelopesByStatus : (List[EnvelopeStatus], Boolean) => Source[Envelope, org.apache.pekko.NotUsed] = (_, _) => Source.failed(Exception("not good"))
   ) = {
     val appModule = mock[ApplicationModule]
     when(appModule.nextId).thenReturn(nextId)
@@ -75,7 +75,7 @@ class EnvelopeControllerSpec
     when(appModule.deleteInProgressFile).thenReturn(deleteInProgressFile)
     when(appModule.getEnvelopesByStatus).thenReturn(getEnvelopesByStatus)
     when(appModule.envelopeConstraintsConfigure).thenReturn(envelopeConstraintsConfigure)
-    new EnvelopeController(appModule, app.injector.instanceOf[ControllerComponents])
+    EnvelopeController(appModule, app.injector.instanceOf[ControllerComponents])
   }
 
   "Create envelope with a request" should {
@@ -276,7 +276,7 @@ class EnvelopeControllerSpec
       val id = EnvelopeId()
       val request = FakeRequest().withHeaders(HeaderNames.AUTHORIZATION -> ("Basic " + basic64("yuan:yaunspassword")))
 
-      val controller = newController(handleCommand = _ => Future.failed(new Exception()))
+      val controller = newController(handleCommand = _ => Future.failed(Exception()))
       val result = controller.delete(id)(request).futureValue
 
       val actualResponse = Json.parse(consume(result.body))

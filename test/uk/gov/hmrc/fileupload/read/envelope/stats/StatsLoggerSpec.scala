@@ -56,7 +56,7 @@ class StatsLoggerSpec
       val repository = Repository(mongoComponent)
 
       val playLogger = mock[StatsLogWriter]
-      val statsLogger = new StatsLogger(repository, playLogger)
+      val statsLogger = StatsLogger(repository, playLogger)
 
       repository.insert(todayFile1)
       repository.insert(todayFile2)
@@ -74,7 +74,7 @@ class StatsLoggerSpec
       val repository = Repository(mongoComponent)
 
       val playLogger = mock[StatsLogWriter]
-      val statsLogger = new StatsLogger(repository, playLogger)
+      val statsLogger = StatsLogger(repository, playLogger)
 
       repository.insert(todayFile1)
       repository.insert(todayFile2)
@@ -92,7 +92,7 @@ class StatsLoggerSpec
       val repository = Repository(mongoComponent)
 
       val playLogger = mock[StatsLogWriter]
-      val statsLogger = new StatsLogger(repository, playLogger)
+      val statsLogger = StatsLogger(repository, playLogger)
 
       repository.insert(previousFile1)
       repository.insert(previousFile2)
@@ -110,7 +110,7 @@ class StatsLoggerSpec
       val repository = Repository(mongoComponent)
 
       val playLogger = mock[StatsLogWriter]
-      val statsLogger = new StatsLogger(repository, playLogger)
+      val statsLogger = StatsLogger(repository, playLogger)
 
       repository.insert(previousFile1)
       repository.insert(previousFile2)

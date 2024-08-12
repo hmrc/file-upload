@@ -21,6 +21,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.http.HeaderNames
 import play.api.libs.json.Json
+import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import uk.gov.hmrc.fileupload._
 import uk.gov.hmrc.fileupload.Support.fileRefId
@@ -129,7 +130,7 @@ class OutputForTransferSpec extends AnyWordSpecLike with Matchers with TestAppli
       val destination = "DMS"
       val host = "tax.service.gov.uk"
 
-      implicit val req = FakeRequest("GET", s"/?destination=$destination").withHeaders((HeaderNames.HOST, host))
+      given RequestHeader = FakeRequest("GET", s"/?destination=$destination").withHeaders((HeaderNames.HOST, host))
 
       val expectedJson = withRemovedWhitespace {
         s"""

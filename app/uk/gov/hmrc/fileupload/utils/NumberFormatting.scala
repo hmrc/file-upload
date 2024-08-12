@@ -16,13 +16,10 @@
 
 package uk.gov.hmrc.fileupload.utils
 
-object NumberFormatting {
-  def formatAsKiloOrMegabytes(n: Long): String = {
+object NumberFormatting:
+  def formatAsKiloOrMegabytes(n: Long): String =
     val largeEnoughToShowInMb = (n / 1024 / 1024) > 0
-    if (largeEnoughToShowInMb) {
+    if largeEnoughToShowInMb then
       f"${ n.toDouble / 1024 / 1024 }%.2f MB"
-    } else {
+    else
       f"${ n.toDouble / 1024 }%.2f KB"
-    }
-  }
-}

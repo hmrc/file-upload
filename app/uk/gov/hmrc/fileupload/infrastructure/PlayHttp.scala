@@ -29,7 +29,7 @@ import scala.util.control.NonFatal
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
-object PlayHttp {
+object PlayHttp:
 
   case class PlayHttpError(message: String)
 
@@ -39,15 +39,14 @@ object PlayHttp {
     errorLogger: Option[(Throwable => Unit)]
   )(
     request: WSRequest
-  )(implicit
-     ec: ExecutionContext
-   ): Future[Either[PlayHttpError, WSResponse]] = {
-    val hc = headerCarrier(request)
+  )(using
+    ExecutionContext
+   ): Future[Either[PlayHttpError, WSResponse]] =
+    val hc               = headerCarrier(request)
     val eventualResponse = request.execute()
 
-    eventualResponse.foreach {
-      response =>
-        val path = new URL(request.url).getPath
+    eventualResponse.foreach: response =>
+        val path = URL(request.url).getPath
         connector.sendEvent(
           DataEvent(
           appName,
@@ -59,15 +58,11 @@ object PlayHttp {
                    ) ++ hc.toAuditTags(path, path),
           detail = hc.toAuditDetails())
         )
-    }
     eventualResponse.map(Right.apply)
-      .recover {
+      .recover:
         case NonFatal(t) =>
           errorLogger.foreach(log => log(t))
           Left(PlayHttpError(t.getMessage))
-      }
-  }
 
   private def headerCarrier(request: WSRequest): HeaderCarrier =
-    HeaderCarrierConverter.fromHeadersAndSession(new Headers(request.headers.toSeq.map { case (s, seq) => (s, seq.head) }))
-}
+    HeaderCarrierConverter.fromHeadersAndSession(Headers(request.headers.toSeq.map { case (s, seq) => (s, seq.head) }: _*))

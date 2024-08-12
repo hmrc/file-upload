@@ -22,14 +22,14 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration._
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.routing.ZipData
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, Writes}
 
 trait FakeFrontendService extends BeforeAndAfterAll {
   this: Suite =>
 
   lazy val mockFEServicePort = 8017
 
-  lazy val mockFEServer = new WireMockServer(wireMockConfig().port(mockFEServicePort))
+  lazy val mockFEServer = WireMockServer(wireMockConfig().port(mockFEServicePort))
 
   override def beforeAll() = {
     super.beforeAll()
@@ -47,7 +47,7 @@ trait FakeFrontendService extends BeforeAndAfterAll {
         .willReturn(
           result match {
             case Left(status) => aResponse().withStatus(status)
-            case Right(zipData) => implicit val zrf = ZipData.format
+            case Right(zipData) => given Writes[ZipData] = ZipData.format
                                    aResponse()
                                      .withStatus(200)
                                      .withBody(Json.toJson(zipData).toString)

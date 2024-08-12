@@ -26,7 +26,7 @@ import uk.gov.hmrc.http.BadRequestException
 import scala.concurrent.Future
 
 class ExceptionHandlerSpec extends AnyWordSpecLike with Matchers {
-  import uk.gov.hmrc.fileupload.Support.StreamImplicits.system
+  import uk.gov.hmrc.fileupload.Support.StreamImplicits.given
 
   "exception handler" should {
     "handle an unknown exception as an internal server error" in {
@@ -45,7 +45,7 @@ class ExceptionHandlerSpec extends AnyWordSpecLike with Matchers {
     }
 
     "handle a bad request exception" in {
-      val result = Future.successful(ExceptionHandler(new BadRequestException("someBadRequest")))
+      val result = Future.successful(ExceptionHandler(BadRequestException("someBadRequest")))
 
       status(result) shouldBe BAD_REQUEST
       contentAsJson(result) shouldBe parse("""{"error":{"msg":"someBadRequest"}}""")

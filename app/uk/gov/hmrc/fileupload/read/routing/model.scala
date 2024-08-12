@@ -29,19 +29,17 @@ case class Checksum(
   value    : String
 )
 
-sealed trait Algorithm {
-  def asString: String
-}
-object Algorithm {
-  case object Md5  extends Algorithm { override val asString = "md5"  }
-  case object Sha1 extends Algorithm { override val asString = "SHA1" }
-  case object Sha2 extends Algorithm { override val asString = "SHA2" }
+enum Algorithm(
+  val asString: String
+):
+  case Md5  extends Algorithm(asString = "md5" )
+  case Sha1 extends Algorithm(asString = "SHA1")
+  case Sha2 extends Algorithm(asString = "SHA2")
 
-  val values: List[Algorithm] = List(Md5, Sha1, Sha2)
 
+object Algorithm:
   def apply(s: String): Option[Algorithm] =
     values.find(_.asString == s)
-}
 
 case class FileTransferFile(
   recipientOrSender: String,
@@ -62,26 +60,26 @@ case class FileTransferNotification(
   audit          : Audit
 )
 
-object FileTransferNotification {
+object FileTransferNotification:
 
-  val format: Format[FileTransferNotification] = {
-    implicit val propertyFormat: Format[Property] =
+  val format: Format[FileTransferNotification] =
+    given Format[Property] =
       ( (__ \ "name" ).format[String]
       ~ (__ \ "value").format[String]
       )(Property.apply, p => Tuple.fromProductTyped(p))
 
-    implicit val checksumFormat: Format[Checksum] =
+    given Format[Checksum] =
       ( (__ \ "algorithm").format[String].inmap[Algorithm](unlift(Algorithm.apply), _.asString)
       ~ (__ \ "value"    ).format[String]
       )(Checksum.apply, cf => Tuple.fromProductTyped(cf))
 
-    implicit val auditFormat: Format[Audit] =
+    given Format[Audit] =
       (__ \ "correlationID").format[String].inmap(Audit.apply, _.correlationId)
 
-    implicit val downloadUrlFormat: Format[DownloadUrl] =
-      implicitly[Format[String]].inmap[DownloadUrl](DownloadUrl.apply, _.value)
+    given Format[DownloadUrl] =
+      summon[Format[String]].inmap[DownloadUrl](DownloadUrl.apply, _.value)
 
-    implicit val fileFormat: Format[FileTransferFile] =
+    given Format[FileTransferFile] =
       ( (__ \ "recipientOrSender").format[String]
       ~ (__ \ "name"             ).format[String]
       ~ (__ \ "location"         ).formatNullable[DownloadUrl]
@@ -94,12 +92,8 @@ object FileTransferNotification {
     ~ (__ \ "file"           ).format[FileTransferFile]
     ~ (__ \ "audit"          ).format[Audit]
     )(FileTransferNotification.apply, ftn => Tuple.fromProductTyped(ftn))
-  }
-}
 
-case class DownloadUrl(value: String) extends AnyVal {
-  override def toString(): String = {
+case class DownloadUrl(value: String) extends AnyVal:
+  override def toString(): String =
     //Do not log value
     "DownloadUrl(...)"
-  }
-}

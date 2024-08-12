@@ -25,14 +25,14 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class Aggregate[C <: Command, S](
   handler         : Handler[C, S],
-  defaultState    : () => S,
-  publish         : AnyRef => Unit,
+  defaultState    : ()         => S,
+  publish         : AnyRef     => Unit,
   publishAllEvents: Seq[Event] => Unit,
-  toCreated       : () => Created       = () => Created(System.currentTimeMillis())
-)(implicit
+  toCreated       : ()         => Created       = () => Created(System.currentTimeMillis())
+)(using
   eventStore: EventStore,
   ec        : ExecutionContext
-) {
+):
 
   type CommandResult = Either[CommandNotAccepted, CommandAccepted.type]
 
@@ -46,102 +46,97 @@ class Aggregate[C <: Command, S](
     streamId  : StreamId,
     eventsData: List[EventData],
     version   : Version
-  ): UnitOfWork = {
+  ): UnitOfWork =
     val created = toCreated()
 
     UnitOfWork(
       streamId = streamId,
       version  = version,
       created  = created,
-      events   = eventsData.map { eventData =>
-                   Event(
-                     eventId = EventId(UUID.randomUUID().toString),
-                     streamId = streamId,
-                     version = version,
-                     created = created,
-                     eventType = EventType(eventData.getClass.getName),
-                     eventData = eventData
-                   )
-                 }
+      events   = eventsData
+                   .map: eventData =>
+                     Event(
+                       eventId   = EventId(UUID.randomUUID().toString),
+                       streamId  = streamId,
+                       version   = version,
+                       created   = created,
+                       eventType = EventType(eventData.getClass.getName),
+                       eventData = eventData
+                     )
     )
-  }
 
   def applyEvent(state: S, event: EventData): S =
     handler.on.applyOrElse((state, event), (input: (S, EventData)) => state)
 
-  def applyCommand(command: C): Future[CommandResult] = {
+  def applyCommand(command: C): Future[CommandResult] =
     logger.info(s"Handle Command $command")
-    eventStore.unitsOfWorkForAggregate(command.streamId).flatMap {
-      case Right(historicalUnitsOfWork) =>
-        val historicalEvents = historicalUnitsOfWork.flatMap(_.events)
+    eventStore.unitsOfWorkForAggregate(command.streamId)
+      .flatMap:
+        case Right(historicalUnitsOfWork) =>
+          val historicalEvents = historicalUnitsOfWork.flatMap(_.events)
 
-        val (currentState, lastVersion) = historicalEvents.foldLeft((defaultState(), Aggregate.defaultVersion)) { (state, event) =>
-          (applyEvent(state._1, event.eventData), event.version)
-        }
+          val (currentState, lastVersion) = historicalEvents.foldLeft((defaultState(), Aggregate.defaultVersion)) { (state, event) =>
+            (applyEvent(state._1, event.eventData), event.version)
+          }
 
-        val xorEventsData: Either[CommandNotAccepted, List[EventData]] =
-          handler.handle.applyOrElse((command, currentState), (input: (C, S)) => Right(List.empty))
+          val xorEventsData: Either[CommandNotAccepted, List[EventData]] =
+            handler.handle.applyOrElse((command, currentState), (input: (C, S)) => Right(List.empty))
 
-        xorEventsData match {
-          case Right(eventsData) =>
-            if (eventsData.nonEmpty) {
+          xorEventsData match
+            case Right(eventsData) if eventsData.nonEmpty =>
               val nextVersion = lastVersion.nextVersion()
-              val unitOfWork = createUnitOfWork(command.streamId, eventsData, nextVersion)
+              val unitOfWork  = createUnitOfWork(command.streamId, eventsData, nextVersion)
 
-              eventStore.saveUnitOfWork(command.streamId, unitOfWork).map {
-                case Right(newEvents) =>
-                  publishAllEvents(historicalEvents ++ unitOfWork.events)
-                  unitOfWork.events.foreach { event =>
-                    logger.info(s"Event created $event")
-                    publish(event)
-                  }
-                  commandAcceptedResult
+              eventStore.saveUnitOfWork(command.streamId, unitOfWork)
+                .map:
+                  case Right(newEvents) =>
+                    publishAllEvents(historicalEvents ++ unitOfWork.events)
+                    unitOfWork.events.foreach: event =>
+                      logger.info(s"Event created $event")
+                      publish(event)
+                    commandAcceptedResult
 
-                case Left(VersionConflictError) =>
-                  logger.info(s"VersionConflict for version $nextVersion and $command")
-                  Left(VersionConflict(nextVersion, command): CommandNotAccepted)
+                  case Left(VersionConflictError) =>
+                    logger.info(s"VersionConflict for version $nextVersion and $command")
+                    Left(VersionConflict(nextVersion, command): CommandNotAccepted)
 
-                case Left(NotSavedError(m)) =>
-                  Left(CommandError(m))
-              }.recover { case e => Left(CommandError(e.getMessage)) }
+                  case Left(NotSavedError(m)) =>
+                    Left(CommandError(m))
 
-            } else {
+                .recover { case e => Left(CommandError(e.getMessage)) }
+
+            case Right(_) =>
               Future.successful(commandAcceptedResult)
-            }
 
-          case Left(e: ConflictingCommand) =>
-            publishAllEvents(historicalEvents)
-            Future.successful(Left(e))
-          case Left(e) => Future.successful(Left(e))
-        }
+            case Left(e: ConflictingCommand) =>
+              publishAllEvents(historicalEvents)
+              Future.successful(Left(e))
 
-      case Left(e) =>
-        Future.successful(Left(CommandError(e.message)))
-    }
-  }
+            case Left(e) => Future.successful(Left(e))
 
-  def handleCommand(command: C): Future[CommandResult] = {
-    def run(retries: Int, command: C): Future[CommandResult] = {
-      applyCommand(command).flatMap {
-        case result @ Right(_) => Future.successful(result)
+        case Left(e) =>
+          Future.successful(Left(CommandError(e.message)))
+
+  def handleCommand(command: C): Future[CommandResult] =
+    def run(retries: Int, command: C): Future[CommandResult] =
+      applyCommand(command).flatMap:
+        case result @ Right(_)                   =>
+          Future.successful(result)
         case error @ Left(VersionConflict(_, _)) =>
-          if (retries > 0) {
+          if retries > 0 then
             logger.info(s"Retry $retries for $command")
             run(retries - 1, command)
-          } else {
+          else
             logger.warn(s"Return with version conflict $command")
             Future.successful(error)
-          }
-        case error =>
+        case error                               =>
           logger.warn(s"Return with error $error for $command")
           Future.successful(error)
-      }
-    }
+
     run(numOfRetry, command)
-  }
-}
 
-object Aggregate {
+end Aggregate
 
-  val defaultVersion = Version(0)
-}
+object Aggregate:
+  val defaultVersion: Version =
+    Version(0)

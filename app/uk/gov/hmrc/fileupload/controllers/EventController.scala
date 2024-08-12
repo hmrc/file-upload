@@ -31,29 +31,31 @@ import scala.concurrent.{ExecutionContext, Future}
 class EventController @Inject()(
   appModule: ApplicationModule,
   cc       : ControllerComponents
-)(implicit ec: ExecutionContext
-) extends BackendController(cc) {
+)(using ExecutionContext
+) extends BackendController(cc):
 
-  val unitOfWorks: StreamId => Future[GetResult] = appModule.unitOfWorks
-  val publishAllEvents: Seq[DomainEvent] => Unit = appModule.publishAllEventsWithReplay
+  val unitOfWorks: StreamId => Future[GetResult] =
+    appModule.unitOfWorks
 
-  implicit val eventWrites: Writes[DomainEvent] = EventSerializer.eventWrite
+  val publishAllEvents: Seq[DomainEvent] => Unit =
+    appModule.publishAllEventsWithReplay
 
-  def get(streamId: StreamId) = Action.async {
-    unitOfWorks(streamId).map {
-      case Right(r) =>
-        Ok(Json.toJson(r.flatMap(_.events)))
-      case Left(e) =>
-        ExceptionHandler(INTERNAL_SERVER_ERROR, e.message)
-    }
-  }
+  def get(streamId: StreamId) =
+    Action.async:
+      given Writes[DomainEvent] = EventSerializer.eventWrite
+      unitOfWorks(streamId)
+        .map:
+          case Right(r) =>
+            Ok(Json.toJson(r.flatMap(_.events)))
+          case Left(e) =>
+            ExceptionHandler(INTERNAL_SERVER_ERROR, e.message)
 
-  def replay(streamId: StreamId) = Action.async {
-    unitOfWorks(streamId).map {
-      case Right(sequence) =>
-        publishAllEvents(sequence.flatMap(_.events))
-        Ok
-      case Left(error) => InternalServerError(s"Unexpected result: ${error.message}")
-    }
-  }
-}
+  def replay(streamId: StreamId) =
+    Action.async:
+      unitOfWorks(streamId)
+        .map:
+          case Right(sequence) =>
+            publishAllEvents(sequence.flatMap(_.events))
+            Ok
+          case Left(error) =>
+            InternalServerError(s"Unexpected result: ${error.message}")

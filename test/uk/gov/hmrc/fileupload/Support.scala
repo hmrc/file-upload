@@ -30,15 +30,15 @@ import scala.concurrent.duration._
 object Support {
 
   object StreamImplicits {
-    implicit val system: ActorSystem = ActorSystem()
+    given ActorSystem = ActorSystem()
   }
 
   def consume(data: HttpEntity) = {
-    import StreamImplicits.system
+    import StreamImplicits.given
     Await.result(data.consumeData, 500.millis).toArray
   }
 
-  def envelope = new Envelope(
+  def envelope = Envelope(
     _id         = EnvelopeId(),
     constraints = None,
     callbackUrl = Some("http://absolute.callback.url"),
@@ -66,7 +66,7 @@ object Support {
     envelope.copy(expiryDate = Some(DateTime.now().plusDays(3)))
 
   val envelopeNotFound: WithValidEnvelope =
-    new WithValidEnvelope(
+    WithValidEnvelope(
       _ => Future.successful(None)
     )
 

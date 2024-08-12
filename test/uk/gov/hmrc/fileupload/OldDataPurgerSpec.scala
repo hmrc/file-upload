@@ -40,7 +40,7 @@ class OldDataPurgerSpec
      with MockitoSugar {
 
   import ExecutionContext.Implicits.global
-  implicit val as: ActorSystem = ActorSystem()
+  given ActorSystem = ActorSystem()
 
   trait Setup {
     lazy val configuration =
@@ -65,7 +65,7 @@ class OldDataPurgerSpec
     }
 
     lazy val oldDataPurger =
-      new OldDataPurger(configuration, mockEventStore, mockEnvelopeRepository, mockLockRepository, now)
+      OldDataPurger(configuration, mockEventStore, mockEnvelopeRepository, mockLockRepository, now)
   }
 
   "OldDataPurger.purge" should {

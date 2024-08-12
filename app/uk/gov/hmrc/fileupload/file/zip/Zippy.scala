@@ -21,42 +21,40 @@ import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
 import play.api.Logger
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, File, EnvelopeStatusClosed, EnvelopeStatusRouteRequested}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, File, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.envelope.Service.{FindEnvelopeNotFoundError, FindResult, FindServiceError}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-object Zippy {
+object Zippy:
 
   private val logger = Logger(getClass)
 
-  sealed trait ZipEnvelopeError
-  case object ZipEnvelopeNotFoundError extends ZipEnvelopeError
-  case object EnvelopeNotRoutedYet extends ZipEnvelopeError
-  case class ZipProcessingError(message: String) extends ZipEnvelopeError
+  enum ZipEnvelopeError:
+    case ZipEnvelopeNotFoundError            extends ZipEnvelopeError
+    case EnvelopeNotRoutedYet                extends ZipEnvelopeError
+    case ZipProcessingError(message: String) extends ZipEnvelopeError
 
-  private object FilesForZip {
+  private object FilesForZip:
     def unapply(envelope: Envelope): Option[Option[Seq[File]]] =
-      envelope.status match {
-        case EnvelopeStatusRouteRequested | EnvelopeStatusClosed
+      envelope.status match
+        case EnvelopeStatus.EnvelopeStatusRouteRequested | EnvelopeStatus.EnvelopeStatusClosed
                => Some(envelope.files)
         case _ => None
-      }
-  }
 
   def zipEnvelope(
     getEnvelope: EnvelopeId => Future[FindResult],
     downloadZip: Envelope   => Future[Source[ByteString, NotUsed]]
   )(
     envelopeId: EnvelopeId
-  )(implicit
-    ec: ExecutionContext
+  )(using
+    ExecutionContext
   ): Future[Either[ZipEnvelopeError, Source[ByteString, NotUsed]]] =
-    getEnvelope(envelopeId).flatMap {
+    getEnvelope(envelopeId).flatMap:
       case Right(envelopeWithFiles @ FilesForZip(Some(_))) =>
         downloadZip(envelopeWithFiles)
           .map(Right.apply)
-          .recover { case ex => Left(ZipProcessingError(ex.getMessage)) }
+          .recover { case ex => Left(ZipEnvelopeError.ZipProcessingError(ex.getMessage)) }
 
       case Right(envelopeWithoutFiles @ FilesForZip(None)) =>
         logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope was empty - returning empty ZIP file.")
@@ -64,14 +62,12 @@ object Zippy {
 
       case Right(envelopeWithWrongStatus: Envelope) =>
         logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope has wrong status [${envelopeWithWrongStatus.status}], returned error")
-        Future.successful(Left(EnvelopeNotRoutedYet))
+        Future.successful(Left(ZipEnvelopeError.EnvelopeNotRoutedYet))
 
       case Left(FindEnvelopeNotFoundError) =>
         logger.warn(s"Retrieving zipped envelope [$envelopeId]. Envelope not found, returned error")
-        Future.successful(Left(ZipEnvelopeNotFoundError))
+        Future.successful(Left(ZipEnvelopeError.ZipEnvelopeNotFoundError))
 
       case Left(FindServiceError(message)) =>
         logger.warn(s"Retrieving zipped envelope [$envelopeId]. Other error [$message]")
-        Future.successful(Left(ZipProcessingError(message)))
-    }
-}
+        Future.successful(Left(ZipEnvelopeError.ZipProcessingError(message)))

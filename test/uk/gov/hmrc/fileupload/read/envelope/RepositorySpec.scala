@@ -31,7 +31,7 @@ class RepositorySpec
      with DefaultPlayMongoRepositorySupport[Envelope] {
 
   override val repository: Repository =
-    new Repository(mongoComponent)
+    Repository(mongoComponent)
 
   "Repository.purge" should {
     "delete the specified envelopes" in {

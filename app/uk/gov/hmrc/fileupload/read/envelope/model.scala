@@ -25,7 +25,7 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileName, FileRefId}
 case class Envelope(
   _id        : EnvelopeId                       = EnvelopeId(),
   version    : Version                          = Version(0),
-  status     : EnvelopeStatus                   = EnvelopeStatusOpen,
+  status     : EnvelopeStatus                   = EnvelopeStatus.EnvelopeStatusOpen,
   constraints: Option[EnvelopeFilesConstraints] = None,
   callbackUrl: Option[String]                   = None,
   expiryDate : Option[DateTime]                 = None,
@@ -36,11 +36,9 @@ case class Envelope(
   isPushed   : Option[Boolean]                  = None,
   lastPushed : Option[DateTime]                 = None,
   reason     : Option[String]                   = None
-) {
-
+):
   def getFileById(fileId: FileId): Option[File] =
     files.flatMap(_.find(_.fileId == fileId))
-}
 
 case class File(
   fileId     : FileId,
@@ -55,55 +53,41 @@ case class File(
   rel        : Option[String]   = Some("file")
 )
 
-object Envelope {
-  implicit val dateReads                 : Reads[DateTime]                   = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  implicit val dateWrites                : Writes[DateTime]                  = JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  implicit val fileStatusReads           : Reads[FileStatus]                 = FileStatusReads
-  implicit val fileStatusWrites          : Writes[FileStatus]                = FileStatusWrites
-  implicit val fileFormat                : Format[File]                      = {
-    implicit val fnf: Format[FileName] = FileName.apiFormat
-    Json.format[File]
-  }
-  implicit val envelopeStatusReads       : Reads[EnvelopeStatus]             = EnvelopeStatusReads
-  implicit val envelopeStatusWrites      : Writes[EnvelopeStatus]            = EnvelopeStatusWrites
-  implicit val sizeReads                 : Reads[Size]                       = SizeReads
-  implicit val sizeWrites                : Writes[Size]                      = SizeWrites
-  implicit val envelopeConstraintsFormats: OFormat[EnvelopeFilesConstraints] = Json.format[EnvelopeFilesConstraints]
-  implicit val envelopeFormat            : Format[Envelope]                  = Json.format[Envelope]
-  implicit val envelopeOFormat           : OFormat[Envelope]                 = new OFormat[Envelope] {
-    override def reads(json: JsValue): JsResult[Envelope] = envelopeFormat.reads(json)
-    override def writes(o: Envelope): JsObject = envelopeFormat.writes(o).as[JsObject]
-  }
+object Envelope:
+  given envelopeFormat: Format[Envelope] =
+    given Reads[DateTime]                   = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    given Writes[DateTime]                  = JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    given Reads[FileStatus]                 = FileStatusReads
+    given Writes[FileStatus]                = FileStatusWrites
+    given Format[File]                      = { given Format[FileName] = FileName.apiFormat
+                                                Json.format[File]
+                                              }
+    given Reads[EnvelopeStatus]             = EnvelopeStatusReads
+    given Writes[EnvelopeStatus]            = EnvelopeStatusWrites
+    given Reads[Size]                       = SizeReads
+    given Writes[Size]                      = SizeWrites
+    given OFormat[EnvelopeFilesConstraints] = Json.format[EnvelopeFilesConstraints]
 
-  def fromJson(json: JsValue, _id: EnvelopeId): Envelope = {
+    Json.format[Envelope]
+
+  def fromJson(json: JsValue, _id: EnvelopeId): Envelope =
     val rawData = json.asInstanceOf[JsObject] ++ Json.obj("_id" -> _id)
     Json.fromJson[Envelope](rawData).fold(
-      invalid => throw new RuntimeException(s"Invalid json: $invalid"),
-      valid => valid
+      invalid => throw RuntimeException(s"Invalid json: $invalid"),
+      valid   => valid
     )
-  }
-}
 
 case class ValidationException(reason: String) extends IllegalArgumentException(reason)
 
-sealed trait EnvelopeStatus {
-  def name: String
-}
-case object EnvelopeStatusOpen extends EnvelopeStatus {
-  override val name: String = "OPEN"
-}
-case object EnvelopeStatusSealed extends EnvelopeStatus {
-  override val name: String = "SEALED"
-}
-case object EnvelopeStatusRouteRequested extends EnvelopeStatus {
-  override val name: String = "ROUTE_REQUESTED"
-}
-case object EnvelopeStatusClosed extends EnvelopeStatus {
-  override val name: String = "CLOSED"
-}
-case object EnvelopeStatusDeleted extends EnvelopeStatus {
-  override val name: String = "DELETED"
-}
+enum EnvelopeStatus(
+  val name: String
+):
+  // TODO drop EnvelopeStatus prefix from names (we have enum namespace)
+  case EnvelopeStatusOpen           extends EnvelopeStatus("OPEN")
+  case EnvelopeStatusSealed         extends EnvelopeStatus("SEALED")
+  case EnvelopeStatusRouteRequested extends EnvelopeStatus("ROUTE_REQUESTED")
+  case EnvelopeStatusClosed         extends EnvelopeStatus("CLOSED")
+  case EnvelopeStatusDeleted        extends EnvelopeStatus("DELETED")
 
 object EnvelopeStatusWrites extends Writes[EnvelopeStatus] {
   override def writes(c: EnvelopeStatus): JsValue =
@@ -118,11 +102,11 @@ object EnvelopeStatusReads extends Reads[EnvelopeStatus] {
 object EnvelopeStatusTransformer {
   def fromName(name: String): Option[EnvelopeStatus] =
     name match {
-      case EnvelopeStatusOpen.name           => Some(EnvelopeStatusOpen)
-      case EnvelopeStatusSealed.name         => Some(EnvelopeStatusSealed)
-      case EnvelopeStatusRouteRequested.name => Some(EnvelopeStatusRouteRequested)
-      case EnvelopeStatusClosed.name         => Some(EnvelopeStatusClosed)
-      case EnvelopeStatusDeleted.name        => Some(EnvelopeStatusDeleted)
+      case EnvelopeStatus.EnvelopeStatusOpen.name           => Some(EnvelopeStatus.EnvelopeStatusOpen)
+      case EnvelopeStatus.EnvelopeStatusSealed.name         => Some(EnvelopeStatus.EnvelopeStatusSealed)
+      case EnvelopeStatus.EnvelopeStatusRouteRequested.name => Some(EnvelopeStatus.EnvelopeStatusRouteRequested)
+      case EnvelopeStatus.EnvelopeStatusClosed.name         => Some(EnvelopeStatus.EnvelopeStatusClosed)
+      case EnvelopeStatus.EnvelopeStatusDeleted.name        => Some(EnvelopeStatus.EnvelopeStatusDeleted)
       case _                                 => None
     }
 }
