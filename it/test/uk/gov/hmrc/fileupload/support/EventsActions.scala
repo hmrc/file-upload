@@ -18,9 +18,9 @@ package uk.gov.hmrc.fileupload.support
 
 import org.scalatest.TestSuite
 import play.api.libs.json.Json
-import play.api.libs.ws.WSResponse
+import play.api.libs.ws.{WSResponse, writeableOf_JsValue}
 import uk.gov.hmrc.fileupload.controllers.{FileInQuarantineStored, FileScanned}
-import uk.gov.hmrc.fileupload.write.envelope.Formatters._
+import uk.gov.hmrc.fileupload.write.envelope.Formatters.given
 import uk.gov.hmrc.fileupload.write.envelope._
 
 trait EventsActions extends ActionsSupport {

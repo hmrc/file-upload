@@ -22,13 +22,16 @@ import uk.gov.hmrc.fileupload.write.infrastructure.Event
 
 trait ControlledAllEventsPublisher extends AllEventsPublisher {
 
-  val shouldPublish: Stream[Boolean]
+  val shouldPublish: LazyList[Boolean]
 
   private lazy val shouldPublishIterator = shouldPublish.iterator
 
-  abstract override def publish(reportHandler: ReportHandler[_, _],
-                                replay: Boolean): Seq[Event] => Unit =
-    if (shouldPublishIterator.next()) {
+  abstract override def publish(
+    reportHandler: ReportHandler[_, _],
+    replay       : Boolean
+  ): Seq[Event] => Unit =
+    if shouldPublishIterator.next() then
       super.publish(reportHandler, replay)
-    } else _ => ()
+    else
+      _ => ()
 }

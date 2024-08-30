@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.fileupload.controllers.transfer
 
-import org.mockito.scalatest.MockitoSugar
+import org.mockito.Mockito.when
 import org.scalatest.concurrent.{ScalaFutures, IntegrationPatience}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-import play.api.Configuration
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status
 import play.api.mvc.ControllerComponents
 import play.api.test.FakeRequest
@@ -39,9 +39,9 @@ class TransferControllerSpec
      with ScalaFutures
      with IntegrationPatience {
 
-  implicit val ec: ExecutionContext = ExecutionContext.global
+  given ExecutionContext = ExecutionContext.global
 
-  val failed = Future.failed(new Exception("not good"))
+  val failed = Future.failed(Exception("not good"))
 
   def newController(
     getEnvelopesByDestination: Option[String] => Future[List[Envelope]]                                    = _ => failed,
@@ -50,7 +50,7 @@ class TransferControllerSpec
     val appModule = mock[ApplicationModule]
     when(appModule.getEnvelopesByDestination).thenReturn(getEnvelopesByDestination)
     when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
-    new TransferController(appModule, app.injector.instanceOf[ControllerComponents], app.injector.instanceOf[Configuration])
+    TransferController(appModule, app.injector.instanceOf[ControllerComponents])
   }
 
 

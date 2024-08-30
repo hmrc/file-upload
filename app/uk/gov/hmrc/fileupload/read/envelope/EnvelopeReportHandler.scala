@@ -31,9 +31,9 @@ class EnvelopeReportHandler(
   override val delete       : EnvelopeId => Future[DeleteResult],
   override val defaultState : EnvelopeId => Envelope,
   override val updateVersion: (Version, Envelope) => Envelope = (v, e) => e.copy(version = v)
-)(implicit
+)(using
   override val ec: ExecutionContext
-) extends ReportHandler[Envelope, EnvelopeId] {
+) extends ReportHandler[Envelope, EnvelopeId]:
 
   override def apply: PartialFunction[(Envelope, EventData), Option[Envelope]] = {
 
@@ -53,7 +53,7 @@ class EnvelopeReportHandler(
         name        = Some(e.name),
         contentType = Some(e.contentType),
         metadata    = Some(e.metadata),
-        uploadDate  = Some(new DateTime(e.created, DateTimeZone.UTC)),
+        uploadDate  = Some(DateTime(e.created, DateTimeZone.UTC)),
         length      = e.length
         )
       Some(s.copy(
@@ -70,33 +70,33 @@ class EnvelopeReportHandler(
 
     case (s: Envelope, e: EnvelopeSealed) =>
       Some(s.copy(
-        status      = EnvelopeStatusSealed,
+        status      = EnvelopeStatus.EnvelopeStatusSealed,
         destination = Some(e.destination),
         application = Some(e.application)
       ))
 
     case (s: Envelope, e: EnvelopeUnsealed) =>
       Some(s.copy(
-        status      = EnvelopeStatusOpen,
+        status      = EnvelopeStatus.EnvelopeStatusOpen,
         destination = None,
         application = None
       ))
 
     case (s: Envelope, e: EnvelopeRouteRequested) =>
       Some(s.copy(
-        status     = EnvelopeStatusRouteRequested,
+        status     = EnvelopeStatus.EnvelopeStatusRouteRequested,
         lastPushed = e.lastPushed
       ))
 
     case (s: Envelope, e: EnvelopeArchived) =>
       Some(s.copy(
-        status = EnvelopeStatusDeleted,
+        status = EnvelopeStatus.EnvelopeStatusDeleted,
         reason = e.reason
       ))
 
     case (s: Envelope, e: EnvelopeRouted) =>
       Some(s.copy(
-        status   = EnvelopeStatusClosed,
+        status   = EnvelopeStatus.EnvelopeStatusClosed,
         isPushed = Some(e.isPushed),
         reason   = e.reason
       ))
@@ -122,22 +122,19 @@ class EnvelopeReportHandler(
     allFiles.filterNot(f => f.fileId == fileToBeRemoved)
 
   def fileStatusLens(envelope: Envelope, fileId: FileId, targetStatus: FileStatus): Option[Seq[File]] =
-    envelope.files.map { files =>
-      files.map { f =>
-        if (f.fileId == fileId)
+    envelope.files.map: files =>
+      files.map: f =>
+        if f.fileId == fileId then
           f.copy(status = targetStatus)
         else
           f
-      }
-    }
 
   def fileLengthLens(envelope: Envelope, fileId: FileId, length: Long): Option[Seq[File]] =
-    envelope.files.map { files =>
-      files.map { f =>
-        if (f.fileId == fileId)
+    envelope.files.map: files =>
+      files.map: f =>
+        if f.fileId == fileId then
           f.copy(length = Some(length))
         else
           f
-      }
-    }
-}
+
+end EnvelopeReportHandler

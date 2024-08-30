@@ -34,10 +34,11 @@ class OldDataPurger(
   envelopeRepository: Repository,
   lockRepository    : LockRepository,
   now               : () => Instant
-)(implicit
-  ec           : ExecutionContext,
-  as           : ActorSystem
-) {
+)(using
+  ExecutionContext,
+  ActorSystem
+):
+
   private val logger = Logger(getClass)
 
   private val purgeEnabled = configuration.get[Boolean]("purge.enabled")
@@ -47,29 +48,28 @@ class OldDataPurger(
 
   def purge(): Future[Unit] =
     lock.withLock(
-      for {
+      for
         cutoff <- Future.successful(now().minusMillis(purgeCutoff.toMillis))
-        _      <- if (!purgeEnabled) {
+        _      <-
+                  if !purgeEnabled then
                     logger.info(s"Purge disabled")
                     Future.unit
-                  } else {
+                  else
                     logger.info(s"Purging old data (older than $purgeCutoff i.e. since $cutoff)")
                     val start = System.currentTimeMillis()
                     eventStore.streamOlder(cutoff)
                       .grouped(1000)
-                      .mapAsync(parallelism = 1)(streamIds =>
-                        for {
+                      .mapAsync(parallelism = 1): streamIds =>
+                        for
                           _ <- envelopeRepository.purge(streamIds.map(id => EnvelopeId(id.toString)))
                           _ <- eventStore.purge(streamIds)
-                        } yield streamIds.size
-                      )
+                        yield streamIds.size
                       .runWith(Sink.fold(0)(_ + _))
                       .andThen { case count => logger.info(s"Finished purging old envelopes. Cleaned up $count envelopes in ${System.currentTimeMillis() - start} ms") }
-                  }
-      } yield ()
+      yield ()
     ).map(_ => ())
-     .recoverWith {
+     .recoverWith:
       case ex: Throwable => logger.error(s"Failed to purge old data: ${ex.getMessage}", ex)
                             Future.failed(ex)
-    }
-}
+
+end OldDataPurger

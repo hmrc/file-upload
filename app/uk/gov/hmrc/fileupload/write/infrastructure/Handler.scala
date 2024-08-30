@@ -16,10 +16,8 @@
 
 package uk.gov.hmrc.fileupload.write.infrastructure
 
-trait Handler[C <: Command, S] {
+trait Handler[C <: Command, S]:
 
   def handle: PartialFunction[(C, S), Either[CommandNotAccepted, List[EventData]]]
 
   def on: PartialFunction[(S, EventData), S]
-
-}

@@ -21,11 +21,12 @@ import com.google.common.io.BaseEncoding
 import org.apache.pekko.NotUsed
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
-import org.mockito.scalatest.MockitoSugar
+import org.mockito.Mockito.when
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.{HeaderNames, Status}
 import play.api.mvc._
 import play.api.test.FakeRequest
@@ -46,24 +47,24 @@ class FileControllerSpec
      with OptionValues
      with IntegrationPatience {
 
-  import uk.gov.hmrc.fileupload.Support.StreamImplicits.system
-  implicit val ec: ExecutionContext = ExecutionContext.global
+  import uk.gov.hmrc.fileupload.Support.StreamImplicits.given
+  given ExecutionContext = ExecutionContext.global
 
-  val failed = Future.failed(new Exception("not good"))
+  val failed = Future.failed(Exception("not good"))
 
   def basic64(s:String): String =
     BaseEncoding.base64().encode(s.getBytes(Charsets.UTF_8))
 
   def newController(
     retrieveFile     : (EnvelopeId, FileId) => Future[Source[ByteString, NotUsed]]                 = (_, _) => failed,
-    withValidEnvelope: WithValidEnvelope                                                           = new WithValidEnvelope(_ => Future.successful(Some(Support.envelope))),
+    withValidEnvelope: WithValidEnvelope                                                           = WithValidEnvelope(_ => Future.successful(Some(Support.envelope))),
     handleCommand    : EnvelopeCommand => Future[Either[CommandNotAccepted, CommandAccepted.type]] = _ => failed
   ) = {
     val appModule = mock[ApplicationModule]
     when(appModule.getFileFromS3).thenReturn(retrieveFile)
     when(appModule.withValidEnvelope).thenReturn(withValidEnvelope)
     when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
-    new FileController(appModule, app.injector.instanceOf[ControllerComponents])
+    FileController(appModule, app.injector.instanceOf[ControllerComponents])
   }
 
   val envelopeId = EnvelopeId()
@@ -84,10 +85,11 @@ class FileControllerSpec
     "return 200 response with correct headers when file is found" in {
       val controller =
         newController(
-          retrieveFile = (_, _) => Future.successful(source),
-          withValidEnvelope = new WithValidEnvelope(
-            _ => Future.successful(Some(envelope))
-          ))
+          retrieveFile      = (_, _) => Future.successful(source),
+          withValidEnvelope = WithValidEnvelope(
+                                _ => Future.successful(Some(envelope))
+                              )
+        )
 
       val result = controller.downloadFile(envelopeId, fileId)(FakeRequest().withHeaders(authHeaders))
 
@@ -100,13 +102,13 @@ class FileControllerSpec
     "return filename = `data` in headers if absent in client metadata for a given file" in {
       val controller =
         newController(
-          retrieveFile = (_, _) => Future.successful(source),
-          withValidEnvelope = new WithValidEnvelope(
-            _ => {
-              val fileWithoutAName = file.copy(name = None)
-              val envelopeWithoutFileName = envelope.copy(files = Some(Seq(fileWithoutAName)))
-              Future.successful(Some(envelopeWithoutFileName))
-            }))
+          retrieveFile      = (_, _) => Future.successful(source),
+          withValidEnvelope = WithValidEnvelope { _ =>
+                                val fileWithoutAName = file.copy(name = None)
+                                val envelopeWithoutFileName = envelope.copy(files = Some(Seq(fileWithoutAName)))
+                                Future.successful(Some(envelopeWithoutFileName))
+                              }
+        )
 
       val result = controller.downloadFile(envelopeId, fileId)(FakeRequest().withHeaders(authHeaders))
 

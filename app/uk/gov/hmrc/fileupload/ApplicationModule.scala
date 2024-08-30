@@ -43,17 +43,15 @@ import javax.inject.{Inject, Singleton}
   * This trait is added to control publishing the events in the tests
   */
 @ImplementedBy(classOf[DefaultAllEventsPublisher])
-trait AllEventsPublisher {
+trait AllEventsPublisher:
   def publish(reportHandler: ReportHandler[_, _], replay: Boolean): Seq[Event] => Unit
-}
 
-class DefaultAllEventsPublisher extends AllEventsPublisher {
+class DefaultAllEventsPublisher extends AllEventsPublisher:
   def publish(
     reportHandler: ReportHandler[_, _],
     replay       : Boolean
   ): Seq[Event] => Unit =
     reportHandler.handle(replay)
-}
 
 @Singleton
 class ApplicationModule @Inject()(
@@ -66,32 +64,44 @@ class ApplicationModule @Inject()(
   override val configuration: play.api.Configuration,
   override val environment: play.api.Environment,
   actorSystem: org.apache.pekko.actor.ActorSystem
-)(implicit
+)(using
   override val executionContext: scala.concurrent.ExecutionContext,
-  override val materializer: org.apache.pekko.stream.Materializer
-) extends AhcWSComponents {
+  override val materializer    : org.apache.pekko.stream.Materializer
+) extends AhcWSComponents:
 
   private val logger = Logger(getClass)
 
   val envelopeConstraintsConfigure: EnvelopeConstraintsConfiguration =
-    EnvelopeConstraintsConfiguration.getEnvelopeConstraintsConfiguration(configuration) match {
+    EnvelopeConstraintsConfiguration.getEnvelopeConstraintsConfiguration(configuration) match
       case Right(envelopeConstraints) => envelopeConstraints
-      case Left(failureReason)        => throw new IllegalArgumentException(s"${failureReason.message}")
-    }
+      case Left(failureReason)        => throw IllegalArgumentException(s"${failureReason.message}")
 
-  val envelopeHandler = new EnvelopeHandler(envelopeConstraintsConfigure)
+  val envelopeHandler =
+    EnvelopeHandler(envelopeConstraintsConfigure)
 
-  val subscribe: (ActorRef, Class[_]) => Boolean = actorSystem.eventStream.subscribe
-  val publish: (AnyRef) => Unit = actorSystem.eventStream.publish
+  val subscribe: (ActorRef, Class[_]) => Boolean =
+    actorSystem.eventStream.subscribe
 
-  val eventStore = new MongoEventStore(mongoComponent, metricRegistry)
-  val updateEnvelope = envelopeRepository.update() _
+  val publish: (AnyRef) => Unit =
+    actorSystem.eventStream.publish
 
-  lazy val auditedHttpExecute = PlayHttp.execute(auditConnector,
-    "file-upload", Some(t => logger.warn(t.getMessage, t))) _
+  val eventStore =
+    MongoEventStore(mongoComponent, metricRegistry)
+
+  val updateEnvelope =
+    envelopeRepository.update() _
+
+  lazy val auditedHttpExecute =
+    PlayHttp.execute(
+      auditConnector,
+      "file-upload",
+      Some(t => logger.warn(t.getMessage, t))
+    ) _
 
   // notifier
-  lazy val sendNotification = NotifierRepository.notify(auditedHttpExecute, wsClient) _
+  lazy val sendNotification =
+    NotifierRepository.notify(auditedHttpExecute, wsClient) _
+
   actorSystem.actorOf(
     NotifierActor.props(
       subscribe,
@@ -100,11 +110,11 @@ class ApplicationModule @Inject()(
     ),
     "notifierActor"
   )
+
   actorSystem.actorOf(
     StatsActor.props(
       subscribe,
       findEnvelope,
-      sendNotification,
       saveFileQuarantinedStat,
       deleteVirusDetectedStat,
       deleteFileStoredStat,
@@ -114,16 +124,22 @@ class ApplicationModule @Inject()(
   )
 
   // initialize in-progress files logging actor
-  StatsLoggingScheduler.initialize(actorSystem, statsLoggingConfiguration, new StatsLogger(statsRepository, new StatsLogWriter()))
+  StatsLoggingScheduler.initialize(actorSystem, statsLoggingConfiguration, StatsLogger(statsRepository, StatsLogWriter()))
 
-  lazy val envelopeRepository = uk.gov.hmrc.fileupload.read.envelope.Repository.apply(mongoComponent)
+  lazy val envelopeRepository =
+    uk.gov.hmrc.fileupload.read.envelope.Repository.apply(mongoComponent)
 
-  lazy val getEnvelope = envelopeRepository.get _
+  lazy val getEnvelope =
+    envelopeRepository.get _
 
-  lazy val withValidEnvelope = new WithValidEnvelope(getEnvelope)
+  lazy val withValidEnvelope =
+    WithValidEnvelope(getEnvelope)
 
-  lazy val findEnvelope = EnvelopeService.find(getEnvelope) _
-  lazy val findMetadata = EnvelopeService.findMetadata(findEnvelope) _
+  lazy val findEnvelope =
+    EnvelopeService.find(getEnvelope) _
+
+  lazy val findMetadata =
+    EnvelopeService.findMetadata(findEnvelope) _
 
   lazy val statsLoggingConfiguration = StatsLoggingConfiguration(configuration)
   lazy val statsRepository           = StatsRepository.apply(mongoComponent)
@@ -134,39 +150,48 @@ class ApplicationModule @Inject()(
   lazy val allInProgressFile         = Stats.all(statsRepository.all _) _
 
   // envelope read model
-  lazy val reportHandler = new EnvelopeReportHandler(
-    toId = (streamId: StreamId) => EnvelopeId(streamId.value),
-    updateEnvelope,
-    envelopeRepository.delete,
-    defaultState = (id: EnvelopeId) => uk.gov.hmrc.fileupload.read.envelope.Envelope(id)
-  )
+  lazy val reportHandler =
+    EnvelopeReportHandler(
+      toId = (streamId: StreamId) => EnvelopeId(streamId.value),
+      updateEnvelope,
+      envelopeRepository.delete,
+      defaultState = (id: EnvelopeId) => uk.gov.hmrc.fileupload.read.envelope.Envelope(id)
+    )
 
   // command handler
   lazy val envelopeCommandHandler =
     (command: EnvelopeCommand) =>
-      new Aggregate[EnvelopeCommand, write.envelope.Envelope](
+      Aggregate[EnvelopeCommand, write.envelope.Envelope](
         handler          = envelopeHandler,
         defaultState     = () => write.envelope.Envelope(),
         publish          = publish,
         publishAllEvents = allEventsPublisher.publish(reportHandler, replay = false)
-      )(eventStore, executionContext).handleCommand(command)
+      )(using eventStore, executionContext).handleCommand(command)
 
-  lazy val getEnvelopesByStatus = envelopeRepository.getByStatus _
+  lazy val getEnvelopesByStatus =
+    envelopeRepository.getByStatus _
 
-  lazy val deleteInProgressFile = statsRepository.deleteByFileRefId _
+  lazy val deleteInProgressFile =
+    statsRepository.deleteByFileRefId _
 
-  lazy val nextId = () => EnvelopeId(UUID.randomUUID().toString)
+  lazy val nextId =
+    () => EnvelopeId(UUID.randomUUID().toString)
 
-  lazy val unitOfWorks = eventStore.unitsOfWorkForAggregate _
-  lazy val publishAllEventsWithReplay = allEventsPublisher.publish(reportHandler, replay = true)
+  lazy val unitOfWorks =
+    eventStore.unitsOfWorkForAggregate _
 
-  lazy val fileUploadFrontendBaseUrl = servicesConfig.baseUrl("file-upload-frontend")
+  lazy val publishAllEventsWithReplay =
+    allEventsPublisher.publish(reportHandler, replay = true)
 
-  lazy val getFileFromS3 = new RetrieveFile(wsClient, fileUploadFrontendBaseUrl).download _
-  lazy val getZipData    = new RetrieveFile(wsClient, fileUploadFrontendBaseUrl).getZipData _
-  lazy val downloadZip   = new RetrieveFile(wsClient, fileUploadFrontendBaseUrl).downloadZip _
+  lazy val fileUploadFrontendBaseUrl =
+    servicesConfig.baseUrl("file-upload-frontend")
 
-  lazy val routingConfig = RoutingConfig(configuration)
+  lazy val getFileFromS3 = RetrieveFile(wsClient, fileUploadFrontendBaseUrl).download _
+  lazy val getZipData    = RetrieveFile(wsClient, fileUploadFrontendBaseUrl).getZipData _
+  lazy val downloadZip   = RetrieveFile(wsClient, fileUploadFrontendBaseUrl).downloadZip _
+
+  lazy val routingConfig =
+    RoutingConfig(configuration)
 
   lazy val buildFileTransferNotification =
     RoutingRepository.buildFileTransferNotification(getZipData, routingConfig) _
@@ -174,13 +199,13 @@ class ApplicationModule @Inject()(
   lazy val pushFileTransferNotification =
     RoutingRepository.pushFileTransferNotification(auditedHttpExecute, wsClient, routingConfig) _
 
-  lazy val lockRepository = new MongoLockRepository(mongoComponent, new CurrentTimestampSupport())
+  lazy val lockRepository =
+    MongoLockRepository(mongoComponent, CurrentTimestampSupport())
 
   actorSystem.actorOf(
     RoutingActor.props(
       config                  = routingConfig,
       buildNotification       = buildFileTransferNotification,
-      findEnvelope,
       getEnvelopesByStatusDMS = envelopeRepository.getByStatusDMS _,
       pushNotification        = pushFileTransferNotification,
       handleCommand           = envelopeCommandHandler,
@@ -188,23 +213,30 @@ class ApplicationModule @Inject()(
       applicationLifecycle    = applicationLifecycle,
       markAsSeen              = envelopeRepository.markAsSeen
     ),
-    "routingActor")
+    "routingActor"
+  )
 
-  val getEnvelopesByDestination = envelopeRepository.getByDestination _
-  val zipEnvelope       = Zippy.zipEnvelope(findEnvelope, downloadZip) _
+  val getEnvelopesByDestination =
+    envelopeRepository.getByDestination _
+
+  val zipEnvelope =
+    Zippy.zipEnvelope(findEnvelope, downloadZip) _
 
   val recreateCollections: List[() => Unit] =
     List(eventStore.recreate _, envelopeRepository.recreate _, statsRepository.recreate _)
 
-  val newId: () => String = () => UUID.randomUUID().toString
+  val newId: () => String =
+    () => UUID.randomUUID().toString
 
-  new OldDataPurger(
+  OldDataPurger(
     configuration,
     eventStore,
     envelopeRepository,
     lockRepository,
     java.time.Instant.now _
-  )(executionContext,
+  )(using
+    executionContext,
     actorSystem
   ).purge()
-}
+
+end ApplicationModule

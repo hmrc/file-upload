@@ -18,6 +18,7 @@ package uk.gov.hmrc.fileupload
 
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
+import play.api.libs.ws.WSBodyReadables.readableAsString
 import uk.gov.hmrc.fileupload.support._
 import uk.gov.hmrc.fileupload.write.envelope._
 

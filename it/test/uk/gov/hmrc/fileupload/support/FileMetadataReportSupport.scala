@@ -41,7 +41,7 @@ object FileMetadataReportSupport {
           }
         }
       }
-		""")
+    """)
 
   def responseBodyAsJson(envelopeId: EnvelopeId, fileId: FileId, args: Map[String, Any] = Map.empty): JsValue =
     Json.parse(s"""
@@ -93,5 +93,5 @@ object FileMetadataReportSupport {
           }
         }
       }
-		""")
+  """)
 }

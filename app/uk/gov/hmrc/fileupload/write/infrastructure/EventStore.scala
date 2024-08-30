@@ -17,7 +17,8 @@
 package uk.gov.hmrc.fileupload.write.infrastructure
 
 import com.codahale.metrics.MetricRegistry
-import com.mongodb.{MongoException, WriteConcern}
+import com.mongodb.WriteConcern
+import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 import org.apache.pekko.stream.scaladsl.Source
 import org.mongodb.scala.bson.{BsonDocument, BsonString}
 import org.mongodb.scala.model._
@@ -25,6 +26,7 @@ import org.mongodb.scala.model.Filters._
 import play.api.Logger
 import uk.gov.hmrc.fileupload.write.infrastructure.EventStore._
 import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.MongoUtils.DuplicateKey
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
 import java.util.concurrent.TimeUnit
@@ -58,21 +60,20 @@ class MongoEventStore(
   mongoComponent: MongoComponent,
   metrics       : MetricRegistry,
   writeConcern  : WriteConcern = WriteConcern.MAJORITY
-)(implicit
-  ec: ExecutionContext
+)(using
+  ExecutionContext
 ) extends PlayMongoRepository[UnitOfWork](
   collectionName = "events",
   mongoComponent = mongoComponent,
   domainFormat   = UnitOfWorkSerializer.format,
   indexes        = Seq(IndexModel(Indexes.hashed("streamId"), IndexOptions().background(true)))
-) with EventStore {
+) with EventStore:
 
   // OldDataPurger cleans up old data
   override lazy val requiresTtlIndex = false
 
   private val logger = Logger(getClass)
 
-  private val duplicateKeyErrorCode = 11000
   private val envelopeEventsThreshold = 1000
 
   private val saveTimer = metrics.timer("mongo.eventStore.write")
@@ -86,72 +87,71 @@ class MongoEventStore(
       .withWriteConcern(writeConcern)
       .insertOne(unitOfWork)
       .toFuture()
-      .map { r =>
-      if (r.wasAcknowledged())
+      .map: r =>
         EventStore.saveSuccess
-      else
-        Left(NotSavedError("not saved"))
-    }.recover {
-      case e: MongoException if e.getCode == duplicateKeyErrorCode =>
-        Left(VersionConflictError)
-      case e =>
-        Left(NotSavedError(s"not saved: ${e.getMessage}"))
-    }.map { e =>
-      context.stop()
-      e
-    }
+      .recover:
+        case DuplicateKey(_) =>
+          Left(VersionConflictError)
+        case e =>
+          Left(NotSavedError(s"not saved: ${e.getMessage}"))
+      .map: e =>
+        context.stop()
+        e
   }
 
-  override def unitsOfWorkForAggregate(streamId: StreamId): Future[GetResult] = {
+  override def unitsOfWorkForAggregate(streamId: StreamId): Future[GetResult] =
     val context = readTimer.time()
 
     collection
       .find(equal("streamId", streamId.value))
       .toFuture()
-      .map { l =>
+      .map: l =>
         val sortByVersion = l.sortBy(_.version.value)
+
         val size = sortByVersion.size
-        if (size >= envelopeEventsThreshold) {
+        if size >= envelopeEventsThreshold then
           val elapsedNanos = context.stop()
           val elapsed = FiniteDuration(elapsedNanos, TimeUnit.NANOSECONDS)
 
           largeEnvelopeMarker.mark()
 
-          if (size % envelopeEventsThreshold <= 20)
+          if size % envelopeEventsThreshold <= 20 then
             logger.warn(s"large envelope: envelopeId=$streamId size=$size time=${elapsed.toMillis} ms")
 
-          if (size % 100 == 0)
+          if size % 100 == 0 then
             logger.error(s"large envelope: envelopeId=$streamId size=$size")
-        }
+
         Right(sortByVersion)
-      }.recover { case e =>
-        Left(GetError(e.getMessage))
-      }.map { e =>
+      .recover:
+        case e =>
+          Left(GetError(e.getMessage))
+      .map: e =>
         val elapsed = context.stop().nanoseconds
         if (elapsed > 10.seconds)
           logger.warn(s"unitsOfWorkForAggregate: events.find by streamId=$streamId took ${elapsed.toMillis} ms")
 
         e
-      }
-  }
 
   override def recreate(): Unit =
     Await.result(collection.drop().toFuture(), 5.seconds)
 
   def streamOlder(cutoff: Instant): Source[StreamId, org.apache.pekko.NotUsed] =
-    Source.fromPublisher(
-      mongoComponent.database.getCollection("events")
-        .aggregate(Seq(
-          Aggregates.group("$streamId", Accumulators.max("created", "$created")),
-          Aggregates.`match`(Filters.lt("created", cutoff.toEpochMilli)),
-          Aggregates.project(BsonDocument("_id" -> 1))
-        ))
-        .allowDiskUse(true)
-        .map(_.get[BsonString]("_id").map(s => StreamId(s.getValue)))
-    ).collect { case Some(s) => s }
+    Source
+      .fromPublisher:
+        mongoComponent.database.getCollection("events")
+          .aggregate(Seq(
+            Aggregates.group("$streamId", Accumulators.max("created", "$created")),
+            Aggregates.`match`(Filters.lt("created", cutoff.toEpochMilli)),
+            Aggregates.project(BsonDocument("_id" -> 1))
+          ))
+          .allowDiskUse(true)
+          .map(_.get[BsonString]("_id").map(s => StreamId(s.getValue)))
+      .collect { case Some(s) => s }
 
   def purge(streamIds: Seq[StreamId]): Future[Unit] =
-    if (streamIds.nonEmpty)
+    if streamIds.nonEmpty then
       collection.bulkWrite(streamIds.map(id => DeleteManyModel(equal("streamId", id.value)))).toFuture().map(_ => ())
-    else Future.unit
-}
+    else
+      Future.unit
+
+end MongoEventStore

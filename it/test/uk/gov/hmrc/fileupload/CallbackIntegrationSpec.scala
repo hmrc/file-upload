@@ -33,7 +33,7 @@ class CallbackIntegrationSpec
      with IntegrationPatience {
 
   val formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  val today = new DateTime().plusMinutes(10)
+  val today     = DateTime().plusMinutes(10)
 
   Feature("Event Callbacks") {
 

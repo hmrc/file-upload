@@ -20,12 +20,12 @@ Response: 200
 #### CREATE ENVELOPE WITH ID (DO NOT USE)
 
 ```
-PUT   	/file-upload/envelopes/{envelopeId}
+PUT     /file-upload/envelopes/{envelopeId}
 ```
 | Responses    | Status    | Description |
 | --------|---------|-------|
 | Ok  | 201   | Successfully created envelope. |
-| Bad Request | 400   |  Envelope not created. |  
+| Bad Request | 400   |  Envelope not created. |
 
 #### EXAMPLE
 Request (PUT): localhost:8898/file-upload/envelopes/0b215e97-11d4-4006-91db-c067e74fc653
@@ -66,7 +66,7 @@ In Body:
 Response: 200
 
 #### SHOW EVENTS OF AN ENVELOPE (DO NOT USE)
-Retrieves a list of all events based on the stream Id. 
+Retrieves a list of all events based on the stream Id.
 
 ```
 GET     /file-upload/events/{stream-Id}
@@ -168,7 +168,7 @@ Response (in Body):
 Removes inprogress data by their file reference Id.
 
 ```
-DELETE     /file-upload/files/inprogress/:fileRefId 
+DELETE     /file-upload/files/inprogress/:fileRefId
 ```
 
 | Responses    | Status    | Description |
@@ -177,7 +177,7 @@ DELETE     /file-upload/files/inprogress/:fileRefId
 #### EXAMPLE
 Request (DELETE): localhost:8898/file-upload/files/inprogress/a1752950-32ab-4bdb-a918-0ee9141ac305
 
-Response: 200 
+Response: 200
 
 #### REPLAY EVENTS (DO NOT USE)
 Replays events of an envelope.
@@ -196,4 +196,3 @@ Request (GET): localhost:8898/file-upload/events/0b215ey97-11d4-4006-91db-c067e7
 Response: 200
 
 [back to README](../README.md)
-

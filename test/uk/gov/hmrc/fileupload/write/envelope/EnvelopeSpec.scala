@@ -25,7 +25,7 @@ import uk.gov.hmrc.fileupload.controllers.{EnvelopeFilesConstraints, Size}
 
 class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with TestApplicationComponents {
 
-  override val handler = new EnvelopeHandler(envelopeConstraintsConfigure)
+  override val handler = EnvelopeHandler(envelopeConstraintsConfigure)
 
   override val defaultStatus: Envelope = Envelope()
 
@@ -43,7 +43,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with Tes
   val envelopeCreated = EnvelopeCreated(
     envelopeId,
     Some("http://www.callback-url.com"),
-    Some(new DateTime(0)),
+    Some(DateTime(0)),
     Some(Json.obj("foo" -> "bar")),
     Some(envelopeFilesConstraints)
   )
@@ -53,7 +53,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with Tes
   ) = EnvelopeCreated(
     envelopeId,
     Some("http://www.callback-url.com"),
-    Some(new DateTime(0)),
+    Some(DateTime(0)),
     Some(Json.obj("foo" -> "bar")),
     Some(constraints)
   )
@@ -88,7 +88,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with Tes
         CreateEnvelope(
           envelopeId,
           Some("http://www.callback-url.com"),
-          Some(new DateTime(0)),
+          Some(DateTime(0)),
           Some(Json.obj("foo" -> "bar")),
           Some(envelopeFilesConstraints)
         ),
@@ -102,7 +102,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with Tes
         CreateEnvelope(
           envelopeId,
           Some("http://www.callback-url.com"),
-          Some(new DateTime(0)),
+          Some(DateTime(0)),
           Some(Json.obj("foo" -> "bar")),
           Some(envelopeFilesConstraints)
         ),
@@ -116,7 +116,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with Tes
         CreateEnvelope(
           envelopeId,
           Some("http://www.callback-url.com"),
-          Some(new DateTime(0)),
+          Some(DateTime(0)),
           Some(Json.obj("foo" -> "bar")),
           Some(envelopeFilesConstraints.copy(maxItems = 0))
         ),
@@ -130,7 +130,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with Tes
         CreateEnvelope(
           envelopeId,
           Some("http://www.callback-url.com"),
-          Some(new DateTime(0)),
+          Some(DateTime(0)),
           Some(Json.obj("foo" -> "bar")),
           Some(envelopeFilesConstraints.copy(maxSizePerItem = Size("101MB").value))
         ),
@@ -144,7 +144,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with Tes
         CreateEnvelope(
           envelopeId,
           Some("http://www.callback-url.com"),
-          Some(new DateTime(0)),
+          Some(DateTime(0)),
           Some(Json.obj("foo" -> "bar")),
           Some(envelopeFilesConstraints.copy(maxSize = Size("251MB").value))
         ),
@@ -158,7 +158,7 @@ class EnvelopeSpec extends EventBasedGWTSpec[EnvelopeCommand, Envelope] with Tes
         CreateEnvelope(
           envelopeId,
           Some("http://www.callback-url.com"),
-          Some(new DateTime(0)),
+          Some(DateTime(0)),
           Some(Json.obj("foo" -> "bar")),
           Some(envelopeFilesConstraints)
         ),

@@ -23,8 +23,7 @@ import org.joda.time.DateTime
 import play.api.Logger
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.fileupload.EnvelopeId
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus, EnvelopeStatusClosed, EnvelopeStatusRouteRequested}
-import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.write.envelope.{ArchiveEnvelope, EnvelopeCommand, MarkEnvelopeAsRouteAttempted, MarkEnvelopeAsRouted}
 import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandNotAccepted}
 import uk.gov.hmrc.mongo.lock.LockRepository
@@ -38,7 +37,6 @@ import scala.concurrent.duration.DurationLong
 class RoutingActor(
    config                  :                                    RoutingConfig,
    buildNotification       : Envelope                        => Future[RoutingRepository.BuildNotificationResult],
-   findEnvelope            : EnvelopeId                      => Future[FindResult],
    getEnvelopesByStatusDMS : (List[EnvelopeStatus],
                               Boolean,
                               Boolean)                       => Source[Envelope, NotUsed],
@@ -47,35 +45,33 @@ class RoutingActor(
    lockRepository          :                                    LockRepository,
    applicationLifecycle    :                                    ApplicationLifecycle,
    markAsSeen              : EnvelopeId                      => Future[Unit]
- )(implicit ec: ExecutionContext
- ) extends Actor {
+ )(using ExecutionContext
+ ) extends Actor:
 
   import RoutingActor._
 
   val logger = Logger(getClass)
 
-  implicit val as: ActorSystem = context.system
+  given ActorSystem = context.system
 
   private val scheduler: Cancellable =
     context.system.scheduler.scheduleAtFixedRate(config.initialDelay, config.interval, self, PushIfWaiting)
 
-  override def preRestart(reason: Throwable, message: Option[Any]) = {
+  override def preRestart(reason: Throwable, message: Option[Any]): Unit =
     super.preRestart(reason, message)
     logger.error(s"Unhandled exception for message: $message", reason)
-  }
 
   override def postStop(): Unit =
     scheduler.cancel()
 
-  applicationLifecycle.addStopHook { () =>
+  applicationLifecycle.addStopHook: () =>
     logger.info("Releasing any taken lock")
     Lock.releaseLock(lockRepository)
-  }
 
   def receive = {
     case PushIfWaiting =>
       logger.info(s"received PushIfWaiting")
-      Lock.takeLock(lockRepository).flatMap {
+      Lock.takeLock(lockRepository).flatMap:
         case None =>
           Future.successful(logger.info(s"no lock aquired"))
         case Some(lock) =>
@@ -83,22 +79,22 @@ class RoutingActor(
           val cutoff = DateTime.now().minusMillis(config.pushRetryBackoff.toMillis.toInt)
           Source.combine[Envelope, Envelope](
             first  = // nonDMS should go through without any throttling
-                     getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ false, /*onlyUnseen = */ false),
+                     getEnvelopesByStatusDMS(List(EnvelopeStatus.EnvelopeStatusRouteRequested), /*isDMS = */ false, /*onlyUnseen = */ false),
             second = if (config.destinations.contains("DMS"))
                        Source.combine[Envelope, Envelope](
                          // first time RouteRequested take precedence
-                         getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
+                         getEnvelopesByStatusDMS(List(EnvelopeStatus.EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
                            .filter(_.lastPushed.isEmpty),
                          // then RouteRequested retries
-                         getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
+                         getEnvelopesByStatusDMS(List(EnvelopeStatus.EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
                            .filter(_.lastPushed.exists(_.compareTo(cutoff) < 0)),
                          // and finally any CLOSED that we have explicitly requested to be retried (by clearing the seen flag)
-                         getEnvelopesByStatusDMS(List(EnvelopeStatusClosed), /*isDMS = */ true, /*onlyUnseen = */ true)
+                         getEnvelopesByStatusDMS(List(EnvelopeStatus.EnvelopeStatusClosed), /*isDMS = */ true, /*onlyUnseen = */ true)
                        )(Concat(_))
                         .take(config.throttleElements) //Lock.takeLock force releases the lock after an hour so process a small batch and release the lock
                         .throttle(config.throttleElements, config.throttlePer)
                      else
-                       getEnvelopesByStatusDMS(List(EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
+                       getEnvelopesByStatusDMS(List(EnvelopeStatus.EnvelopeStatusRouteRequested), /*isDMS = */ true, /*onlyUnseen = */ false)
           )(Concat(_))
             .mapAsync(parallelism = 1)(envelope =>
               routeEnvelope(envelope)
@@ -109,23 +105,21 @@ class RoutingActor(
             )
             .runWith(Sink.ignore)
             .andThen { case _ => lock.release() }
-            .recoverWith {
+            .recoverWith:
               case ex => logger.error(s"Failed to handle PushIfWaiting: ${ex.getMessage}", ex)
                          Future.failed(ex)
-            }
-      }
   }
 
-  def routeEnvelope(envelope: Envelope): Future[Unit] = {
+  def routeEnvelope(envelope: Envelope): Future[Unit] =
     logger.info(s"Routing envelope [${envelope._id}] to: ${envelope.destination}")
 
     // we will push any envelope which has a destination in configuration list
     envelope.destination.filter(config.destinations.contains)
       .fold(Future.successful(MarkEnvelopeAsRouted(envelope._id, isPushed = false): EnvelopeCommand)){ destination =>
         logger.info(s"envelope [${envelope._id}] to '$destination' will be routed to '${config.pushUrl}'")
-        for {
+        for
           notificationRes    <- buildNotification(envelope)
-          notificationEither <- notificationRes match {
+          notificationEither <- notificationRes match
                                   case Right(notification) =>
                                     Future.successful(Right(notification))
                                   case Left(error) if !error.isTransient =>
@@ -133,38 +127,37 @@ class RoutingActor(
                                     Future.successful(Left(ArchiveEnvelope(envelope._id, reason = Some("expired"))))
                                   case Left(error) =>
                                     fail(s"Failed to build notification. Reason [${error.reason}]")
-                                }
           cmd                <- notificationEither match {
-                                  case Left(cmd)           => Future.successful(cmd)
-                                  case Right(notification) => for {
+                                  case Left(cmd)           =>
+                                    Future.successful(cmd)
+                                  case Right(notification) =>
+                                    for
                                       _               <- Future.successful(logger.info(s"will push $notification for envelope [${envelope._id}]"))
                                       pushRes         <- pushNotification(notification)
-                                      _               <- pushRes match {
+                                      _               <- pushRes match
                                                            case Right(())   => markAsSeen(envelope._id)
                                                            case Left(error) => Future.unit
-                                                         }
-                                      cmd             <- pushRes match {
+                                      cmd             <- pushRes match
                                                            case Right(())   => logger.info(s"Successfully pushed routing for envelope [${envelope._id}]")
                                                                                Future.successful(MarkEnvelopeAsRouteAttempted(envelope._id, lastPushed = Some(DateTime.now())))
                                                            case Left(error) => fail(s"Failed to push routing for envelope [${envelope._id}]. Reason [${error.reason}]")
-                                                         }
-                                    } yield cmd
+                                    yield cmd
                                 }
-        } yield cmd
-    }.map(cmd =>
-      handleCommand(cmd).map {
-        case Right(_) =>
-        case Left(error) => fail(s"Could not process $cmd for [${envelope._id}]: $error")
-      }.recover { case e => fail(s"Could not process $cmd for [${envelope._id}]: ${e.getMessage}", e) }
-    )
-  }
+        yield cmd
+    }.map: cmd =>
+      handleCommand(cmd)
+        .map:
+          case Right(_)    =>
+          case Left(error) => fail(s"Could not process $cmd for [${envelope._id}]: $error")
+        .recover { case e => fail(s"Could not process $cmd for [${envelope._id}]: ${e.getMessage}", e) }
 
   def fail[T](msg: String): Future[T] =
-    Future.failed(new RuntimeException(msg))
+    Future.failed(RuntimeException(msg))
 
   def fail[T](msg: String, t: Throwable): Future[T] =
-    Future.failed(new RuntimeException(msg, t))
-}
+    Future.failed(RuntimeException(msg, t))
+
+end RoutingActor
 
 object RoutingActor {
   case object PushIfWaiting
@@ -172,7 +165,6 @@ object RoutingActor {
   def props(
     config                 :                                    RoutingConfig,
     buildNotification      : Envelope                        => Future[RoutingRepository.BuildNotificationResult],
-    findEnvelope           : EnvelopeId                      => Future[FindResult],
     getEnvelopesByStatusDMS: (List[EnvelopeStatus],
                               Boolean,
                               Boolean)                       => Source[Envelope, NotUsed],
@@ -181,12 +173,11 @@ object RoutingActor {
     lockRepository         :                                    LockRepository,
     applicationLifecycle   :                                    ApplicationLifecycle,
     markAsSeen             : EnvelopeId                      => Future[Unit]
-  )(implicit ec: ExecutionContext
+  )(using ExecutionContext
   ) =
-    Props(new RoutingActor(
+    Props(RoutingActor(
       config                  = config,
       buildNotification       = buildNotification,
-      findEnvelope            = findEnvelope,
       getEnvelopesByStatusDMS = getEnvelopesByStatusDMS,
       pushNotification        = pushNotification,
       handleCommand           = handleCommand,
@@ -198,18 +189,18 @@ object RoutingActor {
 
 case class Lock(release: () => Future[Unit])
 
-object Lock {
+object Lock:
   private val reqLockId = "RoutingActor"
   private val reqOwner = java.util.UUID.randomUUID().toString
   private val forceReleaseAfter = 1.hour
 
-  def takeLock(lockRepository: LockRepository)(implicit ec: ExecutionContext): Future[Option[Lock]] =
+  def takeLock(lockRepository: LockRepository)(using ExecutionContext): Future[Option[Lock]] =
     lockRepository.takeLock(reqLockId, reqOwner, ttl = forceReleaseAfter).map(_.isDefined)
-      .map { taken =>
-        if (taken) Some(Lock(() => lockRepository.releaseLock(reqLockId, reqOwner)))
-        else None
-      }
+      .map: taken =>
+        if taken then
+          Some(Lock(() => lockRepository.releaseLock(reqLockId, reqOwner)))
+        else
+          None
 
   def releaseLock(lockRepository: LockRepository): Future[Unit] =
     lockRepository.releaseLock(reqLockId, reqOwner)
-}

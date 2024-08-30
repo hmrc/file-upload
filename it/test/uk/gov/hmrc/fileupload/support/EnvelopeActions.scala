@@ -21,7 +21,7 @@ import com.google.common.io.BaseEncoding
 import org.scalatest.TestSuite
 import play.api.http.HeaderNames
 import play.api.libs.json.Json
-import play.api.libs.ws.WSResponse
+import play.api.libs.ws.{WSResponse, writeableOf_JsValue}
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.controllers.routing.Notification
 import java.time.Instant
@@ -36,6 +36,7 @@ trait EnvelopeActions extends ActionsSupport {
     createEnvelope(data.getBytes())
 
   def createEnvelope(data: Array[Byte]): WSResponse =
+    import play.api.libs.ws.writeableOf_ByteArray
     client
       .url(s"$url/envelopes")
       .withHttpHeaders("Content-Type" -> "application/json")
@@ -46,6 +47,7 @@ trait EnvelopeActions extends ActionsSupport {
     createEnvelopeWithId(id, data.getBytes())
 
   def createEnvelopeWithId(id: String, data: Array[Byte]): WSResponse =
+    import play.api.libs.ws.writeableOf_ByteArray
     client
       .url(s"$url/envelopes/$id")
       .withHttpHeaders("Content-Type" -> "application/json")

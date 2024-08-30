@@ -27,7 +27,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ServiceSpec extends AnyWordSpecLike with Matchers with ScalaFutures {
 
-  implicit val ec: ExecutionContext = ExecutionContext.global
+  given ExecutionContext = ExecutionContext.global
 
   "find" should {
     "be successful" in {
@@ -50,7 +50,7 @@ class ServiceSpec extends AnyWordSpecLike with Matchers with ScalaFutures {
 
     "be a find service error" in {
       val envelope = Envelope()
-      val find = Service.find(_ => Future.failed(new Exception("not good"))) _
+      val find = Service.find(_ => Future.failed(Exception("not good"))) _
 
       val result = find(envelope._id).futureValue
 

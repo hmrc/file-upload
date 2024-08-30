@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload.controllers
 
-import play.api.libs.json.{Format, JsObject, Json}
+import play.api.libs.json.JsObject
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileName, FileRefId}
 
 sealed trait Event
@@ -40,11 +40,3 @@ case class FileScanned(
   fileRefId : FileRefId,
   hasVirus  : Boolean
 ) extends Event
-
-object EventFormatters {
-  implicit val fileInQuarantineStoredFormat: Format[FileInQuarantineStored] = {
-    implicit val fnf = FileName.apiFormat
-    Json.format[FileInQuarantineStored]
-  }
-  implicit val fileScannedFormat           : Format[FileScanned]            = Json.format[FileScanned]
-}

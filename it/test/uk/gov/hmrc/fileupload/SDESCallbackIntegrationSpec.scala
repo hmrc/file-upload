@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.fileupload
 
-import java.time.Instant
-
 import play.api.libs.json.Json
+import play.api.libs.ws.writeableOf_JsValue
 import uk.gov.hmrc.fileupload.controllers.routing.{ChecksumAlgorithm, Notification, NotificationItem}
 import uk.gov.hmrc.fileupload.support.{ActionsSupport, IntegrationSpec}
+
+import java.time.Instant
 
 class SDESCallbackIntegrationSpec extends IntegrationSpec with ActionsSupport {
 

@@ -17,6 +17,7 @@
 package uk.gov.hmrc.fileupload.read.envelope
 
 import com.mongodb.{MongoException, ReadPreference}
+import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 import org.apache.pekko.NotUsed
 import org.apache.pekko.stream.scaladsl.Source
 import org.bson.conversions.Bson
@@ -35,8 +36,7 @@ import java.time.Instant
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-object Repository {
-
+object Repository:
   type UpdateResult = Either[UpdateError, UpdateSuccess.type]
   case object UpdateSuccess
   sealed trait UpdateError
@@ -51,14 +51,12 @@ object Repository {
 
   val deleteSuccess = Right(DeleteSuccess)
 
-  def apply(mongoComponent: MongoComponent)(implicit ec: ExecutionContext): Repository =
-    new Repository(mongoComponent)
-}
+end Repository
 
 class Repository(
   mongoComponent: MongoComponent
-)(implicit
-  ec: ExecutionContext
+)(using
+  ExecutionContext
 ) extends PlayMongoRepository[Envelope](
   collectionName = "envelopes-read-model",
   mongoComponent = mongoComponent,
@@ -66,7 +64,7 @@ class Repository(
   indexes        = Seq(
                      IndexModel(Indexes.ascending("status", "destination"), IndexOptions().background(true))
                    )
-) {
+):
   import Repository._
 
   // OldDataPurger cleans up old data
@@ -77,124 +75,117 @@ class Repository(
   )(
     envelope: Envelope,
     checkVersion: Boolean = true
-  ): Future[UpdateResult] = {
-    val selector =
-      if (checkVersion)
-        and(
-          equal("_id", envelope._id.value),
-          lte("version", envelope.version.value)
-        )
-      else
-        equal("_id", envelope._id.value)
-
+  ): Future[UpdateResult] =
     collection
       .withWriteConcern(writeConcern)
       .updateOne(
-        filter = selector,
+        filter =
+          and(
+            equal("_id", envelope._id.value),
+            if checkVersion then lte("version", envelope.version.value) else Filters.empty()
+          ),
         update = Document("$set" -> Codecs.toBson(envelope)),
         UpdateOptions().upsert(true)
       )
       .toFuture()
-      .map { r =>
-        if (r.wasAcknowledged())
-          updateSuccess
-        else
-          Left(NotUpdatedError("No report updated"))
-      }.recover {
+      .map: r =>
+        updateSuccess
+      .recover:
         case f: MongoException =>
           Left(NewerVersionAvailable)
         case f: Throwable =>
           Left(NotUpdatedError(f.getMessage))
-      }
-  }
 
-  def get(id: EnvelopeId)(implicit ec: ExecutionContext): Future[Option[Envelope]] =
+  def get(id: EnvelopeId)(using ExecutionContext): Future[Option[Envelope]] =
     collection
       .find(filter = equal("_id", id.value))
       .toFuture()
       .map(_.headOption)
 
-  def delete(id: EnvelopeId)(implicit ec: ExecutionContext): Future[DeleteResult] =
+  def delete(id: EnvelopeId)(using ExecutionContext): Future[DeleteResult] =
     collection
       .deleteMany(filter = equal("_id", id.value))
       .toFuture()
-      .map { r =>
-        if (r.wasAcknowledged() && r.getDeletedCount > 0)
+      .map: r =>
+        if r.wasAcknowledged() && r.getDeletedCount > 0 then
           deleteSuccess
         else
           Left(DeleteError("No report deleted"))
-      }.recover {
+      .recover:
         case f: Throwable =>
           Left(DeleteError(f.getMessage))
-      }
 
-  def getByDestination(maybeDestination: Option[String])(implicit ec: ExecutionContext): Future[List[Envelope]] = {
-    val filters: List[Bson] = List(
-      equal("status", EnvelopeStatusClosed.name),
-      notEqual("isPushed", true)
-    ) ++ maybeDestination.map(d =>
-      equal("destination", d)
-    )
-
+  def getByDestination(maybeDestination: Option[String])(using ExecutionContext): Future[List[Envelope]] =
     collection
       .withReadPreference(ReadPreference.secondaryPreferred())
-      .find(and(filters: _*))
+      .find(
+        and(
+          equal("status", EnvelopeStatus.EnvelopeStatusClosed.name),
+          notEqual("isPushed", true),
+          maybeDestination.fold(Filters.empty)(d => equal("destination", d))
+        )
+      )
       .toFuture()
       .map(_.toList)
-  }
 
-  def getByStatus(status: List[EnvelopeStatus], inclusive: Boolean): Source[Envelope, NotUsed] = {
-    val operator = if (inclusive) in("status", status.map(_.name): _*) else nin("status", status.map(_.name): _*)
-    Source.fromPublisher(collection.find(operator))
-  }
+  def getByStatus(status: List[EnvelopeStatus], inclusive: Boolean): Source[Envelope, NotUsed] =
+    Source.fromPublisher:
+      collection.find:
+        if inclusive then
+          in("status", status.map(_.name): _*)
+        else
+         nin("status", status.map(_.name): _*)
 
-  def getByStatusDMS(status: List[EnvelopeStatus], isDMS: Boolean, onlyUnSeen: Boolean): Source[Envelope, NotUsed] = {
-    val operator = and(
-      in("status", status.map(_.name): _*),
-      if (isDMS) equal("destination", "DMS") else notEqual("destination", "DMS"),
-      if (onlyUnSeen) exists("seen", false) else BsonDocument()
-    )
-    Source.fromPublisher(collection.find(operator))
-  }
+  def getByStatusDMS(status: List[EnvelopeStatus], isDMS: Boolean, onlyUnSeen: Boolean): Source[Envelope, NotUsed] =
+    Source.fromPublisher:
+      collection.find:
+        and(
+          in("status", status.map(_.name): _*),
+          if isDMS      then equal("destination", "DMS") else notEqual("destination", "DMS"),
+          if onlyUnSeen then exists("seen", false)       else Filters.empty
+        )
 
   def markAsSeen(id: EnvelopeId): Future[Unit] =
     collection
-      .updateOne(equal("_id", id.value), set("seen", Instant.now()))
+      .updateOne(
+        equal("_id", id.value),
+        set("seen", Instant.now())
+      )
       .toFuture()
       .map(_ => ())
 
   def clearSeen(): Future[Long] =
     collection
       .updateMany(
-        and(equal("status", EnvelopeStatusClosed.name), exists("seen", true)),
+        and(
+          equal("status", EnvelopeStatus.EnvelopeStatusClosed.name),
+          exists("seen", true)
+        ),
         unset("seen")
       )
       .toFuture()
       .map(_.getModifiedCount)
 
-  def all()(implicit ec: ExecutionContext): Future[List[Envelope]] =
+  def all()(using ExecutionContext): Future[List[Envelope]] =
     collection
       .find()
       .toFuture()
       .map(_.toList)
 
-  def recreate(): Unit = {
+  def recreate(): Unit =
     Await.result(collection.drop().toFuture(), 5.seconds)
     Await.result(ensureIndexes(), 5.seconds)
-  }
 
   def purge(envelopeIds: Seq[EnvelopeId]): Future[Unit] =
-    if (envelopeIds.nonEmpty)
+    if envelopeIds.nonEmpty then
       collection.bulkWrite(envelopeIds.map(id => DeleteOneModel(equal("_id", id.value)))).toFuture().map(_ => ())
     else Future.unit
-}
 
-class WithValidEnvelope(getEnvelope: EnvelopeId => Future[Option[Envelope]]) {
-  def apply(id: EnvelopeId)(block: Envelope => Future[Result])(implicit ec: ExecutionContext): Future[Result] =
-    getEnvelope(id).flatMap {
+end Repository
+
+class WithValidEnvelope(getEnvelope: EnvelopeId => Future[Option[Envelope]]):
+  def apply(id: EnvelopeId)(block: Envelope => Future[Result])(using ExecutionContext): Future[Result] =
+    getEnvelope(id).flatMap:
       case Some(e) => block(e) // eventually do other checks here, e.g. is envelope sealed?
-      case None    => Future.successful(
+      case None    => Future.successful:
                         Results.NotFound(Json.obj("message" -> s"Envelope with id: $id not found"))
-                      )
-    }
-}

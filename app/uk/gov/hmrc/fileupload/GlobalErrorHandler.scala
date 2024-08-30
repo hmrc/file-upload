@@ -24,10 +24,9 @@ import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import scala.concurrent.Future
 
 @Singleton
-class GlobalErrorHandler @Inject() extends HttpErrorHandler {
+class GlobalErrorHandler @Inject() extends HttpErrorHandler:
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] =
     Future.successful(ExceptionHandler(statusCode, message))
 
   override def onServerError(request: RequestHeader, exception: Throwable): Future[Result] =
     Future.successful(ExceptionHandler(exception))
-}

@@ -49,16 +49,18 @@ trait IntegrationTestApplicationComponents extends GuiceOneServerPerSuite with M
     pushDestinations.fold(Map.empty[String, String])(_.zipWithIndex.map { case (destination, i) => s"routing.destinations.$i" -> destination }.toMap) ++
     pushRetryBackoff.fold(Map.empty[String, String])(retryBackoff => Map("routing.pushRetryBackoff" -> retryBackoff.toString))
 
-  val allEventsPublishControl: Stream[Boolean] = Stream.continually(true)
+  val allEventsPublishControl: LazyList[Boolean] = LazyList.continually(true)
 
   // creates a new application and sets the components
   implicit override lazy val app: Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .configure(conf: _*)
       .overrides(
-        bind[AllEventsPublisher].to(new DefaultAllEventsPublisher with ControlledAllEventsPublisher {
-          override val shouldPublish: Stream[Boolean] = allEventsPublishControl
-        })
+        bind[AllEventsPublisher].to(
+          new DefaultAllEventsPublisher with ControlledAllEventsPublisher {
+            override val shouldPublish: LazyList[Boolean] = allEventsPublishControl
+          }
+        )
       )
       .build()
 }

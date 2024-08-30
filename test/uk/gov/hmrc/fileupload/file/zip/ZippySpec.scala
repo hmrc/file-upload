@@ -25,7 +25,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, Support}
 import uk.gov.hmrc.fileupload.file.zip.Zippy._
-import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatusClosed, EnvelopeStatusOpen}
+import uk.gov.hmrc.fileupload.read.envelope.{Envelope, EnvelopeStatus}
 import uk.gov.hmrc.fileupload.read.envelope.Service._
 
 import scala.concurrent.Future
@@ -37,7 +37,7 @@ class ZippySpec
      with IntegrationPatience
      with EitherValues {
 
-  import uk.gov.hmrc.fileupload.Support.StreamImplicits.system
+  import uk.gov.hmrc.fileupload.Support.StreamImplicits.given
   import scala.concurrent.ExecutionContext.Implicits.global
 
   private val downloadZip: Envelope => Future[Source[ByteString, NotUsed]] =
@@ -45,7 +45,7 @@ class ZippySpec
 
   "Zippy" should {
     "provide a zip file containing an envelope including its files in S3" in {
-      val envelope = Support.envelopeWithAFile(FileId("myfile")).copy(status = EnvelopeStatusClosed)
+      val envelope = Support.envelopeWithAFile(FileId("myfile")).copy(status = EnvelopeStatus.EnvelopeStatusClosed)
       val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Right(envelope))
       val zipResult = Zippy.zipEnvelope(getEnvelope, downloadZip)(envelopeId = EnvelopeId("myid")).futureValue
 
@@ -53,14 +53,14 @@ class ZippySpec
     }
 
     "fail if envelope is not in Closed status" in {
-      val envelope = Support.envelopeWithAFile(FileId("myfile")).copy(status = EnvelopeStatusOpen)
+      val envelope = Support.envelopeWithAFile(FileId("myfile")).copy(status = EnvelopeStatus.EnvelopeStatusOpen)
       val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Right(envelope))
       val zipResult = Zippy.zipEnvelope(getEnvelope, downloadZip)(envelopeId = EnvelopeId("myid")).futureValue
 
       zipResult.isLeft shouldBe true
       zipResult.left.map {
-        case EnvelopeNotRoutedYet =>
-        case _                    => fail("EnvelopeNotRoutedYet was expected")
+        case ZipEnvelopeError.EnvelopeNotRoutedYet =>
+        case _                                     => fail("EnvelopeNotRoutedYet was expected")
       }
     }
 
@@ -69,8 +69,8 @@ class ZippySpec
       val zipResult = Zippy.zipEnvelope(getEnvelope, downloadZip)(envelopeId = EnvelopeId("myid")).futureValue
 
       zipResult.left.value match {
-        case ZipEnvelopeNotFoundError =>
-        case _                        => fail("EnvelopeNotFound was expected")
+        case ZipEnvelopeError.ZipEnvelopeNotFoundError =>
+        case _                                         => fail("EnvelopeNotFound was expected")
       }
     }
 
@@ -79,13 +79,13 @@ class ZippySpec
       val zipResult = Zippy.zipEnvelope(getEnvelope, downloadZip)(envelopeId = EnvelopeId("myid")).futureValue
 
       zipResult.left.value match {
-        case ZipProcessingError("A service error") =>
-        case _                                     => fail("EnvelopeNotFound was expected")
+        case ZipEnvelopeError.ZipProcessingError("A service error") =>
+        case _                                                      => fail("EnvelopeNotFound was expected")
       }
     }
 
     "return empty zip when no file is found in the envelope" in {
-      val envelopeWithNoFiles = Support.envelope.copy(status = EnvelopeStatusClosed)
+      val envelopeWithNoFiles = Support.envelope.copy(status = EnvelopeStatus.EnvelopeStatusClosed)
       val getEnvelope: (EnvelopeId) => Future[FindResult] = _ => Future.successful(Right(envelopeWithNoFiles))
       val zipResult = Zippy.zipEnvelope(getEnvelope, downloadZip)(envelopeId = EnvelopeId("myid")).futureValue
 

@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.fileupload.controllers.routing
 
-import org.mockito.scalatest.MockitoSugar
+import org.mockito.Mockito.when
 import org.scalatest.concurrent.{ScalaFutures, IntegrationPatience}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.mvc.ControllerComponents
@@ -40,7 +41,7 @@ class SDESCallbackControllerSpec
      with ScalaFutures
      with IntegrationPatience {
 
-  implicit val ec: ExecutionContext = ExecutionContext.global
+  given ExecutionContext = ExecutionContext.global
 
   val failed = Future.failed(new Exception("not good"))
 
@@ -48,7 +49,7 @@ class SDESCallbackControllerSpec
   ) = {
     val appModule = mock[ApplicationModule]
     when(appModule.envelopeCommandHandler).thenReturn(handleCommand)
-    new SDESCallbackController(appModule, app.injector.instanceOf[ControllerComponents])
+    SDESCallbackController(appModule, app.injector.instanceOf[ControllerComponents])
   }
 
   "callback" should {
@@ -117,12 +118,12 @@ class SDESCallbackControllerSpec
           .copy(failureReason = Some("Could not download https://localhost:8080/asd"))
       val request = FakeRequest().withBody(Json.toJson(notification))
 
-      val res = new AtomicReference[String]()
+      val res = AtomicReference[String]()
       val controller = newController(handleCommand = command => {
         command match {
           case MarkEnvelopeAsRouted(_, _, Some(reason)) => res.set(reason)
           case _ =>
-          }
+        }
         Future.successful(Right(CommandAccepted))
       })
 

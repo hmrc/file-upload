@@ -18,7 +18,6 @@ private object AppDependencies {
   val test = Seq(
     "uk.gov.hmrc"            %% "bootstrap-test-play-30"      % bootstrapPlayVersion      % Test,
     "uk.gov.hmrc.mongo"      %% "hmrc-mongo-test-play-30"     % mongoVersion              % Test,
-    "org.mockito"            %% "mockito-scala-scalatest"     % "1.17.37"                 % Test,
     "org.apache.pekko"       %% "pekko-testkit"               % PlayVersion.pekkoVersion  % Test
   )
 

@@ -18,7 +18,8 @@ package uk.gov.hmrc.fileupload.controllers.routing
 
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
-import play.api.mvc.ControllerComponents
+import play.api.libs.json.JsValue
+import play.api.mvc.{ControllerComponents, Request}
 import uk.gov.hmrc.fileupload.ApplicationModule
 import uk.gov.hmrc.fileupload.controllers.ExceptionHandler
 import uk.gov.hmrc.fileupload.utils.NumberFormatting.formatAsKiloOrMegabytes
@@ -32,48 +33,50 @@ import scala.concurrent.{ExecutionContext, Future}
 class RoutingController @Inject()(
   appModule: ApplicationModule,
   cc       : ControllerComponents
-)(implicit ec: ExecutionContext
-) extends BackendController(cc) {
+)(using ExecutionContext
+) extends BackendController(cc):
 
   private val logger = Logger(getClass)
 
-  val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] = appModule.envelopeCommandHandler
-  val newId: () => String = appModule.newId
+  val handleCommand: (EnvelopeCommand) => Future[Either[CommandNotAccepted, CommandAccepted.type]] =
+    appModule.envelopeCommandHandler
 
-  def createRoutingRequest() = Action.async(parse.json) { implicit request =>
-    withJsonBody[RouteEnvelopeRequest] { requestParams =>
-      import requestParams._
-      val requestId = newId()
-      handleCommand(SealEnvelope(envelopeId, requestId, destination, application)).map {
-        case Right(_) =>
-          Created.withHeaders(LOCATION -> uk.gov.hmrc.fileupload.controllers.routing.routes.RoutingController.routingStatus(requestId).url)
-        case Left(EnvelopeSealedError)
-           | Left(EnvelopeRoutingAlreadyRequestedError) =>
-          ExceptionHandler(BAD_REQUEST, s"Routing request already received for envelope: $envelopeId")
-        case Left(FilesWithError(ids)) =>
-          ExceptionHandler(BAD_REQUEST, s"Files: ${ids.mkString("[", ", ", "]")} contain errors")
-        case Left(EnvelopeItemCountExceededError(allowed, actual)) =>
-          ExceptionHandler(BAD_REQUEST, s"Envelope item count exceeds maximum of $allowed, actual: $actual")
-        case Left(EnvelopeMaxSizeExceededError(allowedLimit)) =>
-          ExceptionHandler(BAD_REQUEST, s"Envelope size exceeds maximum of ${ formatAsKiloOrMegabytes(allowedLimit) }")
-        case Left(EnvelopeNotFoundError) =>
-          ExceptionHandler(BAD_REQUEST, s"Envelope with id: $envelopeId not found")
-        case Left(otherError) =>
-          logger.warn(otherError.toString)
-          ExceptionHandler(BAD_REQUEST, otherError.toString)
-      }.recover { case e => ExceptionHandler(e) }
-    }
-  }
+  val newId: () => String =
+    appModule.newId
 
-  def routingStatus(id: String) = Action {
-    ExceptionHandler(NOT_IMPLEMENTED, "Not implemented as part of MVP")
-  }
+  def createRoutingRequest() =
+    Action.async(parse.json): request =>
+      given Request[JsValue] = request
+      withJsonBody[RouteEnvelopeRequest]: requestParams =>
+        import requestParams.{application, destination, envelopeId}
+        val requestId = newId()
+        handleCommand(SealEnvelope(envelopeId, requestId, destination, application))
+          .map:
+            case Right(_) =>
+              Created.withHeaders(LOCATION -> uk.gov.hmrc.fileupload.controllers.routing.routes.RoutingController.routingStatus(requestId).url)
+            case Left(EnvelopeSealedError)
+               | Left(EnvelopeRoutingAlreadyRequestedError) =>
+              ExceptionHandler(BAD_REQUEST, s"Routing request already received for envelope: $envelopeId")
+            case Left(FilesWithError(ids)) =>
+              ExceptionHandler(BAD_REQUEST, s"Files: ${ids.mkString("[", ", ", "]")} contain errors")
+            case Left(EnvelopeItemCountExceededError(allowed, actual)) =>
+              ExceptionHandler(BAD_REQUEST, s"Envelope item count exceeds maximum of $allowed, actual: $actual")
+            case Left(EnvelopeMaxSizeExceededError(allowedLimit)) =>
+              ExceptionHandler(BAD_REQUEST, s"Envelope size exceeds maximum of ${ formatAsKiloOrMegabytes(allowedLimit) }")
+            case Left(EnvelopeNotFoundError) =>
+              ExceptionHandler(BAD_REQUEST, s"Envelope with id: $envelopeId not found")
+            case Left(otherError) =>
+              logger.warn(otherError.toString)
+              ExceptionHandler(BAD_REQUEST, otherError.toString)
+          .recover { case e => ExceptionHandler(e) }
 
-  def resendClosed() = Action.async {
-    appModule.envelopeRepository.clearSeen()
-      .map { updatedCount =>
-        logger.info(s"Resend Closed - updated $updatedCount")
-        Ok(s"Updated $updatedCount")
-      }
-  }
-}
+  def routingStatus(id: String) =
+    Action:
+      ExceptionHandler(NOT_IMPLEMENTED, "Not implemented as part of MVP")
+
+  def resendClosed() =
+    Action.async:
+      appModule.envelopeRepository.clearSeen()
+        .map: updatedCount =>
+          logger.info(s"Resend Closed - updated $updatedCount")
+          Ok(s"Updated $updatedCount")

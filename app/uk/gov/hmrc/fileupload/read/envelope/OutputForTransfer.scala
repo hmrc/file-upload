@@ -22,8 +22,8 @@ import play.api.mvc.RequestHeader
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 import uk.gov.hmrc.fileupload.controllers
 
-object OutputForTransfer {
-  def generateJson(envelopes: Seq[Envelope])(implicit rh: RequestHeader): JsValue = {
+object OutputForTransfer:
+  def generateJson(envelopes: Seq[Envelope])(using RequestHeader): JsValue =
     Json.obj(
       _links -> Json.obj(
         self -> Json.obj(
@@ -34,9 +34,8 @@ object OutputForTransfer {
         "envelopes" -> envelopes.map(stringifyEnvelope)
       )
     )
-  }
 
-  def stringifyEnvelope(e: Envelope): JsValue = {
+  def stringifyEnvelope(e: Envelope): JsValue =
     Json.obj(
       id          -> e._id,
       destination -> e.destination,
@@ -55,9 +54,8 @@ object OutputForTransfer {
                                     )
                      )
     )
-  }
 
-  def mapFiles[A](files: Option[Seq[File]])(f: File => A): Seq[A] =
+  private def mapFiles[A](files: Option[Seq[File]])(f: File => A): Seq[A] =
     files.map(_.map(f)).getOrElse(List.empty[A])
 
   def stringifyFile(e: Envelope, f: File): JsValue =
@@ -74,13 +72,13 @@ object OutputForTransfer {
                      )
     )
 
-  def formatDateAsUtc(date: DateTime) = date.toString("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  private def formatDateAsUtc(date: DateTime) =
+    date.toString("yyyy-MM-dd'T'HH:mm:ss'Z'")
 
-  object URLs {
-    def envelopesPerDestination(implicit rh: RequestHeader): String = {
+  private object URLs:
+    def envelopesPerDestination(using rh: RequestHeader): String =
       val destination = rh.getQueryString("destination").map(d => s"?destination=$d").getOrElse("")
       controllers.transfer.routes.TransferController.list.absoluteURL(rh.secure) + destination
-    }
 
     def fileTransferEnvelope(envelopeId: EnvelopeId): String =
       controllers.transfer.routes.TransferController.download(envelopeId).url
@@ -91,22 +89,23 @@ object OutputForTransfer {
     def fileUri(envelopeId: EnvelopeId, fileId: FileId): String =
       controllers.routes.EnvelopeController.deleteFile(envelopeId, fileId).url
 
-    def fileRelativeToEnvelope(file: File, envelopeId: EnvelopeId): String = {
+    def fileRelativeToEnvelope(file: File, envelopeId: EnvelopeId): String =
       val envelopeUrl =  controllers.routes.EnvelopeController.show(envelopeId).url
       controllers.routes.EnvelopeController.deleteFile(envelopeId, file.fileId).url.stripPrefix(envelopeUrl)
-    }
-  }
 
-  val _links      = "_links"
-  val self        = "self"
-  val href        = "href"
-  val _embedded   = "_embedded"
-  val id          = "id"
-  val destination = "destination"
-  val application = "application"
-  val files       = "files"
-  val name        = "name"
-  val contentType = "contentType"
-  val length      = "length"
-  val created     = "created"
-}
+  end URLs
+
+  private val _links      = "_links"
+  private val self        = "self"
+  private val href        = "href"
+  private val _embedded   = "_embedded"
+  private val id          = "id"
+  private val destination = "destination"
+  private val application = "application"
+  private val files       = "files"
+  private val name        = "name"
+  private val contentType = "contentType"
+  private val length      = "length"
+  private val created     = "created"
+
+end OutputForTransfer

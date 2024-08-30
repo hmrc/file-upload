@@ -19,7 +19,6 @@ package uk.gov.hmrc.fileupload.read.stats
 import org.apache.pekko.actor.{Actor, ActorRef, Props}
 import uk.gov.hmrc.fileupload.EnvelopeId
 import uk.gov.hmrc.fileupload.read.envelope.Service.FindResult
-import uk.gov.hmrc.fileupload.read.notifier.NotifierRepository.{Notification, NotifyResult}
 import uk.gov.hmrc.fileupload.write.envelope._
 import uk.gov.hmrc.fileupload.write.infrastructure.Event
 
@@ -27,47 +26,44 @@ import scala.concurrent.Future
 
 class StatsActor(
   subscribe          : (ActorRef, Class[_]) => Boolean,
-  notify             : (Notification, String) => Future[NotifyResult],
-  save               : FileQuarantined => Unit,
-  deleteVirusDetected: VirusDetected => Unit,
-  deleteFileStored   : FileStored => Unit,
-  deleteFiles        : EnvelopeDeleted => Unit
-) extends Actor {
+  save               : FileQuarantined      => Unit,
+  deleteVirusDetected: VirusDetected        => Unit,
+  deleteFileStored   : FileStored           => Unit,
+  deleteFiles        : EnvelopeDeleted      => Unit
+) extends Actor:
 
   override def preStart(): Unit =
     subscribe(self, classOf[Event])
 
   def receive = {
-    case event: Event => event.eventData match {
-      case e: FileQuarantined =>
-        save(e)
-      case e: VirusDetected =>
-        deleteVirusDetected(e)
-      case e: FileStored =>
-        deleteFileStored(e)
-      case e: EnvelopeDeleted =>
-        deleteFiles(e)
-      case _ =>
-    }
+    case event: Event =>
+      event.eventData match
+        case e: FileQuarantined =>
+          save(e)
+        case e: VirusDetected =>
+          deleteVirusDetected(e)
+        case e: FileStored =>
+          deleteFileStored(e)
+        case e: EnvelopeDeleted =>
+          deleteFiles(e)
+        case _ =>
   }
-}
 
-object StatsActor {
+end StatsActor
+
+object StatsActor:
   def props(
     subscribe          : (ActorRef, Class[_]) => Boolean,
-    findEnvelope       : EnvelopeId => Future[FindResult],
-    notify             : (Notification, String) => Future[NotifyResult],
-    save               : FileQuarantined => Unit,
-    deleteVirusDetected: VirusDetected => Unit,
-    deleteFileStored   : FileStored => Unit,
-    deleteFiles        : EnvelopeDeleted => Unit
+    findEnvelope       : EnvelopeId           => Future[FindResult],
+    save               : FileQuarantined      => Unit,
+    deleteVirusDetected: VirusDetected        => Unit,
+    deleteFileStored   : FileStored           => Unit,
+    deleteFiles        : EnvelopeDeleted      => Unit
   ) =
-    Props(new StatsActor(
+    Props(StatsActor(
       subscribe           = subscribe,
-      notify              = notify,
       save                = save,
       deleteFileStored    = deleteFileStored,
       deleteVirusDetected = deleteVirusDetected,
       deleteFiles         = deleteFiles
     ))
-}

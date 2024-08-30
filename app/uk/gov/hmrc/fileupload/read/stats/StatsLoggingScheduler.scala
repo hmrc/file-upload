@@ -23,14 +23,14 @@ import java.time.Instant
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-object StatsLoggingScheduler {
+object StatsLoggingScheduler:
 
   def initialize(
     actorSystem: ActorSystem,
     configuration: StatsLoggingConfiguration,
     statsLogger: StatsLogger
-  )(implicit
-    ec: ExecutionContext
+  )(using
+    ExecutionContext
   ): Cancellable =
     actorSystem.scheduler.scheduleAtFixedRate(configuration.initialDelay, configuration.interval)(() =>
       statsLogger.logAddedOverTimePeriod(
@@ -38,35 +38,34 @@ object StatsLoggingScheduler {
         configuration.maximumInProgressFiles
       )
     )
-}
 
 class StatsLogger(
   statsRepository: Repository,
   statsLogger: StatsLogWriter
-)(implicit
-  ec: ExecutionContext
-) {
+)(using
+  ExecutionContext
+):
 
   def logAddedOverTimePeriod(
     timePeriod            : Duration,
     maximumInProgressFiles: Option[Int]
   ): Future[Unit] =
-    countAddedOverTimePeriod(timePeriod).map { added =>
-      maximumInProgressFiles match {
-        case Some(maximum: Int) => checkIfAddedExceedsMaximum(added, maximum, timePeriod)
-        case None               => statsLogger.logRepoSize(added, timePeriod)
-      }
-    }
+    countAddedOverTimePeriod(timePeriod)
+      .map: added =>
+        maximumInProgressFiles match
+          case Some(maximum: Int) => checkIfAddedExceedsMaximum(added, maximum, timePeriod)
+          case None               => statsLogger.logRepoSize(added, timePeriod)
 
   private def checkIfAddedExceedsMaximum(added: Long, maximum: Int, timePeriod: Duration): Unit =
-      if (added > maximum)
-        statsLogger.logRepoWarning(added, maximum, timePeriod)
-      else
-        statsLogger.logRepoSize(added, timePeriod)
+    if added > maximum then
+      statsLogger.logRepoWarning(added, maximum, timePeriod)
+    else
+      statsLogger.logRepoSize(added, timePeriod)
 
   private def countAddedOverTimePeriod(duration: Duration): Future[Long] =
     statsRepository.statsAddedSince(Instant.now().minusMillis(duration.toMillis))
-}
+
+end StatsLogger
 
 class StatsLogWriter {
   private val logger = Logger(getClass)

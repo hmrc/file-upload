@@ -20,7 +20,7 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-object Service {
+object Service:
 
   type FindResult = Either[FindError, Envelope]
 
@@ -39,29 +39,32 @@ object Service {
     get: EnvelopeId => Future[Option[Envelope]]
   )(
     id: EnvelopeId
-  )(implicit
-    ec: ExecutionContext
+  )(using
+    ExecutionContext
   ): Future[FindResult] =
-    get(id).map {
-      case Some(e) => Right(e)
-      case _ => Left(FindEnvelopeNotFoundError)
-    }.recover { case e => Left(FindServiceError(e.getMessage)) }
+    get(id)
+      .map:
+        case Some(e) => Right(e)
+        case _       => Left(FindEnvelopeNotFoundError)
+      .recover { case e => Left(FindServiceError(e.getMessage)) }
 
   def findMetadata(
     find  : EnvelopeId => Future[FindResult]
   )(id    : EnvelopeId,
     fileId: FileId
-  )(implicit
-    ec: ExecutionContext
+  )(using
+    ExecutionContext
   ): Future[FindMetadataResult] =
-    find(id).map {
-      case Right(envelope) =>
-        envelope.getFileById(fileId) match {
-          case Some(file) => Right(file)
-          case None       => Left(FindMetadataFileNotFoundError)
-        }
-      case Left(FindEnvelopeNotFoundError) => Left(FindMetadataEnvelopeNotFoundError)
-      case Left(FindServiceError(m))       => Left(FindMetadataServiceError(m))
-    }.recover { case e => Left(FindMetadataServiceError(e.getMessage)) }
+    find(id)
+      .map:
+        case Right(envelope)                 =>
+          envelope.getFileById(fileId) match
+            case Some(file) => Right(file)
+            case None       => Left(FindMetadataFileNotFoundError)
+        case Left(FindEnvelopeNotFoundError) =>
+          Left(FindMetadataEnvelopeNotFoundError)
+        case Left(FindServiceError(m))       =>
+          Left(FindMetadataServiceError(m))
+      .recover { case e => Left(FindMetadataServiceError(e.getMessage)) }
 
-}
+end Service

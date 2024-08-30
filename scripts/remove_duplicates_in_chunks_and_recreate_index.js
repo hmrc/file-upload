@@ -18,9 +18,9 @@ printjson(duplicates);
 fileIds = duplicates.map(d => d._id.fid );
 
 files = db.getCollection('envelopes.files').find({
-	"_id" : {
-		 "$in" : fileIds
-	}
+  "_id" : {
+     "$in" : fileIds
+  }
 }).toArray();
 
 files;
@@ -31,32 +31,32 @@ printjson(files);
 envelopeIds = files.map(file => file.metadata.envelopeId );
 
 db.getCollection('envelopes-read-model').remove({
-	"_id" : {
-		"$in" : envelopeIds
+  "_id" : {
+    "$in" : envelopeIds
   }
 });
 
 db.getCollection('envelopes.files').remove({
-	"_id" : {
-		"$in" : fileIds
+  "_id" : {
+    "$in" : fileIds
   }
 });
 
 db.getCollection('events').remove({
-	"streamId" : {
-		"$in" : envelopeIds
+  "streamId" : {
+    "$in" : envelopeIds
   }
 });
 
 db.getCollection('inprogress-files').remove({
-	"envelopeId" : {
-		"$in" : envelopeIds
+  "envelopeId" : {
+    "$in" : envelopeIds
   }
 });
 
 db.getCollection('envelopes.chunks').remove({
-	"files_id" : {
-		"$in" : fileIds
+  "files_id" : {
+    "$in" : fileIds
   }
 });
 

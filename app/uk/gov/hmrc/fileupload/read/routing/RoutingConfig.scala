@@ -35,10 +35,9 @@ case class RoutingConfig(
   pushRetryBackoff : FiniteDuration
 )
 
-object RoutingConfig {
+object RoutingConfig:
 
-  def apply(config: Configuration): RoutingConfig = {
-
+  def apply(config: Configuration): RoutingConfig =
     def getStringList(key: String): List[String] =
       config.underlying.getStringList(key).asScala.toList
 
@@ -54,5 +53,3 @@ object RoutingConfig {
       throttlePer       = config.get[FiniteDuration]("routing.throttlePer"),
       pushRetryBackoff  = config.get[FiniteDuration]("routing.pushRetryBackoff")
     )
-  }
-}

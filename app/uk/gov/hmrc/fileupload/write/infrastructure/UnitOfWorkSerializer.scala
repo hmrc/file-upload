@@ -19,15 +19,15 @@ package uk.gov.hmrc.fileupload.write.infrastructure
 import play.api.libs.json._
 import uk.gov.hmrc.fileupload.write.envelope.{EventSerializer => ES}
 
-object UnitOfWorkSerializer {
+object UnitOfWorkSerializer:
 
-  private val eventReads: StreamId => Version => Created => Reads[Event]
-    = (streamId: StreamId) => (version: Version) => (created: Created) => (event: JsValue) =>
-      for {
+  private val eventReads: StreamId => Version => Created => Reads[Event] =
+    (streamId: StreamId) => (version: Version) => (created: Created) => (event: JsValue) =>
+      for
         eventId   <- (event \ "id"       ).validate[String].map(EventId.apply)
         eventType <- (event \ "eventType").validate[String].map(EventType.apply)
         eventData <- (event \ "eventData").validate[JsValue]
-      } yield Event(
+      yield Event(
         eventId,
         streamId,
         version,
@@ -36,17 +36,15 @@ object UnitOfWorkSerializer {
         ES.toEventData(eventType, eventData)
       )
 
-  private val jsonReads = new Reads[UnitOfWork] {
-    override def reads(json: JsValue): JsResult[UnitOfWork] = {
-      for {
+  private val jsonReads:Reads[UnitOfWork] =
+    (json: JsValue) =>
+      for
         streamId <- (json \ "_id" \ "streamId").validate[String].map(StreamId.apply)
         version  <- (json \ "_id" \ "version" ).validate[Int].map(Version.apply)
         created  <- (json \ "created"         ).validate[Long].map(Created.apply)
         events   <- (json \ "events"          ).validate[Seq[Event]](Reads.seq(eventReads(streamId)(version)(created)))
-      } yield
+      yield
         UnitOfWork(streamId, version, created, events)
-    }
-  }
 
   private val jsonWrites: Writes[UnitOfWork] =
     (unitOfWork: UnitOfWork) =>
@@ -66,5 +64,5 @@ object UnitOfWorkSerializer {
                       })
       )
 
-  val format: Format[UnitOfWork] = Format(jsonReads, jsonWrites)
-}
+  val format: Format[UnitOfWork] =
+    Format(jsonReads, jsonWrites)

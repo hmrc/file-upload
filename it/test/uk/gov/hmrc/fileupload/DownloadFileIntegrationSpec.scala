@@ -87,7 +87,7 @@ class DownloadFileIntegrationSpec
       response.status shouldBe OK
 
       And("I will receive the file")
-      response.body shouldBe data
+      response.body[String] shouldBe data
 
       And("Header should include content length")
       response.header("Content-Length") shouldBe Some(s"${data.getBytes.length}")
@@ -134,7 +134,7 @@ class DownloadFileIntegrationSpec
       ))
 
       And("a file has previously been uploaded to the transient store after it's marked clean")
-      val file = new RandomAccessFile("t", "rw")
+      val file = RandomAccessFile("t", "rw")
       file.setLength(1024 * 1024 * 2)
       val data = new Array[Byte](file.length().toInt)
       file.readFully(data)

@@ -26,11 +26,11 @@ import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileName, FileRefId}
 
 // commands
 
-sealed trait EnvelopeCommand extends Command {
+sealed trait EnvelopeCommand extends Command:
   def id: EnvelopeId
 
-  override def streamId: StreamId = StreamId(id.value)
-}
+  override def streamId: StreamId =
+    StreamId(id.value)
 
 case class CreateEnvelope(
   override val id: EnvelopeId,
@@ -111,7 +111,8 @@ case class ArchiveEnvelope(
 sealed trait EnvelopeEvent extends EventData {
   def id: EnvelopeId
 
-  override def streamId: StreamId = StreamId(id.value)
+  override def streamId: StreamId =
+    StreamId(id.value)
 }
 
 case class EnvelopeCreated(
@@ -195,98 +196,98 @@ case class EnvelopeArchived(
 object Formatters {
   import play.api.libs.functional.syntax._
 
-  private implicit val fnf: Format[FileName] = FileName.apiFormat
-  implicit val unsealEnvelopeFormat: Format[UnsealEnvelope] = Json.format[UnsealEnvelope]
-  implicit val storeFileFormat: OFormat[StoreFile] = Json.format[StoreFile]
-  implicit val quarantineFileFormat: OFormat[QuarantineFile] = Json.format[QuarantineFile]
-  implicit val markFileAsCleanFormat: OFormat[MarkFileAsClean] = Json.format[MarkFileAsClean]
-  implicit val markFileAsInfectedFormat: OFormat[MarkFileAsInfected] = Json.format[MarkFileAsInfected]
-  implicit val sizeReads: Reads[Size] = SizeReads
-  implicit val sizeWrites: Writes[Size] = SizeWrites
-  implicit val constraintsFormats: OFormat[EnvelopeFilesConstraints] = Json.format[EnvelopeFilesConstraints]
-  implicit val envelopeCreatedFormat: Format[EnvelopeCreated] = {
+  private given Format[FileName]   = FileName.apiFormat
+
+  given Format[UnsealEnvelope]     = Json.format[UnsealEnvelope]
+  given Format[StoreFile]          = Json.format[StoreFile]
+  given Format[QuarantineFile]     = Json.format[QuarantineFile]
+  given Format[MarkFileAsClean]    = Json.format[MarkFileAsClean]
+  given Format[MarkFileAsInfected] = Json.format[MarkFileAsInfected]
+  private given Format[EnvelopeFilesConstraints] =
+    given Reads[Size]  = SizeReads
+    given Writes[Size] = SizeWrites
+    Json.format[EnvelopeFilesConstraints]
+  given Format[EnvelopeCreated] = {
     // We are actually writing the date in mongo as a number. jodaDateReads supports both number and the specified string format.
     // (We could in theory start writing dates with JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'"), to migrate format).
-    implicit val dateReads: Reads[DateTime] = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
-    implicit val dateWrites: Writes[DateTime] = JodaWrites.JodaDateTimeNumberWrites
+    given Reads[DateTime]  = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    given Writes[DateTime] = JodaWrites.JodaDateTimeNumberWrites
     Json.format[EnvelopeCreated]
   }
-  implicit val fileQuarantinedFormat: Format[FileQuarantined] = Json.format[FileQuarantined]
-  implicit val fileNoVirusDetectedFormat: Format[NoVirusDetected] = Json.format[NoVirusDetected]
-  implicit val fileVirusDetectedFormat: Format[VirusDetected] = Json.format[VirusDetected]
-  implicit val fileDeletedFormat: Format[FileDeleted] = Json.format[FileDeleted]
-  implicit val fileStoredFormat: Format[FileStored] = Json.format[FileStored]
-  implicit val envelopeDeletedFormat: Format[EnvelopeDeleted] = Json.format[EnvelopeDeleted]
-  implicit val envelopeSealedFormat: Format[EnvelopeSealed] = Json.format[EnvelopeSealed]
-  implicit val envelopeUnsealedFormat: Format[EnvelopeUnsealed] = Json.format[EnvelopeUnsealed]
-  implicit val envelopeRouteRequestedFormat: Format[EnvelopeRouteRequested] = {
+  given Format[FileQuarantined]  = Json.format[FileQuarantined]
+  given Format[NoVirusDetected]  = Json.format[NoVirusDetected]
+  given Format[VirusDetected]    = Json.format[VirusDetected]
+  given Format[FileDeleted]      = Json.format[FileDeleted]
+  given Format[FileStored]       = Json.format[FileStored]
+  given Format[EnvelopeDeleted]  = Json.format[EnvelopeDeleted]
+  given Format[EnvelopeSealed]   = Json.format[EnvelopeSealed]
+  given Format[EnvelopeUnsealed] = Json.format[EnvelopeUnsealed]
+  given Format[EnvelopeRouteRequested] = {
     // formats used for both API and storing in Mongo
-    implicit val dateReads: Reads[DateTime] = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
-    implicit val dateWrites: Writes[DateTime] = JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    given Reads[DateTime]  = JodaReads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    given Writes[DateTime] = JodaWrites.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss'Z'")
     Json.format[EnvelopeRouteRequested]
   }
 
   // for backward compatibility; isPushed may not be present.
-  implicit val envelopeRoutedFormat: Format[EnvelopeRouted] =
+  given Format[EnvelopeRouted] =
     ( (__ \ "id"      ).format[EnvelopeId]
     ~ (__ \ "isPushed").formatNullable[Boolean].inmap(_.getOrElse(false), Some.apply[Boolean]) // formatWithDefault not available for this version of play-json
     ~ (__ \ "reason"  ).formatNullable[String]
-    )(EnvelopeRouted.apply, unlift(EnvelopeRouted.unapply))
+    )(EnvelopeRouted.apply, er => Tuple.fromProductTyped(er))
 
-  implicit val envelopeArchivedFormat: Format[EnvelopeArchived] = Json.format[EnvelopeArchived]
+  given Format[EnvelopeArchived] =
+    Json.format[EnvelopeArchived]
 }
 
-object EventSerializer {
+object EventSerializer:
 
-  import Formatters._
-
-  private val envelopeCreated        = nameOf(EnvelopeCreated.getClass)
-  private val fileQuarantined        = nameOf(FileQuarantined.getClass)
-  private val noVirusDetected        = nameOf(NoVirusDetected.getClass)
-  private val virusDetected          = nameOf(VirusDetected.getClass)
-  private val fileDeleted            = nameOf(FileDeleted.getClass)
-  private val fileStored             = nameOf(FileStored.getClass)
-  private val envelopeDeleted        = nameOf(EnvelopeDeleted.getClass)
-  private val envelopeSealed         = nameOf(EnvelopeSealed.getClass)
-  private val envelopeUnsealed       = nameOf(EnvelopeUnsealed.getClass)
+  private val envelopeCreated        = nameOf(EnvelopeCreated       .getClass)
+  private val fileQuarantined        = nameOf(FileQuarantined       .getClass)
+  private val noVirusDetected        = nameOf(NoVirusDetected       .getClass)
+  private val virusDetected          = nameOf(VirusDetected         .getClass)
+  private val fileDeleted            = nameOf(FileDeleted           .getClass)
+  private val fileStored             = nameOf(FileStored            .getClass)
+  private val envelopeDeleted        = nameOf(EnvelopeDeleted       .getClass)
+  private val envelopeSealed         = nameOf(EnvelopeSealed        .getClass)
+  private val envelopeUnsealed       = nameOf(EnvelopeUnsealed      .getClass)
   private val envelopeRouteRequested = nameOf(EnvelopeRouteRequested.getClass)
-  private val envelopeRouted         = nameOf(EnvelopeRouted.getClass)
-  private val envelopeArchived       = nameOf(EnvelopeArchived.getClass)
+  private val envelopeRouted         = nameOf(EnvelopeRouted        .getClass)
+  private val envelopeArchived       = nameOf(EnvelopeArchived      .getClass)
 
   private val logger = Logger(getClass)
 
   private def nameOf(clazz: Class[_]) =
     clazz.getName.replace("$", "")
 
-  def toEventData(eventType: EventType, value: JsValue): EventData = {
-    val jsResult = eventType.value match {
-      case `envelopeCreated`        => Json.fromJson[EnvelopeCreated](value)
-      case `fileQuarantined`        => Json.fromJson[FileQuarantined](value)
-      case `noVirusDetected`        => Json.fromJson[NoVirusDetected](value)
-      case `virusDetected`          => Json.fromJson[VirusDetected](value)
-      case `fileDeleted`            => Json.fromJson[FileDeleted](value)
-      case `fileStored`             => Json.fromJson[FileStored](value)
-      case `envelopeDeleted`        => Json.fromJson[EnvelopeDeleted](value)
-      case `envelopeSealed`         => Json.fromJson[EnvelopeSealed](value)
-      case `envelopeUnsealed`       => Json.fromJson[EnvelopeUnsealed](value)
+  def toEventData(eventType: EventType, value: JsValue): EventData =
+    import Formatters.given
+    val jsResult = eventType.value match
+      case `envelopeCreated`        => Json.fromJson[EnvelopeCreated       ](value)
+      case `fileQuarantined`        => Json.fromJson[FileQuarantined       ](value)
+      case `noVirusDetected`        => Json.fromJson[NoVirusDetected       ](value)
+      case `virusDetected`          => Json.fromJson[VirusDetected         ](value)
+      case `fileDeleted`            => Json.fromJson[FileDeleted           ](value)
+      case `fileStored`             => Json.fromJson[FileStored            ](value)
+      case `envelopeDeleted`        => Json.fromJson[EnvelopeDeleted       ](value)
+      case `envelopeSealed`         => Json.fromJson[EnvelopeSealed        ](value)
+      case `envelopeUnsealed`       => Json.fromJson[EnvelopeUnsealed      ](value)
       case `envelopeRouteRequested` => Json.fromJson[EnvelopeRouteRequested](value)
-      case `envelopeRouted`         => Json.fromJson[EnvelopeRouted](value)
-      case `envelopeArchived`       => Json.fromJson[EnvelopeArchived](value)
-    }
+      case `envelopeRouted`         => Json.fromJson[EnvelopeRouted        ](value)
+      case `envelopeArchived`       => Json.fromJson[EnvelopeArchived      ](value)
 
-    jsResult.asEither.left.foreach { errors =>
+    jsResult.asEither.left.foreach: errors =>
       logger.error(s"Unable to create eventData of type [${eventType.value}] due to json errors [$errors]")
       logger.info(s"Unable to create eventData of type [${eventType.value}] from json [${Json.stringify(value)}] due to errors [$errors]")
-    }
 
     jsResult.fold(
-      invalid => throw new RuntimeException(s"Invalid json: $invalid"),
-      valid => valid
+      invalid => throw RuntimeException(s"Invalid json: $invalid"),
+      valid   => valid
     )
-  }
 
   def fromEventData(eventData: EventData): JsValue =
-    eventData match {
+    import Formatters.given
+    eventData match
       case e: EnvelopeCreated        => Json.toJson(e)
       case e: FileQuarantined        => Json.toJson(e)
       case e: NoVirusDetected        => Json.toJson(e)
@@ -299,28 +300,25 @@ object EventSerializer {
       case e: EnvelopeRouteRequested => Json.toJson(e)
       case e: EnvelopeRouted         => Json.toJson(e)
       case e: EnvelopeArchived       => Json.toJson(e)
-    }
 
-  val eventWrite: Writes[Event] = new Writes[Event] {
-    def writes(event: Event) = Json.obj(
-      "eventId"   -> event.eventId.value,
-      "streamId"  -> event.streamId.value,
-      "version"   -> event.version.value,
-      "created"   -> event.created.value,
-      "eventType" -> event.eventType.value,
-      "eventData" -> fromEventData(event.eventData)
-    )
-  }
-}
+  val eventWrite: Writes[Event] =
+    (event: Event) =>
+      Json.obj(
+        "eventId"   -> event.eventId.value,
+        "streamId"  -> event.streamId.value,
+        "version"   -> event.version.value,
+        "created"   -> event.created.value,
+        "eventType" -> event.eventType.value,
+        "eventData" -> fromEventData(event.eventData)
+      )
 
-// error
+end EventSerializer
 
 /**
   * This trait allow us to re-publish the events when a conflicting command is encountered.
   */
-trait ConflictingCommand {
+trait ConflictingCommand:
   self: EnvelopeCommandNotAccepted =>
-}
 
 sealed abstract class EnvelopeCommandNotAccepted extends CommandNotAccepted
 
@@ -330,30 +328,39 @@ case object EnvelopeAlreadyCreatedError extends EnvelopeCommandNotAccepted with 
 
 sealed trait EnvelopeInvalidConstraintError extends EnvelopeCommandNotAccepted
 
-case object InvalidMaxSizeConstraintError extends EnvelopeInvalidConstraintError {
+case object InvalidMaxSizeConstraintError extends EnvelopeInvalidConstraintError:
   override def toString = s"constraints.maxSize exceeds maximum allowed value"
-}
 
-case object InvalidMaxSizePerItemConstraintError extends EnvelopeInvalidConstraintError {
+case object InvalidMaxSizePerItemConstraintError extends EnvelopeInvalidConstraintError:
   override def toString = s"constraints.maxSizePerItem exceeds maximum allowed value"
-}
 
-case object InvalidMaxItemCountConstraintError extends EnvelopeInvalidConstraintError {
+case object InvalidMaxItemCountConstraintError extends EnvelopeInvalidConstraintError:
   override def toString = s"constraints.maxItems error"
-}
 
 case object EnvelopeSealedError extends EnvelopeCommandNotAccepted with ConflictingCommand
 
 case object FileWithError extends EnvelopeCommandNotAccepted
 
-case class FilesWithError(fileIds: Seq[FileId]) extends EnvelopeCommandNotAccepted
+case class FilesWithError(
+  fileIds: Seq[FileId]
+) extends EnvelopeCommandNotAccepted
 
-case class EnvelopeItemCountExceededError(allowedItemCount: Int, actualItemCount: Int) extends EnvelopeCommandNotAccepted
-case class EnvelopeMaxSizeExceededError(maxSizeAllowed: Long) extends EnvelopeCommandNotAccepted
+case class EnvelopeItemCountExceededError(
+  allowedItemCount: Int,
+  actualItemCount : Int
+) extends EnvelopeCommandNotAccepted
 
-case class FilesNotAvailableError(fileIds: Seq[FileId]) extends EnvelopeCommandNotAccepted
+case class EnvelopeMaxSizeExceededError(
+  maxSizeAllowed: Long
+) extends EnvelopeCommandNotAccepted
 
-case class FileNameDuplicateError(fileId: FileId) extends EnvelopeCommandNotAccepted
+case class FilesNotAvailableError(
+  fileIds: Seq[FileId]
+) extends EnvelopeCommandNotAccepted
+
+case class FileNameDuplicateError(
+  fileId: FileId
+) extends EnvelopeCommandNotAccepted
 
 case object FileNotFoundError extends EnvelopeCommandNotAccepted
 

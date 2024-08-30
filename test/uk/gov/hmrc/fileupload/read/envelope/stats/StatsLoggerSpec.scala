@@ -16,15 +16,16 @@
 
 package uk.gov.hmrc.fileupload.read.envelope.stats
 
-import java.time.{LocalDateTime, ZoneId}
-import org.mockito.scalatest.MockitoSugar
+import org.mockito.Mockito.verify
 import org.scalatest.concurrent.{Eventually, IntegrationPatience}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.fileupload.read.stats._
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
 import uk.gov.hmrc.mongo.test.{CleanMongoCollectionSupport, MongoSupport}
 
+import java.time.{LocalDateTime, ZoneId}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 
@@ -55,7 +56,7 @@ class StatsLoggerSpec
       val repository = Repository(mongoComponent)
 
       val playLogger = mock[StatsLogWriter]
-      val statsLogger = new StatsLogger(repository, playLogger)
+      val statsLogger = StatsLogger(repository, playLogger)
 
       repository.insert(todayFile1)
       repository.insert(todayFile2)
@@ -73,7 +74,7 @@ class StatsLoggerSpec
       val repository = Repository(mongoComponent)
 
       val playLogger = mock[StatsLogWriter]
-      val statsLogger = new StatsLogger(repository, playLogger)
+      val statsLogger = StatsLogger(repository, playLogger)
 
       repository.insert(todayFile1)
       repository.insert(todayFile2)
@@ -91,7 +92,7 @@ class StatsLoggerSpec
       val repository = Repository(mongoComponent)
 
       val playLogger = mock[StatsLogWriter]
-      val statsLogger = new StatsLogger(repository, playLogger)
+      val statsLogger = StatsLogger(repository, playLogger)
 
       repository.insert(previousFile1)
       repository.insert(previousFile2)
@@ -109,7 +110,7 @@ class StatsLoggerSpec
       val repository = Repository(mongoComponent)
 
       val playLogger = mock[StatsLogWriter]
-      val statsLogger = new StatsLogger(repository, playLogger)
+      val statsLogger = StatsLogger(repository, playLogger)
 
       repository.insert(previousFile1)
       repository.insert(previousFile2)

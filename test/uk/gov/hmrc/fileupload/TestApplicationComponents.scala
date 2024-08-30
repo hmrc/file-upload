@@ -33,7 +33,7 @@ trait TestApplicationComponents
 
   // creates a new application and sets the components
   implicit override lazy val app: Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .configure("metrics.jvm" -> false)
       .build()
 
