@@ -20,7 +20,6 @@ import com.mongodb.{MongoException, ReadPreference}
 import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 import org.apache.pekko.NotUsed
 import org.apache.pekko.stream.scaladsl.Source
-import org.bson.conversions.Bson
 import org.mongodb.scala.{Document, WriteConcern}
 import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.model._
