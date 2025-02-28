@@ -30,6 +30,7 @@ import uk.gov.hmrc.fileupload.write.infrastructure.{CommandAccepted, CommandErro
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
 @Singleton
@@ -98,13 +99,13 @@ class SDESCallbackController @Inject()(
    * if the interface with SDES isn't accurately described or implemented.
    * When we're happy with the API being stable, we can delete this override.
    */
-  override protected def withJsonBody[T](f: T => Future[Result])(implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]): Future[Result] =
+  override protected def withJsonBody[T](f: T => Future[Result])(implicit request: Request[JsValue], ct: ClassTag[T], reads: Reads[T]): Future[Result] =
     Try(request.body.validate[T]) match
       case Success(JsSuccess(payload, _)) =>
         f(payload)
       case Success(JsError(errs)) =>
-        logger.warn(s"Failed to parse ${m.runtimeClass.getSimpleName} payload. Errors: [$errs] Payload: [${request.body}]")
-        Future.successful(BadRequest(s"Invalid ${m.runtimeClass.getSimpleName} payload: $errs"))
+        logger.warn(s"Failed to parse ${ct.runtimeClass.getSimpleName} payload. Errors: [$errs] Payload: [${request.body}]")
+        Future.successful(BadRequest(s"Invalid ${ct.runtimeClass.getSimpleName} payload: $errs"))
       case Failure(e) =>
         logger.warn(s"Completely failed to parse body due to ${e.getMessage}. Payload [${request.body}]")
         Future.successful(BadRequest(s"could not parse body due to ${e.getMessage}"))
