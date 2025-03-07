@@ -144,7 +144,7 @@ class MongoEventStore(
             Aggregates.`match`(Filters.lt("created", cutoff.toEpochMilli)),
             Aggregates.project(BsonDocument("_id" -> 1))
           ))
-          .comment("no-index-required")
+          .comment(BsonDocument("no-index-required"-> true))
           .hint(BsonDocument("$natural" -> 1))
           .allowDiskUse(true)
           .map(_.get[BsonString]("_id").map(s => StreamId(s.getValue)))
