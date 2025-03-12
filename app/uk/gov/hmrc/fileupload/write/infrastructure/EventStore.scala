@@ -25,7 +25,7 @@ import org.mongodb.scala.model._
 import org.mongodb.scala.model.Filters._
 import play.api.Logger
 import uk.gov.hmrc.fileupload.write.infrastructure.EventStore._
-import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.{MongoComponent, MongoComment}
 import uk.gov.hmrc.mongo.MongoUtils.DuplicateKey
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
@@ -144,6 +144,7 @@ class MongoEventStore(
             Aggregates.`match`(Filters.lt("created", cutoff.toEpochMilli)),
             Aggregates.project(BsonDocument("_id" -> 1))
           ))
+          .comment(MongoComment.NoIndexRequired)
           .allowDiskUse(true)
           .map(_.get[BsonString]("_id").map(s => StreamId(s.getValue)))
       .collect { case Some(s) => s }
