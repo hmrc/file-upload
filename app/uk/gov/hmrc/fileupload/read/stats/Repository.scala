@@ -47,8 +47,8 @@ class Repository(
   collectionName = "inprogress-files",
   mongoComponent = mongoComponent,
   domainFormat   = InProgressFile.format,
-  indexes        = IndexModel(Indexes.ascending("envelopeId"), IndexOptions().unique(true)) ::
-                   IndexModel(Indexes.ascending("startedAt"))                               ::
+  indexes        = IndexModel(Indexes.ascending("envelopeId")) ::
+                   IndexModel(Indexes.ascending("startedAt"))  ::
                    Nil
 ) {
 
