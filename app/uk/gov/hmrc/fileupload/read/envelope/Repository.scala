@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.fileupload.read.envelope
 
-import com.mongodb.{MongoException, ReadPreference}
+import com.mongodb.MongoException
 import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 import org.apache.pekko.NotUsed
 import org.apache.pekko.stream.scaladsl.Source
@@ -116,7 +116,6 @@ class Repository(
 
   def getByDestination(maybeDestination: Option[String])(using ExecutionContext): Future[List[Envelope]] =
     collection
-      .withReadPreference(ReadPreference.secondaryPreferred())
       .find(
         and(
           equal("status", EnvelopeStatus.EnvelopeStatusClosed.name),

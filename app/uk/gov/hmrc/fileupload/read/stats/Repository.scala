@@ -16,13 +16,12 @@
 
 package uk.gov.hmrc.fileupload.read.stats
 
-import com.mongodb.ReadPreference
 import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 import org.mongodb.scala.model._
 import org.mongodb.scala.result.DeleteResult
 import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.fileupload.{EnvelopeId, FileId, FileRefId}
-import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.{MongoComponent, MongoComment}
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
 import java.time.Instant
@@ -48,7 +47,9 @@ class Repository(
   collectionName = "inprogress-files",
   mongoComponent = mongoComponent,
   domainFormat   = InProgressFile.format,
-  indexes        = Seq.empty
+  indexes        = IndexModel(Indexes.ascending("envelopeId"), IndexOptions().unique(true)) ::
+                   IndexModel(Indexes.ascending("startedAt"))                               ::
+                   Nil
 ) {
 
   def insert(inProgressFile: InProgressFile): Future[Boolean] =
@@ -70,9 +71,9 @@ class Repository(
 
   def all(): Future[List[InProgressFile]] =
     collection
-      .withReadPreference(ReadPreference.primaryPreferred())
       .find()
       .sort(Sorts.descending("startedAt"))
+      .comment(MongoComment.NoIndexRequired)
       .toFuture().map(_.toList)
 
   def statsAddedSince(start: Instant): Future[Long] =
