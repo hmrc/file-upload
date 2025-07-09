@@ -3,7 +3,7 @@ import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
 import uk.gov.hmrc.DefaultBuildSettings
 
 ThisBuild / majorVersion  := 2
-ThisBuild / scalaVersion  := "3.3.5"
+ThisBuild / scalaVersion  := "3.3.6"
 ThisBuild / scalacOptions += "-Wconf:msg=Flag.*repeatedly:s"
 
 lazy val microservice = Project("file-upload", file("."))
