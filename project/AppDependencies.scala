@@ -4,14 +4,14 @@ import sbt._
 
 private object AppDependencies {
 
-  private val bootstrapPlayVersion = "9.11.0"
+  private val bootstrapPlayVersion = "9.15.0"
   private val mongoVersion         = "2.6.0"
 
   val compile = Seq(
     "uk.gov.hmrc.mongo"      %% "hmrc-mongo-play-30"          % mongoVersion,
     PlayImport.ws,
     "uk.gov.hmrc"            %% "bootstrap-backend-play-30"   % bootstrapPlayVersion,
-    "org.playframework"      %% "play-json-joda"              % "3.0.4",
+    "org.playframework"      %% "play-json-joda"              % "3.0.5",
     "org.typelevel"          %% "cats-core"                   % "2.13.0"
   )
 
